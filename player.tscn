@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bl0ygpvimlusp"]
+
+[ext_resource type="Script" uid="uid://ckf7a7lpsmqr" path="res://player.gd" id="1_onrkg"]
+[ext_resource type="SpriteFrames" uid="uid://qb450ll1wed2" path="res://player_frames.tres" id="2_frames"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_bqfv7"]
+
+[node name="Player" type="CharacterBody2D" unique_id=129841357]
+script = ExtResource("1_onrkg")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1425620678]
+sprite_frames = ExtResource("2_frames")
+animation = &"south"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=806898488]
+shape = SubResource("CircleShape2D_bqfv7")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=113534331]
+zoom = Vector2(0.7, 0.7)
+position_smoothing_enabled = true

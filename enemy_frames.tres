@@ -1,0 +1,161 @@
+[gd_resource type="SpriteFrames" load_steps=30 format=3]
+
+[ext_resource type="Texture2D" uid="uid://hybjyncwbqhh" path="res://homeless directii/running homeless/frames/run_east_0.png" id="e0"]
+[ext_resource type="Texture2D" uid="uid://b8vqvlxvcpvov" path="res://homeless directii/running homeless/frames/run_east_1.png" id="e1"]
+[ext_resource type="Texture2D" uid="uid://dbj527em00cw2" path="res://homeless directii/running homeless/frames/run_east_2.png" id="e2"]
+[ext_resource type="Texture2D" uid="uid://v2m1314x6y6s" path="res://homeless directii/running homeless/frames/run_east_3.png" id="e3"]
+[ext_resource type="Texture2D" uid="uid://cyly0lnuif1nv" path="res://homeless directii/running homeless/frames/run_west_0.png" id="w0"]
+[ext_resource type="Texture2D" uid="uid://c8qjgax1ho2g8" path="res://homeless directii/running homeless/frames/run_west_1.png" id="w1"]
+[ext_resource type="Texture2D" uid="uid://ccitr76d5bnh" path="res://homeless directii/running homeless/frames/run_west_2.png" id="w2"]
+[ext_resource type="Texture2D" uid="uid://81liypr4cdjs" path="res://homeless directii/running homeless/frames/run_west_3.png" id="w3"]
+[ext_resource type="Texture2D" uid="uid://ii0t8u01td8u" path="res://homeless directii/running homeless/frames/run_south_0.png" id="s0"]
+[ext_resource type="Texture2D" uid="uid://bk8rhk5f6okmf" path="res://homeless directii/running homeless/frames/run_south_1.png" id="s1"]
+[ext_resource type="Texture2D" uid="uid://djlvcb1h5h1y2" path="res://homeless directii/running homeless/frames/run_south_2.png" id="s2"]
+[ext_resource type="Texture2D" uid="uid://c05tao5rwcyel" path="res://homeless directii/running homeless/frames/run_south_3.png" id="s3"]
+[ext_resource type="Texture2D" uid="uid://ocgenl166w0o" path="res://homeless directii/running homeless/frames/run_south_east_0.png" id="se0"]
+[ext_resource type="Texture2D" uid="uid://0njeldaowv7k" path="res://homeless directii/running homeless/frames/run_south_east_1.png" id="se1"]
+[ext_resource type="Texture2D" uid="uid://bfgdvf4lmjl4a" path="res://homeless directii/running homeless/frames/run_south_east_2.png" id="se2"]
+[ext_resource type="Texture2D" uid="uid://d0822vasbyp12" path="res://homeless directii/running homeless/frames/run_south_east_3.png" id="se3"]
+[ext_resource type="Texture2D" uid="uid://erppw6o1monl" path="res://homeless directii/running homeless/frames/run_south_west_0.png" id="sw0"]
+[ext_resource type="Texture2D" uid="uid://iydln5cjnxn8" path="res://homeless directii/running homeless/frames/run_south_west_1.png" id="sw1"]
+[ext_resource type="Texture2D" uid="uid://cjl6xs6fuiiw7" path="res://homeless directii/running homeless/frames/run_south_west_2.png" id="sw2"]
+[ext_resource type="Texture2D" uid="uid://caeylema88648" path="res://homeless directii/running homeless/frames/run_south_west_3.png" id="sw3"]
+[ext_resource type="Texture2D" uid="uid://du8h5o5nbem8d" path="res://homeless directii/running homeless/frames/run_north_east_0.png" id="ne0"]
+[ext_resource type="Texture2D" uid="uid://vbh0pw2mpx12" path="res://homeless directii/running homeless/frames/run_north_east_1.png" id="ne1"]
+[ext_resource type="Texture2D" uid="uid://baf0rsqir5re2" path="res://homeless directii/running homeless/frames/run_north_east_2.png" id="ne2"]
+[ext_resource type="Texture2D" uid="uid://boc3briq3opwm" path="res://homeless directii/running homeless/frames/run_north_east_3.png" id="ne3"]
+[ext_resource type="Texture2D" uid="uid://c337ykumv5y1x" path="res://homeless directii/running homeless/frames/run_north_west_0.png" id="nw0"]
+[ext_resource type="Texture2D" uid="uid://cwgri8wgbr27c" path="res://homeless directii/running homeless/frames/run_north_west_1.png" id="nw1"]
+[ext_resource type="Texture2D" uid="uid://dl27mgxbx168y" path="res://homeless directii/running homeless/frames/run_north_west_2.png" id="nw2"]
+[ext_resource type="Texture2D" uid="uid://d0t6umtwp3o8r" path="res://homeless directii/running homeless/frames/run_north_west_3.png" id="nw3"]
+[ext_resource type="Texture2D" uid="uid://ck0fihj82klb5" path="res://homeless directii/homeless directii pe loc/frames/enemy_north.png" id="n0"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("e0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("e1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("e2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("e3")
+}],
+"loop": true,
+"name": &"east",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("n0")
+}],
+"loop": false,
+"name": &"north",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("ne0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ne1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ne2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ne3")
+}],
+"loop": true,
+"name": &"north_east",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("nw0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("nw1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("nw2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("nw3")
+}],
+"loop": true,
+"name": &"north_west",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("s0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s3")
+}],
+"loop": true,
+"name": &"south",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("se0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("se1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("se2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("se3")
+}],
+"loop": true,
+"name": &"south_east",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("sw0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("sw1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("sw2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("sw3")
+}],
+"loop": true,
+"name": &"south_west",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("w0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("w1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("w2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("w3")
+}],
+"loop": true,
+"name": &"west",
+"speed": 8.0
+}]

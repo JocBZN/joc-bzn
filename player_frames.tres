@@ -1,0 +1,125 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://qb450ll1wed2"]
+
+[ext_resource type="Texture2D" uid="uid://dncpa3nr4bwts" path="res://grasu directii/running/frames/east_0.png" id="e0"]
+[ext_resource type="Texture2D" uid="uid://c0064ry8n1eun" path="res://grasu directii/running/frames/east_1.png" id="e1"]
+[ext_resource type="Texture2D" uid="uid://bp8brkrjk4oju" path="res://grasu directii/running/frames/east_2.png" id="e2"]
+[ext_resource type="Texture2D" uid="uid://bk53iwsqrqgnp" path="res://grasu directii/running/frames/east_3.png" id="e3"]
+[ext_resource type="Texture2D" uid="uid://67e3fvjn6ope" path="res://grasu directii/rotations/east.png" id="ie"]
+[ext_resource type="Texture2D" uid="uid://bam4tdeeakom2" path="res://grasu directii/rotations/north.png" id="in"]
+[ext_resource type="Texture2D" uid="uid://dt3m440nqxr0k" path="res://grasu directii/rotations/south.png" id="is"]
+[ext_resource type="Texture2D" uid="uid://cyqd17u6t4hib" path="res://grasu directii/rotations/west.png" id="iw"]
+[ext_resource type="Texture2D" uid="uid://dlpcrtx621l85" path="res://grasu directii/running/frames/north_0.png" id="n0"]
+[ext_resource type="Texture2D" uid="uid://dr4x0qt5o6141" path="res://grasu directii/running/frames/north_1.png" id="n1"]
+[ext_resource type="Texture2D" uid="uid://dvea7acke8m3a" path="res://grasu directii/running/frames/north_2.png" id="n2"]
+[ext_resource type="Texture2D" uid="uid://h13e341metlt" path="res://grasu directii/running/frames/north_3.png" id="n3"]
+[ext_resource type="Texture2D" uid="uid://bd4ffqgxps5ke" path="res://grasu directii/running/frames/south_0.png" id="s0"]
+[ext_resource type="Texture2D" uid="uid://cyxki7n5jd5c7" path="res://grasu directii/running/frames/south_1.png" id="s1"]
+[ext_resource type="Texture2D" uid="uid://e710dcikeb66" path="res://grasu directii/running/frames/south_2.png" id="s2"]
+[ext_resource type="Texture2D" uid="uid://cagbc2iy87tp7" path="res://grasu directii/running/frames/south_3.png" id="s3"]
+[ext_resource type="Texture2D" uid="uid://b2in8i7gqopd1" path="res://grasu directii/running/frames/west_0.png" id="w0"]
+[ext_resource type="Texture2D" uid="uid://gyk1tu1ksj4a" path="res://grasu directii/running/frames/west_1.png" id="w1"]
+[ext_resource type="Texture2D" uid="uid://i5jl1ogdidql" path="res://grasu directii/running/frames/west_2.png" id="w2"]
+[ext_resource type="Texture2D" uid="uid://dmefcivcnrwnv" path="res://grasu directii/running/frames/west_3.png" id="w3"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("e0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("e1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("e2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("e3")
+}],
+"loop": 1,
+"name": &"east",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("ie")
+}],
+"loop": 0,
+"name": &"idle_east",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("in")
+}],
+"loop": 0,
+"name": &"idle_north",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("is")
+}],
+"loop": 0,
+"name": &"idle_south",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("iw")
+}],
+"loop": 0,
+"name": &"idle_west",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("n0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("n1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("n2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("n3")
+}],
+"loop": 1,
+"name": &"north",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("s0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("s3")
+}],
+"loop": 1,
+"name": &"south",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("w0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("w1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("w2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("w3")
+}],
+"loop": 1,
+"name": &"west",
+"speed": 8.0
+}]

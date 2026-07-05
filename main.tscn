@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://ddr8q0k4fwmyb"]
+
+[ext_resource type="PackedScene" uid="uid://bl0ygpvimlusp" path="res://player.tscn" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://dytw6pnhppsdy" path="res://spawner.gd" id="3_h2yge"]
+[ext_resource type="Texture2D" uid="uid://dpeidilwepxvu" path="res://harta/grass-alternative-3.png" id="4_grass"]
+[ext_resource type="Script" uid="uid://bqxw3rdbusbsa" path="res://ground.gd" id="5_ground"]
+[ext_resource type="Script" uid="uid://c7lgyxyavuoiq" path="res://props.gd" id="6_props"]
+
+[node name="Main" type="Node2D" unique_id=1097822204]
+position = Vector2(1, 0)
+
+[node name="Ground" type="Sprite2D" parent="." unique_id=1618503151]
+texture_repeat = 2
+texture = ExtResource("4_grass")
+region_enabled = true
+region_rect = Rect2(0, 0, 8192, 8192)
+script = ExtResource("5_ground")
+
+[node name="Props" type="Node2D" parent="." unique_id=1885660433]
+script = ExtResource("6_props")
+
+[node name="Player" parent="." unique_id=129841357 instance=ExtResource("2_0xm2m")]
+scale = Vector2(2, 2)
+
+[node name="Spawner" type="Node" parent="." unique_id=2047437493]
+script = ExtResource("3_h2yge")
