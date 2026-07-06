@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://cgtprvpcgv3cd"]
 
 [ext_resource type="Script" uid="uid://cc437sro6odat" path="res://bullet.gd" id="1_v8qja"]
-[ext_resource type="Texture2D" uid="uid://b5yieo64chd6" path="res://bullet.png" id="2_t4vbm"]
+[ext_resource type="Texture2D" uid="uid://w07srtdcmniw" path="res://bullets/bullet1.png" id="2_t4vbm"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_2qvju"]
 
@@ -10,7 +10,7 @@ scale = Vector2(0.1, 0.1)
 script = ExtResource("1_v8qja")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=22978743]
-scale = Vector2(0.3, 0.3)
+scale = Vector2(1.4, 1.4)
 texture = ExtResource("2_t4vbm")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=266290058]

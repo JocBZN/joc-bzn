@@ -7,6 +7,8 @@
 [ext_resource type="Script" uid="uid://c7lgyxyavuoiq" path="res://props.gd" id="6_props"]
 [ext_resource type="Script" uid="uid://6h1rh0y6ky7r" path="res://hud.gd" id="7_hud"]
 [ext_resource type="Script" uid="uid://dpt30y1utae0t" path="res://levelup.gd" id="8_levelup"]
+[ext_resource type="Script" uid="uid://8nc8hcu2le1g" path="res://gameover.gd" id="9_gameover"]
+[ext_resource type="Script" uid="uid://cc1xvb48auo54" path="res://atmosphere.gd" id="10_atmo"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -39,3 +41,9 @@ script = ExtResource("7_hud")
 
 [node name="LevelUp" type="CanvasLayer" parent="." unique_id=1043180815]
 script = ExtResource("8_levelup")
+
+[node name="Gameover" type="CanvasLayer" parent="." unique_id=1793925544]
+script = ExtResource("9_gameover")
+
+[node name="Atmosphere" type="Node" parent="."]
+script = ExtResource("10_atmo")

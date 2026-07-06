@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://c5xqp2m4r8t3e"]
+
+[ext_resource type="Script" uid="uid://bg1jnp2r31hkv" path="res://xp.gd" id="1_xp"]
+[ext_resource type="Texture2D" uid="uid://mpcr0vvmi0fn" path="res://xp/xp2.png" id="2_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 36.0
+
+[node name="XP2" type="Area2D"]
+script = ExtResource("1_xp")
+value = 10
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.14, 0.14)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
