@@ -18,6 +18,7 @@ var UPGRADES := [
 	{"id": "foite",     "nume": "Foițe OCB", "icon": "upgrade_7.png", "desc": "+250 Viteză glonț"},
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "desc": "-15% XP pt nivel"},
 	{"id": "bere_doza", "nume": "Bere doză", "icon": "upgrade_9.png", "desc": "+60 Viață acum"},
+	{"id": "gloante_paralele", "nume": "Gloanțe paralele", "icon": "res://bullets/bullet1.png", "desc": "+1 glonț paralel"},
 ]
 
 var _buttons := []
@@ -105,7 +106,10 @@ func _show_choices() -> void:
 	_current = pool.slice(0, 3)  # primele 3 după amestecare = 3 alese la întâmplare
 	for i in 3:
 		var u = _current[i]
-		_buttons[i].icon = load(ICON_DIR + u["icon"])
+		var icon_path: String = u["icon"]
+		if not icon_path.begins_with("res://"):
+			icon_path = ICON_DIR + icon_path   # numele scurte se caută în Upgrades/; căile res:// se folosesc direct
+		_buttons[i].icon = load(icon_path)
 		_buttons[i].tooltip_text = u["nume"]
 		_name_labels[i].text = u["nume"]
 		_desc_labels[i].text = u["desc"]
@@ -158,3 +162,6 @@ func _apply(id: String, p) -> void:
 		"bere_doza":
 			# refresh rapid: vindecare instant mare
 			p.hp = min(p.max_hp, p.hp + 60)
+		"gloante_paralele":
+			# încă un glonț paralel (1 → 2 → 3 ...)
+			p.bullet_count += 1

@@ -11,13 +11,14 @@ config_version=5
 [application]
 
 config/name="JOC-BZN-Mobile"
-run/main_scene="uid://bl0ygpvimlusp"
+run/main_scene="res://menu.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Difficulty="*res://difficulty.gd"
+GameSettings="*res://game_settings.gd"
 
 [display]
 

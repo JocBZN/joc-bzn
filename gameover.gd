@@ -57,8 +57,16 @@ func _ready() -> void:
 	btn.pressed.connect(_on_restart)
 	box.add_child(btn)
 
+	var menu_btn := Button.new()
+	menu_btn.text = "MENIU"
+	menu_btn.custom_minimum_size = Vector2(240, 50)
+	menu_btn.add_theme_font_size_override("font_size", 20)
+	menu_btn.pressed.connect(_on_menu)
+	box.add_child(menu_btn)
+
 # Chemată de player.die() când rămâi fără viață.
 func show_gameover(secunde: float, nivel: int) -> void:
+	GameSettings.add_score(secunde, nivel)  # salvează în leaderboard
 	var m := int(secunde) / 60
 	var s := int(secunde) % 60
 	time_label.text = "Supraviețuit: %d:%02d" % [m, s]
@@ -69,3 +77,7 @@ func show_gameover(secunde: float, nivel: int) -> void:
 func _on_restart() -> void:
 	get_tree().paused = false
 	get_tree().reload_current_scene()
+
+func _on_menu() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://menu.tscn")

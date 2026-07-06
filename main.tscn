@@ -26,9 +26,6 @@ y_sort_enabled = true
 [node name="Props" type="Node2D" parent="World" unique_id=1885660433]
 y_sort_enabled = true
 script = ExtResource("6_props")
-hitbox_vertical = 0.6
-hitbox_south = -0.5
-hitbox_west = -0.2
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)
