@@ -22,20 +22,22 @@ A mobile **survivors-like** (bullet-heaven) game — think *Vampire Survivors* /
 All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 
 - **`main.tscn`** — the game world (root `Node2D` "Main"):
-  - `Grid` (Node2D + `grid.gd`) — draws a neon-cyan grid background via `_draw()`.
-  - `Player` — an instance of `player.tscn`.
-  - `Spawner` (Node + `spawner.gd`) — a Timer that instances enemies on a circle around the player.
-  - `HUD` (CanvasLayer + `hud.gd`) — screen-fixed UI holding the health bar. *(being wired up — see Current state)*
+  - `Ground` (Sprite2D + `ground.gd`) — the infinite repeating grass that follows the player.
+  - `World` (Node2D, `y_sort_enabled`) — depth-sorted container holding `Props` (trees), `Player`, and (added at runtime) the enemies, so they overlap correctly by depth.
+  - `Spawner` (Node + `spawner.gd`) — a Timer that instances enemies around the player (into `World`).
+  - `HUD` (CanvasLayer + `hud.gd`) — screen-fixed UI: health bar + XP bar + level, all built in code.
+  - `LevelUp` (CanvasLayer + `levelup.gd`) — the level-up choice screen (3-of-9 icon upgrades); pauses the game.
 - **`player.tscn`** (`CharacterBody2D` + `player.gd`) — has Sprite2D, CollisionShape2D, Camera2D. Handles arrow-key movement, auto-fire at nearest enemy (Timer), HP + a contact-damage tick, and death (currently `reload_current_scene()`).
 - **`enemy.tscn`** (`CharacterBody2D` + `enemy.gd`) — chases the player, has HP, `take_damage()`, dies via `queue_free()`.
 - **`bullet.tscn`** (`Area2D` + `bullet.gd`) — flies in a direction, on `body_entered` damages bodies in group `"enemy"`, self-destructs after `lifetime`.
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
-## Current state (2026-07-05)
-- ✅ **Working:** player movement + follow camera · neon grid background · enemy chase AI · automatic spawner · player auto-fire + projectiles · enemy HP + death · player HP + contact damage · death restarts the scene.
-- 🚧 **In progress:** the **HUD health bar**. `hud.gd` exists and expects a `HUD` CanvasLayer containing a `ProgressBar` named **exactly `HealthBar`**; that node is being added to `main.tscn`.
-- ⬜ **Next:** XP pickups from dead enemies → XP bar → level up → **item/upgrade choice screen** · time-based difficulty scaling · cyberpunk art & sound · on-screen touch joystick · Android export · a proper **Game Over** screen (death currently just reloads).
+## Current state (2026-07-06)
+- ✅ **Working:** player movement + follow camera · infinite grass world · procedural trees with collision · **Y-sort depth** (trees cover you when you walk behind them) · enemy chase AI · automatic spawner · player auto-fire + projectiles · enemy HP + death · player HP + contact damage.
+- ✅ **HUD** (`hud.gd`, built in code): red health bar (top-left) + cyan XP bar (bottom) + "Nivel N" label.
+- ✅ **XP / leveling:** enemies grant XP on death → XP bar fills → **level up pauses the game and shows a 3-of-9 upgrade choice** as icon buttons (`levelup.gd`). Upgrade *effects* are placeholders for now (to be themed to the drug/drink icons).
+- ⬜ **Next:** theme the upgrade effects · time-based difficulty scaling · cyberpunk art & sound · on-screen touch joystick · Android export · a proper **Game Over** screen (death currently just reloads).
 
 ## How to run
 Open the project in **Godot 4.7**, press **Run Project** (▶ / F5). Main scene is `main.tscn`. Move with the **arrow keys**; the player auto-fires. Touch controls come in a later milestone — for now, test on desktop.
@@ -50,4 +52,4 @@ The owner (**Răzvan**) is a **complete beginner** — first game ever, first ti
 - **Be concrete about the Godot UI:** exact panels, buttons, and node names. They don't know the interface from memory yet.
 - **Node names are load-bearing:** scripts reference children by exact name (e.g. `hud.gd` needs a child `ProgressBar` named `HealthBar`).
 
-**Roadmap (survivors-like):** 1) movable player ✅ · 2) chasing enemy ✅ · 3) spawner ✅ · 4) auto-attack + enemy death ✅ · 5) HP + health bar 🚧 · 6) XP + level up + item choice ⬜ · 7) difficulty scaling ⬜ · 8) cyberpunk art/sound ⬜ · 9) Android export + touch controls ⬜.
+**Roadmap (survivors-like):** 1) movable player ✅ · 2) chasing enemy ✅ · 3) spawner ✅ · 4) auto-attack + enemy death ✅ · 5) HP + health bar ✅ · 6) XP + level up + item choice ✅ · 7) difficulty scaling ⬜ · 8) cyberpunk art/sound ⬜ · 9) Android export + touch controls ⬜.

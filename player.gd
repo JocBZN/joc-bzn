@@ -7,6 +7,7 @@ const DIRECTII := ["east", "south", "west", "north"]  # 0=dreapta 1=jos 2=stâng
 
 @export var speed: float = 300.0
 @export var fire_interval: float = 0.5
+@export var bullet_damage: int = 10  # cât rău fac gloanțele (crește la level up)
 
 @export var max_hp: int = 100
 @export var contact_range: float = 60.0
@@ -14,7 +15,13 @@ const DIRECTII := ["east", "south", "west", "north"]  # 0=dreapta 1=jos 2=stâng
 @export var damage_interval: float = 0.5
 var hp: int
 
+# --- XP / nivel ---
+@export var xp_to_next: int = 20  # cât XP îți trebuie pentru nivelul următor
+var xp: int = 0
+var level: int = 1
+
 var ultima_directie := "south"  # ultima direcție în care s-a uitat (pentru poza de stat pe loc)
+var fire_timer: Timer           # îl ținem ca variabilă ca să-i putem schimba viteza la level up
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -22,7 +29,7 @@ func _ready() -> void:
 	add_to_group("player")
 	hp = max_hp
 	anim.play("idle_south")  # pornim stând pe loc, uitându-ne în jos
-	var fire_timer := Timer.new()
+	fire_timer = Timer.new()
 	fire_timer.wait_time = fire_interval
 	fire_timer.timeout.connect(_fire)
 	add_child(fire_timer)
@@ -56,6 +63,7 @@ func _fire() -> void:
 	var bullet := BULLET.instantiate()
 	get_parent().add_child(bullet)
 	bullet.global_position = global_position
+	bullet.damage = bullet_damage  # glonțul face cât damage are player-ul acum
 	bullet.direction = (target.global_position - global_position).normalized()
 
 func _nearest_enemy() -> Node2D:
@@ -87,3 +95,27 @@ func take_damage(amount: int) -> void:
 
 func die() -> void:
 	get_tree().reload_current_scene()
+
+func gain_xp(amount: int) -> void:
+	xp += amount
+	# while (nu if) ca să prindem și cazul în care un salt mare de XP trece peste mai multe niveluri deodată
+	while xp >= xp_to_next:
+		xp -= xp_to_next
+		_level_up()
+
+func _level_up() -> void:
+	level += 1
+	xp_to_next = int(xp_to_next * 1.2)  # pragul crește cu 20% la fiecare nivel
+	# deschide ecranul de alegere (1 din 3); jocul se pune pe pauză până alegi
+	var menu := get_tree().get_first_node_in_group("levelup_menu")
+	if menu != null:
+		menu.open()
+
+# --- îmbunătățiri aplicate de ecranul de level up ---
+func upgrade_max_hp(amount: int) -> void:
+	max_hp += amount
+	hp += amount  # te și vindecă cu cât ai crescut viața maximă
+
+func upgrade_fire_rate(factor: float) -> void:
+	fire_interval *= factor              # factor < 1 → pauză mai mică între trageri = tragi mai des
+	fire_timer.wait_time = fire_interval

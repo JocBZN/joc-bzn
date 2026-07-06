@@ -5,6 +5,8 @@
 [ext_resource type="Texture2D" uid="uid://dpeidilwepxvu" path="res://harta/grass-alternative-3.png" id="4_grass"]
 [ext_resource type="Script" uid="uid://bqxw3rdbusbsa" path="res://ground.gd" id="5_ground"]
 [ext_resource type="Script" uid="uid://c7lgyxyavuoiq" path="res://props.gd" id="6_props"]
+[ext_resource type="Script" uid="uid://6h1rh0y6ky7r" path="res://hud.gd" id="7_hud"]
+[ext_resource type="Script" uid="uid://dpt30y1utae0t" path="res://levelup.gd" id="8_levelup"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -16,11 +18,24 @@ region_enabled = true
 region_rect = Rect2(0, 0, 8192, 8192)
 script = ExtResource("5_ground")
 
-[node name="Props" type="Node2D" parent="." unique_id=1885660433]
-script = ExtResource("6_props")
+[node name="World" type="Node2D" parent="." unique_id=533536178]
+y_sort_enabled = true
 
-[node name="Player" parent="." unique_id=129841357 instance=ExtResource("2_0xm2m")]
+[node name="Props" type="Node2D" parent="World" unique_id=1885660433]
+y_sort_enabled = true
+script = ExtResource("6_props")
+hitbox_vertical = 0.6
+hitbox_south = -0.5
+hitbox_west = -0.2
+
+[node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)
 
 [node name="Spawner" type="Node" parent="." unique_id=2047437493]
 script = ExtResource("3_h2yge")
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=312917518]
+script = ExtResource("7_hud")
+
+[node name="LevelUp" type="CanvasLayer" parent="." unique_id=1043180815]
+script = ExtResource("8_levelup")

@@ -5,6 +5,7 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 
 @export var speed: float = 120.0
 @export var max_hp: int = 30
+@export var xp_value: int = 5  # cât XP dă player-ului când moare
 var hp: int
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
@@ -28,4 +29,7 @@ func _physics_process(delta: float) -> void:
 func take_damage(amount: int) -> void:
 	hp -= amount
 	if hp <= 0:
+		var player := get_tree().get_first_node_in_group("player")
+		if player != null:
+			player.gain_xp(xp_value)  # dă XP înainte să dispară
 		queue_free()
