@@ -11,6 +11,12 @@ func _ready() -> void:
 	time_left = lifetime
 	body_entered.connect(_on_body_entered)
 
+# Sprite-ul glonțului e desenat cu vârful spre NORD (sus). Îl rotim ca vârful să
+# arate spre direcția de zbor (spre inamic). +PI/2 fiindcă „sus" înseamnă -90° față de axa X.
+func set_direction(new_dir: Vector2) -> void:
+	direction = new_dir
+	rotation = new_dir.angle() + PI / 2.0
+
 func _physics_process(delta: float) -> void:
 	global_position += direction * speed * delta
 	time_left -= delta

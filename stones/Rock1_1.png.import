@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqbu75xb8t1vs"
-path="res://.godot/imported/upgrade_1.png-737f9aaa99b9121627f47c584f3402d9.ctex"
+uid="uid://drdesmx7dm3oe"
+path="res://.godot/imported/Rock1_1.png-56fcaf07aef3f7d570e9c924957a0b54.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Upgrades/upgrade_1.png"
-dest_files=["res://.godot/imported/upgrade_1.png-737f9aaa99b9121627f47c584f3402d9.ctex"]
+source_file="res://stones/Rock1_1.png"
+dest_files=["res://.godot/imported/Rock1_1.png-56fcaf07aef3f7d570e9c924957a0b54.ctex"]
 
 [params]
 

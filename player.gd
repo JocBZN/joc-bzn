@@ -82,7 +82,7 @@ func _fire() -> void:
 		bullet.global_position = global_position + perp * offset
 		bullet.damage = bullet_damage  # glonțul face cât damage are player-ul acum
 		bullet.speed = bullet_speed    # și zboară cu viteza curentă a player-ului
-		bullet.direction = dir
+		bullet.set_direction(dir)      # setează direcția ȘI rotește glonțul cu fața spre inamic
 
 func _nearest_enemy() -> Node2D:
 	var nearest: Node2D = null

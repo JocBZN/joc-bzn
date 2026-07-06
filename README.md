@@ -23,7 +23,8 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 
 - **`main.tscn`** — the game world (root `Node2D` "Main"):
   - `Ground` (Sprite2D + `ground.gd`) — the infinite repeating grass that follows the player.
-  - `World` (Node2D, `y_sort_enabled`) — depth-sorted container holding `Props` (trees), `Player`, and (added at runtime) the enemies, so they overlap correctly by depth.
+  - `World` (Node2D, `y_sort_enabled`) — depth-sorted container holding `Props` (trees), `Rocks` (stones), `Player`, and (added at runtime) the enemies, so they overlap correctly by depth.
+  - `Props` (`props.gd`) / `Rocks` (`rocks.gd`) — chunk-based procedural, deterministic spawners (infinite). Rectangle hitboxes with per-side tuning (`hitbox_north/south/east/west`), `sort_anchor`, `min_gap_hitboxes` (min spacing). Nothing spawns in desert biome (`BiomeMap.is_desert_chunk`).
   - `Spawner` (Node + `spawner.gd`) — a Timer that instances enemies around the player (into `World`).
   - `HUD` (CanvasLayer + `hud.gd`) — screen-fixed UI: health bar + XP bar + level, all built in code.
   - `LevelUp` (CanvasLayer + `levelup.gd`) — the level-up choice screen (3-of-9 icon upgrades); pauses the game.
@@ -33,11 +34,12 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
-## Current state (2026-07-06)
-- ✅ **Working:** player movement + follow camera · infinite grass world · procedural trees with collision · **Y-sort depth** (trees cover you when you walk behind them) · enemy chase AI · automatic spawner · player auto-fire + projectiles · enemy HP + death · player HP + contact damage.
+## Current state (2026-07-07)
+- ✅ **Working:** player movement + follow camera · infinite world · procedural **trees + rocks** with collision (rectangle hitboxes, per-side tuning, min spacing) · **Y-sort depth** (props cover you when you walk behind them) · enemy chase AI · automatic spawner · player auto-fire + projectiles that **face the target** · enemy HP + death · player HP + contact damage.
+- ✅ **Biomes:** grass + **desert**, generated as random square patches (side 6–20 chunks) via a shared deterministic map (`biome_map.gd` / `BiomeMap`), rendered with a soft-blend shader (`biome.gdshader`). Trees & rocks don't spawn in desert.
 - ✅ **HUD** (`hud.gd`, built in code): red health bar (top-left) + cyan XP bar (bottom) + "Nivel N" label.
-- ✅ **XP / leveling:** enemies grant XP on death → XP bar fills → **level up pauses the game and shows a 3-of-9 upgrade choice** as icon buttons (`levelup.gd`). Upgrade *effects* are placeholders for now (to be themed to the drug/drink icons).
-- ⬜ **Next:** theme the upgrade effects · time-based difficulty scaling · cyberpunk art & sound · on-screen touch joystick · Android export · a proper **Game Over** screen (death currently just reloads).
+- ✅ **XP / leveling:** enemies grant XP on death → XP bar fills → **level up pauses the game and shows a 3-of-9 upgrade choice** as icon buttons (`levelup.gd`), with thematic drug/drink effects.
+- ⬜ **Next:** cyberpunk art & sound · on-screen touch joystick · Android export.
 
 ## How to run
 Open the project in **Godot 4.7**, press **Run Project** (▶ / F5). Main scene is `main.tscn`. Move with the **arrow keys**; the player auto-fires. Touch controls come in a later milestone — for now, test on desktop.

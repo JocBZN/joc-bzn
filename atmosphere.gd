@@ -17,8 +17,10 @@ var _light: PointLight2D
 var _player: Node2D
 
 func _ready() -> void:
-	_setup_night()
-	_setup_light()
+	# „Lumină normală": am scos NOAPTEA (CanvasModulate întuneca tot) și LUMINA de pe player (PointLight2D).
+	# Lumea rămâne luminată normal. (Dacă vrei înapoi noaptea cyberpunk, decomentează cele două linii.)
+	#_setup_night()
+	#_setup_light()
 	_setup_vignette()
 	_setup_glow()
 

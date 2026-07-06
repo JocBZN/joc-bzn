@@ -9,6 +9,7 @@
 [ext_resource type="Script" uid="uid://dpt30y1utae0t" path="res://levelup.gd" id="8_levelup"]
 [ext_resource type="Script" uid="uid://8nc8hcu2le1g" path="res://gameover.gd" id="9_gameover"]
 [ext_resource type="Script" uid="uid://cc1xvb48auo54" path="res://atmosphere.gd" id="10_atmo"]
+[ext_resource type="Script" uid="uid://cetplbjamrhjs" path="res://rocks.gd" id="11_rocks"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -26,6 +27,18 @@ y_sort_enabled = true
 [node name="Props" type="Node2D" parent="World" unique_id=1885660433]
 y_sort_enabled = true
 script = ExtResource("6_props")
+hitbox_north = -0.1
+hitbox_south = -0.5
+hitbox_east = 0.1
+hitbox_west = -0.3
+
+[node name="Rocks" type="Node2D" parent="World" unique_id=771294055]
+y_sort_enabled = true
+script = ExtResource("11_rocks")
+rock_scale = 2.0
+hitbox_north = 0.8
+hitbox_south = -0.5
+sort_anchor = 0.8
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)
@@ -42,5 +55,5 @@ script = ExtResource("8_levelup")
 [node name="Gameover" type="CanvasLayer" parent="." unique_id=1793925544]
 script = ExtResource("9_gameover")
 
-[node name="Atmosphere" type="Node" parent="."]
+[node name="Atmosphere" type="Node" parent="." unique_id=494741935]
 script = ExtResource("10_atmo")
