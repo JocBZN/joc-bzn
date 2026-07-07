@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://bsbou5krx65c7"]
+
+[ext_resource type="Script" uid="uid://cst4tuesummon1" path="res://statue.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://bbo0i8g8idqyt" path="res://harta/statue.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_statue"]
+size = Vector2(130, 60)
+
+[node name="Statue" type="StaticBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(3, 3)
+texture = ExtResource("2_tex")
+offset = Vector2(0, -45.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -30)
+shape = SubResource("RectangleShape2D_statue")

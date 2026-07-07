@@ -31,6 +31,10 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - **`player.tscn`** (`CharacterBody2D` + `player.gd`) — has Sprite2D, CollisionShape2D, Camera2D. Handles arrow-key movement, auto-fire at nearest enemy (Timer), HP + a contact-damage tick, and death (currently `reload_current_scene()`).
 - **`enemy.tscn`** (`CharacterBody2D` + `enemy.gd`) — chases the player, has HP, `take_damage()`, dies via `queue_free()`.
 - **`bullet.tscn`** (`Area2D` + `bullet.gd`) — flies in a direction, on `body_entered` damages bodies in group `"enemy"`, self-destructs after `lifetime`.
+- **`statue.tscn`** (`StaticBody2D` + `statue.gd`) — an interactive world statue with a **visually-editable** collision box. When the player is near, a small **"Summon"** button appears. Pressing it plays a one-shot sequence: alert symbol → statue **sinks into the ground** (its collision disables) → **screen shake** (camera-offset earthquake) → a **boss rises slowly from the ground**. All timings/offsets are `@export`.
+- **`garda.tscn`** (`CharacterBody2D` + `garda.gd`) — the **"Garda" boss**, spawned *only* by the statue's Summon. Slower and much tankier than a normal enemy, walks toward the player using **8-directional** animations, and **throws lightning balls** from range on a cooldown. Static `garda_0.png` shows while it's rising; the walk animation kicks in once it moves.
+- **`lightning.tscn`** (`Area2D` + `lightning.gd`) — the boss's ranged projectile: a violet lightning ball with a **circle hitbox**, flies toward the player, and only damages group `"player"` (`take_damage`). Made extra visible via slow frames + `modulate > 1` (glow).
+- **Boss art** lives in `boss/` (walk GIFs split into `walk_<dir>_<i>.png` frames + the lightning-burst frames); the alert symbol in `Upgrades/symbol_alert_002_large_red/`. New GIFs are split to PNG with PowerShell + `System.Drawing`; **open the project in Godot once to import new PNGs** before they render (art is loaded at runtime with `load()`).
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
@@ -39,6 +43,7 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - ✅ **Biomes:** grass + **desert**, generated as random square patches (side 6–20 chunks) via a shared deterministic map (`biome_map.gd` / `BiomeMap`), rendered with a soft-blend shader (`biome.gdshader`). Trees & rocks don't spawn in desert.
 - ✅ **HUD** (`hud.gd`, built in code): red health bar (top-left) + cyan XP bar (bottom) + "Nivel N" label.
 - ✅ **XP / leveling:** enemies grant XP on death → XP bar fills → **level up pauses the game and shows a 3-of-9 upgrade choice** as icon buttons (`levelup.gd`), with thematic drug/drink effects.
+- ✅ **Interactive statue + boss summon:** a world statue with a **"Summon"** button → sink-into-ground animation + **screen shake** → the **"Garda" boss** rises from the ground (8-directional walk) and **throws lightning-ball projectiles** (circle hitbox, glow) at the player from range.
 - ⬜ **Next:** cyberpunk art & sound · on-screen touch joystick · Android export.
 
 ## How to run

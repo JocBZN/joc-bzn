@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://8nc8hcu2le1g" path="res://gameover.gd" id="9_gameover"]
 [ext_resource type="Script" uid="uid://cc1xvb48auo54" path="res://atmosphere.gd" id="10_atmo"]
 [ext_resource type="Script" uid="uid://cetplbjamrhjs" path="res://rocks.gd" id="11_rocks"]
+[ext_resource type="PackedScene" uid="uid://bsbou5krx65c7" path="res://statue.tscn" id="12_statue"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -39,6 +40,10 @@ rock_scale = 2.0
 hitbox_north = 0.8
 hitbox_south = -0.5
 sort_anchor = 0.8
+
+[node name="Statue" parent="World" unique_id=86867322 instance=ExtResource("12_statue")]
+position = Vector2(0, -220)
+enemy_spawn_offset = Vector2(0, -140.415)
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)
