@@ -19,6 +19,10 @@ var UPGRADES := [
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "desc": "-15% XP pt nivel"},
 	{"id": "bere_doza", "nume": "Bere doză", "icon": "upgrade_9.png", "desc": "+60 Viață acum"},
 	{"id": "gloante_paralele", "nume": "Gloanțe paralele", "icon": "res://bullets/bullet1.png", "desc": "+1 glonț paralel"},
+	{"id": "strapungere", "nume": "Foraj", "icon": "res://bullets/bullet2.png", "desc": "Gloanțele trec prin +1 inamic"},
+	{"id": "critic", "nume": "Adrenalină", "icon": "upgrade_3.png", "desc": "+15% șansă damage dublu"},
+	{"id": "glont_mare", "nume": "Doză dublă", "icon": "res://bullets/bullet3.png", "desc": "Gloanțe mai mari · +5 damage"},
+	{"id": "recul", "nume": "Croșeu", "icon": "upgrade_5.png", "desc": "Gloanțele împing inamicii înapoi"},
 ]
 
 var _buttons := []
@@ -165,3 +169,16 @@ func _apply(id: String, p) -> void:
 		"gloante_paralele":
 			# încă un glonț paralel (1 → 2 → 3 ...)
 			p.bullet_count += 1
+		"strapungere":
+			# glonțul trece prin încă un inamic înainte să dispară
+			p.pierce += 1
+		"critic":
+			# +15% șansă de damage dublu (plafonat la 100%)
+			p.crit_chance = min(1.0, p.crit_chance + 0.15)
+		"glont_mare":
+			# gloanțe mai mari (hitbox + sprite) și puțin mai puternice
+			p.bullet_scale += 0.3
+			p.bullet_damage += 5
+		"recul":
+			# gloanțele împing inamicii înapoi
+			p.knockback += 250.0

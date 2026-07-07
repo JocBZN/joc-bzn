@@ -12,6 +12,13 @@ const DIRECTII := ["east", "south", "west", "north"]  # 0=dreapta 1=jos 2=stâng
 @export var bullet_count: int = 1          # câte gloanțe paralele tragi odată (+1 la fiecare bonus)
 @export var bullet_spacing: float = 26.0   # distanța dintre gloanțele paralele
 
+# --- upgrade-uri de armă ---
+@export var crit_chance: float = 0.0       # șansa (0..1) ca o lovitură să fie critică
+@export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
+@export var pierce: int = 0                # prin câți inamici trece glonțul
+@export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
+@export var knockback: float = 0.0         # cât împinge inamicul înapoi
+
 @export var max_hp: int = 100
 @export var contact_range: float = 60.0
 @export var contact_damage: int = 5
@@ -28,7 +35,14 @@ var dead := false  # ca să nu declanșăm Game Over de mai multe ori
 var ultima_directie := "south"  # ultima direcție în care s-a uitat (pentru poza de stat pe loc)
 var fire_timer: Timer           # îl ținem ca variabilă ca să-i putem schimba viteza la level up
 
+# --- Screen shake (tremurat de cameră, ex. la lovitură critică) ---
+@export var shake_decay: float = 4.0   # cât de repede se liniștește tremuratul
+@export var shake_max: float = 16.0    # amplitudinea maximă (pixeli)
+var _trauma: float = 0.0               # 0 = liniște, 1 = tremurat maxim
+var _shaking: bool = false             # controlăm camera DOAR cât tremurăm (ca să nu ne batem cu statuia)
+
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
+@onready var _cam: Camera2D = $Camera2D
 
 func _ready() -> void:
 	add_to_group("player")
@@ -55,6 +69,22 @@ func _ready() -> void:
 	add_child(regen_timer)
 	regen_timer.start()
 
+# Adaugă „traumă" (tremurat). Se cheamă de ex. la lovitură critică.
+func add_shake(amount: float) -> void:
+	_trauma = min(1.0, _trauma + amount)
+
+func _process(delta: float) -> void:
+	if _cam == null:
+		return
+	if _trauma > 0.0:
+		_shaking = true
+		_trauma = max(0.0, _trauma - shake_decay * delta)
+		var amt := _trauma * _trauma  # pătrat = tremurat mai natural (mai brusc, se stinge lin)
+		_cam.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake_max * amt
+	elif _shaking:
+		_shaking = false
+		_cam.offset = Vector2.ZERO  # gata tremuratul: readucem camera o dată, apoi n-o mai atingem
+
 func _physics_process(delta: float) -> void:
 	var directie := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	velocity = directie * speed
@@ -74,15 +104,28 @@ func _fire() -> void:
 	if target == null:
 		return
 	var dir := (target.global_position - global_position).normalized()
+	Audio.play("shoot", -6.0)  # sunet de tragere (puțin mai încet ca să nu obosească)
+	Fx.muzzle(global_position + dir * 34.0)  # fulger la gura armei, spre inamic
 	var perp := Vector2(-dir.y, dir.x)  # perpendicular pe direcție → gloanțele stau unul lângă altul (paralele)
+	var any_crit := false
 	for i in bullet_count:
 		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing  # centrate față de player
 		var bullet := bullet_scene.instantiate()
 		get_parent().add_child(bullet)
 		bullet.global_position = global_position + perp * offset
-		bullet.damage = bullet_damage  # glonțul face cât damage are player-ul acum
-		bullet.speed = bullet_speed    # și zboară cu viteza curentă a player-ului
+		# critic: aruncăm zarul o dată per glonț; dacă iese, damage × crit_mult
+		var is_crit := randf() < crit_chance
+		if is_crit:
+			any_crit = true
+		bullet.damage = int(bullet_damage * crit_mult) if is_crit else bullet_damage
+		bullet.is_crit = is_crit
+		bullet.speed = bullet_speed    # zboară cu viteza curentă a player-ului
+		bullet.pierce = pierce         # prin câți inamici trece
+		bullet.knockback = knockback   # cât împinge inamicul
+		bullet.scale *= bullet_scale   # mărimea glonțului (sprite + hitbox)
 		bullet.set_direction(dir)      # setează direcția ȘI rotește glonțul cu fața spre inamic
+	if any_crit:
+		add_shake(0.35)  # tremurat scurt la lovitură critică
 
 func _nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
@@ -111,6 +154,7 @@ func _regen() -> void:
 
 func take_damage(amount: int) -> void:
 	hp -= amount
+	Audio.play("hurt", -3.0)  # player lovit
 	if hp <= 0:
 		hp = 0
 		die()
@@ -134,6 +178,7 @@ func gain_xp(amount: int) -> void:
 
 func _level_up() -> void:
 	level += 1
+	Audio.play("levelup")  # jingle de nivel nou
 	xp_to_next = int(xp_to_next * 1.2)  # pragul crește cu 20% la fiecare nivel
 	var menu := get_tree().get_first_node_in_group("levelup_menu")
 	if menu != null:

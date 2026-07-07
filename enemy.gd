@@ -5,8 +5,10 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 
 @export var speed: float = 120.0
 @export var max_hp: int = 30
+@export var knockback_decay: float = 900.0  # cât de repede se stinge împinsul (px/s pe secundă)
 var hp: int
 var _dying := false
+var _knockback := Vector2.ZERO  # împins temporar de gloanțe
 var _flash_tween: Tween
 
 # Scenele de XP (le încărcăm doar dacă există deja, ca să nu dea eroare)
@@ -33,11 +35,16 @@ func _physics_process(delta: float) -> void:
 	if player == null:
 		return
 	var directie := (player.global_position - global_position).normalized()
-	velocity = directie * speed
+	velocity = directie * speed + _knockback  # mers spre player + eventualul împins de la gloanțe
 	move_and_slide()
+	_knockback = _knockback.move_toward(Vector2.ZERO, knockback_decay * delta)  # împinsul scade rapid la 0
 	# angle() = unghiul spre player (0 = est, crește în sensul acelor de ceas) → octant 0..7
 	var idx := wrapi(int(round(directie.angle() / (PI / 4.0))), 0, 8)
 	anim.play(DIRECTII[idx])
+
+# Chemată de glonț când are knockback: împinge inamicul pe direcția glonțului.
+func apply_knockback(v: Vector2) -> void:
+	_knockback = v
 
 func take_damage(amount: int) -> void:
 	if _dying:
@@ -46,6 +53,7 @@ func take_damage(amount: int) -> void:
 	if hp <= 0:
 		_die()
 	else:
+		Audio.play("hit", -8.0)  # lovitură (scurt, mai încet — se aude des)
 		_flash()  # sclipire albă scurtă la fiecare lovitură
 
 func _flash() -> void:
@@ -57,6 +65,7 @@ func _flash() -> void:
 
 func _die() -> void:
 	_dying = true
+	Audio.play("enemy_die", -5.0)  # inamic mort
 	remove_from_group("enemy")  # nu mai e țintă și nu mai face damage cât se stinge
 	_drop_xp()
 	# animație de moarte: se umflă și se stinge, apoi dispare

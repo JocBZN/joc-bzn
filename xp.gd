@@ -39,6 +39,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	if body.is_in_group("player"):
 		_collected = true
+		Audio.play("xp", -6.0)  # blip la adunat XP
 		body.gain_xp(value)
 		_pop()
 

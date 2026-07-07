@@ -19,6 +19,8 @@ config/icon="res://icon.svg"
 
 Difficulty="*res://difficulty.gd"
 GameSettings="*res://game_settings.gd"
+Audio="*res://audio.gd"
+Fx="*res://fx.gd"
 
 [display]
 

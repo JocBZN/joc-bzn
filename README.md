@@ -44,7 +44,10 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - ✅ **HUD** (`hud.gd`, built in code): red health bar (top-left) + cyan XP bar (bottom) + "Nivel N" label.
 - ✅ **XP / leveling:** enemies grant XP on death → XP bar fills → **level up pauses the game and shows a 3-of-9 upgrade choice** as icon buttons (`levelup.gd`), with thematic drug/drink effects.
 - ✅ **Interactive statue + boss summon:** a world statue with a **"Summon"** button → sink-into-ground animation + **screen shake** → the **"Garda" boss** rises from the ground (8-directional walk) and **throws lightning-ball projectiles** (circle hitbox, glow) at the player from range.
-- ⬜ **Next:** cyberpunk art & sound · on-screen touch joystick · Android export.
+- ✅ **Sound:** a global audio manager (`audio.gd`, autoload **`Audio`**) with a pooled `Audio.play("name")` API + 6 code-generated retro SFX in `audio/` (shoot, hit, enemy death, XP pickup, level up, player hurt), wired into player/enemy/xp.
+- ✅ **Weapon upgrades & juice:** an effects workshop (`fx.gd`, autoload **`Fx`**) — muzzle flash, impact sparks (`CPUParticles2D`), floating damage numbers (crit = big yellow), all code-generated. New weapon stats: **crit** (double damage), **pierce** (bullets pass through enemies), **bullet size**, **knockback** (pushes enemies back). Four new level-up choices (Foraj/Adrenalină/Doză dublă/Croșeu) drive them; works on all 3 bullets. **Screen shake** on crit (trauma-based camera shake in `player.gd`).
+- ✅ **Waves + background music:** the `Spawner` is now a **wave manager** — each wave spawns normal enemies for a while, then a **boss** (`garda.tscn`); killing it starts the next, harder wave. On-screen banners announce "VALUL N" / "BOSS!" / "VALUL N TERMINAT" (`hud.announce`). Difficulty now scales by **wave** (`Difficulty.wave`), not time. Looping **background music** (`audio/music.wav`, code-generated) via `Audio.play_music()`.
+- ⬜ **Next:** cyberpunk art polish · on-screen touch joystick · Android export.
 
 ## How to run
 Open the project in **Godot 4.7**, press **Run Project** (▶ / F5). Main scene is `main.tscn`. Move with the **arrow keys**; the player auto-fires. Touch controls come in a later milestone — for now, test on desktop.
