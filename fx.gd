@@ -10,6 +10,10 @@ extends Node
 
 var _glow_tex: GradientTexture2D    # un cerc moale alb→transparent, refolosit pentru glow
 var _add_mat: CanvasItemMaterial    # material "additive" = luminile se adună → efect de strălucire
+var _boom_frames: SpriteFrames      # cadrele exploziei (Jean's Bomb), construite o singură dată
+
+const EXPLOSION_DIR := "res://Upgrades/explozie_animatie/"
+const EXPLOSION_FRAME_COUNT := 9
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -78,6 +82,33 @@ func impact(pos: Vector2, color: Color = Color(0.6, 1.0, 1.0)) -> void:
 	p.emitting = true
 	# îl ștergem după ce s-a stins
 	get_tree().create_timer(0.6).timeout.connect(p.queue_free)
+
+# --- explozie AOE (Jean's Bomb): animația de explozie la poziția dată, scalată pe rază ---
+func explosion(pos: Vector2, radius: float = 96.0) -> void:
+	var w := _world()
+	if w == null:
+		return
+	# construim cadrele o singură dată și le refolosim
+	if _boom_frames == null:
+		_boom_frames = SpriteFrames.new()
+		_boom_frames.set_animation_speed("default", 24.0)
+		_boom_frames.set_animation_loop("default", false)
+		for i in EXPLOSION_FRAME_COUNT:
+			var tex := load("%sframe%04d.png" % [EXPLOSION_DIR, i]) as Texture2D
+			if tex != null:
+				_boom_frames.add_frame("default", tex)
+	if _boom_frames.get_frame_count("default") == 0:
+		_boom_frames = null  # nu-s importate încă — reîncercăm data viitoare
+		return
+	var anim := AnimatedSprite2D.new()
+	anim.sprite_frames = _boom_frames
+	anim.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	anim.z_index = 70
+	anim.scale = Vector2.ONE * (radius * 2.0 / 96.0)  # cadru 96px → diametru = 2×raza
+	w.add_child(anim)
+	anim.global_position = pos
+	anim.play("default")
+	anim.animation_finished.connect(anim.queue_free)
 
 # --- număr de damage care sare în sus și se stinge ---
 func damage_number(pos: Vector2, amount: int, crit: bool = false) -> void:

@@ -116,4 +116,4 @@ func _process(_delta: float) -> void:
 	health_bar.value = player.hp
 	xp_bar.max_value = player.xp_to_next
 	xp_bar.value = player.xp
-	level_label.text = "Nivel " + str(player.level)
+	level_label.text = "Level " + str(player.level)

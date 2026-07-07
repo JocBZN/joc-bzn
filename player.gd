@@ -1,9 +1,11 @@
 extends CharacterBody2D
 
 var bullet_scene: PackedScene = preload("res://bullet.tscn")  # glonțul curent (se schimbă la unele upgrade-uri)
+const FIRE_TRAIL := preload("res://firetrail.gd")  # băltoaca de foc lăsată de Firewalker
 
-# Numele animațiilor, pe sferturi de cerc (vezi _update_anim).
-const DIRECTII := ["east", "south", "west", "north"]  # 0=dreapta 1=jos 2=stânga 3=sus
+# Numele animațiilor, pe optimi de cerc (vezi _update_anim).
+# Ordinea urmează unghiul crescător (y în jos): E, SE, S, SV, V, NV, N, NE.
+const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 
 @export var speed: float = 300.0
 @export var fire_interval: float = 0.5
@@ -18,6 +20,11 @@ const DIRECTII := ["east", "south", "west", "north"]  # 0=dreapta 1=jos 2=stâng
 @export var pierce: int = 0                # prin câți inamici trece glonțul
 @export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
 @export var knockback: float = 0.0         # cât împinge inamicul înapoi
+@export var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără) — Jean's Bomb
+@export var explosion_damage: int = 0      # cât damage face explozia AOE
+@export var fire_trail_time: float = 0.0   # cât rămâne dâra de foc pe jos (0 = fără) — Firewalker
+@export var fire_trail_damage: int = 0     # damage pe tick al dârei de foc
+@export var fire_trail_size: float = 0.0   # lățimea focului în px (crește cu fiecare upgrade)
 
 @export var max_hp: int = 100
 @export var contact_range: float = 60.0
@@ -68,6 +75,12 @@ func _ready() -> void:
 	regen_timer.timeout.connect(_regen)
 	add_child(regen_timer)
 	regen_timer.start()
+	# timer pentru dâra de foc (Firewalker): lasă o băltoacă cât timp mergi
+	var trail_timer := Timer.new()
+	trail_timer.wait_time = 0.18
+	trail_timer.timeout.connect(_drop_fire)
+	add_child(trail_timer)
+	trail_timer.start()
 
 # Adaugă „traumă" (tremurat). Se cheamă de ex. la lovitură critică.
 func add_shake(amount: float) -> void:
@@ -92,12 +105,23 @@ func _physics_process(delta: float) -> void:
 	if directie != Vector2.ZERO:
 		_update_anim(directie)
 	else:
-		anim.play("idle_" + ultima_directie)  # stă pe loc: poza statică pe ultima direcție
+		var idle_nume := "idle_" + ultima_directie  # stă pe loc: poza statică pe ultima direcție
+		if anim.animation != idle_nume:
+			anim.play(idle_nume)
 
 func _update_anim(directie: Vector2) -> void:
-	var cadran := wrapi(int(round(directie.angle() / (PI / 2.0))), 0, 4)
+	var cadran := wrapi(int(round(directie.angle() / (PI / 4.0))), 0, 8)
 	ultima_directie = DIRECTII[cadran]
-	anim.play(ultima_directie)
+	# Schimbăm animația DOAR când chiar diferă. Altfel, lângă granița dintre două
+	# direcții (mai ales cu stick analog), play() ar reseta cadrul la 0 în fiecare
+	# frame și animația de alergat ar părea înghețată.
+	if anim.animation != ultima_directie:
+		# păstrăm cadrul + progresul, ca pasul de alergare să curgă, nu să sară la 0
+		# (toate animațiile de alergat au același număr de cadre)
+		var cadru := anim.frame
+		var progres := anim.frame_progress
+		anim.play(ultima_directie)
+		anim.set_frame_and_progress(cadru, progres)
 
 func _fire() -> void:
 	var target := _nearest_enemy()
@@ -122,6 +146,8 @@ func _fire() -> void:
 		bullet.speed = bullet_speed    # zboară cu viteza curentă a player-ului
 		bullet.pierce = pierce         # prin câți inamici trece
 		bullet.knockback = knockback   # cât împinge inamicul
+		bullet.explosion_radius = explosion_radius  # explozie AOE la impact (Jean's Bomb)
+		bullet.explosion_damage = explosion_damage
 		bullet.scale *= bullet_scale   # mărimea glonțului (sprite + hitbox)
 		bullet.set_direction(dir)      # setează direcția ȘI rotește glonțul cu fața spre inamic
 	if any_crit:
@@ -151,6 +177,18 @@ func _take_contact_damage() -> void:
 func _regen() -> void:
 	if hp_regen > 0 and hp > 0:
 		hp = min(max_hp, hp + hp_regen)
+
+# Firewalker: lasă o băltoacă de foc pe jos cât timp player-ul se mișcă.
+func _drop_fire() -> void:
+	if fire_trail_time <= 0.0 or velocity.length() < 5.0:
+		return
+	var patch := FIRE_TRAIL.new()
+	patch.duration = fire_trail_time     # cât rămâne (crește cu fiecare upgrade)
+	patch.damage = fire_trail_damage
+	patch.size = fire_trail_size         # mărimea (crește cu fiecare upgrade)
+	patch.direction = velocity.normalized()  # focul se orientează în direcția de mers
+	get_parent().add_child(patch)        # în World (y-sort). Nodul e putin DEASUPRA player-ului →
+	patch.global_position = global_position - Vector2(0, 4)  # e desenat în SPATE, iar vizualul e coborât la picioare în firetrail.gd
 
 func take_damage(amount: int) -> void:
 	hp -= amount

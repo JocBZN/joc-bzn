@@ -29,7 +29,7 @@ func _ready() -> void:
 	center.add_child(box)
 
 	var title := Label.new()
-	title.text = "AI MURIT"
+	title.text = "YOU DIED"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 48)
 	title.add_theme_color_override("font_color", Color(1.0, 0.2, 0.25))
@@ -51,14 +51,14 @@ func _ready() -> void:
 	box.add_child(spacer)
 
 	var btn := Button.new()
-	btn.text = "JOACĂ DIN NOU"
+	btn.text = "PLAY AGAIN"
 	btn.custom_minimum_size = Vector2(240, 60)
 	btn.add_theme_font_size_override("font_size", 22)
 	btn.pressed.connect(_on_restart)
 	box.add_child(btn)
 
 	var menu_btn := Button.new()
-	menu_btn.text = "MENIU"
+	menu_btn.text = "MENU"
 	menu_btn.custom_minimum_size = Vector2(240, 50)
 	menu_btn.add_theme_font_size_override("font_size", 20)
 	menu_btn.pressed.connect(_on_menu)
@@ -69,8 +69,8 @@ func show_gameover(secunde: float, nivel: int) -> void:
 	GameSettings.add_score(secunde, nivel)  # salvează în leaderboard
 	var m := int(secunde) / 60
 	var s := int(secunde) % 60
-	time_label.text = "Supraviețuit: %d:%02d" % [m, s]
-	level_label.text = "Nivel atins: %d" % nivel
+	time_label.text = "Survived: %d:%02d" % [m, s]
+	level_label.text = "Level reached: %d" % nivel
 	visible = true
 	get_tree().paused = true
 

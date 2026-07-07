@@ -1,31 +1,48 @@
 extends CanvasLayer
 
-# Ecranul de LEVEL UP: la creșterea în nivel pune jocul pe PAUZĂ și arată 3 îmbunătățiri
-# (alese aleatoriu din cele 9). Dai click pe una → se aplică pe player → jocul repornește.
-# Fiecare buton are ICOANA (din Upgrades/) + numele + stat-ul scris dedesubt.
-# Efectele sunt tematice pe substanță. Cocaina schimbă glonțul pe bullet2, Stroh pe bullet3.
+# Ecranul de LEVEL UP (stil Megabonk): la creșterea în nivel pune jocul pe PAUZĂ și
+# arată 3 îmbunătățiri alese aleatoriu, ca o LISTĂ verticală în stânga panoului `Menu.png`.
+# Fiecare rând = iconița pusă în border-ul RARITĂȚII + nume (colorat pe raritate) + stat.
+# Dai click pe un rând → efectul se aplică pe player (vezi _apply) → jocul repornește.
 
 const ICON_DIR := "res://Upgrades/"
+const MENU_UI_DIR := "res://Upgrades/Menu UI/"
 
-# "desc" = textul cu stat-ul, afișat sub icoană. Efectul e în _apply().
+# Raritatea dă border-ul, numele afișat și culoarea textului.
+# Culorile sunt luate EXACT din border-urile PNG (nuanța dominantă a fiecăruia).
+const RARITIES := {
+	"common":    {"border": "Border Common.png",    "nume": "Common",    "color": Color8(66, 75, 109)},
+	"uncommon":  {"border": "Border Uncommon.png",  "nume": "Uncommon",  "color": Color8(131, 139, 165)},
+	"rare":      {"border": "Border Rare.png",      "nume": "Rare",      "color": Color8(58, 160, 76)},
+	"epic":      {"border": "Border Epic.png",      "nume": "Epic",      "color": Color8(122, 22, 225)},
+	"legendary": {"border": "Border Legendary.png", "nume": "Legendary", "color": Color8(236, 114, 103)},
+}
+
+# "desc" = statul afișat sub nume. "rar" = raritatea (border + culoare). Efectul e în _apply().
 var UPGRADES := [
-	{"id": "cocaina",   "nume": "Cocaină",   "icon": "upgrade_1.png", "desc": "Glonț 2 · +viteză · +cadență"},
-	{"id": "iarba",     "nume": "Iarbă",     "icon": "upgrade_2.png", "desc": "+3 HP/sec & vindecă 30"},
-	{"id": "seringa",   "nume": "Seringă",   "icon": "upgrade_3.png", "desc": "+12 Damage gloanțe"},
-	{"id": "bere",      "nume": "Bere",      "icon": "upgrade_4.png", "desc": "+35 Viață maximă"},
-	{"id": "vodca",     "nume": "Vodcă",     "icon": "upgrade_5.png", "desc": "-3 Damage primit"},
-	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "desc": "Glonț 3 foc · +damage · +cadență"},
-	{"id": "foite",     "nume": "Foițe OCB", "icon": "upgrade_7.png", "desc": "+250 Viteză glonț"},
-	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "desc": "-15% XP pt nivel"},
-	{"id": "bere_doza", "nume": "Bere doză", "icon": "upgrade_9.png", "desc": "+60 Viață acum"},
-	{"id": "gloante_paralele", "nume": "Gloanțe paralele", "icon": "res://bullets/bullet1.png", "desc": "+1 glonț paralel"},
-	{"id": "strapungere", "nume": "Foraj", "icon": "res://bullets/bullet2.png", "desc": "Gloanțele trec prin +1 inamic"},
-	{"id": "critic", "nume": "Adrenalină", "icon": "upgrade_3.png", "desc": "+15% șansă damage dublu"},
-	{"id": "glont_mare", "nume": "Doză dublă", "icon": "res://bullets/bullet3.png", "desc": "Gloanțe mai mari · +5 damage"},
-	{"id": "recul", "nume": "Croșeu", "icon": "upgrade_5.png", "desc": "Gloanțele împing inamicii înapoi"},
+	{"id": "cocaina",   "nume": "Cocaine",   "icon": "upgrade_1.png", "rar": "epic",      "desc": "Bullet 2 · +speed · +fire rate"},
+	{"id": "iarba",     "nume": "Weed",      "icon": "upgrade_2.png", "rar": "common",    "desc": "+3 HP/sec & heal 30"},
+	{"id": "seringa",   "nume": "Syringe",   "icon": "upgrade_3.png", "rar": "uncommon",  "desc": "+12 Bullet damage"},
+	{"id": "bere",      "nume": "Beer",      "icon": "upgrade_4.png", "rar": "common",    "desc": "+35 Max health"},
+	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "-3 Damage taken"},
+	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "Bullet 3 fire · +damage · +fire rate"},
+	{"id": "foite",     "nume": "OCB Papers", "icon": "upgrade_7.png", "rar": "common",   "desc": "+250 Bullet speed"},
+	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "rare",      "desc": "-15% XP to level"},
+	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
+	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
+	{"id": "gloante_paralele", "nume": "Parallel Bullets", "icon": "res://bullets/bullet1.png", "rar": "legendary", "desc": "+1 parallel bullet"},
+	{"id": "strapungere", "nume": "Drill", "icon": "res://bullets/bullet2.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
+	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% chance of double damage"},
+	{"id": "glont_mare", "nume": "Double Dose", "icon": "res://bullets/bullet3.png", "rar": "uncommon", "desc": "Bigger bullets · +5 damage"},
+	{"id": "recul", "nume": "Hook", "icon": "upgrade_5.png", "rar": "uncommon", "desc": "Bullets knock enemies back"},
 ]
 
+const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
+
 var _buttons := []
+var _borders := []      # TextureRect cu border-ul rarității
+var _icons := []        # TextureRect cu iconița upgrade-ului (peste border)
+var _rar_labels := []   # eticheta cu raritatea (colorată exact ca border-ul)
 var _name_labels := []
 var _desc_labels := []
 var _current := []   # cele 3 upgrade-uri afișate acum
@@ -37,66 +54,158 @@ func _ready() -> void:
 	layer = 10                               # deasupra HUD-ului
 	visible = false
 
-	# fundal întunecat peste tot ecranul
+	# fundal întunecat peste tot ecranul — gri spre negru
 	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.6)
+	overlay.color = Color(0.12, 0.12, 0.14, 0.9)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 
-	# container care centrează totul pe ecran
+	# container care centrează panoul pe ecran
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 
+	# panoul ornat (Menu.png) ca ramă care se întinde curat (nine-patch)
+	var panel := NinePatchRect.new()
+	panel.texture = load(MENU_UI_DIR + "Menu.png")
+	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	panel.patch_margin_left = 46
+	panel.patch_margin_right = 46
+	panel.patch_margin_top = 46
+	panel.patch_margin_bottom = 46
+	panel.custom_minimum_size = Vector2(680, 580)
+	center.add_child(panel)
+
+	# marginile interioare, ca să stăm în interiorul ramei
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 46)
+	margin.add_theme_constant_override("margin_right", 46)
+	margin.add_theme_constant_override("margin_top", 44)
+	margin.add_theme_constant_override("margin_bottom", 44)
+	panel.add_child(margin)
+
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 20)
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(box)
+	box.add_theme_constant_override("separation", 16)
+	box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	margin.add_child(box)
 
 	var title := Label.new()
-	title.text = "LEVEL UP!  Alege:"
+	title.text = "LEVEL UP!  Choose:"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(0.2, 0.9, 1.0))
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))  # auriu ca rama
+	_add_outline(title)
 	box.add_child(title)
 
-	# rând orizontal cu 3 sloturi (fiecare = icoană + nume + stat)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 24)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(row)
+	# împinge lista ~50px spre dreapta (titlul rămâne centrat)
+	var list_margin := MarginContainer.new()
+	list_margin.add_theme_constant_override("margin_left", 50)
+	box.add_child(list_margin)
+
+	# lista verticală de sloturi (fiecare = border+iconiță | raritate + nume + stat)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 12)
+	list_margin.add_child(list)
 
 	for i in 3:
-		var slot := VBoxContainer.new()
-		slot.add_theme_constant_override("separation", 6)
-		slot.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_child(slot)
+		list.add_child(_make_row(i))
 
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(150, 150)
-		b.expand_icon = true                          # icoana se micșorează ca să încapă în buton
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.pressed.connect(_on_choice.bind(i))
-		slot.add_child(b)
-		_buttons.append(b)
+# Construiește un rând-buton: [border cu iconiță]  [nume / stat]. Salvează referințele.
+func _make_row(i: int) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(0, CELL + 8)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.flat = true
+	# fără chrome de buton normal; doar un highlight discret la hover/apăsare/focus
+	b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("hover", _hover_box(0.10))
+	b.add_theme_stylebox_override("pressed", _hover_box(0.18))
+	b.add_theme_stylebox_override("focus", _hover_box(0.08))
+	b.pressed.connect(_on_choice.bind(i))
+	_buttons.append(b)
 
-		# numele item-ului (alb, sub icoană)
-		var name_lbl := Label.new()
-		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_lbl.custom_minimum_size = Vector2(160, 0)
-		name_lbl.add_theme_font_size_override("font_size", 18)
-		slot.add_child(name_lbl)
-		_name_labels.append(name_lbl)
+	# conținutul stă peste buton; îi lăsăm click-ul să treacă la buton (mouse ignore)
+	var hb := HBoxContainer.new()
+	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hb.add_theme_constant_override("separation", 14)
+	hb.alignment = BoxContainer.ALIGNMENT_BEGIN
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(hb)
 
-		# stat-ul oferit (verde, sub nume)
-		var desc_lbl := Label.new()
-		desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		desc_lbl.custom_minimum_size = Vector2(160, 0)
-		desc_lbl.add_theme_font_size_override("font_size", 15)
-		desc_lbl.add_theme_color_override("font_color", Color(0.55, 1.0, 0.65))
-		slot.add_child(desc_lbl)
-		_desc_labels.append(desc_lbl)
+	# celula cu border + iconiță
+	var cell := Control.new()
+	cell.custom_minimum_size = Vector2(CELL, CELL)
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(cell)
+
+	var border := TextureRect.new()
+	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	border.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	border.stretch_mode = TextureRect.STRETCH_SCALE
+	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(border)
+	_borders.append(border)
+
+	var icon := TextureRect.new()
+	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# marginile lasă iconița în „fereastra" din interiorul ramei
+	icon.offset_left = 16
+	icon.offset_top = 16
+	icon.offset_right = -16
+	icon.offset_bottom = -16
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(icon)
+	_icons.append(icon)
+
+	# textul: nume (colorat pe raritate) + stat (verde)
+	var text := VBoxContainer.new()
+	text.alignment = BoxContainer.ALIGNMENT_CENTER
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(text)
+
+	# raritatea (mic, sus), colorată exact ca border-ul
+	var rar_lbl := Label.new()
+	rar_lbl.add_theme_font_size_override("font_size", 17)
+	rar_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(rar_lbl)
+	text.add_child(rar_lbl)
+	_rar_labels.append(rar_lbl)
+
+	var name_lbl := Label.new()
+	name_lbl.add_theme_font_size_override("font_size", 26)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(name_lbl)
+	text.add_child(name_lbl)
+	_name_labels.append(name_lbl)
+
+	var desc_lbl := Label.new()
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_lbl.add_theme_font_size_override("font_size", 19)
+	desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(desc_lbl)
+	text.add_child(desc_lbl)
+	_desc_labels.append(desc_lbl)
+
+	return b
+
+# contur negru de 2px pe text, ca să se citească pe orice fundal
+func _add_outline(lbl: Label) -> void:
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	lbl.add_theme_constant_override("outline_size", 2)
+
+# highlight semi-transparent, colțuri rotunjite (pentru hover/pressed/focus)
+func _hover_box(alpha: float) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(1, 1, 1, alpha)
+	sb.set_corner_radius_all(8)
+	return sb
 
 # Chemată de player (player.gd -> _level_up) la fiecare creștere în nivel.
 func open() -> void:
@@ -110,10 +219,19 @@ func _show_choices() -> void:
 	_current = pool.slice(0, 3)  # primele 3 după amestecare = 3 alese la întâmplare
 	for i in 3:
 		var u = _current[i]
+		# iconița
 		var icon_path: String = u["icon"]
 		if not icon_path.begins_with("res://"):
 			icon_path = ICON_DIR + icon_path   # numele scurte se caută în Upgrades/; căile res:// se folosesc direct
-		_buttons[i].icon = load(icon_path)
+		_icons[i].texture = load(icon_path)
+		# border-ul + raritatea, cu culoarea EXACTĂ luată din border
+		var rar = RARITIES.get(u.get("rar", "common"), RARITIES["common"])
+		_borders[i].texture = load(MENU_UI_DIR + rar["border"])
+		_rar_labels[i].text = rar["nume"]
+		_rar_labels[i].add_theme_color_override("font_color", rar["color"])
+		_name_labels[i].add_theme_color_override("font_color", rar["color"])
+		_desc_labels[i].add_theme_color_override("font_color", rar["color"])
+		# textele
 		_buttons[i].tooltip_text = u["nume"]
 		_name_labels[i].text = u["nume"]
 		_desc_labels[i].text = u["desc"]
@@ -163,9 +281,20 @@ func _apply(id: String, p) -> void:
 		"grinder":
 			# eficiență: nivelezi mai repede (îți trebuie mai puțin XP)
 			p.xp_to_next = max(5, int(p.xp_to_next * 0.85))
-		"bere_doza":
-			# refresh rapid: vindecare instant mare
-			p.hp = min(p.max_hp, p.hp + 60)
+		"jean_bomb":
+			# LEGENDAR: +20 damage și gloanțele explodează AOE la impact
+			p.bullet_damage += 20
+			p.explosion_radius = 130.0
+			p.explosion_damage = 25
+		"firewalker":
+			# lasă o dâră de foc când mergi; fiecare upgrade o ține mai mult și mai mare
+			if p.fire_trail_time <= 0.0:
+				p.fire_trail_time = 1.0    # prima dată: rămâne 1 secundă
+				p.fire_trail_damage = 5
+				p.fire_trail_size = 80.0   # mărimea de bază a focului (px)
+			else:
+				p.fire_trail_time += 1.0   # fiecare upgrade suplimentar: +1 secundă
+				p.fire_trail_size += 5.0   # și +5px la mărime
 		"gloante_paralele":
 			# încă un glonț paralel (1 → 2 → 3 ...)
 			p.bullet_count += 1

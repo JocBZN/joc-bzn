@@ -63,16 +63,16 @@ func _start_wave() -> void:
 	_state = State.SPAWNING
 	_wave_time = wave_duration
 	Difficulty.wave = _wave_number()
-	_announce("VALUL %d" % _wave_number(), "Pregătește-te!")
+	_announce("WAVE %d" % _wave_number(), "Get ready!")
 	Audio.play("levelup")  # mic fanfaron la începutul valului
 
 func _start_boss() -> void:
 	_state = State.BOSS
-	_announce("BOSS!", "Învinge-l ca să treci mai departe")
+	_announce("BOSS!", "Defeat it to move on")
 	_boss = _spawn_boss()
 
 func _wave_cleared() -> void:
-	_announce("VALUL %d TERMINAT" % _wave_number(), "Următorul val începe...")
+	_announce("WAVE %d CLEARED" % _wave_number(), "Next wave starting...")
 	_boss = null
 	_wave = _wave_number() + 1  # trecem la valul următor
 	_start_break(break_duration)

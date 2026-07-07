@@ -1,5 +1,7 @@
 extends Area2D
 
+const EXPLOSION_KNOCKBACK := 500.0  # cât de tare suflă explozia inamicii în afară (Jean's Bomb)
+
 @export var speed: float = 700.0
 @export var damage: int = 10
 @export var lifetime: float = 2.0
@@ -8,6 +10,8 @@ extends Area2D
 var pierce: int = 0        # prin câți inamici trece înainte să dispară (0 = se oprește la primul)
 var knockback: float = 0.0 # cât de tare împinge inamicul înapoi
 var is_crit: bool = false  # dacă lovitura e critică (pentru numărul galben)
+var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără explozie) — Jean's Bomb
+var explosion_damage: int = 0      # cât damage face explozia asupra inamicilor din rază
 
 var direction: Vector2 = Vector2.RIGHT
 var time_left: float
@@ -39,7 +43,27 @@ func _on_body_entered(body: Node) -> void:
 		# împinge inamicul înapoi, dacă avem knockback
 		if knockback > 0.0 and body.has_method("apply_knockback"):
 			body.apply_knockback(direction * knockback)
+		# Jean's Bomb: explozie AOE la impact
+		if explosion_radius > 0.0:
+			_explode()
 		# străpungere: dispare doar după ce a lovit (pierce + 1) inamici
 		_hits += 1
 		if _hits > pierce:
 			queue_free()
+
+# Explozie AOE (Jean's Bomb): animația de explozie + damage tuturor inamicilor din rază.
+func _explode() -> void:
+	Fx.explosion(global_position, explosion_radius)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var enemy := e as Node2D
+		if enemy == null:
+			continue
+		if global_position.distance_to(enemy.global_position) <= explosion_radius:
+			enemy.take_damage(explosion_damage)
+			Fx.damage_number(enemy.global_position, explosion_damage)
+			# suflă inamicul în afara exploziei → curăță spațiul din jurul player-ului
+			if enemy.has_method("apply_knockback"):
+				var push := (enemy.global_position - global_position).normalized()
+				if push == Vector2.ZERO:
+					push = Vector2.RIGHT  # inamic fix în centru: alegem o direcție oarecare
+				enemy.apply_knockback(push * EXPLOSION_KNOCKBACK)

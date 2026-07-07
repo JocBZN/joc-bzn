@@ -20,6 +20,22 @@
 [ext_resource type="Texture2D" uid="uid://gyk1tu1ksj4a" path="res://grasu directii/running/frames/west_1.png" id="w1"]
 [ext_resource type="Texture2D" uid="uid://i5jl1ogdidql" path="res://grasu directii/running/frames/west_2.png" id="w2"]
 [ext_resource type="Texture2D" uid="uid://dmefcivcnrwnv" path="res://grasu directii/running/frames/west_3.png" id="w3"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_east_0.png" id="ne0"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_east_1.png" id="ne1"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_east_2.png" id="ne2"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_east_3.png" id="ne3"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_west_0.png" id="nw0"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_west_1.png" id="nw1"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_west_2.png" id="nw2"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/north_west_3.png" id="nw3"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_east_0.png" id="se0"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_east_1.png" id="se1"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_east_2.png" id="se2"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_east_3.png" id="se3"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_west_0.png" id="sw0"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_west_1.png" id="sw1"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_west_2.png" id="sw2"]
+[ext_resource type="Texture2D" path="res://grasu directii/running/frames/south_west_3.png" id="sw3"]
 
 [resource]
 animations = [{
@@ -50,6 +66,22 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": ExtResource("ne0")
+}],
+"loop": 0,
+"name": &"idle_north_east",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("nw0")
+}],
+"loop": 0,
+"name": &"idle_north_west",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": ExtResource("in")
 }],
 "loop": 0,
@@ -62,6 +94,22 @@ animations = [{
 }],
 "loop": 0,
 "name": &"idle_south",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("se0")
+}],
+"loop": 0,
+"name": &"idle_south_east",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("sw0")
+}],
+"loop": 0,
+"name": &"idle_south_west",
 "speed": 5.0
 }, {
 "frames": [{
@@ -91,6 +139,40 @@ animations = [{
 }, {
 "frames": [{
 "duration": 1.0,
+"texture": ExtResource("ne0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ne1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ne2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("ne3")
+}],
+"loop": 1,
+"name": &"north_east",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("nw0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("nw1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("nw2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("nw3")
+}],
+"loop": 1,
+"name": &"north_west",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
 "texture": ExtResource("s0")
 }, {
 "duration": 1.0,
@@ -104,6 +186,40 @@ animations = [{
 }],
 "loop": 1,
 "name": &"south",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("se0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("se1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("se2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("se3")
+}],
+"loop": 1,
+"name": &"south_east",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("sw0")
+}, {
+"duration": 1.0,
+"texture": ExtResource("sw1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("sw2")
+}, {
+"duration": 1.0,
+"texture": ExtResource("sw3")
+}],
+"loop": 1,
+"name": &"south_west",
 "speed": 8.0
 }, {
 "frames": [{

@@ -6,9 +6,9 @@ extends Control
 const GAME_SCENE := "res://main.tscn"
 
 var WEAPONS := [
-	{"name": "Glonț 1", "scene": "res://bullet.tscn",  "icon": "res://bullets/bullet1.png"},
-	{"name": "Glonț 2", "scene": "res://bullet2.tscn", "icon": "res://bullets/bullet2.png"},
-	{"name": "Glonț 3", "scene": "res://bullet3.tscn", "icon": "res://bullets/bullet3.png"},
+	{"name": "Bullet 1", "scene": "res://bullet.tscn",  "icon": "res://bullets/bullet1.png"},
+	{"name": "Bullet 2", "scene": "res://bullet2.tscn", "icon": "res://bullets/bullet2.png"},
+	{"name": "Bullet 3", "scene": "res://bullet3.tscn", "icon": "res://bullets/bullet3.png"},
 ]
 
 var _panels := {}
@@ -69,7 +69,7 @@ func _on_start() -> void:
 # ---------- CHOOSE WEAPON ----------
 func _build_weapon() -> void:
 	var box := _make_panel("weapon")
-	box.add_child(_header("ALEGE ARMA"))
+	box.add_child(_header("CHOOSE WEAPON"))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 30)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -94,7 +94,7 @@ func _build_weapon() -> void:
 		slot.add_child(lbl)
 	_refresh_weapon_selection()
 	box.add_child(_spacer(16))
-	box.add_child(_menu_button("ÎNAPOI", _show.bind("main")))
+	box.add_child(_menu_button("BACK", _show.bind("main")))
 
 func _on_weapon_chosen(scene_path: String) -> void:
 	GameSettings.weapon_path = scene_path
@@ -108,14 +108,14 @@ func _refresh_weapon_selection() -> void:
 # ---------- CHOOSE CHARACTER (placeholder) ----------
 func _build_character() -> void:
 	var box := _make_panel("character")
-	box.add_child(_header("ALEGE PERSONAJUL"))
+	box.add_child(_header("CHOOSE CHARACTER"))
 	var lbl := Label.new()
-	lbl.text = "Momentan un singur personaj: „Grasu”.\nMai vin în curând!"
+	lbl.text = "Only one character for now: \"Grasu\".\nMore coming soon!"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_size_override("font_size", 20)
 	box.add_child(lbl)
 	box.add_child(_spacer(24))
-	box.add_child(_menu_button("ÎNAPOI", _show.bind("main")))
+	box.add_child(_menu_button("BACK", _show.bind("main")))
 
 # ---------- LEADERBOARD ----------
 func _build_leaderboard() -> void:
@@ -126,19 +126,19 @@ func _build_leaderboard() -> void:
 	_lb_list.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_lb_list)
 	box.add_child(_spacer(24))
-	box.add_child(_menu_button("ÎNAPOI", _show.bind("main")))
+	box.add_child(_menu_button("BACK", _show.bind("main")))
 
 func _on_leaderboard() -> void:
 	for c in _lb_list.get_children():
 		c.queue_free()
 	if GameSettings.scores.is_empty():
-		_lb_list.add_child(_center_label("Încă niciun scor. Joacă o rundă!", 20))
+		_lb_list.add_child(_center_label("No scores yet. Play a round!", 20))
 	else:
 		var rank := 1
 		for s in GameSettings.scores:
 			var m := int(s["time"]) / 60
 			var sec := int(s["time"]) % 60
-			_lb_list.add_child(_center_label("%d.   %d:%02d   ·   Nivel %d" % [rank, m, sec, s["level"]], 22))
+			_lb_list.add_child(_center_label("%d.   %d:%02d   ·   Level %d" % [rank, m, sec, s["level"]], 22))
 			rank += 1
 	_show("leaderboard")
 
