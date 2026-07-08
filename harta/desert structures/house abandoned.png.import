@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bm7yi85rqpl57"
-path="res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"
+uid="uid://4y5d8xdahyup"
+path="res://.godot/imported/house abandoned.png-ed2b777812242d98174aae331c2220d2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Upgrades/explozie_animatie/frame0005.png"
-dest_files=["res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"]
+source_file="res://harta/desert structures/house abandoned.png"
+dest_files=["res://.godot/imported/house abandoned.png-ed2b777812242d98174aae331c2220d2.ctex"]
 
 [params]
 

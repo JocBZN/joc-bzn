@@ -14,6 +14,7 @@ var _boom_frames: SpriteFrames      # cadrele exploziei (Jean's Bomb), construit
 
 const EXPLOSION_DIR := "res://Upgrades/explozie_animatie/"
 const EXPLOSION_FRAME_COUNT := 9
+const EXPLOSION_VISUAL_SCALE := 0.5   # cât de mare apare explozia pe ecran (1.0 = diametru 2×rază; mai mic = mai mică vizual)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -104,7 +105,7 @@ func explosion(pos: Vector2, radius: float = 96.0) -> void:
 	anim.sprite_frames = _boom_frames
 	anim.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	anim.z_index = 70
-	anim.scale = Vector2.ONE * (radius * 2.0 / 96.0)  # cadru 96px → diametru = 2×raza
+	anim.scale = Vector2.ONE * (radius * 2.0 / 96.0) * EXPLOSION_VISUAL_SCALE  # cadru 96px → diametru = 2×raza, apoi micșorat vizual
 	w.add_child(anim)
 	anim.global_position = pos
 	anim.play("default")

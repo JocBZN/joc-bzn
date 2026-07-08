@@ -2,6 +2,8 @@ extends CharacterBody2D
 
 var bullet_scene: PackedScene = preload("res://bullet.tscn")  # glonțul curent (se schimbă la unele upgrade-uri)
 const FIRE_TRAIL := preload("res://firetrail.gd")  # băltoaca de foc lăsată de Firewalker
+const ICE_TRAIL := preload("res://icetrail.gd")    # dâra de gheață lăsată de Frostwalker
+const GOD_TRAIL := preload("res://godtrail.gd")    # dâra combinată (Firewalker + Frostwalker = Godwalker)
 
 # Numele animațiilor, pe optimi de cerc (vezi _update_anim).
 # Ordinea urmează unghiul crescător (y în jos): E, SE, S, SV, V, NV, N, NE.
@@ -25,6 +27,10 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var fire_trail_time: float = 0.0   # cât rămâne dâra de foc pe jos (0 = fără) — Firewalker
 @export var fire_trail_damage: int = 0     # damage pe tick al dârei de foc
 @export var fire_trail_size: float = 0.0   # lățimea focului în px (crește cu fiecare upgrade)
+@export var frost_trail_time: float = 0.0  # cât rămâne dâra de gheață pe jos (0 = fără) — Frostwalker
+@export var frost_trail_damage: int = 0    # damage pe tick al gheții (≈ jumătate din foc)
+@export var frost_trail_size: float = 0.0  # lățimea gheții în px (crește cu fiecare upgrade)
+@export var frost_slow_time: float = 0.0   # cât timp stă înghețat inamicul (hold), +0.5s pe upgrade — Frostwalker
 
 @export var max_hp: int = 100
 @export var contact_range: float = 60.0
@@ -81,6 +87,12 @@ func _ready() -> void:
 	trail_timer.timeout.connect(_drop_fire)
 	add_child(trail_timer)
 	trail_timer.start()
+	# timer pentru dâra de gheață (Frostwalker): lasă gheață cât timp mergi
+	var ice_timer := Timer.new()
+	ice_timer.wait_time = 0.18
+	ice_timer.timeout.connect(_drop_ice)
+	add_child(ice_timer)
+	ice_timer.start()
 
 # Adaugă „traumă" (tremurat). Se cheamă de ex. la lovitură critică.
 func add_shake(amount: float) -> void:
@@ -179,8 +191,9 @@ func _regen() -> void:
 		hp = min(max_hp, hp + hp_regen)
 
 # Firewalker: lasă o băltoacă de foc pe jos cât timp player-ul se mișcă.
+# Dacă are ȘI Frostwalker, nu lăsăm foc separat — combinația devine Godwalker (vezi _drop_ice).
 func _drop_fire() -> void:
-	if fire_trail_time <= 0.0 or velocity.length() < 5.0:
+	if fire_trail_time <= 0.0 or frost_trail_time > 0.0 or velocity.length() < 5.0:
 		return
 	var patch := FIRE_TRAIL.new()
 	patch.duration = fire_trail_time     # cât rămâne (crește cu fiecare upgrade)
@@ -189,6 +202,35 @@ func _drop_fire() -> void:
 	patch.direction = velocity.normalized()  # focul se orientează în direcția de mers
 	get_parent().add_child(patch)        # în World (y-sort). Nodul e putin DEASUPRA player-ului →
 	patch.global_position = global_position - Vector2(0, 4)  # e desenat în SPATE, iar vizualul e coborât la picioare în firetrail.gd
+
+# Frostwalker: lasă o dâră de gheață pe jos cât timp player-ul se mișcă.
+func _drop_ice() -> void:
+	if frost_trail_time <= 0.0 or velocity.length() < 5.0:
+		return
+	# are ȘI Firewalker → lasă Godwalker (foc + gheață) în locul gheții simple
+	if fire_trail_time > 0.0:
+		_drop_god()
+		return
+	var patch := ICE_TRAIL.new()
+	patch.duration = frost_trail_time    # cât rămâne (crește cu fiecare upgrade)
+	patch.damage = frost_trail_damage
+	patch.size = frost_trail_size        # mărimea (crește cu fiecare upgrade)
+	patch.slow_hold = frost_slow_time    # cât timp înghețăm inamicul (crește cu fiecare upgrade)
+	patch.direction = velocity.normalized()
+	get_parent().add_child(patch)
+	patch.global_position = global_position - Vector2(0, 4)
+
+# Godwalker: dâra combinată când player-ul are ȘI Firewalker ȘI Frostwalker.
+# Face damage-ul combinat (foc + gheață) ȘI încetinește inamicii; o singură animație.
+func _drop_god() -> void:
+	var patch := GOD_TRAIL.new()
+	patch.duration = max(fire_trail_time, frost_trail_time)  # rămâne cât cea mai lungă
+	patch.damage = fire_trail_damage + frost_trail_damage    # damage foc + gheață
+	patch.size = max(fire_trail_size, frost_trail_size)      # cât cea mai mare
+	patch.slow_hold = frost_slow_time                        # slow-ul de la Frostwalker
+	patch.direction = velocity.normalized()
+	get_parent().add_child(patch)
+	patch.global_position = global_position - Vector2(0, 4)
 
 func take_damage(amount: int) -> void:
 	hp -= amount

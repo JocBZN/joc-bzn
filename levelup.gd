@@ -30,6 +30,7 @@ var UPGRADES := [
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "rare",      "desc": "-15% XP to level"},
 	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
 	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
+	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
 	{"id": "gloante_paralele", "nume": "Parallel Bullets", "icon": "res://bullets/bullet1.png", "rar": "legendary", "desc": "+1 parallel bullet"},
 	{"id": "strapungere", "nume": "Drill", "icon": "res://bullets/bullet2.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
 	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% chance of double damage"},
@@ -293,8 +294,20 @@ func _apply(id: String, p) -> void:
 				p.fire_trail_damage = 5
 				p.fire_trail_size = 80.0   # mărimea de bază a focului (px)
 			else:
-				p.fire_trail_time += 1.0   # fiecare upgrade suplimentar: +1 secundă
-				p.fire_trail_size += 5.0   # și +5px la mărime
+				p.fire_trail_damage += 3   # +3 damage/tick la fiecare upgrade
+				p.fire_trail_size *= 1.10  # +10% mărime la fiecare upgrade
+				p.fire_trail_time += 0.3   # trail-ul durează +0.3s la fiecare upgrade
+		"frostwalker":
+			# lasa o dara de gheata cand mergi: incetineste inamicii (filtru albastru) + damage mic
+			if p.frost_trail_time <= 0.0:
+				p.frost_trail_time = 1.0
+				p.frost_trail_damage = 2      # damage-ul rămâne fix la orice upgrade
+				p.frost_trail_size = 80.0
+				p.frost_slow_time = 0.5       # durata de bază a slow-ului (hold la maxim)
+			else:
+				p.frost_trail_time += 0.3     # trail-ul durează +0.3s la fiecare upgrade
+				p.frost_slow_time += 0.5      # inamicii stau înghețați +0.5s la fiecare upgrade
+				# damage și mărime rămân la fel
 		"gloante_paralele":
 			# încă un glonț paralel (1 → 2 → 3 ...)
 			p.bullet_count += 1

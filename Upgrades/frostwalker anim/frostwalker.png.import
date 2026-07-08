@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bm7yi85rqpl57"
-path="res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"
+uid="uid://cxcvdhpxuuuf"
+path="res://.godot/imported/frostwalker.png-0703debf2500a4f54eaf37c602eb754b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Upgrades/explozie_animatie/frame0005.png"
-dest_files=["res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"]
+source_file="res://Upgrades/frostwalker anim/frostwalker.png"
+dest_files=["res://.godot/imported/frostwalker.png-0703debf2500a4f54eaf37c602eb754b.ctex"]
 
 [params]
 

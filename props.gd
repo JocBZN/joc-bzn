@@ -65,8 +65,6 @@ func _chunk_of(pos: Vector2) -> Vector2i:
 # distanței față de copacii din pătratele vecine. Ordinea apelurilor rng trebuie să fie
 # identică cu cea de la construire (întâi textura, apoi x, apoi y) ca pozițiile să coincidă.
 func _chunk_trees_raw(key: Vector2i) -> Array:
-	if BiomeMap.is_desert_chunk(key.x, key.y):
-		return []  # în deșert NU cresc copaci
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(key)  # determinist: același pătrat → aceiași copaci
 	var count := rng.randi_range(0, trees_per_chunk)
@@ -77,6 +75,11 @@ func _chunk_trees_raw(key: Vector2i) -> Array:
 			key.x * chunk_size + rng.randf_range(0.0, chunk_size),
 			key.y * chunk_size + rng.randf_range(0.0, chunk_size)
 		)
+		# copacii NU cresc în deșert și NICI pe gradientul (tranziția) spre deșert:
+		# blocăm oriunde podeaua arată vreun pic de deșert (d > 0), exact ca shaderul.
+		# (RNG-ul a fost deja consumat mai sus → determinismul se păstrează; doar filtrăm.)
+		if BiomeMap.desertness_at_chunk(pos / float(chunk_size)) > 0.0:
+			continue
 		out.append({"pos": pos, "tex": tex, "key": key})
 	return out
 

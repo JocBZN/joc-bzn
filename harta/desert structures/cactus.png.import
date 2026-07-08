@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bm7yi85rqpl57"
-path="res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"
+uid="uid://dbvamosdahpyc"
+path="res://.godot/imported/cactus.png-a7f0a4d4b40ef369fc2a75dd61209235.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Upgrades/explozie_animatie/frame0005.png"
-dest_files=["res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"]
+source_file="res://harta/desert structures/cactus.png"
+dest_files=["res://.godot/imported/cactus.png-a7f0a4d4b40ef369fc2a75dd61209235.ctex"]
 
 [params]
 

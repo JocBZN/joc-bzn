@@ -24,7 +24,7 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - **`main.tscn`** — the game world (root `Node2D` "Main"):
   - `Ground` (Sprite2D + `ground.gd`) — the infinite repeating grass that follows the player.
   - `World` (Node2D, `y_sort_enabled`) — depth-sorted container holding `Props` (trees), `Rocks` (stones), `Player`, and (added at runtime) the enemies, so they overlap correctly by depth.
-  - `Props` (`props.gd`) / `Rocks` (`rocks.gd`) — chunk-based procedural, deterministic spawners (infinite). Rectangle hitboxes with per-side tuning (`hitbox_north/south/east/west`), `sort_anchor`, `min_gap_hitboxes` (min spacing). Nothing spawns in desert biome (`BiomeMap.is_desert_chunk`).
+  - `Props` (`props.gd`) / `Rocks` (`rocks.gd`) / `DesertStructures` (`desert_structures.gd`) — chunk-based procedural, deterministic spawners (infinite). Rectangle hitboxes with per-side tuning (`hitbox_north/south/east/west`), `sort_anchor`, `min_gap_hitboxes` (min spacing). **Biome rules:** trees avoid the desert *and* its soft gradient; rocks avoid only the hard desert (they may sit on the gradient); desert structures (cactus/house/monument) spawn *only* in the desert — see `BiomeMap.is_desert_chunk` / `desertness_at_chunk` / `desert_inset_chunk`.
   - `Spawner` (Node + `spawner.gd`) — a Timer that instances enemies around the player (into `World`).
   - `HUD` (CanvasLayer + `hud.gd`) — screen-fixed UI: health bar + XP bar + level, all built in code.
   - `LevelUp` (CanvasLayer + `levelup.gd`) — the level-up choice screen (3 random of 15 upgrades), styled like *Megabonk*: an ornate `Menu.png` panel with each choice framed by a **rarity border** (Common→Legendary) + matching colored text; pauses the game.
@@ -38,6 +38,13 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - **Boss art** lives in `boss/` (walk GIFs split into `walk_<dir>_<i>.png` frames + the lightning-burst frames); the alert symbol in `Upgrades/symbol_alert_002_large_red/`. New GIFs are split to PNG with PowerShell + `System.Drawing`; **open the project in Godot once to import new PNGs** before they render (art is loaded at runtime with `load()`).
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
+
+## Current state (2026-07-08)
+- ✅ **Frostwalker** (Epic) — a **frost trail** at your feet that **slows** enemies (blue tint on them) and does light damage. Per stack: +0.5s slow duration & +0.3s trail; damage stays. Mirror of Firewalker (`icetrail.gd`), art desaturated at load.
+- ✅ **Godwalker** — having **Firewalker + Frostwalker** replaces both trails with a single combined one (`godtrail.gd`): fire damage **and** frost slow, its own animation.
+- ✅ **Biome-aware world gen refined:** trees no longer spawn on the desert **gradient** (only pure forest); rocks may sit on the gradient; new **desert structures** (`desert_structures.gd`, node `DesertStructures`): **cactus** scattered per-chunk (denser), **house** guaranteed 1–2 **per desert** (kept ≥20px inside, never on the gradient), **monument** ~once per 2 deserts (never on the gradient). Each structure has its own `scale` + hitbox via a `CONFIG` block.
+- ✅ Smaller Jean's Bomb explosion animation (new frames + reduced on-screen scale).
+- Trail spritesheets are sliced into frames **at runtime** (`AtlasTexture`), so dropping in a new PNG just needs a Godot import.
 
 ## Current state (2026-07-07)
 - ✅ **Working:** player movement + follow camera · infinite world · procedural **trees + rocks** with collision (rectangle hitboxes, per-side tuning, min spacing) · **Y-sort depth** (props cover you when you walk behind them) · enemy chase AI · automatic spawner · player auto-fire + projectiles that **face the target** · enemy HP + death · player HP + contact damage.

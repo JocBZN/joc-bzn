@@ -11,6 +11,13 @@ var _dying := false
 var _knockback := Vector2.ZERO  # împins temporar de gloanțe
 var _flash_tween: Tween
 
+# --- Slow de la Frostwalker (gheața lăsată de player) ---
+const SLOW_MIN_MULT := 0.5    # viteza la slow MAXIM (0.5 = 50% din normal)
+const SLOW_HOLD := 0.5        # secunde de slow MAXIM la început, după ce atinge gheața
+const SLOW_RECOVER := 0.5     # cât durează revenirea lină la viteza normală după hold
+const SLOW_TINT := Color(0.55, 0.75, 1.35)  # filtru albastru „înghețat" (modulate)
+var _slow_time: float = 0.0   # timp rămas de slow (hold + recover); reîmprospătat cât stă în gheață
+
 # Scenele de XP (le încărcăm doar dacă există deja, ca să nu dea eroare)
 var _xp1: PackedScene
 var _xp2: PackedScene
@@ -35,12 +42,35 @@ func _physics_process(delta: float) -> void:
 	if player == null:
 		return
 	var directie := (player.global_position - global_position).normalized()
-	velocity = directie * speed + _knockback  # mers spre player + eventualul împins de la gloanțe
+	velocity = directie * (speed * _current_slow_mult()) + _knockback  # mers (încetinit de gheață) + împins de gloanțe
 	move_and_slide()
 	_knockback = _knockback.move_toward(Vector2.ZERO, knockback_decay * delta)  # împinsul scade rapid la 0
+	# scade slow-ul și pune filtrul albastru cât timp e înghețat (dar nu în timpul unei sclipiri de lovitură)
+	if _slow_time > 0.0:
+		_slow_time = max(0.0, _slow_time - delta)
+	if _flash_tween == null or not _flash_tween.is_valid():
+		anim.modulate = _slow_color()
 	# angle() = unghiul spre player (0 = est, crește în sensul acelor de ceas) → octant 0..7
 	var idx := wrapi(int(round(directie.angle() / (PI / 4.0))), 0, 8)
 	anim.play(DIRECTII[idx])
+
+# Chemată de gheața Frostwalker: reîmprospătează slow-ul la maxim.
+# `hold` = câte secunde stă la slow MAXIM (crește cu fiecare upgrade); apoi revine în SLOW_RECOVER sec.
+func apply_slow(hold: float = SLOW_HOLD) -> void:
+	_slow_time = hold + SLOW_RECOVER
+
+# Multiplicatorul de viteză acum: 1.0 = normal, SLOW_MIN_MULT = încetinit la maxim.
+func _current_slow_mult() -> float:
+	if _slow_time <= 0.0:
+		return 1.0
+	if _slow_time >= SLOW_RECOVER:
+		return SLOW_MIN_MULT  # încă în faza de slow MAXIM (primele SLOW_HOLD secunde)
+	return lerpf(1.0, SLOW_MIN_MULT, _slow_time / SLOW_RECOVER)  # apoi revine lin la normal
+
+# Culoarea de modulate: alb când nu e înghețat, spre albastru cât e mai încetinit.
+func _slow_color() -> Color:
+	var s := (1.0 - _current_slow_mult()) / (1.0 - SLOW_MIN_MULT)  # 0 = deloc, 1 = slow maxim
+	return Color(1, 1, 1).lerp(SLOW_TINT, s)
 
 # Chemată de glonț când are knockback: împinge inamicul pe direcția glonțului.
 func apply_knockback(v: Vector2) -> void:
@@ -61,7 +91,7 @@ func _flash() -> void:
 		_flash_tween.kill()
 	anim.modulate = Color(5, 5, 5)  # alb foarte strălucitor
 	_flash_tween = create_tween()
-	_flash_tween.tween_property(anim, "modulate", Color(1, 1, 1), 0.12)
+	_flash_tween.tween_property(anim, "modulate", _slow_color(), 0.12)  # revine la tenta curentă (albastră dacă e înghețat)
 
 func _die() -> void:
 	_dying = true

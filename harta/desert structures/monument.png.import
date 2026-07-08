@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bm7yi85rqpl57"
-path="res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"
+uid="uid://baerdpxiwwmue"
+path="res://.godot/imported/monument.png-4ede9fb312c8938000a517d5dd7e3216.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Upgrades/explozie_animatie/frame0005.png"
-dest_files=["res://.godot/imported/frame0005.png-b0410686174be901513bae1038159dc9.ctex"]
+source_file="res://harta/desert structures/monument.png"
+dest_files=["res://.godot/imported/monument.png-4ede9fb312c8938000a517d5dd7e3216.ctex"]
 
 [params]
 

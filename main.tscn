@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://cc1xvb48auo54" path="res://atmosphere.gd" id="10_atmo"]
 [ext_resource type="Script" uid="uid://cetplbjamrhjs" path="res://rocks.gd" id="11_rocks"]
 [ext_resource type="PackedScene" uid="uid://bsbou5krx65c7" path="res://statue.tscn" id="12_statue"]
+[ext_resource type="Script" uid="uid://db54v5w8totxb" path="res://desert_structures.gd" id="13_desert"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -41,6 +42,10 @@ rock_scale = 2.0
 hitbox_north = 0.8
 hitbox_south = -0.5
 sort_anchor = 0.8
+
+[node name="DesertStructures" type="Node2D" parent="World" unique_id=655360042]
+y_sort_enabled = true
+script = ExtResource("13_desert")
 
 [node name="Statue" parent="World" unique_id=86867322 instance=ExtResource("12_statue")]
 position = Vector2(0, -220)

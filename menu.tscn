@@ -1,8 +1,10 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cm1cednq3fjfk"]
 
-[ext_resource type="Script" path="res://menu.gd" id="1_menu"]
+[ext_resource type="Script" uid="uid://dqd2wjiyrpwni" path="res://menu.gd" id="1_menu"]
 
-[node name="Menu" type="Control"]
+[node name="Menu" type="Control" unique_id=1449464212]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
