@@ -1,0 +1,22 @@
+{
+  "group_id": null,
+  "objects": [
+    {
+      "id": "f3c7533c-ecb3-46d6-b449-7a971dd1a440",
+      "name": null,
+      "prompt": "Pixel art mage staff with a crystal in the top of the staff with a red ruby and the staff is amde out of a black wood\n",
+      "size": {
+        "width": 128,
+        "height": 128
+      },
+      "directions": 1,
+      "view": "low top-down",
+      "rotations": {
+        "unknown": "rotations/unknown.png"
+      },
+      "animations": {}
+    }
+  ],
+  "export_version": "1.0",
+  "export_date": "2026-07-08T10:26:20.380983"
+}

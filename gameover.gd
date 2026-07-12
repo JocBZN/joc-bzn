@@ -67,6 +67,7 @@ func _ready() -> void:
 # Chemată de player.die() când rămâi fără viață.
 func show_gameover(secunde: float, nivel: int) -> void:
 	GameSettings.add_score(secunde, nivel)  # salvează în leaderboard
+	GameSettings.bank_run_coins()  # bagă monedele din rundă la bancă
 	var m := int(secunde) / 60
 	var s := int(secunde) % 60
 	time_label.text = "Survived: %d:%02d" % [m, s]

@@ -12,6 +12,7 @@ var knockback: float = 0.0 # cât de tare împinge inamicul înapoi
 var is_crit: bool = false  # dacă lovitura e critică (pentru numărul galben)
 var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără explozie) — Jean's Bomb
 var explosion_damage: int = 0      # cât damage face explozia asupra inamicilor din rază
+var explosion_frames: SpriteFrames = null  # animație de explozie (mage = violet); null → Fx.explosion
 
 var direction: Vector2 = Vector2.RIGHT
 var time_left: float
@@ -53,7 +54,10 @@ func _on_body_entered(body: Node) -> void:
 
 # Explozie AOE (Jean's Bomb): animația de explozie + damage tuturor inamicilor din rază.
 func _explode() -> void:
-	Fx.explosion(global_position, explosion_radius)
+	if explosion_frames != null and explosion_frames.get_frame_count("fx") > 0:
+		_play_boom()  # explozie animată (mage = violet)
+	else:
+		Fx.explosion(global_position, explosion_radius)
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null:
@@ -67,3 +71,17 @@ func _explode() -> void:
 				if push == Vector2.ZERO:
 					push = Vector2.RIGHT  # inamic fix în centru: alegem o direcție oarecare
 				enemy.apply_knockback(push * EXPLOSION_KNOCKBACK)
+
+# Explozie animată (ex. violet pentru mage). Adăugată în lume, scalată la rază; se auto-distruge.
+func _play_boom() -> void:
+	var a := AnimatedSprite2D.new()
+	a.sprite_frames = explosion_frames
+	a.animation = "fx"
+	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	a.z_index = 60
+	var fw := explosion_frames.get_frame_texture("fx", 0).get_width()
+	a.scale = Vector2.ONE * (explosion_radius * 2.0) / float(max(fw, 1))
+	get_parent().add_child(a)
+	a.global_position = global_position
+	a.play("fx")
+	a.animation_finished.connect(a.queue_free)

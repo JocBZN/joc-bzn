@@ -96,6 +96,7 @@ func _flash() -> void:
 func _die() -> void:
 	_dying = true
 	Audio.play("enemy_die", -5.0)  # inamic mort
+	GameSettings.add_run_coins(1)  # monedă pentru meta-progresie
 	remove_from_group("enemy")  # nu mai e țintă și nu mai face damage cât se stinge
 	_drop_xp()
 	# animație de moarte: se umflă și se stinge, apoi dispare

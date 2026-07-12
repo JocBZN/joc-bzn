@@ -26,6 +26,7 @@ var timer: Timer
 func _ready() -> void:
 	Difficulty.time = 0.0   # joc nou → resetăm cronometrul
 	Difficulty.wave = 1
+	GameSettings.reset_run()  # resetăm monedele strânse în rundă
 	Audio.play_music()      # pornim muzica de fundal
 	timer = Timer.new()
 	timer.wait_time = spawn_interval

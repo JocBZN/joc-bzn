@@ -16,6 +16,19 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var bullet_count: int = 1          # câte gloanțe paralele tragi odată (+1 la fiecare bonus)
 @export var bullet_spacing: float = 26.0   # distanța dintre gloanțele paralele
 
+# --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
+var weapon_type: String = "pistol"
+# Stingător = AURĂ: pulsează în jurul tău, mai mare cu nivelul, mai des cu cadența
+@export var aura_base_radius: float = 90.0
+@export var aura_growth: float = 12.0      # cât crește raza pe nivel
+@export var aura_damage: int = 6           # damage pe puls de aură
+var _aura_tex: Texture2D
+var _foam_frames: SpriteFrames  # animația de spumă (rândul 6 din stingator_effects.png)
+var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol/mage)
+var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
+var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
+@export var muzzle_scale: float = 1.2
+
 # --- upgrade-uri de armă ---
 @export var crit_chance: float = 0.0       # șansa (0..1) ca o lovitură să fie critică
 @export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
@@ -43,6 +56,7 @@ var hp: int
 @export var xp_to_next: int = 20  # cât XP îți trebuie pentru nivelul următor
 var xp: int = 0
 var level: int = 1
+var xp_gain_mult := 1.0  # multiplicator XP primit (din meta-progresie)
 var dead := false  # ca să nu declanșăm Game Over de mai multe ori
 
 var ultima_directie := "south"  # ultima direcție în care s-a uitat (pentru poza de stat pe loc)
@@ -59,10 +73,14 @@ var _shaking: bool = false             # controlăm camera DOAR cât tremurăm (
 
 func _ready() -> void:
 	add_to_group("player")
-	# arma de start aleasă din meniu (Choose Weapon)
-	var chosen_weapon := load(GameSettings.weapon_path) as PackedScene
-	if chosen_weapon != null:
-		bullet_scene = chosen_weapon
+	# arma aleasă din meniu (pistol / mage / extinguisher)
+	weapon_type = GameSettings.weapon_type
+	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
+	_aura_tex = _make_radial_texture()   # fallback vizual pentru aura stingătorului
+	_foam_frames = _build_foam_frames()  # animația de spumă (rândul 6 din stingator_effects.png)
+	_muzzle_frames = _load_fx_frames("res://fx/muzzle", 26.0, false)
+	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
+	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
 	hp = max_hp
 	anim.play("idle_south")  # pornim stând pe loc, uitându-ne în jos
 	fire_timer = Timer.new()
@@ -135,35 +153,186 @@ func _update_anim(directie: Vector2) -> void:
 		anim.play(ultima_directie)
 		anim.set_frame_and_progress(cadru, progres)
 
+# dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:
+	if weapon_type == "extinguisher":
+		_aura_pulse()      # stingătorul nu trage gloanțe, ci pulsează o aură
+	else:
+		_fire_bullets()    # pistol / mage
+
+# Pistol (simplu) și Mage Staff (AOE) trag gloanțe spre cel mai apropiat inamic.
+func _fire_bullets() -> void:
 	var target := _nearest_enemy()
 	if target == null:
 		return
 	var dir := (target.global_position - global_position).normalized()
-	Audio.play("shoot", -6.0)  # sunet de tragere (puțin mai încet ca să nu obosească)
-	Fx.muzzle(global_position + dir * 34.0)  # fulger la gura armei, spre inamic
-	var perp := Vector2(-dir.y, dir.x)  # perpendicular pe direcție → gloanțele stau unul lângă altul (paralele)
+	Audio.play("shoot", -6.0)
+	_muzzle(global_position + dir * 34.0, dir)
+	# Mage Staff: fiecare glonț explodează AOE la impact (peste eventualul Jean's Bomb)
+	var ex_radius := explosion_radius
+	var ex_damage := explosion_damage
+	if weapon_type == "mage":
+		ex_radius = max(ex_radius, 110.0)
+		ex_damage = max(ex_damage, int(bullet_damage * 0.6))
+	var perp := Vector2(-dir.y, dir.x)
 	var any_crit := false
 	for i in bullet_count:
-		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing  # centrate față de player
+		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing
 		var bullet := bullet_scene.instantiate()
 		get_parent().add_child(bullet)
 		bullet.global_position = global_position + perp * offset
-		# critic: aruncăm zarul o dată per glonț; dacă iese, damage × crit_mult
 		var is_crit := randf() < crit_chance
 		if is_crit:
 			any_crit = true
 		bullet.damage = int(bullet_damage * crit_mult) if is_crit else bullet_damage
 		bullet.is_crit = is_crit
-		bullet.speed = bullet_speed    # zboară cu viteza curentă a player-ului
-		bullet.pierce = pierce         # prin câți inamici trece
-		bullet.knockback = knockback   # cât împinge inamicul
-		bullet.explosion_radius = explosion_radius  # explozie AOE la impact (Jean's Bomb)
-		bullet.explosion_damage = explosion_damage
-		bullet.scale *= bullet_scale   # mărimea glonțului (sprite + hitbox)
-		bullet.set_direction(dir)      # setează direcția ȘI rotește glonțul cu fața spre inamic
+		bullet.speed = bullet_speed
+		bullet.pierce = pierce
+		bullet.knockback = knockback
+		bullet.explosion_radius = ex_radius
+		bullet.explosion_damage = ex_damage
+		if weapon_type == "mage":
+			bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
+			_make_mage_orb(bullet)                       # proiectil = sferă magică animată
+		bullet.scale *= bullet_scale
+		bullet.set_direction(dir)
 	if any_crit:
-		add_shake(0.35)  # tremurat scurt la lovitură critică
+		add_shake(0.35)
+
+# Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
+# frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
+func _aura_pulse() -> void:
+	var radius := aura_base_radius + level * aura_growth
+	var dmg := aura_damage + int(bullet_damage * 0.5)  # aura scalează și cu upgrade-urile de damage
+	var hit := false
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var enemy := e as Node2D
+		if enemy == null:
+			continue
+		if global_position.distance_to(enemy.global_position) <= radius:
+			enemy.take_damage(dmg)
+			Fx.damage_number(enemy.global_position, dmg)
+			if knockback > 0.0 and enemy.has_method("apply_knockback"):
+				enemy.apply_knockback((enemy.global_position - global_position).normalized() * knockback)
+			hit = true
+	if hit:
+		Audio.play("shoot", -12.0)  # foșnet slab (placeholder până ai sunet de spumă)
+	_spawn_aura_ring(radius)
+
+# Vizual placeholder al aurei: un nor bleu-alb care se extinde din player și se stinge.
+func _spawn_aura_ring(radius: float) -> void:
+	# preferăm animația de spumă (rândul 6); dacă nu e importată încă, cădem pe inelul gradient
+	if _foam_frames != null and _foam_frames.get_frame_count("foam") > 0:
+		var a := AnimatedSprite2D.new()
+		a.sprite_frames = _foam_frames
+		a.animation = "foam"
+		a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # pixel art clar
+		a.modulate = Color(0.8, 0.95, 1.0, 0.9)  # ușor bleu, ca spuma
+		a.z_index = -1  # sub player/inamici
+		get_parent().add_child(a)
+		a.global_position = global_position
+		a.scale = Vector2.ONE * (radius * 2.0) / 64.0  # frame 64px → diametru = 2×rază
+		a.play("foam")
+		a.animation_finished.connect(a.queue_free)
+		return
+	# fallback: inel gradient (dacă frame-urile nu-s încă importate de Godot)
+	if _aura_tex == null:
+		return
+	var s := Sprite2D.new()
+	s.texture = _aura_tex
+	s.modulate = Color(0.6, 0.9, 1.0, 0.5)
+	s.z_index = -1
+	get_parent().add_child(s)
+	s.global_position = global_position
+	var full := (radius * 2.0) / 256.0
+	s.scale = Vector2.ONE * full * 0.25
+	var t := create_tween()
+	t.tween_property(s, "scale", Vector2.ONE * full, 0.28)
+	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
+	t.tween_callback(s.queue_free)
+
+# Construiește animația de spumă din cele 8 frame-uri tăiate (rândul 6 din stingator_effects.png).
+func _build_foam_frames() -> SpriteFrames:
+	var sf := SpriteFrames.new()
+	if not sf.has_animation("foam"):
+		sf.add_animation("foam")
+	sf.set_animation_loop("foam", false)
+	sf.set_animation_speed("foam", 20.0)  # 8 frame-uri la 20fps ≈ 0.4s
+	for i in 8:
+		var path := "res://stingator/foam_%d.png" % i
+		if ResourceLoader.exists(path):
+			var tex := load(path) as Texture2D
+			if tex != null:
+				sf.add_frame("foam", tex)
+	return sf
+
+# --- efecte animate din gigapack (muzzle / explozie mage / sferă mage) ---
+# Încarcă frame_0.png, frame_1.png ... dintr-un folder, într-o animație numită "fx".
+func _load_fx_frames(dir: String, fps: float, loop: bool) -> SpriteFrames:
+	var sf := SpriteFrames.new()
+	sf.add_animation("fx")
+	sf.set_animation_loop("fx", loop)
+	sf.set_animation_speed("fx", fps)
+	var i := 0
+	while ResourceLoader.exists("%s/frame_%d.png" % [dir, i]):
+		var tex := load("%s/frame_%d.png" % [dir, i]) as Texture2D
+		if tex != null:
+			sf.add_frame("fx", tex)
+		i += 1
+	return sf
+
+# Joacă o animație one-shot în lume și o distruge la final.
+func _play_effect(frames: SpriteFrames, pos: Vector2, sc: float, z: int, rot: float = 0.0) -> void:
+	if frames == null or frames.get_frame_count("fx") == 0:
+		return
+	var a := AnimatedSprite2D.new()
+	a.sprite_frames = frames
+	a.animation = "fx"
+	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	a.z_index = z
+	a.rotation = rot
+	a.scale = Vector2.ONE * sc
+	get_parent().add_child(a)
+	a.global_position = pos
+	a.play("fx")
+	a.animation_finished.connect(a.queue_free)
+
+# Fulger la țeavă: animația scifi dacă e importată, altfel fulgerul din cod (Fx).
+func _muzzle(pos: Vector2, dir: Vector2) -> void:
+	if _muzzle_frames != null and _muzzle_frames.get_frame_count("fx") > 0:
+		_play_effect(_muzzle_frames, pos, muzzle_scale, 60, dir.angle())
+	else:
+		Fx.muzzle(pos)
+
+# Înlocuiește vizualul glonțului mage cu sfera magică animată (loop).
+func _make_mage_orb(bullet: Node) -> void:
+	if _mage_orb_frames == null or _mage_orb_frames.get_frame_count("fx") == 0:
+		bullet.modulate = Color(0.7, 0.5, 1.0)  # fallback mov dacă sfera nu e importată
+		return
+	var spr = bullet.get_node_or_null("Sprite2D")
+	if spr != null:
+		spr.visible = false  # ascundem glonțul normal
+	var orb := AnimatedSprite2D.new()
+	orb.sprite_frames = _mage_orb_frames
+	orb.animation = "fx"
+	orb.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	orb.scale = Vector2.ONE * 0.7
+	bullet.add_child(orb)
+	orb.play("fx")
+
+# Textură rotundă moale (gradient radial) — placeholder pentru spumă/aură.
+func _make_radial_texture() -> GradientTexture2D:
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1, 1, 1, 0.9))
+	grad.set_color(1, Color(1, 1, 1, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.width = 256
+	tex.height = 256
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(0.5, 0.0)
+	return tex
 
 func _nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
@@ -250,7 +419,7 @@ func die() -> void:
 		get_tree().reload_current_scene()  # fallback dacă n-ai adăugat încă ecranul de Game Over
 
 func gain_xp(amount: int) -> void:
-	xp += amount
+	xp += int(amount * xp_gain_mult)
 	# while (nu if) ca să prindem și cazul în care un salt mare de XP trece peste mai multe niveluri
 	while xp >= xp_to_next:
 		xp -= xp_to_next
@@ -272,3 +441,12 @@ func upgrade_max_hp(amount: int) -> void:
 func upgrade_fire_rate(factor: float) -> void:
 	fire_interval *= factor              # factor < 1 → pauză mai mică între trageri = tragi mai des
 	fire_timer.wait_time = fire_interval
+
+# Aplică upgrade-urile permanente (meta-progresie) la începutul rundei.
+func _apply_meta() -> void:
+	max_hp += GameSettings.level_of("hp") * 15
+	bullet_damage += GameSettings.level_of("damage") * 3
+	speed += GameSettings.level_of("speed") * 15.0
+	fire_interval *= pow(0.96, GameSettings.level_of("firerate"))
+	xp_gain_mult = 1.0 + GameSettings.level_of("xp") * 0.08
+	hp_regen += GameSettings.level_of("regen") * 1
