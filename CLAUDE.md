@@ -11,6 +11,33 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-14 (efecte Mage Staff · damage stingător · redenumiri upgrade-uri · mărimea armei)
+
+**Done:**
+- **Sfera mage era INVIZIBILĂ** (bug, nu lipsă de feature). `_make_mage_orb` (`player.gd`) o adăuga drept **copil al glonțului**, iar rădăcina glonțului are `scale = Vector2(0.1, 0.1)` în `bullet.tscn` → `0.7 × 0.1 × 64px ≈ 4px` pe ecran. Acum sfera **compensează scara părintelui** (`orb.scale = (mage_orb_size / lățime_cadru) / bullet.scale.x`), deci `@export var mage_orb_size` (35) înseamnă **pixeli reali pe ecran**.
+- **Explozia mage** reglabilă din `BOOM_VISUAL_SCALE` (`bullet.gd`, acum `1.3 / 3.0`) — scrisă ca fracție ca să se vadă cele două reglaje separat („÷3, apoi ×1.3"). **Doar vizual**: `explosion_radius` (110, zona de damage) e neatinsă. Măsurat: sferă 35px, explozie 95px.
+- **Stingător: damage de bază 15/puls** (`aura_damage` 6→10). Formula reală e `aura_damage + int(bullet_damage * 0.5)` → 10+5=15 la start; jumătatea din `bullet_damage` e **intenționată** (fără ea, stingătorul n-ar scala cu niciun upgrade de damage).
+- **Redenumiri + iconițe noi** (`levelup.gd`): Cocaine→**Weird Concoction** (`upgrade_15.png`), Weed→**Wine** (`upgrade_13.png`), Hook→**Knockback Stick** (`upgrade_12.webp`), OCB Papers→**Papers**; poze noi la Drill (`upgrade_16.png`) și Double Dose (`upgrade_14.png`). Scos „Bullet 2"/„Bullet 3" din descrierile Weird Concoction/Stroh (efectul de schimbare a glonțului a **rămas**).
+- **Mărimea ARMEI = stat nou, comun** (`player.gd`): `weapon_size_px` (Pufferfish, +30px) + `weapon_size_mult` (Rat's Burger, ×1.30), combinate în `weapon_size_scale()` raportat la `BULLET_BASE_PX` (27). Se aplică la **sprite ȘI hitbox**: pistol/mage → `bullet.scale *= bullet_scale * weapon_size_scale()` (Sprite2D, CollisionShape2D și sfera sunt toate copii → cresc împreună); stingător → raza aurei, care e și vizualul, și zona de damage. Măsurat: glonț 27→74px, sferă 35→96px, aură 102→172px.
+- **2 upgrade-uri noi** (acum **18** în pool): **Pufferfish** (Common, `upgrade_17.png`) și **Rat's Burger** (Rare, `upgrade_18.png`).
+
+**Gotchas:**
+- **`levelup.gd` are CRLF** → `Edit` cu `old_string` pe mai multe linii **eșuează**. Potrivește o singură linie, sau editează cu PowerShell (`[IO.File]::ReadAllLines`). După o inserție cu Edit, **verifică indentarea** (mie mi-a ieșit un tab în plus).
+- **Sfera/orice copil al glonțului moștenește `scale = 0.1`** al rădăcinii din `bullet.tscn`. Orice mărime „în pixeli" pe un copil de glonț trebuie împărțită la scara părintelui.
+- **Ordinea contează în `_fire_bullets`**: `_make_mage_orb(bullet)` rulează ÎNAINTE de `bullet.scale *= ...`, deci citește `bullet.scale.x == 0.1`. Sfera crește apoi automat odată cu glonțul (bine — asta vrem).
+- **Când testezi un glonț „după upgrade", șterge întâi gloanțele deja în aer** — altfel măsori unul vechi și trage concluzia greșită (mie mi-a arătat că mage-ul „nu crește", deși creștea).
+- **`upgrade_12` e `.webp`, nu `.png`.** `load()` NU verifică existența: dacă greșești extensia, întoarce `null` și rămâi cu un chenar gol, fără eroare.
+- **PNG nou trebuie importat** înainte de rulare (`godot --headless --path . --import`) — `upgrade_17/18` erau neimportate.
+- **`_show_choices()` indexează mereu 3 rânduri** → un test care restrânge `UPGRADES` la mai puțin de 3 crapă.
+
+**Probleme cunoscute (NU rezolvate):**
+- **Hitbox-ul glonțului = 1 pixel.** `CapsuleShape2D` pe valorile default (rază 10) × `scale 0.1` → rază 1.0px, față de un sprite de 27px. Gloanțele „trec prin" inamici mai des decât ar trebui. Fix: mărește capsula în `bullet.tscn`.
+- **Pistolul e strict inferior lui Mage Staff** (același damage/cadență, dar mage-ul primește gratis explozia AOE) → alegere falsă în meniu.
+- **Stingătorul primește 4 upgrade-uri moarte** (Papers, Parallel Bullets, Drill, Adrenaline): nu trage gloanțe, iar aura nu poate da critic. Pool-ul nu filtrează după armă.
+- **Explozia AOE a mage-ului nu crește** cu Pufferfish/Rat's Burger (rază separată, `explosion_radius`).
+
+---
+
 ## Session log — 2026-07-08 (Frostwalker + Godwalker · reguli biom copaci/pietre · structuri de deșert)
 
 **Done:**

@@ -27,7 +27,7 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
   - `Props` (`props.gd`) / `Rocks` (`rocks.gd`) / `DesertStructures` (`desert_structures.gd`) — chunk-based procedural, deterministic spawners (infinite). Rectangle hitboxes with per-side tuning (`hitbox_north/south/east/west`), `sort_anchor`, `min_gap_hitboxes` (min spacing). **Biome rules:** trees avoid the desert *and* its soft gradient; rocks avoid only the hard desert (they may sit on the gradient); desert structures (cactus/house/monument) spawn *only* in the desert — see `BiomeMap.is_desert_chunk` / `desertness_at_chunk` / `desert_inset_chunk`.
   - `Spawner` (Node + `spawner.gd`) — a Timer that instances enemies around the player (into `World`).
   - `HUD` (CanvasLayer + `hud.gd`) — screen-fixed UI: health bar + XP bar + level, all built in code.
-  - `LevelUp` (CanvasLayer + `levelup.gd`) — the level-up choice screen (3 random of 15 upgrades), styled like *Megabonk*: an ornate `Menu.png` panel with each choice framed by a **rarity border** (Common→Legendary) + matching colored text; pauses the game.
+  - `LevelUp` (CanvasLayer + `levelup.gd`) — the level-up choice screen (3 random of **18** upgrades), styled like *Megabonk*: an ornate `Menu.png` panel with each choice framed by a **rarity border** (Common→Legendary) + matching colored text; pauses the game. Each entry is one dict in `UPGRADES` (id / name / icon / rarity / description) and its real effect is a `match` arm in `_apply()` — **the description text is not the source of truth, `_apply()` is.**
 - **`player.tscn`** (`CharacterBody2D` + `player.gd`) — has an **AnimatedSprite2D** (8-directional run + idle poses, `player_frames.tres`), CollisionShape2D, Camera2D. Handles arrow-key movement, auto-fire at nearest enemy (Timer), HP + a contact-damage tick, the fire trail (Firewalker), and death (opens the Game Over screen).
 - **`enemy.tscn`** (`CharacterBody2D` + `enemy.gd`) — chases the player, has HP, `take_damage()`, dies via `queue_free()`.
 - **`bullet.tscn`** (`Area2D` + `bullet.gd`) — flies in a direction, on `body_entered` damages bodies in group `"enemy"`, self-destructs after `lifetime`. Supports **pierce**, **knockback**, **crit**, and **explosive AOE** (Jean's Bomb).
@@ -37,7 +37,24 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - **`lightning.tscn`** (`Area2D` + `lightning.gd`) — the boss's ranged projectile: a violet lightning ball with a **circle hitbox**, flies toward the player, and only damages group `"player"` (`take_damage`). Made extra visible via slow frames + `modulate > 1` (glow).
 - **Boss art** lives in `boss/` (walk GIFs split into `walk_<dir>_<i>.png` frames + the lightning-burst frames); the alert symbol in `Upgrades/symbol_alert_002_large_red/`. New GIFs are split to PNG with PowerShell + `System.Drawing`; **open the project in Godot once to import new PNGs** before they render (art is loaded at runtime with `load()`).
 
+## Weapons
+Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_ready`). All three share the **same base stats** (`bullet_damage` 10, `fire_interval` 0.5, `bullet_speed` 700) — `weapon_type` only changes *behaviour*, in three places in `player.gd`:
+
+| Weapon | How it fires |
+|---|---|
+| **Pistol** | One bullet at the nearest enemy. Nothing else. |
+| **Mage Staff** | The same bullet, re-skinned as an animated orb, that **explodes on impact** (radius 110, damage = 60% of `bullet_damage`). |
+| **Extinguisher** | No bullets at all — an **aura** pulses around you every `fire_interval`, hitting *every* enemy within `aura_base_radius + level × aura_growth`, for `aura_damage + 50% of bullet_damage` (15 at start). |
+
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
+
+## Current state (2026-07-14)
+- ✅ **Weapon size is now a real stat** (`weapon_size_px` + `weapon_size_mult` on `player.gd`). It grows **sprite *and* hitbox** for whichever weapon you picked: Pistol/Mage → the bullet (and the mage orb, which is a child of it); Extinguisher → the aura radius (which is both the drawn ring *and* the damage zone). Two new upgrades drive it: **Pufferfish** (Common, +30px) and **Rat's Burger** (Rare, +30%). Pool is now **18 upgrades**.
+- ✅ **Mage Staff visuals fixed.** The magic orb was being drawn ~4px wide and was effectively invisible: it's a child of the bullet, whose root is `scale = 0.1` in `bullet.tscn`, so its own scale got multiplied by that. `_make_mage_orb` now divides by the parent's scale, so `mage_orb_size` (35) means *actual pixels on screen*. The impact explosion is tuned via `BOOM_VISUAL_SCALE` in `bullet.gd` (visual only — the AOE damage radius is untouched).
+- ✅ **Extinguisher base damage raised to 15/pulse** (`aura_damage` 6→10; total is `aura_damage + 50% of bullet_damage`, so it still scales with damage upgrades).
+- ✅ **Upgrade renames + new icons:** Cocaine→**Weird Concoction**, Weed→**Wine**, Hook→**Knockback Stick**, OCB Papers→**Papers**; new art for those plus Drill and Double Dose (`upgrade_12.webp`, `upgrade_13..18.png`).
+- ⚠️ **Known issue (pre-existing):** the bullet's `CollisionShape2D` is a default `CapsuleShape2D` (radius 10) under a `0.1` root scale → a **1-pixel** hitbox against a 27px sprite. Bullets visually pass through enemies more than they should. Fix by enlarging the capsule in `bullet.tscn`.
+- ⚠️ **Balance notes:** the **Pistol is strictly worse than the Mage Staff** (same damage, same fire rate, but the mage also gets a free AOE explosion) — it's a false choice. And the Extinguisher can still be offered **4 dead upgrades** (Papers, Parallel Bullets, Drill, Adrenaline), since it fires no bullets and its aura can never crit; the level-up pool doesn't filter by weapon.
 
 ## Current state (2026-07-08)
 - ✅ **Frostwalker** (Epic) — a **frost trail** at your feet that **slows** enemies (blue tint on them) and does light damage. Per stack: +0.5s slow duration & +0.3s trail; damage stays. Mirror of Firewalker (`icetrail.gd`), art desaturated at load.

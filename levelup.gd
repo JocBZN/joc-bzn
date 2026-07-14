@@ -20,22 +20,24 @@ const RARITIES := {
 
 # "desc" = statul afișat sub nume. "rar" = raritatea (border + culoare). Efectul e în _apply().
 var UPGRADES := [
-	{"id": "cocaina",   "nume": "Cocaine",   "icon": "upgrade_1.png", "rar": "epic",      "desc": "Bullet 2 · +speed · +fire rate"},
-	{"id": "iarba",     "nume": "Weed",      "icon": "upgrade_2.png", "rar": "common",    "desc": "+3 HP/sec & heal 30"},
+	{"id": "cocaina",   "nume": "Weird Concoction", "icon": "upgrade_15.png", "rar": "epic", "desc": "+speed · +fire rate"},
+	{"id": "iarba",     "nume": "Wine",      "icon": "upgrade_13.png", "rar": "common",    "desc": "+3 HP/sec & heal 30"},
 	{"id": "seringa",   "nume": "Syringe",   "icon": "upgrade_3.png", "rar": "uncommon",  "desc": "+12 Bullet damage"},
 	{"id": "bere",      "nume": "Beer",      "icon": "upgrade_4.png", "rar": "common",    "desc": "+35 Max health"},
 	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "-3 Damage taken"},
-	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "Bullet 3 fire · +damage · +fire rate"},
-	{"id": "foite",     "nume": "OCB Papers", "icon": "upgrade_7.png", "rar": "common",   "desc": "+250 Bullet speed"},
+	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+damage · +fire rate"},
+	{"id": "foite",     "nume": "Papers",    "icon": "upgrade_7.png", "rar": "common",    "desc": "+250 Bullet speed"},
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "rare",      "desc": "-15% XP to level"},
 	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
 	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
 	{"id": "gloante_paralele", "nume": "Parallel Bullets", "icon": "res://bullets/bullet1.png", "rar": "legendary", "desc": "+1 parallel bullet"},
-	{"id": "strapungere", "nume": "Drill", "icon": "res://bullets/bullet2.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
+	{"id": "strapungere", "nume": "Drill", "icon": "upgrade_16.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
 	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% chance of double damage"},
-	{"id": "glont_mare", "nume": "Double Dose", "icon": "res://bullets/bullet3.png", "rar": "uncommon", "desc": "Bigger bullets · +5 damage"},
-	{"id": "recul", "nume": "Hook", "icon": "upgrade_5.png", "rar": "uncommon", "desc": "Bullets knock enemies back"},
+	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger bullets · +5 damage"},
+	{"id": "recul", "nume": "Knockback Stick", "icon": "upgrade_12.webp", "rar": "uncommon", "desc": "Bullets knock enemies back"},
+	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+30 Weapon size"},
+	{"id": "burger", "nume": "Rat's Burger", "icon": "upgrade_18.png", "rar": "rare", "desc": "+30% Weapon size"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -324,3 +326,9 @@ func _apply(id: String, p) -> void:
 		"recul":
 			# gloanțele împing inamicii înapoi
 			p.knockback += 250.0
+		"pufferfish":
+			# arma se umflă: +30px la sprite ȘI la hitbox (glonț / sferă mage / aura stingătorului)
+			p.weapon_size_px += 30.0
+		"burger":
+			# arma crește cu 30% peste mărimea curentă (se compune dacă îl iei de mai multe ori)
+			p.weapon_size_mult *= 1.30
