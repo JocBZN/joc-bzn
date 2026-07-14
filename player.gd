@@ -21,19 +21,27 @@ var weapon_type: String = "pistol"
 # Stingător = AURĂ: pulsează în jurul tău, mai mare cu nivelul, mai des cu cadența
 @export var aura_base_radius: float = 90.0
 @export var aura_growth: float = 12.0      # cât crește raza pe nivel
-@export var aura_damage: int = 6           # damage pe puls de aură
+@export var aura_damage: int = 10          # damage de bază pe puls; total = asta + 50% din bullet_damage (10 + 5 = 15 la start)
 var _aura_tex: Texture2D
 var _foam_frames: SpriteFrames  # animația de spumă (rândul 6 din stingator_effects.png)
 var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol/mage)
 var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
 var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 @export var muzzle_scale: float = 1.2
+# Diametrul sferei mage pe ecran, în pixeli. Glonțul are scale 0.1 în bullet.tscn,
+# așa că sfera trebuie să compenseze scara părintelui (vezi _make_mage_orb).
+@export var mage_orb_size: float = 35.0
 
 # --- upgrade-uri de armă ---
 @export var crit_chance: float = 0.0       # șansa (0..1) ca o lovitură să fie critică
 @export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
 @export var pierce: int = 0                # prin câți inamici trece glonțul
 @export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
+# --- mărimea ARMEI (sprite + hitbox), comună tuturor armelor ---
+# Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui). Stingător: mărește raza aurei.
+const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran (193px × 1.4 sprite × 0.1 root)
+@export var weapon_size_px: float = 0.0    # Pufferfish: +30 px adăugați la mărimea armei
+@export var weapon_size_mult: float = 1.0  # Rat's Burger: × 1.30 peste mărimea curentă
 @export var knockback: float = 0.0         # cât împinge inamicul înapoi
 @export var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără) — Jean's Bomb
 @export var explosion_damage: int = 0      # cât damage face explozia AOE
@@ -153,6 +161,11 @@ func _update_anim(directie: Vector2) -> void:
 		anim.play(ultima_directie)
 		anim.set_frame_and_progress(cadru, progres)
 
+# Mărimea armei ca factor de scalare: pixelii ceruți (Pufferfish) se traduc în scară
+# raportat la glonțul de bază, apoi se aplică procentul (Rat's Burger).
+func weapon_size_scale() -> float:
+	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult
+
 # dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:
 	if weapon_type == "extinguisher":
@@ -194,7 +207,8 @@ func _fire_bullets() -> void:
 		if weapon_type == "mage":
 			bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
 			_make_mage_orb(bullet)                       # proiectil = sferă magică animată
-		bullet.scale *= bullet_scale
+		# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus sfera mage
+		bullet.scale *= bullet_scale * weapon_size_scale()
 		bullet.set_direction(dir)
 	if any_crit:
 		add_shake(0.35)
@@ -202,7 +216,8 @@ func _fire_bullets() -> void:
 # Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
 # frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
 func _aura_pulse() -> void:
-	var radius := aura_base_radius + level * aura_growth
+	# raza aurei e și vizualul, și zona care lovește → mărimea armei o crește pe amândouă
+	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult
 	var dmg := aura_damage + int(bullet_damage * 0.5)  # aura scalează și cu upgrade-urile de damage
 	var hit := false
 	for e in get_tree().get_nodes_in_group("enemy"):
@@ -316,7 +331,11 @@ func _make_mage_orb(bullet: Node) -> void:
 	orb.sprite_frames = _mage_orb_frames
 	orb.animation = "fx"
 	orb.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	orb.scale = Vector2.ONE * 0.7
+	# Sfera e copil al glonțului, deci moștenește scale-ul lui (0.1). Împărțim la el
+	# ca `mage_orb_size` să însemne chiar pixeli pe ecran, nu pixeli × 0.1.
+	var fw := _mage_orb_frames.get_frame_texture("fx", 0).get_width()
+	var parent_scale: float = max(bullet.scale.x, 0.001)
+	orb.scale = Vector2.ONE * (mage_orb_size / float(max(fw, 1))) / parent_scale
 	bullet.add_child(orb)
 	orb.play("fx")
 

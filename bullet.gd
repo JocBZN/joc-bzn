@@ -1,6 +1,7 @@
 extends Area2D
 
 const EXPLOSION_KNOCKBACK := 500.0  # cât de tare suflă explozia inamicii în afară (Jean's Bomb)
+const BOOM_VISUAL_SCALE := 1.3 / 3.0  # doar vizualul exploziei mage; raza de damage rămâne neschimbată
 
 @export var speed: float = 700.0
 @export var damage: int = 10
@@ -80,7 +81,7 @@ func _play_boom() -> void:
 	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	a.z_index = 60
 	var fw := explosion_frames.get_frame_texture("fx", 0).get_width()
-	a.scale = Vector2.ONE * (explosion_radius * 2.0) / float(max(fw, 1))
+	a.scale = Vector2.ONE * (explosion_radius * 2.0 * BOOM_VISUAL_SCALE) / float(max(fw, 1))
 	get_parent().add_child(a)
 	a.global_position = global_position
 	a.play("fx")
