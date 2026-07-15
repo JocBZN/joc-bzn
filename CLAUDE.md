@@ -11,6 +11,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (armă nouă: Cursed Sword · animație atașată de player · tweak-uri iteme)
+
+**Done:**
+- **Armă nouă „Cursed Sword"** — al 4-lea `weapon_type` selectabil în meniu (`menu.gd` `WEAPONS`, `id="sword"`, iconiță `weapons_icons/cursed sword.png`). Taie automat în **direcția în care se uită** player-ul (nou `_facing` în `player.gd`, actualizat în `_physics_process` la mișcare). Lovește **toți inamicii din conul din față** (`to_enemy.normalized().dot(dir) >= sword_arc_dot`, în raza `sword_range * weapon_size_scale()`), damage = `sword_base_damage + bullet_damage` + crit (ca aura) + instakill (ca glonțul). Dispecer în `_fire()`: `elif weapon_type == "sword": _sword_swing()`.
+- **Slow la început + scalare cu player-ul:** la selectarea sabiei, `fire_interval *= sword_slow_start` (1.9) O SINGURĂ dată în `_ready` (înainte de crearea `fire_timer`). Attack-speed upgrade-urile (Rabbit's Foot, The Nightclub, Rolling Papers) o accelerează/încetinesc după, fiindcă folosește același `fire_interval`. Scalează și cu damage/crit/knockback/instakill/mărime (Pufferfish/Rat's Burger via `weapon_size_scale()`).
+- **Animația de tăiere = COPIL al player-ului** (`_spawn_sword_slash` face `add_child(a)` pe player, NU pe `get_parent()`/World) → tăietura îl urmează când merge (sabia „mereu în mână"), nu mai rămâne în urmă. Poziția/scara se împart la `scale.x` al player-ului (×2 în `main.tscn`) ca `sword_reach`/`sword_scale` să fie în pixeli reali. Rotită cu `dir.angle() + sword_art_rotation`.
+- **Arta sabiei:** `fx/cursed sword fx/cursed sword anim real.png` (640×60, înlocuită de Răzvan — prima versiune arăta urât) tăiată în **10 cadre uniforme** de 64×60 (`frame_0..9.png`, System.Drawing), încărcate cu `_load_fx_frames("res://fx/cursed sword fx", 22.0, false)`.
+- **Tweak-uri iteme** (`levelup.gd`): **Rabbit's Foot** −5 dmg / **+25%** attack speed (era +10% → `upgrade_fire_rate(0.80)`, adică 1/1.25); **Grinder** Rare→**Common**; **The Nightclub** Epic→**Rare**; **Syringe → „Knight's Power"** cu iconiță nouă `upgrade_26.png` (id intern rămâne `seringa`).
+
+**Gotchas:**
+- **Un copil al player-ului moștenește `scale = 2`** (din `main.tscn`) → orice „pixeli reali" pe un efect atașat de player trebuie împărțiți la `scale.x` (ca la sfera mage, care e copil de glonț cu scale 0.1).
+- **Spritesheet nou tăiat = importă înainte de rulare** (`godot --headless --path . --import`), altfel `load()` nu găsește cadrele.
+- **PowerShell + System.Drawing:** `New-Object System.Drawing.Rectangle($i*$fw, ...)` a crăpat cu erori de tip; fix = variabile `[int]` separate + `New-Object ... -ArgumentList`. Bitmap-ul se citește cu `-ArgumentList $path`.
+- **Verificat rulând** o scenă de test temporară (weapon="sword", player scale 2, 4 inamici în con) → screenshot la mijlocul animației + `print` care confirmă că slash-ul e copil al player-ului. Ștearsă după.
+
+**De reținut (workflow):** după ce termin, actualizez CLAUDE.md + README și dau push pe `main` fără să mai întreb (cererea lui Răzvan).
+
+---
+
 ## Session log — 2026-07-15 (gloanțe noi + sinergie combinat · stingător foam+hitbox · instakill + 5 iteme · rebalans)
 
 **Done:**

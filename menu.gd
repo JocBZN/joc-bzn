@@ -8,9 +8,10 @@ const ACCENT := Color(0.2, 0.9, 1.0)    # cyan
 const ACCENT2 := Color(1.0, 0.2, 0.6)   # magenta (glow-ul titlului)
 
 var WEAPONS := [
-	{"id": "pistol",       "name": "PISTOL",     "icon": "res://weapons_icons/pistol.png"},
-	{"id": "mage",         "name": "MAGE STAFF", "icon": "res://weapons_icons/mage_staff.png"},
-	{"id": "extinguisher", "name": "STINGĂTOR",  "icon": "res://weapons_icons/stingator.png"},
+	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png"},
+	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png"},
+	{"id": "extinguisher", "name": "STINGĂTOR",    "icon": "res://weapons_icons/stingator.png"},
+	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png"},
 ]
 
 var _panels := {}

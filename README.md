@@ -38,15 +38,21 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - **Boss art** lives in `boss/` (walk GIFs split into `walk_<dir>_<i>.png` frames + the lightning-burst frames); the alert symbol in `Upgrades/symbol_alert_002_large_red/`. New GIFs are split to PNG with PowerShell + `System.Drawing`; **open the project in Godot once to import new PNGs** before they render (art is loaded at runtime with `load()`).
 
 ## Weapons
-Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_ready`). All three share the **same base stats** (`bullet_damage` 10, `fire_interval` 0.5, `bullet_speed` 700) — `weapon_type` only changes *behaviour*, in three places in `player.gd`:
+Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_ready`). All four share the **same base stats** (`bullet_damage` 10, `fire_interval` 0.5, `bullet_speed` 700) — `weapon_type` only changes *behaviour*, in four places in `player.gd`:
 
 | Weapon | How it fires |
 |---|---|
 | **Pistol** | One bullet at the nearest enemy. Nothing else. |
 | **Mage Staff** | The same bullet, re-skinned as an animated orb, that **explodes on impact** (radius 110, damage = 60% of `bullet_damage`). |
 | **Extinguisher** | No bullets at all — an **aura** pulses around you every `fire_interval`, hitting *every* enemy within `aura_base_radius + level × aura_growth`, for `aura_damage + 50% of bullet_damage` (15 at start). |
+| **Cursed Sword** | No bullets — a **melee slash** in the direction you're **facing** (`_facing`), hitting *every* enemy in a forward cone (`sword_range`, cone width `sword_arc_dot`) for `sword_base_damage + bullet_damage`. Starts **slow** (`fire_interval × sword_slow_start` when picked) and speeds up with attack-speed upgrades. The slash animation is a **child of the player**, so it follows you (feels like the sword is always in hand). Scales with damage / crit / knockback / instakill / weapon-size upgrades. |
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
+
+## Current state (2026-07-16)
+- ✅ **New weapon — Cursed Sword** (4th selectable weapon in the menu). Auto-**slashes in the facing direction** every `fire_interval`, hitting every enemy in a forward cone. Base swing is intentionally **slow** (`sword_slow_start` = 1.9× interval when picked) so attack-speed upgrades feel impactful; scales with the player's damage / crit / knockback / instakill / weapon-size upgrades (modelled on the Extinguisher aura + bullet instakill). Tunables on `player.gd`: `sword_range`, `sword_arc_dot`, `sword_base_damage`, `sword_reach`, `sword_scale`, `sword_art_rotation`, `sword_slow_start`.
+- ✅ **Slash animation attached to the player.** The slash `AnimatedSprite2D` is now a **child of the Player node** (not left behind in the world), so it moves with you — the vibe is that the sword is always in hand. Its position/scale divide by the player's `scale` (×2 in `main.tscn`) to stay in real pixels. Art: `fx/cursed sword fx/cursed sword anim real.png` (640×60) sliced into **10 frames** (64×60) at import, played at 22 fps.
+- ✅ **Upgrade tweaks** (`levelup.gd`): **Rabbit's Foot** now −5 damage · **+25%** attack speed (was +10%); **Grinder** rarity Rare → **Common**; **The Nightclub** rarity Epic → **Rare**; **Syringe → Knight's Power** (new icon `upgrade_26.png`).
 
 ## Current state (2026-07-15)
 - ✅ **New bullet art + orientation system.** The Pistol's default bullet now uses `bullets/bullet normal.png`. The source art points **north-east**, so its `Sprite2D` child carries a `-45°` rotation that makes the composite point "north" — the existing `set_direction()` (`+PI/2`) then aims it correctly in **all** directions. Same treatment for the new combined bullet.

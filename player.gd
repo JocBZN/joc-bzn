@@ -37,6 +37,17 @@ var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 # așa că sfera trebuie să compenseze scara părintelui (vezi _make_mage_orb).
 @export var mage_orb_size: float = 35.0
 
+# --- Cursed Sword: taie automat în direcția în care se uită player-ul ---
+@export var sword_reach: float = 62.0        # cât de departe în față e centrul tăieturii
+@export var sword_range: float = 135.0       # raza în care lovește tăietura (crește cu Pufferfish/Rat's Burger)
+@export var sword_arc_dot: float = 0.15      # cât de larg e conul din față (dot>asta lovește; ~1.0 îngust, ~-1 tot ecranul)
+@export var sword_base_damage: int = 8       # damage de bază/tăietură; total = asta + bullet_damage
+@export var sword_slow_start: float = 1.9    # la început taie mai rar (fire_interval × asta la selectarea sabiei)
+@export var sword_scale: float = 1.7         # mărimea vizuală a animației de tăiere
+@export var sword_art_rotation: float = 0.0  # corecție de rotație a artei (dacă sabia nu arată spre direcția corectă)
+var _sword_frames: SpriteFrames             # cele 3 cadre din fx/cursed sword fx
+var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s-a uitat player-ul (pt. tăietura sabiei)
+
 # --- upgrade-uri de armă ---
 @export var crit_chance: float = 0.0       # șansa (0..1) ca o lovitură să fie critică
 @export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
@@ -97,6 +108,11 @@ func _ready() -> void:
 	_muzzle_frames = _load_fx_frames("res://fx/muzzle", 26.0, false)
 	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
 	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
+	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (10 cadre)
+	# Cursed Sword taie mai rar la început (ca să simți creșterea când iei attack speed).
+	# O face slow o SINGURĂ dată aici; upgrade-urile de attack speed (Rabbit's Foot etc.) o accelerează după.
+	if weapon_type == "sword":
+		fire_interval *= sword_slow_start
 	hp = max_hp
 	anim.play("idle_south")  # pornim stând pe loc, uitându-ne în jos
 	fire_timer = Timer.new()
@@ -149,6 +165,7 @@ func _physics_process(delta: float) -> void:
 	velocity = directie * speed
 	move_and_slide()
 	if directie != Vector2.ZERO:
+		_facing = directie.normalized()  # reținem direcția reală de privire (pt. tăietura sabiei)
 		_update_anim(directie)
 	else:
 		var idle_nume := "idle_" + ultima_directie  # stă pe loc: poza statică pe ultima direcție
@@ -178,6 +195,8 @@ func weapon_size_scale() -> float:
 func _fire() -> void:
 	if weapon_type == "extinguisher":
 		_aura_pulse()      # stingătorul nu trage gloanțe, ci pulsează o aură
+	elif weapon_type == "sword":
+		_sword_swing()     # sabia taie în conul din fața player-ului
 	else:
 		_fire_bullets()    # pistol / mage
 
@@ -279,6 +298,64 @@ func _spawn_aura_ring(radius: float) -> void:
 	t.tween_property(s, "scale", Vector2.ONE * full, 0.28)
 	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
 	t.tween_callback(s.queue_free)
+
+# Cursed Sword: la fiecare tick taie în conul din fața player-ului (direcția în care se uită).
+# Scalează cu upgrade-urile playerului: damage (bullet_damage), attack speed (fire_interval),
+# crit (Adrenaline), knockback, instakill (Hacksaw) și mărime (Pufferfish/Rat's Burger).
+func _sword_swing() -> void:
+	var dir := _facing
+	if dir == Vector2.ZERO:
+		dir = Vector2.DOWN
+	dir = dir.normalized()
+	var reach := sword_range * weapon_size_scale()
+	var dmg := sword_base_damage + bullet_damage      # taie mai tare cu upgrade-urile de damage
+	var is_crit := randf() < crit_chance              # Adrenaline: și sabia poate da critic
+	if is_crit:
+		dmg = int(dmg * crit_mult)
+	var hit := false
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var enemy := e as Node2D
+		if enemy == null:
+			continue
+		var to_enemy := enemy.global_position - global_position
+		if to_enemy.length() > reach:
+			continue
+		# doar inamicii din CONUL din față (dot cu direcția de privire ≥ prag)
+		if to_enemy.normalized().dot(dir) < sword_arc_dot:
+			continue
+		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură)
+		var kill := instakill_chance > 0.0 and randf() < instakill_chance
+		var dealt := dmg
+		if kill and "hp" in enemy:
+			dealt = int(enemy.hp)
+		enemy.take_damage(dealt)
+		Fx.damage_number(enemy.global_position, dealt, is_crit or kill)
+		if knockback > 0.0 and enemy.has_method("apply_knockback"):
+			enemy.apply_knockback(to_enemy.normalized() * knockback)
+		hit = true
+	Audio.play("shoot", -10.0)  # foșnet de tăiere (placeholder)
+	if hit and is_crit:
+		add_shake(0.35)
+	_spawn_sword_slash(dir)
+
+# Vizualul tăieturii: animația de slash, COPIL al player-ului → se mișcă odată cu el
+# (nu mai rămâne în urmă când mergi; sabia pare mereu „în mână"). Rotită după direcția de privire.
+func _spawn_sword_slash(dir: Vector2) -> void:
+	if _sword_frames == null or _sword_frames.get_frame_count("fx") == 0:
+		return
+	var a := AnimatedSprite2D.new()
+	a.sprite_frames = _sword_frames
+	a.animation = "fx"
+	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	a.z_index = 2
+	add_child(a)  # copil al player-ului → tăietura îl urmează
+	# player-ul e la scale 2 în main.tscn; împărțim la scara lui ca reach/scale să fie în pixeli reali
+	var ps: float = max(scale.x, 0.001)
+	a.position = dir * (sword_reach * weapon_size_scale()) / ps
+	a.rotation = dir.angle() + sword_art_rotation
+	a.scale = Vector2.ONE * (sword_scale * weapon_size_scale()) / ps
+	a.play("fx")
+	a.animation_finished.connect(a.queue_free)
 
 # Construiește animația de spumă din cele 14 frame-uri tăiate (stingator/frame_0..13.png).
 func _build_foam_frames() -> SpriteFrames:

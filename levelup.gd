@@ -22,12 +22,12 @@ const RARITIES := {
 var UPGRADES := [
 	{"id": "cocaina",   "nume": "Weird Concoction", "icon": "upgrade_15.png", "rar": "epic", "desc": "+speed · +fire rate"},
 	{"id": "iarba",     "nume": "Wine",      "icon": "upgrade_13.png", "rar": "common",    "desc": "+3 HP/sec & heal 30"},
-	{"id": "seringa",   "nume": "Syringe",   "icon": "upgrade_3.png", "rar": "uncommon",  "desc": "+7 Bullet damage"},
+	{"id": "seringa",   "nume": "Knight's Power", "icon": "upgrade_26.png", "rar": "uncommon",  "desc": "+7 Bullet damage"},
 	{"id": "bere",      "nume": "Beer",      "icon": "upgrade_4.png", "rar": "common",    "desc": "+35 Max health"},
 	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "-3 Damage taken"},
 	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+damage · +fire rate"},
 	{"id": "foite",     "nume": "Rolling Papers", "icon": "upgrade_7.png", "rar": "common",    "desc": "+10% Attack speed"},
-	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "rare",      "desc": "-15% XP to level"},
+	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "common",    "desc": "-15% XP to level"},
 	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
 	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
@@ -38,9 +38,9 @@ var UPGRADES := [
 	{"id": "recul", "nume": "Knockback Stick", "icon": "upgrade_22.png", "rar": "uncommon", "desc": "Bullets knock enemies back"},
 	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+10 Weapon size"},
 	{"id": "burger", "nume": "Rat's Burger", "icon": "upgrade_18.png", "rar": "rare", "desc": "+30% Weapon size"},
-	{"id": "rabbit_foot", "nume": "Rabbit's Foot", "icon": "upgrade_20.png", "rar": "uncommon", "desc": "-5 Damage · +10% Attack speed"},
+	{"id": "rabbit_foot", "nume": "Rabbit's Foot", "icon": "upgrade_20.png", "rar": "uncommon", "desc": "-5 Damage · +25% Attack speed"},
 	{"id": "hedgehog", "nume": "Mike's Hedgehog", "icon": "upgrade_21.png", "rar": "epic", "desc": "Reflect 100% damage (once/3s)"},
-	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "epic", "desc": "+35% Damage · -35% Attack speed"},
+	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "rare", "desc": "+35% Damage · -35% Attack speed"},
 	{"id": "rusty_hacksaw", "nume": "Rusty Hacksaw", "icon": "upgrade_24.png", "rar": "uncommon", "desc": "1% instakill (+0.5% / stack)"},
 	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
 ]
@@ -344,9 +344,9 @@ func _apply(id: String, p) -> void:
 			# arma crește cu 30% peste mărimea curentă (se compune dacă îl iei de mai multe ori)
 			p.weapon_size_mult *= 1.30
 		"rabbit_foot":
-			# compromis: -5 damage pe proiectil, dar +10% attack speed (merge și la Stingător)
+			# compromis: -5 damage pe proiectil, dar +25% attack speed (merge și la Stingător)
 			p.bullet_damage = max(1, p.bullet_damage - 5)
-			p.upgrade_fire_rate(0.90)
+			p.upgrade_fire_rate(0.80)
 		"hedgehog":
 			# Mike's Hedgehog: când iei damage, îl reflecți 100% în inamic — o dată la 3s
 			p.hedgehog = true
