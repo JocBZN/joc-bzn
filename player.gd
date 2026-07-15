@@ -1,6 +1,10 @@
 extends CharacterBody2D
 
 var bullet_scene: PackedScene = preload("res://bullet.tscn")  # glonțul curent (se schimbă la unele upgrade-uri)
+var has_weird: bool = false   # ai luat Weird Concoction? (pt. sinergia cu Stroh → glonț combinat)
+var has_stroh: bool = false   # ai luat Stroh? (pt. sinergia cu Weird Concoction → glonț combinat)
+var _rusty_taken: bool = false   # Rusty Hacksaw luat cel puțin o dată (pt. baza vs. stack)
+var _doctor_taken: bool = false  # Doctor's Hacksaw luat cel puțin o dată
 const FIRE_TRAIL := preload("res://firetrail.gd")  # băltoaca de foc lăsată de Firewalker
 const ICE_TRAIL := preload("res://icetrail.gd")    # dâra de gheață lăsată de Frostwalker
 const GOD_TRAIL := preload("res://godtrail.gd")    # dâra combinată (Firewalker + Frostwalker = Godwalker)
@@ -22,6 +26,7 @@ var weapon_type: String = "pistol"
 @export var aura_base_radius: float = 90.0
 @export var aura_growth: float = 12.0      # cât crește raza pe nivel
 @export var aura_damage: int = 10          # damage de bază pe puls; total = asta + 50% din bullet_damage (10 + 5 = 15 la start)
+@export var foam_scale: float = 1.25       # mărimea spumei: crește ȘI vizualul, ȘI hitbox-ul (rămân mereu egale)
 var _aura_tex: Texture2D
 var _foam_frames: SpriteFrames  # animația de spumă (rândul 6 din stingator_effects.png)
 var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol/mage)
@@ -35,12 +40,13 @@ var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 # --- upgrade-uri de armă ---
 @export var crit_chance: float = 0.0       # șansa (0..1) ca o lovitură să fie critică
 @export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
+@export var instakill_chance: float = 0.0  # șansa (0..1) ca o lovitură să ucidă instant inamicul (Hacksaw)
 @export var pierce: int = 0                # prin câți inamici trece glonțul
 @export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
 # --- mărimea ARMEI (sprite + hitbox), comună tuturor armelor ---
 # Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui). Stingător: mărește raza aurei.
 const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran (193px × 1.4 sprite × 0.1 root)
-@export var weapon_size_px: float = 0.0    # Pufferfish: +30 px adăugați la mărimea armei
+@export var weapon_size_px: float = 0.0    # Pufferfish: +10 px adăugați la mărimea armei
 @export var weapon_size_mult: float = 1.0  # Rat's Burger: × 1.30 peste mărimea curentă
 @export var knockback: float = 0.0         # cât împinge inamicul înapoi
 @export var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără) — Jean's Bomb
@@ -57,6 +63,8 @@ const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran
 @export var contact_range: float = 60.0
 @export var contact_damage: int = 5
 @export var damage_interval: float = 0.5
+@export var hedgehog: bool = false         # Mike's Hedgehog: reflectă damage-ul primit înapoi în inamic
+var _hedgehog_next: float = 0.0            # momentul (sec) când reflectul redevine disponibil (cooldown 3s)
 @export var hp_regen: int = 0              # HP regenerat pe secundă (crește la level up)
 var hp: int
 
@@ -202,6 +210,7 @@ func _fire_bullets() -> void:
 		bullet.speed = bullet_speed
 		bullet.pierce = pierce
 		bullet.knockback = knockback
+		bullet.instakill_chance = instakill_chance
 		bullet.explosion_radius = ex_radius
 		bullet.explosion_damage = ex_damage
 		if weapon_type == "mage":
@@ -216,9 +225,12 @@ func _fire_bullets() -> void:
 # Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
 # frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
 func _aura_pulse() -> void:
-	# raza aurei e și vizualul, și zona care lovește → mărimea armei o crește pe amândouă
-	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult
+	# raza aurei e și vizualul, și zona care lovește → aceeași valoare pentru amândouă (hitbox = sprite mereu)
+	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult * foam_scale
 	var dmg := aura_damage + int(bullet_damage * 0.5)  # aura scalează și cu upgrade-urile de damage
+	var is_crit := randf() < crit_chance               # Adrenaline: și stingătorul poate da critic
+	if is_crit:
+		dmg = int(dmg * crit_mult)
 	var hit := false
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
@@ -226,12 +238,14 @@ func _aura_pulse() -> void:
 			continue
 		if global_position.distance_to(enemy.global_position) <= radius:
 			enemy.take_damage(dmg)
-			Fx.damage_number(enemy.global_position, dmg)
+			Fx.damage_number(enemy.global_position, dmg, is_crit)
 			if knockback > 0.0 and enemy.has_method("apply_knockback"):
 				enemy.apply_knockback((enemy.global_position - global_position).normalized() * knockback)
 			hit = true
 	if hit:
 		Audio.play("shoot", -12.0)  # foșnet slab (placeholder până ai sunet de spumă)
+		if is_crit:
+			add_shake(0.35)  # zguduitură ca la gloanțele critice
 	_spawn_aura_ring(radius)
 
 # Vizual placeholder al aurei: un nor bleu-alb care se extinde din player și se stinge.
@@ -246,7 +260,7 @@ func _spawn_aura_ring(radius: float) -> void:
 		a.z_index = -1  # sub player/inamici
 		get_parent().add_child(a)
 		a.global_position = global_position
-		a.scale = Vector2.ONE * (radius * 2.0) / 64.0  # frame 64px → diametru = 2×rază
+		a.scale = Vector2.ONE * (radius * 2.0) / 64.0  # frame 64px → diametru = 2×rază = exact hitbox-ul
 		a.play("foam")
 		a.animation_finished.connect(a.queue_free)
 		return
@@ -266,15 +280,15 @@ func _spawn_aura_ring(radius: float) -> void:
 	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
 	t.tween_callback(s.queue_free)
 
-# Construiește animația de spumă din cele 8 frame-uri tăiate (rândul 6 din stingator_effects.png).
+# Construiește animația de spumă din cele 14 frame-uri tăiate (stingator/frame_0..13.png).
 func _build_foam_frames() -> SpriteFrames:
 	var sf := SpriteFrames.new()
 	if not sf.has_animation("foam"):
 		sf.add_animation("foam")
 	sf.set_animation_loop("foam", false)
-	sf.set_animation_speed("foam", 20.0)  # 8 frame-uri la 20fps ≈ 0.4s
-	for i in 8:
-		var path := "res://stingator/foam_%d.png" % i
+	sf.set_animation_speed("foam", 24.0)  # 14 frame-uri la 24fps ≈ 0.58s
+	for i in 14:
+		var path := "res://stingator/frame_%d.png" % i
 		if ResourceLoader.exists(path):
 			var tex := load(path) as Texture2D
 			if tex != null:
@@ -331,6 +345,7 @@ func _make_mage_orb(bullet: Node) -> void:
 	orb.sprite_frames = _mage_orb_frames
 	orb.animation = "fx"
 	orb.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	orb.modulate = Color(0.72, 0.45, 1.0)  # filtru mov ca să semene cu explozia mage_boom
 	# Sfera e copil al glonțului, deci moștenește scale-ul lui (0.1). Împărțim la el
 	# ca `mage_orb_size` să însemne chiar pixeli pe ecran, nu pixeli × 0.1.
 	var fw := _mage_orb_frames.get_frame_texture("fx", 0).get_width()
@@ -367,12 +382,17 @@ func _nearest_enemy() -> Node2D:
 	return nearest
 
 func _take_contact_damage() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null:
 			continue
 		if global_position.distance_to(enemy.global_position) < contact_range:
 			take_damage(contact_damage)
+			# Mike's Hedgehog: reflectă 100% din damage înapoi în inamic, cel mult o dată la 3s
+			if hedgehog and now >= _hedgehog_next and enemy.has_method("take_damage"):
+				enemy.take_damage(contact_damage)
+				_hedgehog_next = now + 3.0
 
 func _regen() -> void:
 	if hp_regen > 0 and hp > 0:
@@ -386,7 +406,7 @@ func _drop_fire() -> void:
 	var patch := FIRE_TRAIL.new()
 	patch.duration = fire_trail_time     # cât rămâne (crește cu fiecare upgrade)
 	patch.damage = fire_trail_damage
-	patch.size = fire_trail_size         # mărimea (crește cu fiecare upgrade)
+	patch.size = fire_trail_size * weapon_size_scale()  # mărimea (crește cu upgrade-urile + Pufferfish/Rat's Burger)
 	patch.direction = velocity.normalized()  # focul se orientează în direcția de mers
 	get_parent().add_child(patch)        # în World (y-sort). Nodul e putin DEASUPRA player-ului →
 	patch.global_position = global_position - Vector2(0, 4)  # e desenat în SPATE, iar vizualul e coborât la picioare în firetrail.gd
@@ -402,7 +422,7 @@ func _drop_ice() -> void:
 	var patch := ICE_TRAIL.new()
 	patch.duration = frost_trail_time    # cât rămâne (crește cu fiecare upgrade)
 	patch.damage = frost_trail_damage
-	patch.size = frost_trail_size        # mărimea (crește cu fiecare upgrade)
+	patch.size = frost_trail_size * weapon_size_scale()  # mărimea (crește cu upgrade-urile + Pufferfish/Rat's Burger)
 	patch.slow_hold = frost_slow_time    # cât timp înghețăm inamicul (crește cu fiecare upgrade)
 	patch.direction = velocity.normalized()
 	get_parent().add_child(patch)
@@ -414,7 +434,7 @@ func _drop_god() -> void:
 	var patch := GOD_TRAIL.new()
 	patch.duration = max(fire_trail_time, frost_trail_time)  # rămâne cât cea mai lungă
 	patch.damage = fire_trail_damage + frost_trail_damage    # damage foc + gheață
-	patch.size = max(fire_trail_size, frost_trail_size)      # cât cea mai mare
+	patch.size = max(fire_trail_size, frost_trail_size) * weapon_size_scale()  # cât cea mai mare (+ Pufferfish/Rat's Burger)
 	patch.slow_hold = frost_slow_time                        # slow-ul de la Frostwalker
 	patch.direction = velocity.normalized()
 	get_parent().add_child(patch)

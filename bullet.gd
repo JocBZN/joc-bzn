@@ -14,6 +14,7 @@ var is_crit: bool = false  # dacă lovitura e critică (pentru numărul galben)
 var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără explozie) — Jean's Bomb
 var explosion_damage: int = 0      # cât damage face explozia asupra inamicilor din rază
 var explosion_frames: SpriteFrames = null  # animație de explozie (mage = violet); null → Fx.explosion
+var instakill_chance: float = 0.0  # șansa (0..1) să ucidă instant inamicul (Hacksaw)
 
 var direction: Vector2 = Vector2.RIGHT
 var time_left: float
@@ -37,11 +38,16 @@ func _physics_process(delta: float) -> void:
 
 func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("enemy"):
-		body.take_damage(damage)
-		# efecte la lovitură: scântei + număr de damage (crit = galben mare)
-		var col := Color(1.0, 0.85, 0.2) if is_crit else Color(0.6, 1.0, 1.0)
+		# Hacksaw: șansă să ucidă instant inamicul (îi scoatem toată viața dintr-o lovitură)
+		var kill := instakill_chance > 0.0 and randf() < instakill_chance
+		var dealt := damage
+		if kill:
+			dealt = int(body.hp) if "hp" in body else 999999
+		body.take_damage(dealt)
+		# efecte la lovitură: scântei + număr de damage (crit = galben mare; instakill = roșu mare)
+		var col := Color(1.0, 0.2, 0.2) if kill else (Color(1.0, 0.85, 0.2) if is_crit else Color(0.6, 1.0, 1.0))
 		Fx.impact(global_position, col)
-		Fx.damage_number(global_position, damage, is_crit)
+		Fx.damage_number(global_position, dealt, is_crit or kill)
 		# împinge inamicul înapoi, dacă avem knockback
 		if knockback > 0.0 and body.has_method("apply_knockback"):
 			body.apply_knockback(direction * knockback)

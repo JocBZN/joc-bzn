@@ -22,22 +22,27 @@ const RARITIES := {
 var UPGRADES := [
 	{"id": "cocaina",   "nume": "Weird Concoction", "icon": "upgrade_15.png", "rar": "epic", "desc": "+speed · +fire rate"},
 	{"id": "iarba",     "nume": "Wine",      "icon": "upgrade_13.png", "rar": "common",    "desc": "+3 HP/sec & heal 30"},
-	{"id": "seringa",   "nume": "Syringe",   "icon": "upgrade_3.png", "rar": "uncommon",  "desc": "+12 Bullet damage"},
+	{"id": "seringa",   "nume": "Syringe",   "icon": "upgrade_3.png", "rar": "uncommon",  "desc": "+7 Bullet damage"},
 	{"id": "bere",      "nume": "Beer",      "icon": "upgrade_4.png", "rar": "common",    "desc": "+35 Max health"},
 	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "-3 Damage taken"},
 	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+damage · +fire rate"},
-	{"id": "foite",     "nume": "Papers",    "icon": "upgrade_7.png", "rar": "common",    "desc": "+250 Bullet speed"},
+	{"id": "foite",     "nume": "Rolling Papers", "icon": "upgrade_7.png", "rar": "common",    "desc": "+10% Attack speed"},
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "rare",      "desc": "-15% XP to level"},
 	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
 	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
-	{"id": "gloante_paralele", "nume": "Parallel Bullets", "icon": "res://bullets/bullet1.png", "rar": "legendary", "desc": "+1 parallel bullet"},
+	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+1 Projectile"},
 	{"id": "strapungere", "nume": "Drill", "icon": "upgrade_16.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
 	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% chance of double damage"},
 	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger bullets · +5 damage"},
-	{"id": "recul", "nume": "Knockback Stick", "icon": "upgrade_12.webp", "rar": "uncommon", "desc": "Bullets knock enemies back"},
-	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+30 Weapon size"},
+	{"id": "recul", "nume": "Knockback Stick", "icon": "upgrade_22.png", "rar": "uncommon", "desc": "Bullets knock enemies back"},
+	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+10 Weapon size"},
 	{"id": "burger", "nume": "Rat's Burger", "icon": "upgrade_18.png", "rar": "rare", "desc": "+30% Weapon size"},
+	{"id": "rabbit_foot", "nume": "Rabbit's Foot", "icon": "upgrade_20.png", "rar": "uncommon", "desc": "-5 Damage · +10% Attack speed"},
+	{"id": "hedgehog", "nume": "Mike's Hedgehog", "icon": "upgrade_21.png", "rar": "epic", "desc": "Reflect 100% damage (once/3s)"},
+	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "epic", "desc": "+35% Damage · -35% Attack speed"},
+	{"id": "rusty_hacksaw", "nume": "Rusty Hacksaw", "icon": "upgrade_24.png", "rar": "uncommon", "desc": "1% instakill (+0.5% / stack)"},
+	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -256,8 +261,11 @@ func _on_choice(index: int) -> void:
 func _apply(id: String, p) -> void:
 	match id:
 		"cocaina":
-			# stimulent puternic: glonț nou (bullet2) + viteză + cadență
-			p.bullet_scene = load("res://bullet2.tscn")
+			# stimulent puternic: viteză + cadență. Glonțul rămâne normal;
+			# doar ÎMPREUNĂ cu Stroh devine glonțul combinat (sinergie ascunsă).
+			p.has_weird = true
+			if p.has_stroh:
+				p.bullet_scene = load("res://bullet_combined.tscn")
 			p.speed += 60.0
 			p.upgrade_fire_rate(0.8)
 		"iarba":
@@ -265,8 +273,8 @@ func _apply(id: String, p) -> void:
 			p.hp_regen += 3
 			p.hp = min(p.max_hp, p.hp + 30)
 		"seringa":
-			# lovitură directă: mult damage pe glonț
-			p.bullet_damage += 12
+			# lovitură directă: mai mult damage pe fiecare proiectil
+			p.bullet_damage += 7
 		"bere":
 			# tanky: mai multă viață maximă (te și vindecă)
 			p.upgrade_max_hp(35)
@@ -274,13 +282,16 @@ func _apply(id: String, p) -> void:
 			# amorțeală / curaj lichid: primești mai puțin damage
 			p.contact_damage = max(1, p.contact_damage - 3)
 		"stroh":
-			# 80% alcool, foc: glonț nou (bullet3) + damage + cadență
-			p.bullet_scene = load("res://bullet3.tscn")
+			# 80% alcool, foc: damage + cadență. Glonțul rămâne normal;
+			# doar ÎMPREUNĂ cu Weird Concoction devine glonțul combinat (sinergie ascunsă).
+			p.has_stroh = true
+			if p.has_weird:
+				p.bullet_scene = load("res://bullet_combined.tscn")
 			p.bullet_damage += 10
 			p.upgrade_fire_rate(0.85)
 		"foite":
-			# subțire & rapid: gloanțe mai iuți (bat mai departe)
-			p.bullet_speed += 250.0
+			# tragi mai des: +10% attack speed (merge și la gloanțe, și la pulsul stingătorului)
+			p.upgrade_fire_rate(0.90)
 		"grinder":
 			# eficiență: nivelezi mai repede (îți trebuie mai puțin XP)
 			p.xp_to_next = max(5, int(p.xp_to_next * 0.85))
@@ -327,8 +338,33 @@ func _apply(id: String, p) -> void:
 			# gloanțele împing inamicii înapoi
 			p.knockback += 250.0
 		"pufferfish":
-			# arma se umflă: +30px la sprite ȘI la hitbox (glonț / sferă mage / aura stingătorului)
-			p.weapon_size_px += 30.0
+			# arma se umflă: +10px la sprite ȘI la hitbox (glonț / sferă mage / aura stingătorului)
+			p.weapon_size_px += 10.0
 		"burger":
 			# arma crește cu 30% peste mărimea curentă (se compune dacă îl iei de mai multe ori)
 			p.weapon_size_mult *= 1.30
+		"rabbit_foot":
+			# compromis: -5 damage pe proiectil, dar +10% attack speed (merge și la Stingător)
+			p.bullet_damage = max(1, p.bullet_damage - 5)
+			p.upgrade_fire_rate(0.90)
+		"hedgehog":
+			# Mike's Hedgehog: când iei damage, îl reflecți 100% în inamic — o dată la 3s
+			p.hedgehog = true
+		"nightclub":
+			# The Nightclub: +35% damage, dar -35% attack speed (tragi mai rar)
+			p.bullet_damage = int(round(p.bullet_damage * 1.35))
+			p.upgrade_fire_rate(1.35)
+		"rusty_hacksaw":
+			# 1% instakill la prima luare, apoi +0.5% la fiecare repetare
+			if p._rusty_taken:
+				p.instakill_chance += 0.005
+			else:
+				p.instakill_chance += 0.01
+				p._rusty_taken = true
+		"doctor_hacksaw":
+			# 5% instakill la prima luare, apoi +2% la fiecare repetare
+			if p._doctor_taken:
+				p.instakill_chance += 0.02
+			else:
+				p.instakill_chance += 0.05
+				p._doctor_taken = true

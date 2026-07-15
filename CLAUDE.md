@@ -11,6 +11,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-15 (gloanțe noi + sinergie combinat · stingător foam+hitbox · instakill + 5 iteme · rebalans)
+
+**Done:**
+- **Sfera mage (mage_orb) filtru mov:** `orb.modulate = Color(0.72, 0.45, 1.0)` în `_make_mage_orb` (`player.gd`) — se asortează cu explozia `mage_boom`. Doar vizual.
+- **Stingător — animație de spumă nouă:** `stingator/stingator.png` (896×63) tăiat în **14 frame-uri** de 64×63 (`frame_0..13.png`, cu System.Drawing). `_build_foam_frames` încarcă acum `frame_%d` (14, 24fps) în loc de vechile `foam_*` (care nu existau → cădea pe fallback gradient).
+- **Stingător — un singur reglaj `@export foam_scale` (1.25) + hitbox = sprite MEREU:** `radius = (aura_base_radius + level*aura_growth + weapon_size_px) * weapon_size_mult * foam_scale`, iar sprite-ul aurei = `radius*2/64` (am scos multiplicatorul vizual separat). Amândouă pornesc din același `radius`, deci nu se pot desincroniza.
+- **Pufferfish/Rat's Burger măresc și dârele:** `patch.size *= weapon_size_scale()` în `_drop_fire`/`_drop_ice`/`_drop_god`. La bază factorul = 1.0 (fără upgrade nu schimbă nimic). `size` scalează și vizualul, și raza de damage a dârei.
+- **Rebalans upgrade-uri** (`levelup.gd`): Papers→**Rolling Papers** (`upgrade_fire_rate(0.90)` = +10% attack speed; merge și la stingător fiindcă pulsul folosește `fire_timer`); Pufferfish +30→**+10**; Syringe +12→**+7**; **Adrenaline** dă critic și pe aură (roll de `crit_chance` în `_aura_pulse`); Parallel Bullets→**Twin Comets** (`upgrade_19.png`, „+1 Projectile"); Knockback Stick → `upgrade_22.png`.
+- **5 iteme noi** (pool = **23**): **Rabbit's Foot** (`upgrade_20`, uncommon: -5 dmg / +10% atk speed), **Mike's Hedgehog** (`upgrade_21`, epic: reflect 100% din contact damage, o dată la 3s), **The Nightclub** (`upgrade_25`, epic: +35% dmg / -35% atk speed), **Rusty Hacksaw** (`upgrade_24`, uncommon: 1% instakill, +0.5%/stack), **Doctor's Hacksaw** (`upgrade_23`, legendary: 5% instakill, +2%/stack).
+- **Instakill:** `@export instakill_chance` pe player → pasat glonțului (`bullet.instakill_chance`) → în `bullet.gd _on_body_entered` roll `randf() < instakill_chance`; la succes scoate `body.hp` dintr-o lovitură (număr roșu mare). Ambele Hacksaw cumulează în același `instakill_chance` (bază la prima luare via `_rusty_taken`/`_doctor_taken`, increment la fiecare stack).
+- **Mike's Hedgehog** reflectă în `_take_contact_damage` (acolo player-ul iterează inamicii care-l ating), cooldown 3s cu `Time.get_ticks_msec()` (`_hedgehog_next`).
+- **Gloanțe noi:** `bullets/bullet normal.png` (pistol, în `bullet.tscn`) + `bullets/bullet_combined.png` (`bullet_combined.tscn`, nou). Vechile `bullet1/2/3.png` nu mai există. **Weird Concoction/Stroh nu mai schimbă glonțul individual** (păstrează doar statul); luate **ÎMPREUNĂ** → glonțul combinat (violet). Flaguri `has_weird`/`has_stroh` pe player; sinergie ca Godwalker.
+
+**Gotchas:**
+- **Orientarea sprite-ului de glonț:** arta nouă e desenată spre **NE**, dar `set_direction` presupune „nord". Fix corect = rotește **Sprite2D-ul copil** cu `-0.7853982` (-45°) direct în `.tscn`, ca ansamblul să arate „spre nord"; **nu** atinge `set_direction` (`+PI/2`), altfel strici mage/orice alt glonț desenat spre nord. Matematic: NE = -PI/4, nord = -PI/2, offset = -PI/4.
+- **PowerShell 5.1 citește fișierele fără BOM ca ANSI** → strică diacriticele (ș/ț/î/ă → mojibake „È™ansÄƒ"). Pentru text românesc procesat cu PowerShell (ex. editarea codexului): ține-l într-un fișier **UTF-8 separat** (JSON) și citește-l cu `[IO.File]::ReadAllText(path, [Text.Encoding]::UTF8)`, scrie cu `New-Object System.Text.UTF8Encoding($false)` (fără BOM). **NU pune diacritice în literalele din `.ps1`** — se corup la citirea scriptului.
+- **Ceas headless:** `Time.get_ticks_msec()` (timp real) și `create_timer` (timp de joc, pe delta de frame) **diverg în `--headless`**. Un test de cooldown cu `create_timer` dă fals-negativ. Așteaptă pe același ceas ca și codul: `var t0 := Time.get_ticks_msec(); while Time.get_ticks_msec()-t0 < N: await get_tree().process_frame`.
+- **Codexul (artifact)** e HTML mare cu iconițe base64, grupat pe tier-uri de raritate (`<!-- EPIC -->` etc. sunt ancore bune). Ramele de raritate sunt base64 **partajate per raritate** — extrage una per raritate din codexul existent și refolosește. Se updatează pe același URL cu param. `url=`.
+
+**Probleme rezolvate** (erau în „cunoscute" la 2026-07-14):
+- **Stingătorul avea 4 upgrade-uri moarte** → acum doar **2** (Twin Comets, Drill). Rolling Papers (attack speed) și Adrenaline (crit pe aură) funcționează acum cu el.
+
+---
+
 ## Session log — 2026-07-14 (efecte Mage Staff · damage stingător · redenumiri upgrade-uri · mărimea armei)
 
 **Done:**
