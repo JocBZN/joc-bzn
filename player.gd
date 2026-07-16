@@ -38,20 +38,21 @@ var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 @export var mage_orb_size: float = 35.0
 
 # --- Cursed Sword: taie automat în direcția în care se uită player-ul ---
-# Valorile de mai jos NU sunt alese din ochi: sunt măsurate pe pixelii artei din
-# fx/cursed sword fx, ca hitbox-ul să lovească exact cât se vede pe ecran.
-# Dacă umbli la reach/lateral/scale, TOATE trebuie remăsurate împreună.
-@export var sword_reach: float = 62.0        # cât de departe în față e centrul tăieturii
-# Arta e desenată strâmb: măturatul ei stă mai sus decât axa privirii (de la -62° la +34°),
-# de-aia părea că tai pe lângă. Împinsă lateral cu 12 px, ajunge simetrică: -41°..+42°.
+# TOATE valorile de mai jos sunt în sistemul ARTEI (x = în față, y = lateral) și se rotesc
+# odată cu privirea → tăietura arată identic în toate cele 8 direcții. Nu adăuga aici offset-uri
+# „pe ecran" (nerotite): ar face tăietura să stea altfel la est față de nord (încercat, respins).
+# Valorile NU sunt alese din ochi: sunt măsurate pe pixelii artei din fx/cursed sword fx,
+# ca hitbox-ul să lovească exact cât se vede. Umbli la reach/lateral/scale → remăsori raza.
+@export var sword_reach: float = 42.0        # cât de departe în față e centrul tăieturii
+# Arta e desenată strâmb (măturatul ei stă mai sus decât axa privirii), de-aia părea că tai
+# pe lângă. Împinsă lateral cu 12 px, ajunge simetrică față de direcția în care te uiți.
 @export var sword_lateral: float = 12.0      # deplasare perpendiculară pe privire, ca arcul să fie centrat
-# Împinge toată tăietura pe ecran, la fel în orice direcție privești (NU se rotește cu privirea):
-# sabia pare ținută în stânga. Hitbox-ul folosește ACELAȘI offset (vezi `origine` în _sword_swing),
-# altfel arta și conul s-ar despărți: la est ai lăsa 20 px de tăietură fără damage, iar la vest
-# ai lovi 20 px de gol. Sunt pixeli de joc, nu de ecran — camera e la zoom 0.7, deci se văd ca ~14.
-@export var sword_screen_offset: Vector2 = Vector2(-20, 0)
-@export var sword_range: float = 108.0       # raza în care lovește tăietura (crește cu Pufferfish/Rat's Burger)
-@export var sword_arc_dot: float = 0.75      # cât de larg e conul din față (dot>asta lovește; 0.75 = ±42°, ~1.0 îngust, ~-1 tot ecranul)
+# Hitbox-ul e un DISC în jurul centrului tăieturii, nu un con în jurul player-ului. La reach 42
+# arta îl învăluie pe player (coada ei ajunge ~12 px în spate, ascunsă sub el), deci un con din
+# față n-o mai poate descrie — fitul ar da ±180°, adică ai lovi și în spate. Discul se rotește
+# odată cu arta prin construcție, deci consistența pe direcții e garantată, nu ajustată.
+# 56 = cel mai depărtat pixel de artă față de centrul ei. Acoperă 36% tăietură reală (conul dădea 42%).
+@export var sword_hit_radius: float = 56.0   # raza loviturii, în jurul CENTRULUI tăieturii
 @export var sword_base_damage: int = 8       # damage de bază/tăietură; total = asta + bullet_damage
 @export var sword_slow_start: float = 1.9    # la început taie mai rar (fire_interval × asta la selectarea sabiei)
 @export var sword_scale: float = 1.7         # mărimea vizuală a animației de tăiere
@@ -310,7 +311,7 @@ func _spawn_aura_ring(radius: float) -> void:
 	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
 	t.tween_callback(s.queue_free)
 
-# Cursed Sword: la fiecare tick taie în conul din fața player-ului (direcția în care se uită).
+# Cursed Sword: la fiecare tick taie în discul tăieturii, așezat în fața player-ului (direcția în care se uită).
 # Scalează cu upgrade-urile playerului: damage (bullet_damage), attack speed (fire_interval),
 # crit (Adrenaline), knockback, instakill (Hacksaw) și mărime (Pufferfish/Rat's Burger).
 func _sword_swing() -> void:
@@ -318,10 +319,9 @@ func _sword_swing() -> void:
 	if dir == Vector2.ZERO:
 		dir = Vector2.DOWN
 	dir = dir.normalized()
-	var reach := sword_range * weapon_size_scale()
-	# Arta e împinsă rigid cu sword_screen_offset, deci față de punctul ăsta footprint-ul ei
-	# arată exact ca înainte → conul măsurat pe artă rămâne valabil, doar mutăm vârful.
-	var origine := global_position + sword_screen_offset
+	# Centrul tăieturii — exact unde _spawn_sword_slash pune sprite-ul. Ține-le sincronizate.
+	var centru := global_position + _sword_offset(dir)
+	var raza := sword_hit_radius * weapon_size_scale()
 	var dmg := sword_base_damage + bullet_damage      # taie mai tare cu upgrade-urile de damage
 	var is_crit := randf() < crit_chance              # Adrenaline: și sabia poate da critic
 	if is_crit:
@@ -331,14 +331,9 @@ func _sword_swing() -> void:
 		var enemy := e as Node2D
 		if enemy == null:
 			continue
-		var to_enemy := enemy.global_position - origine
-		var dist := to_enemy.length()
-		if dist > reach:
-			continue
-		# doar inamicii din CONUL din față (dot cu direcția de privire ≥ prag).
-		# Excepție: inamicul lipit de tine — acolo direcția e zero/instabilă și
-		# normalized() ar da (0,0) → dot 0 → nu l-ar tăia niciodată.
-		if dist > 4.0 and to_enemy.normalized().dot(dir) < sword_arc_dot:
+		# în discul tăieturii? (nu mai e nevoie de test de con, nici de cazul special
+		# „inamic lipit de tine": discul îl acoperă oricum, fiind centrat în fața ta)
+		if enemy.global_position.distance_to(centru) > raza:
 			continue
 		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură)
 		var kill := instakill_chance > 0.0 and randf() < instakill_chance
@@ -348,7 +343,8 @@ func _sword_swing() -> void:
 		enemy.take_damage(dealt)
 		Fx.damage_number(enemy.global_position, dealt, is_crit or kill)
 		if knockback > 0.0 and enemy.has_method("apply_knockback"):
-			var push := to_enemy.normalized()
+			# îl împingem dinspre PLAYER, nu dinspre centrul tăieturii
+			var push := (enemy.global_position - global_position).normalized()
 			if push == Vector2.ZERO:
 				push = dir  # lipit de tine: îl împingem în direcția tăieturii
 			enemy.apply_knockback(push * knockback)
@@ -357,6 +353,13 @@ func _sword_swing() -> void:
 	if hit and is_crit:
 		add_shake(0.35)
 	_spawn_sword_slash(dir)
+
+# Unde stă centrul tăieturii față de player, în pixeli reali. Folosit ȘI de vizual, ȘI de hitbox
+# (`centru` în _sword_swing) — un singur loc care decide, ca cele două să nu se poată despărți.
+# Fiind un vector în sistemul artei care se ROTEȘTE cu privirea, tăietura iese identică în toate
+# cele 8 direcții, doar întoarsă.
+func _sword_offset(dir: Vector2) -> Vector2:
+	return Vector2(sword_reach, sword_lateral).rotated(dir.angle()) * weapon_size_scale()
 
 # Vizualul tăieturii: animația de slash, COPIL al player-ului → se mișcă odată cu el
 # (nu mai rămâne în urmă când mergi; sabia pare mereu „în mână"). Rotită după direcția de privire.
@@ -373,10 +376,7 @@ func _spawn_sword_slash(dir: Vector2) -> void:
 	add_child(a)  # copil al player-ului → tăietura îl urmează
 	# player-ul e la scale 2 în main.tscn; împărțim la scara lui ca reach/scale să fie în pixeli reali
 	var ps: float = max(scale.x, 0.001)
-	# reach/lateral sunt în sistemul ARTEI (x = în față, y = lateral) și se ROTESC cu privirea,
-	# ca tăietura să arate identic în toate cele 8 direcții. sword_screen_offset se adaugă
-	# NEROTIT, la urmă → împinge tot pe ecran, la fel indiferent încotro te uiți.
-	a.position = (Vector2(sword_reach, sword_lateral).rotated(dir.angle()) * weapon_size_scale() + sword_screen_offset) / ps
+	a.position = _sword_offset(dir) / ps
 	a.rotation = dir.angle() + sword_art_rotation
 	a.scale = Vector2.ONE * (sword_scale * weapon_size_scale()) / ps
 	a.play("fx")

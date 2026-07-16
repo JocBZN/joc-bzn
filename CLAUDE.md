@@ -12,17 +12,21 @@ Quick rules:
 
 ---
 
-## Session log — 2026-07-16 (Cursed Sword: offset pe ecran · tăietura sub player)
+## Session log — 2026-07-16 (Cursed Sword: identică în toate direcțiile · hitbox = disc · sub player)
 
 **Done:**
-- **`sword_screen_offset = Vector2(-20, 0)`** (export nou) — împinge tăietura 20 px la stânga **pe ecran**, identic în orice direcție privești (NU se rotește cu privirea, spre deosebire de `sword_reach`/`sword_lateral`). Se adaugă nerotit, la urmă, în `_spawn_sword_slash`. Cerut de Răzvan: sabia să pară ținută în stânga.
-- **Hitbox-ul s-a mutat odată cu arta.** Fiindcă offset-ul mută arta RIGID, față de punctul `global_position + sword_screen_offset` footprint-ul ei arată exact ca înainte → conul măsurat rămâne valabil, doar i se mută vârful (`var origine` în `_sword_swing`, `to_enemy = enemy.global_position - origine`). Fără asta, la est ar fi rămas 20 px de tăietură fără damage și la vest 20 px de gol lovit.
+- **Tăietura arată identic în toate cele 8 direcții**, doar rotită (cerință explicită a lui Răzvan: „vreau să arate EXACT la fel ca la east"). Tot ce poziționează arta stă acum în sistemul ARTEI și **se rotește** cu privirea: `_sword_offset(dir) = Vector2(sword_reach, sword_lateral).rotated(dir.angle()) * weapon_size_scale()`. Funcția e folosită **și** de vizual, **și** de hitbox → nu se mai pot despărți.
+- **`sword_screen_offset` scos.** Îl adăugasem (nerotit, ca sabia să pară ținută în stânga) și exact asta strica: nerotit înseamnă că la est trăgea tăietura spre player, la vest o împingea în față, la nord o dădea lateral. **Nu adăuga offset-uri „pe ecran" la o artă care se rotește.** Efectul lui la est (−20 px) a fost băgat în `sword_reach`: 62 → **42**.
+- **Hitbox: con → DISC.** La `reach = 42` arta îl învăluie pe player (5.2% din pixeli, coada, ajung ~12 px în **spatele** lui, ascunși sub sprite-ul lui) → un con din față n-o mai poate descrie: fitul dă ±180°, adică ai lovi tot în jur. Acum: disc de rază **`sword_hit_radius` = 56** (cel mai depărtat pixel de artă față de centrul ei) în jurul lui `global_position + _sword_offset(dir)`. `sword_range` și `sword_arc_dot` **eliminate**.
+- **Discul e mai cinstit decât pare:** măsurat pe anvelopa măturatului (uniunea celor 10 cadre = 3.552 px²) — con vechi (135, ±81°): **14%** tăietură reală; con reparat (108, ±42°): **42%**; disc (r 56): **36%**. Deci −6 puncte față de con, dar se rotește corect prin construcție. Aria: 9.852 px² (față de 8.465 la con), deci sabia e un pic mai puternică decât azi-dimineață.
+- **Cazul special „inamic lipit de tine" a dispărut** — nu mai e nevoie de el: discul e centrat în față, deci acoperă natural și `distance == 0`. Knockback-ul împinge dinspre **player**, nu dinspre centrul tăieturii.
 - **Tăietura trece sub player:** `a.z_index` 2 → **−1**. E frate cu `AnimatedSprite2D`-ul player-ului (z 0), deci −1 îl lasă mereu în spate. Înainte, la nord, slash-ul era desenat peste cap și-l acoperea.
 
 **Gotchas:**
-- **Două feluri de offset, nu le confunda:** `sword_reach`/`sword_lateral` sunt în sistemul ARTEI și **se rotesc** cu privirea (definesc cum arată tăietura față de tine); `sword_screen_offset` e în ecran și **nu se rotește** (mută tot blocul). Orice offset rotit → schimbă footprint-ul → remăsori conul. Orice offset nerotit → conul rămâne, muți doar `origine`.
-- **Sunt pixeli de joc, nu de ecran** — camera e la zoom 0.7, deci cei 20 px se văd ca ~14.
-- **Verificat:** 45 de inamici falși în jurul originii mutate → **0 nepotriviri**; plus un control față de player-ul nemutat, care dă **16** nepotriviri (dovadă că offset-ul chiar a mutat hitbox-ul, nu e no-op). Screenshot-uri pe nord/sud/est pentru ordinea de desenare. Șterse după.
+- **Regula de aur:** orice poziționare a tăieturii trebuie să fie un vector în sistemul artei, rotit cu `dir.angle()`. Un offset nerotit rupe consistența pe direcții. Dacă vrei sabia „în mâna stângă", asta se face din `sword_lateral` (care se rotește), nu dintr-un offset de ecran.
+- **`sword_reach` minim ca arta să rămână toată în față = 54.4** (jumătatea lățimii artei: 32 px × `sword_scale` 1.7). Sub atât, coada trece în spatele player-ului și modelul de con devine invalid — de-aia e disc acum.
+- **Verificat prin rotație, nu prin ochi:** caiet de 15 puncte definit în sistemul est, rotit pentru fiecare din cele 8 direcții, cu un inamic fals în fiecare punct → **toate 8 dau exact aceeași listă de lovituri ca estul**. Plus o poză cu toți 8 player-ii tăind simultan. Șterse după.
+- **Camera2D dezactivată pe toți player-ii dintr-o scenă de test** → viewport-ul cade pe transformul implicit (origine în colțul stânga-sus), deci coordonatele negative ies din ecran.
 
 ---
 
