@@ -12,6 +12,27 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (BUG: hitbox-ul sabiei rămânea în urmă la size up)
+
+**Reclamația lui Răzvan:** „când iau iteme de size up parcă nu se ține bine hitboxul." Avea dreptate.
+
+**Cauza:** `_sword_offset()` așeza sprite-ul la `Vector2(sword_reach, sword_lateral) * weapon_size_scale()`, dar `_sword_hit_rect()` aduna `sword_reach` / `sword_lateral` **NESCALATE**. La `weapon_size_scale() == 1` cele două coincid — de-aia a trecut de toate testele de până acum, făcute pe player fără upgrade-uri. Cu Pufferfish/Rat's Burger, arta pleacă în față și dreptunghiul rămâne pe loc:
+
+| wss | hitbox ajungea la | arta ajunge la | lipsă |
+|---|---|---|---|
+| 1.00 | 92 | 92 | 0 |
+| 1.37 | 110.5 | 126.1 | 16 px |
+| 2.26 | 155.2 | 208.2 | 53 px |
+| 4.19 | 251.7 | 385.8 | 134 px (≈ o treime din tăietură) |
+
+**Fix:** `_sword_offset_art()` — ancora în sistemul artei, scalată o singură dată, **sursă unică** pentru sprite (`_sword_offset(dir)` = ea, rotită), pentru hitbox și pentru debug. Cele două nu se mai pot despărți fiindcă pleacă din același loc.
+
+**Gotchas:**
+- **Un `weapon_size_scale()` uitat într-un singur loc nu se vede la scale 1.** Orice mărime nouă a sabiei trebuie testată la MAI MULTE valori de `weapon_size_px` / `weapon_size_mult`, nu doar pe player curat. Toate testele mele de azi (0 nepotriviri, 100% acord pe pixeli etc.) rulaseră la wss = 1 și au ratat bug-ul complet.
+- **Verificat acum la 4 mărimi** (wss 1.00 / 1.37 / 2.26 / 4.19): marginea din față și cea laterală a dreptunghiului cad **exact** pe cel mai depărtat pixel al artei (diferență 0.00 la toate). Plus test viu la wss = 4.19: inamicul de la vârf e lovit, cel de dincolo nu, iar cel de la x=100 (unde se oprea bug-ul) e lovit acum.
+
+---
+
 ## Session log — 2026-07-16 (Cursed Sword: hitbox = dreptunghi croit pe anvelopa animației)
 
 **Cererea lui Răzvan:** întâi „vreau hitbox 1:1 cu sprite-ul", apoi s-a răzgândit: „nu vreau 1:1, vreau să dea damage și între animație și player. Fă-l un dreptunghi care începe din fața playerului și se termină la laterale și în față la cel mai depărtat pixel din toată animația (hitboxul stă constant acea formă)".

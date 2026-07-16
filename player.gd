@@ -445,10 +445,16 @@ func _update_slashes() -> void:
 func _sword_visual_size() -> float:
 	return sword_size * weapon_size_scale()
 
-# Unde stă tăietura față de player, în pixeli reali. Un singur loc, folosit de artă, de hitbox
-# ȘI de desenul de debug. Fiind un vector rotit cu privirea, iese identic în toate direcțiile.
+# Unde stă ancora tăieturii, în sistemul ARTEI (x = înainte, y = lateral), în pixeli reali.
+# Scalează cu mărimea armei (Pufferfish/Rat's Burger), la fel ca sprite-ul — dacă uiți asta,
+# arta pleacă în față la un size up și hitbox-ul rămâne în urmă (fix bug-ul reclamat de Răzvan).
+# Sursă unică pentru artă, hitbox și debug, ca să nu se mai poată despărți.
+func _sword_offset_art() -> Vector2:
+	return Vector2(sword_reach, sword_lateral) * weapon_size_scale()
+
+# Aceeași ancoră, întoarsă după privire (pentru așezat sprite-ul).
 func _sword_offset(dir: Vector2) -> Vector2:
-	return Vector2(sword_reach, sword_lateral).rotated(dir.angle()) * weapon_size_scale()
+	return _sword_offset_art().rotated(dir.angle())
 
 # Măsoară o dată, la pornire, cât ocupă animația: mărimea cadrului și ANVELOPA ei
 # (dreptunghiul care cuprinde pixelii opaci ai TUTUROR cadrelor), în pixeli de artă.
@@ -484,10 +490,11 @@ func _masoara_arta_sabiei() -> void:
 func _sword_hit_rect() -> Rect2:
 	var s := _sword_visual_size() / SWORD_FRAME_W
 	var c := _sword_frame_px * 0.5  # centrul cadrului: acolo e agățat sprite-ul
+	var ancora := _sword_offset_art()  # ACEEAȘI ancoră ca sprite-ul, deci scalată la fel
 	# rotația cu -PI întoarce semnele: (px, py) → (-(px-cx), -(py-cy))
-	var fata := (c.x - _sword_env.position.x) * s + sword_reach
-	var y1 := -(_sword_env.end.y - 1.0 - c.y) * s + sword_lateral
-	var y2 := -(_sword_env.position.y - c.y) * s + sword_lateral
+	var fata := (c.x - _sword_env.position.x) * s + ancora.x
+	var y1 := -(_sword_env.end.y - 1.0 - c.y) * s + ancora.y
+	var y2 := -(_sword_env.position.y - c.y) * s + ancora.y
 	var sus: float = min(y1, y2)
 	return Rect2(0.0, sus, max(fata, 0.0), max(y1, y2) - sus)
 
