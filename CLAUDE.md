@@ -12,6 +12,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (Cursed Sword: hitbox = dreptunghi croit pe anvelopa animației)
+
+**Cererea lui Răzvan:** întâi „vreau hitbox 1:1 cu sprite-ul", apoi s-a răzgândit: „nu vreau 1:1, vreau să dea damage și între animație și player. Fă-l un dreptunghi care începe din fața playerului și se termină la laterale și în față la cel mai depărtat pixel din toată animația (hitboxul stă constant acea formă)".
+
+**Done:**
+- **Hitbox = dreptunghi FIX**, în sistemul artei (x = înainte, y = lateral), rotit cu privirea:
+  - **înapoi: 0** (de la player) → prinde golul dintre el și semilună, ăsta era scopul;
+  - **în față: 92 px** = `(32 − env.x_min) × scale + sword_reach`, adică fix cel mai depărtat pixel;
+  - **lateral: −63.25 … +66.75** (ușor asimetric, cât e și arta).
+  Nu se schimbă pe parcursul măturatului — aceeași formă tot timpul.
+- **Anvelopa se MĂSOARĂ la pornire** (`_masoara_arta_sabiei`), din pixelii opaci ai tuturor cadrelor → `_sword_env` = `[P: (12,2), S: (39,53)]` în pixeli de artă. Nu e scrisă de mână: schimbi arta, se recalculează singură. Fiind în pixeli de artă, urmează automat `sword_size`/`sword_reach`/`sword_lateral`.
+- **Scoase:** BitMap-urile per cadru (`_sword_masks`), `_sword_pixel_hit`, `_sword_coarse_radius`, recuperarea de cadre sărite (`ultim_cadru`) — dreptunghiul fiind constant, nu mai depinde de ce cadru se desenează.
+
+**Istoricul formelor (util dacă se mai schimbă):** con ±81° stricat (14% tăietură reală) → con potrivit ±42° (42%) → disc (36%, apoi 29% cu arta nouă, mai subțire) → 1:1 pe pixeli (exact, dar lăsa gaura dintre player și tăietură fără damage) → **dreptunghi pe anvelopă**. Arii: disc 17.765 px², dreptunghi **11.960 px²** (92×130), 1:1 doar 5.131 px².
+
+**Gotchas:**
+- **Sprite-ul e rotit cu −PI** (arta are fața spre vest), deci în cadru un **x MIC = departe în FAȚĂ**. De-aia marginea din față se calculează din `env.position.x` (minimul), nu din `env.end.x`. Semnele se inversează și pe lateral.
+- **`Rect2.end` e exclusiv** — pixelul cel mai de jos e `end.y - 1`, de-aia apare `-1.0` în calculul lui `y1`.
+- **Verificat:** dreptunghiul calculat de joc = `[P: (0, −63.25), S: (92, 130)]`, exact cât dă formula pe mână din anvelopă; grilă de 2576 de puncte → 759 loviți (759 × 16 px² = 12.144 ≈ aria 11.960 ✓); cel mai apropiat lovit la **x = 0** (chiar de la player); punctul din gaură (x=15) **ia damage** — cererea principală; 0 loviți de două ori; toate 8 direcțiile identice.
+- **La testele cu grilă mare: pune `p.contact_damage = 0`.** 2208 dummy-uri în grupul `enemy` îl omoară pe player instant → Game Over → scena se reîncarcă → `_ready` rulează iar. M-a costat: vedeam „TEST PORNIT" de 11 ori și niciun rezultat.
+
+---
+
 ## Session log — 2026-07-16 (Cursed Sword: tăietura se rotește după privire cât mătură, ca în Megabonk)
 
 **Cererea lui Răzvan:** „știi cum e făcută sabia în Megabonk? animația se mișcă constant cu playerul… aici dacă începe animația la west și te miști spre east rămâne la fel."

@@ -51,8 +51,19 @@ var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 # (Nu pune aici offset-uri „pe ecran", nerotite — am încercat și strică fix asta: la est
 #  trăgeau tăietura spre tine, la nord o dădeau lateral.)
 #
-# `sword_debug = true` desenează hitbox-ul peste joc: cerc roșu = ce lovește, cruce albastră =
-# unde e agățată arta, linie albă = direcția. Reglează cu el pornit.
+# HITBOX-UL E UN DREPTUNGHI FIX, croit pe ANVELOPA animației (uniunea tuturor cadrelor):
+#   - pornește de la player (x = 0) → prinde și golul dintre el și tăietură;
+#   - se termină în față și în lateral la cel mai depărtat pixel din TOATĂ animația;
+#   - nu se schimbă pe parcursul măturatului — e mereu aceeași formă.
+# Anvelopa se MĂSOARĂ la pornire, din pixelii cadrelor (`_masoara_arta_sabiei`), nu e scrisă de
+# mână: schimbi arta, se recalculează singură. Și fiind exprimată în pixeli de artă, urmează
+# automat `sword_size` / `sword_reach` / `sword_lateral`.
+#
+# (Am încercat înainte un cerc — prindea și golul dintre coarnele semilunii; și 1:1 pe pixeli —
+#  exact, dar lăsa fără damage spațiul dintre player și tăietură. Dreptunghiul le rezolvă pe ambele.)
+#
+# `sword_debug = true` îl desenează peste joc: dreptunghi roșu = ce lovește, cruce albastră =
+# unde e agățată arta, linie albă = direcția.
 
 const SWORD_FRAME_W := 64.0                  # lățimea unui cadru (fx/cursed sword fx: 12 cadre de 64×55)
 
@@ -63,14 +74,13 @@ const SWORD_FRAME_W := 64.0                  # lățimea unui cadru (fx/cursed s
 @export var sword_lateral: float = 3.0       # cât în lateral (3 o centrează pe axa privirii; arta e aproape simetrică)
 @export var sword_art_rotation: float = 0.0  # reglaj fin peste convenția „arta e spre vest", dacă nu cade perfect
 @export var sword_anim_speed: float = 1.0    # cât de repede se joacă tăietura (1 = normal ≈ 22 cadre/sec)
-# Raza discului care lovește = sword_size × asta. Măsurat pe artă: cel mai depărtat pixel față de
-# centrul cadrului e la 30.1 din 64 → 0.47. E o PROPORȚIE, deci rămâne corectă la orice sword_size.
-@export var sword_hit_ratio: float = 0.47    # raza de damage, ca fracțiune din mărime (ca 0.4 la Firewalker)
-@export var sword_debug: bool = false        # desenează hitbox-ul peste joc, ca să-l reglezi cu ochii
+@export var sword_debug: bool = false        # desenează conturul tăieturii peste joc, ca să-l reglezi cu ochii
 
 @export var sword_base_damage: int = 8       # damage de bază/tăietură; total = asta + bullet_damage
 @export var sword_slow_start: float = 1.9    # la început taie mai rar (fire_interval × asta la selectarea sabiei)
 var _sword_frames: SpriteFrames             # cele 12 cadre din fx/cursed sword fx
+var _sword_frame_px := Vector2(64, 55)      # mărimea unui cadru, în pixeli de artă (citită din textură)
+var _sword_env := Rect2()                   # anvelopa animației (uniunea cadrelor), în pixeli de artă
 var _slashes: Array = []                    # tăieturile în curs; le rotim după privire cât se joacă
 var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s-a uitat player-ul (pt. tăietura sabiei)
 
@@ -135,6 +145,7 @@ func _ready() -> void:
 	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
 	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
 	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (12 cadre)
+	_masoara_arta_sabiei()  # anvelopa animației → din ea se croiește dreptunghiul care lovește
 	# Cursed Sword taie mai rar la început (ca să simți creșterea când iei attack speed).
 	# O face slow o SINGURĂ dată aici; upgrade-urile de attack speed (Rabbit's Foot etc.) o accelerează după.
 	if weapon_type == "sword":
@@ -174,19 +185,24 @@ func _ready() -> void:
 func add_shake(amount: float) -> void:
 	_trauma = min(1.0, _trauma + amount)
 
-# Desenul de reglaj pentru sabie (doar cu sword_debug pornit): arată UNDE lovește, ca să poți
-# potrivi hitbox-ul peste tăietură din ochi. Desenăm pe player, care e la scale 2 în main.tscn,
-# deci împărțim tot la scara lui ca să iasă pixeli reali (și liniile la grosimea cerută).
+# Desenul de reglaj pentru sabie (doar cu sword_debug pornit): dreptunghiul roșu e chiar ce
+# lovește. Desenăm pe player, care e la scale 2 în main.tscn, deci împărțim tot la scara lui
+# ca să iasă pixeli reali (și liniile la grosimea cerută).
 func _draw() -> void:
 	if not sword_debug or weapon_type != "sword":
 		return
 	var ps: float = max(scale.x, 0.001)
 	var dir := _sword_dir()
+	var unghi := dir.angle()
+	# dreptunghiul roșu = hitbox-ul, rotit după privire (îl ținem în sistemul artei, ca testul)
+	var r := _sword_hit_rect()
+	var colturi := [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]
+	for i in 4:
+		var a: Vector2 = (colturi[i] as Vector2).rotated(unghi) / ps
+		var b2: Vector2 = (colturi[(i + 1) % 4] as Vector2).rotated(unghi) / ps
+		draw_line(a, b2, Color(1, 0.25, 0.25, 0.9), 1.5 / ps)
+	# crucea albastră = unde e agățată arta
 	var c := _sword_offset(dir) / ps
-	# cercul roșu = discul care lovește
-	draw_arc(c, _sword_radius() / ps, 0.0, TAU, 64, Color(1, 0.25, 0.25, 0.9), 1.5 / ps)
-	draw_line(Vector2.ZERO, c, Color(1, 0.25, 0.25, 0.35), 1.0 / ps)
-	# crucea albastră = unde e agățată arta (același punct: hitbox-ul stă pe artă prin construcție)
 	var b := 5.0 / ps
 	draw_line(c - Vector2(b, 0), c + Vector2(b, 0), Color(0.3, 0.8, 1, 0.9), 1.5 / ps)
 	draw_line(c - Vector2(0, b), c + Vector2(0, b), Color(0.3, 0.8, 1, 0.9), 1.5 / ps)
@@ -367,12 +383,11 @@ func _sword_swing() -> void:
 	_slashes.append(t)
 	_sword_damage_pass(t)  # o trecere imediată, ca lovitura să se simtă pe loc
 
-# O trecere de damage pentru o tăietură în curs. Recalculează centrul din privirea de ACUM,
-# ca ce lovește să fie mereu acolo unde se vede tăietura.
+# O trecere de damage pentru o tăietură în curs: cine e în dreptunghiul ei, chiar acum.
+# Dreptunghiul e mereu același (croit pe anvelopa animației), doar se întoarce după privire.
 func _sword_damage_pass(t: Dictionary) -> void:
 	var dir := _sword_dir()
-	var centru := global_position + _sword_offset(dir)
-	var raza := _sword_radius()
+	var rect := _sword_hit_rect()
 	var loviti: Dictionary = t["loviti"]
 	var dmg: int = t["dmg"]
 	var is_crit: bool = t["crit"]
@@ -384,9 +399,7 @@ func _sword_damage_pass(t: Dictionary) -> void:
 		var id := enemy.get_instance_id()  # ID, nu nodul: inamicul poate muri între treceri
 		if loviti.has(id):
 			continue
-		# în discul tăieturii? (nu mai e nevoie de test de con, nici de cazul special
-		# „inamic lipit de tine": discul îl acoperă oricum, fiind centrat în fața ta)
-		if enemy.global_position.distance_to(centru) > raza:
+		if not _sword_rect_hit(dir, rect, enemy.global_position):
 			continue
 		loviti[id] = true
 		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură)
@@ -437,10 +450,52 @@ func _sword_visual_size() -> float:
 func _sword_offset(dir: Vector2) -> Vector2:
 	return Vector2(sword_reach, sword_lateral).rotated(dir.angle()) * weapon_size_scale()
 
-# Raza discului care lovește — DERIVATĂ din mărime, ca la Firewalker. De-aia arta și hitbox-ul
-# nu se mai pot despărți: crește tăietura, crește și ce lovește.
-func _sword_radius() -> float:
-	return _sword_visual_size() * sword_hit_ratio
+# Măsoară o dată, la pornire, cât ocupă animația: mărimea cadrului și ANVELOPA ei
+# (dreptunghiul care cuprinde pixelii opaci ai TUTUROR cadrelor), în pixeli de artă.
+# Din anvelopă se croiește hitbox-ul, deci dacă schimbi arta nu mai ai nimic de calculat de mână.
+func _masoara_arta_sabiei() -> void:
+	if _sword_frames == null:
+		return
+	var minim := Vector2.INF
+	var maxim := -Vector2.INF
+	for i in _sword_frames.get_frame_count("fx"):
+		var tex: Texture2D = _sword_frames.get_frame_texture("fx", i)
+		if tex == null:
+			continue
+		var img := tex.get_image()
+		if img == null:
+			continue
+		if img.is_compressed():
+			img.decompress()  # get_pixel nu merge pe o imagine comprimată
+		_sword_frame_px = Vector2(img.get_width(), img.get_height())
+		for y in img.get_height():
+			for x in img.get_width():
+				if img.get_pixel(x, y).a <= 0.08:
+					continue
+				minim = Vector2(min(minim.x, x), min(minim.y, y))
+				maxim = Vector2(max(maxim.x, x), max(maxim.y, y))
+	if minim.x > maxim.x:
+		return  # animația e goală; lăsăm anvelopa pe zero
+	_sword_env = Rect2(minim, maxim - minim + Vector2.ONE)
+
+# Dreptunghiul care lovește, în sistemul ARTEI (x = înainte, y = lateral), în pixeli reali.
+# De la player (x = 0) până la cel mai depărtat pixel al animației, în față și în lateral.
+# Sprite-ul e rotit cu -PI (arta are fața spre vest), deci un x MIC în cadru = departe în FAȚĂ.
+func _sword_hit_rect() -> Rect2:
+	var s := _sword_visual_size() / SWORD_FRAME_W
+	var c := _sword_frame_px * 0.5  # centrul cadrului: acolo e agățat sprite-ul
+	# rotația cu -PI întoarce semnele: (px, py) → (-(px-cx), -(py-cy))
+	var fata := (c.x - _sword_env.position.x) * s + sword_reach
+	var y1 := -(_sword_env.end.y - 1.0 - c.y) * s + sword_lateral
+	var y2 := -(_sword_env.position.y - c.y) * s + sword_lateral
+	var sus: float = min(y1, y2)
+	return Rect2(0.0, sus, max(fata, 0.0), max(y1, y2) - sus)
+
+# Inamicul e în dreptunghi? Îl aducem în sistemul artei (rotim invers cu privirea), apoi
+# un simplu has_point — hitbox-ul are aceeași formă în toate direcțiile, doar întoarsă.
+func _sword_rect_hit(dir: Vector2, rect: Rect2, punct: Vector2) -> bool:
+	var local := (punct - global_position).rotated(-dir.angle())
+	return rect.has_point(local)
 
 # Direcția în care taie acum (aceeași pentru artă, hitbox și desenul de debug).
 func _sword_dir() -> Vector2:
