@@ -12,6 +12,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (Cursed Sword: offset pe ecran · tăietura sub player)
+
+**Done:**
+- **`sword_screen_offset = Vector2(-20, 0)`** (export nou) — împinge tăietura 20 px la stânga **pe ecran**, identic în orice direcție privești (NU se rotește cu privirea, spre deosebire de `sword_reach`/`sword_lateral`). Se adaugă nerotit, la urmă, în `_spawn_sword_slash`. Cerut de Răzvan: sabia să pară ținută în stânga.
+- **Hitbox-ul s-a mutat odată cu arta.** Fiindcă offset-ul mută arta RIGID, față de punctul `global_position + sword_screen_offset` footprint-ul ei arată exact ca înainte → conul măsurat rămâne valabil, doar i se mută vârful (`var origine` în `_sword_swing`, `to_enemy = enemy.global_position - origine`). Fără asta, la est ar fi rămas 20 px de tăietură fără damage și la vest 20 px de gol lovit.
+- **Tăietura trece sub player:** `a.z_index` 2 → **−1**. E frate cu `AnimatedSprite2D`-ul player-ului (z 0), deci −1 îl lasă mereu în spate. Înainte, la nord, slash-ul era desenat peste cap și-l acoperea.
+
+**Gotchas:**
+- **Două feluri de offset, nu le confunda:** `sword_reach`/`sword_lateral` sunt în sistemul ARTEI și **se rotesc** cu privirea (definesc cum arată tăietura față de tine); `sword_screen_offset` e în ecran și **nu se rotește** (mută tot blocul). Orice offset rotit → schimbă footprint-ul → remăsori conul. Orice offset nerotit → conul rămâne, muți doar `origine`.
+- **Sunt pixeli de joc, nu de ecran** — camera e la zoom 0.7, deci cei 20 px se văd ca ~14.
+- **Verificat:** 45 de inamici falși în jurul originii mutate → **0 nepotriviri**; plus un control față de player-ul nemutat, care dă **16** nepotriviri (dovadă că offset-ul chiar a mutat hitbox-ul, nu e no-op). Screenshot-uri pe nord/sud/est pentru ordinea de desenare. Șterse după.
+
+---
+
 ## Session log — 2026-07-16 (Cursed Sword: hitbox potrivit pe artă · tăietură centrată pe privire)
 
 **Reclamația lui Răzvan:** „la cursed sword arată cam dubios și hitboxul nu e bun".
