@@ -12,6 +12,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (item nou: Alex's Protection · iconiță nouă la Stolen Halo)
+
+**Done:**
+- **Alex's Protection** (`levelup.gd`): iconiță `upgrade_28.png` (cască albă cu insigne), raritate **Rare** (aleasă de Răzvan; îi propusesem Epic, fiind două statistici fără dezavantaj), **+25% Max HP · +15% Move speed**. Efect: `p.upgrade_max_hp(int(round(p.max_hp * 0.25)))` (te și vindecă) + `p.speed *= 1.15`.
+- **Procentele se COMPUN**, pe valoarea curentă, nu pe cea de start — ca la The Nightclub (`p.bullet_damage = int(round(p.bullet_damage * 1.35))`), care e singurul precedent de procent din joc. Verificat: max_hp 100 → 125 → 156 → 195, speed × 1.15 de fiecare dată.
+- **Stolen Halo:** iconița `upgrade_27.png` → **`upgrade_29.png`** (aureolă cu flăcări albe, se potrivește mai bine). `upgrade_27.png` rămâne în repo, nefolosit.
+
+**Gotchas:**
+- **Iconițele noi trebuie IMPORTATE, altfel nu se văd în meniu.** Primul test a raportat `iconita exista: false` pentru AMBELE (`ResourceLoader.exists()` dă false pe un PNG neimportat) — meniul de level up ar fi afișat casete goale. Fix: `godot --headless --path . --import`. Valabil ori de câte ori Răzvan pune poze noi.
+- **Ca să vezi un item în meniul REAL:** `UPGRADES` e `var`, nu `const` → îl poți înlocui cu exact itemele care te interesează, apoi `lv.open()`. `_show_choices()` amestecă pool-ul și ia primele 3, deci un pool de 3 le arată pe toate.
+- **Verificat pe jocul real:** ambele iteme apar în meniu cu iconița, border-ul Rare și descrierea corecte (poză); 3 luări de Alex's Protection compun corect și vindecă odată cu max_hp; nu pun aureolă (doar Stolen Halo o face).
+
+---
+
 ## Session log — 2026-07-16 (item nou: Stolen Halo + aureolă permanentă)
 
 **Cererea lui Răzvan:** item nou „Stolen Halo", iconiță `upgrade_27`, raritate **Rare**, **+15 Damage / +5 Max HP**, stivuibil (fiecare luare adaugă la fel). Special: animația din `fx/halo fx` să stea **deasupra player-ului pentru totdeauna** după ce iei itemul.

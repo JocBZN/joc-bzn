@@ -43,7 +43,8 @@ var UPGRADES := [
 	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "rare", "desc": "+35% Damage · -35% Attack speed"},
 	{"id": "rusty_hacksaw", "nume": "Rusty Hacksaw", "icon": "upgrade_24.png", "rar": "uncommon", "desc": "1% instakill (+0.5% / stack)"},
 	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
-	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_27.png", "rar": "rare", "desc": "+15 Damage · +5 Max HP"},
+	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_29.png", "rar": "rare", "desc": "+15 Damage · +5 Max HP"},
+	{"id": "alex_protection", "nume": "Alex's Protection", "icon": "upgrade_28.png", "rar": "rare", "desc": "+25% Max HP · +15% Move speed"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -375,3 +376,9 @@ func _apply(id: String, p) -> void:
 			p.bullet_damage += 15
 			p.upgrade_max_hp(5)
 			p.show_halo()
+		"alex_protection":
+			# cască de protecție: mai multă viață și te miști mai repede.
+			# Procentele se aplică pe valoarea CURENTĂ, deci se compun la fiecare luare
+			# (ca la The Nightclub) — nu pe valoarea de start.
+			p.upgrade_max_hp(int(round(p.max_hp * 0.25)))  # +25% viață maximă (te și vindecă)
+			p.speed *= 1.15                                # +15% viteză de mișcare
