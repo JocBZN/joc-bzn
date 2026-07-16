@@ -82,8 +82,11 @@ const SWORD_FRAME_W := 64.0                  # lățimea unui cadru (fx/cursed s
 # --- Stolen Halo: aureola care plutește deasupra capului după ce iei itemul ---
 const HALO_FRAME_W := 64.0                   # lățimea unui cadru (fx/halo fx: 10 cadre de 64×58)
 @export var halo_size: float = 54.0          # lățimea aureolei în px pe ecran
+# Offset pe ECRAN, nerotit — aureola stă mereu deasupra capului, indiferent încotro te uiți.
+# (La sabie un offset nerotit ar fi greșit, fiindcă tăietura se rotește cu privirea. Aici nu.)
+@export var halo_side: float = -2.0          # cât în lateral (− = spre stânga pe ecran)
 @export var halo_height: float = 76.0        # cât de sus stă, deasupra centrului player-ului
-                                             # (creștetul e la ~62 px: sprite 124×124, capul la 31 px × scale 2)
+											 # (creștetul e la ~62 px: sprite 124×124, capul la 31 px × scale 2)
 var _halo: AnimatedSprite2D = null           # aureola, o dată pusă rămâne tot restul rundei
 var _sword_frames: SpriteFrames             # cele 12 cadre din fx/cursed sword fx
 var _sword_frame_px := Vector2(64, 55)      # mărimea unui cadru, în pixeli de artă (citită din textură)
@@ -758,7 +761,7 @@ func show_halo() -> void:
 	add_child(a)   # copil al player-ului → îl urmează oriunde
 	# player-ul e la scale 2 în main.tscn; împărțim la scara lui ca px-ii ceruți să fie px reali
 	var ps: float = max(scale.x, 0.001)
-	a.position = Vector2(0.0, -halo_height) / ps
+	a.position = Vector2(halo_side, -halo_height) / ps
 	a.scale = Vector2.ONE * (halo_size / HALO_FRAME_W) / ps  # cadrul de 64 px scalat la halo_size
 	a.play("fx")
 	_halo = a
