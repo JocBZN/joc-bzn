@@ -71,6 +71,7 @@ const SWORD_FRAME_W := 64.0                  # lățimea unui cadru (fx/cursed s
 @export var sword_base_damage: int = 8       # damage de bază/tăietură; total = asta + bullet_damage
 @export var sword_slow_start: float = 1.9    # la început taie mai rar (fire_interval × asta la selectarea sabiei)
 var _sword_frames: SpriteFrames             # cele 12 cadre din fx/cursed sword fx
+var _slashes: Array = []                    # tăieturile în curs; le rotim după privire cât se joacă
 var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s-a uitat player-ul (pt. tăietura sabiei)
 
 # --- upgrade-uri de armă ---
@@ -193,6 +194,7 @@ func _draw() -> void:
 	draw_line(Vector2.ZERO, dir * 30.0 / ps, Color(1, 1, 1, 0.5), 1.0 / ps)
 
 func _process(delta: float) -> void:
+	_update_slashes()  # tăieturile în curs se întorc după privire și lovesc pe unde mătură
 	if sword_debug:
 		queue_redraw()  # hitbox-ul se mișcă odată cu privirea → redesenăm în fiecare cadru
 	if _cam == null:
@@ -345,26 +347,48 @@ func _spawn_aura_ring(radius: float) -> void:
 	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
 	t.tween_callback(s.queue_free)
 
-# Cursed Sword: la fiecare tick taie în discul tăieturii, așezat în fața player-ului (direcția în care se uită).
+# Cursed Sword: la fiecare tick pornește o tăietură. Ca în Megabonk, tăietura NU e o poză
+# înghețată: cât ține animația se rotește după privire și mătură, lovind pe unde trece.
 # Scalează cu upgrade-urile playerului: damage (bullet_damage), attack speed (fire_interval),
 # crit (Adrenaline), knockback, instakill (Hacksaw) și mărime (Pufferfish/Rat's Burger).
 func _sword_swing() -> void:
-	var dir := _sword_dir()
-	var centru := global_position + _sword_offset(dir)
-	var raza := _sword_radius()
 	var dmg := sword_base_damage + bullet_damage      # taie mai tare cu upgrade-urile de damage
 	var is_crit := randf() < crit_chance              # Adrenaline: și sabia poate da critic
 	if is_crit:
 		dmg = int(dmg * crit_mult)
+	Audio.play("shoot", -10.0)  # foșnet de tăiere (placeholder)
+	var nod := _spawn_sword_slash(_sword_dir())
+	if nod == null:
+		return
+	# Tăietura rămâne VIE cât ține animația (_update_slashes o rotește și o lasă să lovească).
+	# `loviti` = ID-urile inamicilor deja tăiați de ea, ca o tăietură să lovească pe fiecare
+	# o SINGURĂ dată oricât ar mătura — altfel ar da damage în fiecare cadru.
+	var t := {"nod": nod, "loviti": {}, "dmg": dmg, "crit": is_crit, "shake": false}
+	_slashes.append(t)
+	_sword_damage_pass(t)  # o trecere imediată, ca lovitura să se simtă pe loc
+
+# O trecere de damage pentru o tăietură în curs. Recalculează centrul din privirea de ACUM,
+# ca ce lovește să fie mereu acolo unde se vede tăietura.
+func _sword_damage_pass(t: Dictionary) -> void:
+	var dir := _sword_dir()
+	var centru := global_position + _sword_offset(dir)
+	var raza := _sword_radius()
+	var loviti: Dictionary = t["loviti"]
+	var dmg: int = t["dmg"]
+	var is_crit: bool = t["crit"]
 	var hit := false
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null:
 			continue
+		var id := enemy.get_instance_id()  # ID, nu nodul: inamicul poate muri între treceri
+		if loviti.has(id):
+			continue
 		# în discul tăieturii? (nu mai e nevoie de test de con, nici de cazul special
 		# „inamic lipit de tine": discul îl acoperă oricum, fiind centrat în fața ta)
 		if enemy.global_position.distance_to(centru) > raza:
 			continue
+		loviti[id] = true
 		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură)
 		var kill := instakill_chance > 0.0 and randf() < instakill_chance
 		var dealt := dmg
@@ -379,10 +403,30 @@ func _sword_swing() -> void:
 				push = dir  # lipit de tine: îl împingem în direcția tăieturii
 			enemy.apply_knockback(push * knockback)
 		hit = true
-	Audio.play("shoot", -10.0)  # foșnet de tăiere (placeholder)
-	if hit and is_crit:
+	if hit and is_crit and not t["shake"]:
+		t["shake"] = true  # o singură zguduitură per tăietură, nu una pe cadru
 		add_shake(0.35)
-	_spawn_sword_slash(dir)
+
+# Cât se joacă, fiecare tăietură se întoarce după privire și mai dă o trecere de damage.
+# Ăsta e „ca în Megabonk": sabia se mișcă odată cu tine, nu rămâne unde ai pornit-o.
+func _update_slashes() -> void:
+	if _slashes.is_empty():
+		return
+	var dir := _sword_dir()
+	var ps: float = max(scale.x, 0.001)
+	for i in range(_slashes.size() - 1, -1, -1):
+		var t: Dictionary = _slashes[i]
+		# validitatea se verifică ÎNAINTE de atribuirea într-o variabilă tipată: dacă animația
+		# s-a terminat și nodul s-a auto-șters, `var nod: AnimatedSprite2D = ...` crapă cu
+		# „Trying to assign invalid previously freed instance".
+		if not is_instance_valid(t["nod"]):
+			_slashes.remove_at(i)
+			continue
+		var nod: AnimatedSprite2D = t["nod"]
+		nod.position = _sword_offset(dir) / ps
+		nod.rotation = dir.angle() - PI + sword_art_rotation
+		nod.scale = Vector2.ONE * (_sword_visual_size() / SWORD_FRAME_W) / ps
+		_sword_damage_pass(t)
 
 # Mărimea tăieturii pe ecran, în px (Pufferfish/Rat's Burger o cresc).
 func _sword_visual_size() -> float:
@@ -404,11 +448,12 @@ func _sword_dir() -> Vector2:
 		return Vector2.DOWN
 	return _facing.normalized()
 
-# Vizualul tăieturii: animația de slash, COPIL al player-ului → se mișcă odată cu el
-# (nu mai rămâne în urmă când mergi; sabia pare mereu „în mână"). Rotită după direcția de privire.
-func _spawn_sword_slash(dir: Vector2) -> void:
+# Vizualul tăieturii: animația de slash, COPIL al player-ului → se mișcă odată cu el.
+# Aici o așezăm doar la pornire; `_update_slashes` o ține întoarsă după privire în fiecare cadru
+# cât se joacă (ca în Megabonk), deci `dir` de aici e doar poziția de start.
+func _spawn_sword_slash(dir: Vector2) -> AnimatedSprite2D:
 	if _sword_frames == null or _sword_frames.get_frame_count("fx") == 0:
-		return
+		return null
 	var a := AnimatedSprite2D.new()
 	a.sprite_frames = _sword_frames
 	a.animation = "fx"
@@ -427,6 +472,7 @@ func _spawn_sword_slash(dir: Vector2) -> void:
 	a.speed_scale = max(sword_anim_speed, 0.01)  # 0 ar îngheța tăietura pe ecran pentru totdeauna
 	a.play("fx")
 	a.animation_finished.connect(a.queue_free)
+	return a
 
 # Construiește animația de spumă din cele 14 frame-uri tăiate (stingator/frame_0..13.png).
 func _build_foam_frames() -> SpriteFrames:

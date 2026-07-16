@@ -12,6 +12,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (Cursed Sword: tăietura se rotește după privire cât mătură, ca în Megabonk)
+
+**Cererea lui Răzvan:** „știi cum e făcută sabia în Megabonk? animația se mișcă constant cu playerul… aici dacă începe animația la west și te miști spre east rămâne la fel."
+
+**Done:**
+- **Tăietura nu mai e o poză înghețată.** Era copil al player-ului, deci se **muta** cu el (translație), dar direcția rămânea cea de la pornire. Acum `_update_slashes()` (din `_process`) îi rescrie în fiecare cadru poziția, rotația și scara după `_sword_dir()` de ACUM → sabia se întoarce odată cu tine cât mătură.
+- **Damage-ul urmărește și el, altfel introduceam bug-ul de azi întors pe dos:** dacă doar vizualul urmărea, tăiai un inamic spre est și el nu lua damage, fiindcă lovitura fusese rezolvată instant spre vest. Acum tăietura e **vie cât ține animația**: `_sword_damage_pass()` recalculează centrul din privirea curentă la fiecare cadru.
+- **Fiecare inamic e lovit o SINGURĂ dată per tăietură** — `t["loviti"]` ține **instance ID-urile** (nu nodurile: inamicul poate muri între treceri). Fără asta ar fi luat damage în fiecare cadru. Tăietura următoare îi poate lovi din nou (verificat). Și zguduitura de crit e o singură dată per tăietură (`t["shake"]`), nu una pe cadru.
+- Structura: `_sword_swing()` doar dă zarurile (dmg + crit), pornește vizualul și înregistrează tăietura în `_slashes`; restul se întâmplă în `_update_slashes` / `_sword_damage_pass`.
+
+**Gotchas:**
+- **Verifică `is_instance_valid()` ÎNAINTE de a atribui într-o variabilă tipată.** `var nod: AnimatedSprite2D = t["nod"]` crapă cu *„Trying to assign invalid previously freed instance"* dacă animația s-a terminat și nodul s-a auto-șters (`animation_finished` → `queue_free`). Testul a prins-o: eroarea abandona funcția înainte de `remove_at`, deci tăieturile moarte se adunau în listă (`taieturi active ramase: 1` în loc de 0).
+- **Consecință de balans (mică, intenționată):** înainte, damage-ul se dădea o dată, în clipa pornirii. Acum inamicii care **intră** în tăietură cât mătură sunt și ei loviți (o dată). Sabia e un pic mai bună, dar plafonul „un hit per inamic per tăietură" rămâne.
+- **Verificat cu o SINGURĂ tăietură, rotindu-ne în timpul ei:** pornită spre est (est=1, vest=0 — vest era la 84 px, în afara razei de 75), răsucire spre vest → vest=1, apoi spre nord → nord=1, fiecare exact o dată; la final `_slashes` gol; a doua tăietură lovește est din nou (est=2). Plus 3 poze din aceeași tăietură (est → sud → vest) care arată sprite-ul și cercul întorcându-se împreună.
+
+---
+
 ## Session log — 2026-07-16 (Cursed Sword: artă nouă + rescrisă pe modelul Firewalker)
 
 **Cererea lui Răzvan:** artă nouă pusă peste cea veche, de tăiat iar în cadre; e orientată spre **vest**; tăietura să fie **EGALĂ în toate direcțiile**; „poți să o gândești cum e făcut firewalker că mereu stă aceeași mărime".
