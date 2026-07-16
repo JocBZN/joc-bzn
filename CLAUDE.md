@@ -11,6 +11,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (Cursed Sword: hitbox potrivit pe artă · tăietură centrată pe privire)
+
+**Reclamația lui Răzvan:** „la cursed sword arată cam dubios și hitboxul nu e bun".
+
+**Done:**
+- **Hitbox-ul lovea ~3× mai mult decât se vedea.** Măsurat pixel cu pixel pe cele 10 cadre (System.Drawing, alpha > 20, trecute prin exact formula din `_spawn_sword_slash`): arta ajunge la **107 px** de player și stă într-un con de **±62°**. Codul avea `sword_range = 135` și `sword_arc_dot = 0.15` (**±81°** — aproape o semilună, care trecea pe lângă umeri în spate). Acum `sword_range = 108`, `sword_arc_dot = 0.75` (**±42°**) — măsurate pe artă *după* centrare.
+- **Tăietura stătea strâmb** (ăsta era „dubios"-ul, confirmat de Răzvan): arta e desenată asimetric — măturatul mergea de la **−62°** (deasupra axei privirii) până la **+34°**, deci cu mijlocul la −13.8°. Fix: **`sword_lateral = 12.0`** (export nou), offset perpendicular pe privire → sweep **−41°..+42°**, mijloc 0.2°.
+- **`sword_art_rotation` NU rezolvă asta** (de-aia era 0 și degeaba): rotește sprite-ul în jurul centrului **lui**, care stă la 62 px în fața player-ului, așa că 24° de rotație mută mijlocul sweep-ului cu doar 3.5°. Măturat 0..24° ca să confirm. Ce mișcă arcul e offset-ul lateral, nu rotația.
+- **Bug la distanță ~0:** inamicul lipit de player nu era tăiat niciodată — `to_enemy.normalized()` dă `(0,0)` → `dot = 0` < prag. Acum `dist > 4.0` sare peste verificarea de con. La fel knockback-ul primea vector zero → cade înapoi pe `dir`.
+
+**Gotchas:**
+- **Offset-ul se scrie în sistemul ARTEI, apoi se rotește:** `Vector2(sword_reach, sword_lateral).rotated(dir.angle())`. Așa tăietura arată identic în toate cele 8 direcții.
+- **`sword_reach` / `sword_scale` / `sword_lateral` / `sword_range` / `sword_arc_dot` sunt un PACHET** — ultimele două ies din măsurători pe artă cu primele trei fixate. Schimbi unul → remăsori tot (scriptul: încarcă cadrele, `local = (px − w/2, py − h/2) × sword_scale`, `+ (reach, lateral)`, apoi `atan2`/lungime față de player).
+- **Consecință de balans (netratată):** aria acoperită a scăzut de la ~25.900 px² la ~8.400 px² (**~1/3**). Sabia lovește acum doar ce se vede → e sensibil mai slabă. De compensat separat dacă zice Răzvan (`sword_base_damage`, sau `sword_scale` mai mare + remăsurat, sau `sword_slow_start`).
+- **Verificat** cu scenă de test temporară: 72 de inamici falși la unghiuri/distanțe știute → **0 nepotriviri** față de formula așteptată, simetrie ±30/±41/±50 confirmată; plus un render cu toate cele 10 cadre suprapuse peste axa privirii (înainte/după). Ștearsă după.
+- **NU edita `.gd` cu .NET `WriteAllLines`** — scrie CRLF, iar repo-ul e pe LF (întreg fișierul apare modificat). Și atenție la tab-uri: corpul unui `if` dinăuntrul lui `for` e la **3 tab-uri**.
+
+---
+
 ## Session log — 2026-07-16 (armă nouă: Cursed Sword · animație atașată de player · tweak-uri iteme)
 
 **Done:**

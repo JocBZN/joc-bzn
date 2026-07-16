@@ -38,14 +38,20 @@ var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 @export var mage_orb_size: float = 35.0
 
 # --- Cursed Sword: taie automat în direcția în care se uită player-ul ---
+# Valorile de mai jos NU sunt alese din ochi: sunt măsurate pe pixelii artei din
+# fx/cursed sword fx, ca hitbox-ul să lovească exact cât se vede pe ecran.
+# Dacă umbli la reach/lateral/scale, TOATE trebuie remăsurate împreună.
 @export var sword_reach: float = 62.0        # cât de departe în față e centrul tăieturii
-@export var sword_range: float = 135.0       # raza în care lovește tăietura (crește cu Pufferfish/Rat's Burger)
-@export var sword_arc_dot: float = 0.15      # cât de larg e conul din față (dot>asta lovește; ~1.0 îngust, ~-1 tot ecranul)
+# Arta e desenată strâmb: măturatul ei stă mai sus decât axa privirii (de la -62° la +34°),
+# de-aia părea că tai pe lângă. Împinsă lateral cu 12 px, ajunge simetrică: -41°..+42°.
+@export var sword_lateral: float = 12.0      # deplasare perpendiculară pe privire, ca arcul să fie centrat
+@export var sword_range: float = 108.0       # raza în care lovește tăietura (crește cu Pufferfish/Rat's Burger)
+@export var sword_arc_dot: float = 0.75      # cât de larg e conul din față (dot>asta lovește; 0.75 = ±42°, ~1.0 îngust, ~-1 tot ecranul)
 @export var sword_base_damage: int = 8       # damage de bază/tăietură; total = asta + bullet_damage
 @export var sword_slow_start: float = 1.9    # la început taie mai rar (fire_interval × asta la selectarea sabiei)
 @export var sword_scale: float = 1.7         # mărimea vizuală a animației de tăiere
-@export var sword_art_rotation: float = 0.0  # corecție de rotație a artei (dacă sabia nu arată spre direcția corectă)
-var _sword_frames: SpriteFrames             # cele 3 cadre din fx/cursed sword fx
+@export var sword_art_rotation: float = 0.0  # rotește sprite-ul în jurul lui însuși; NU-l mută de pe axă (pentru asta e sword_lateral)
+var _sword_frames: SpriteFrames             # cele 10 cadre din fx/cursed sword fx
 var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s-a uitat player-ul (pt. tăietura sabiei)
 
 # --- upgrade-uri de armă ---
@@ -318,10 +324,13 @@ func _sword_swing() -> void:
 		if enemy == null:
 			continue
 		var to_enemy := enemy.global_position - global_position
-		if to_enemy.length() > reach:
+		var dist := to_enemy.length()
+		if dist > reach:
 			continue
-		# doar inamicii din CONUL din față (dot cu direcția de privire ≥ prag)
-		if to_enemy.normalized().dot(dir) < sword_arc_dot:
+		# doar inamicii din CONUL din față (dot cu direcția de privire ≥ prag).
+		# Excepție: inamicul lipit de tine — acolo direcția e zero/instabilă și
+		# normalized() ar da (0,0) → dot 0 → nu l-ar tăia niciodată.
+		if dist > 4.0 and to_enemy.normalized().dot(dir) < sword_arc_dot:
 			continue
 		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură)
 		var kill := instakill_chance > 0.0 and randf() < instakill_chance
@@ -331,7 +340,10 @@ func _sword_swing() -> void:
 		enemy.take_damage(dealt)
 		Fx.damage_number(enemy.global_position, dealt, is_crit or kill)
 		if knockback > 0.0 and enemy.has_method("apply_knockback"):
-			enemy.apply_knockback(to_enemy.normalized() * knockback)
+			var push := to_enemy.normalized()
+			if push == Vector2.ZERO:
+				push = dir  # lipit de tine: îl împingem în direcția tăieturii
+			enemy.apply_knockback(push * knockback)
 		hit = true
 	Audio.play("shoot", -10.0)  # foșnet de tăiere (placeholder)
 	if hit and is_crit:
@@ -351,7 +363,9 @@ func _spawn_sword_slash(dir: Vector2) -> void:
 	add_child(a)  # copil al player-ului → tăietura îl urmează
 	# player-ul e la scale 2 în main.tscn; împărțim la scara lui ca reach/scale să fie în pixeli reali
 	var ps: float = max(scale.x, 0.001)
-	a.position = dir * (sword_reach * weapon_size_scale()) / ps
+	# Offset-ul e scris în sistemul ARTEI (x = în față, y = lateral), apoi rotit după privire,
+	# ca tăietura să arate identic în toate cele 8 direcții.
+	a.position = Vector2(sword_reach, sword_lateral).rotated(dir.angle()) * weapon_size_scale() / ps
 	a.rotation = dir.angle() + sword_art_rotation
 	a.scale = Vector2.ONE * (sword_scale * weapon_size_scale()) / ps
 	a.play("fx")
