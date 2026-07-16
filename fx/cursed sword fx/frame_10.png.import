@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4gcf0gr1ym0h"
-path="res://.godot/imported/frame_6.png-2b6862a85ad8135a018bc7cfa092bcd1.ctex"
+uid="uid://d13vmdo2021c7"
+path="res://.godot/imported/frame_10.png-f393edc976e201a38b262e52e61382b3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://fx/cursed sword fx/frame_6.png"
-dest_files=["res://.godot/imported/frame_6.png-2b6862a85ad8135a018bc7cfa092bcd1.ctex"]
+source_file="res://fx/cursed sword fx/frame_10.png"
+dest_files=["res://.godot/imported/frame_10.png-f393edc976e201a38b262e52e61382b3.ctex"]
 
 [params]
 

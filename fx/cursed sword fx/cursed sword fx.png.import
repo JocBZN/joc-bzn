@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1fj1luhpmdmv"
-path="res://.godot/imported/cursed sword anim real.png-28efa9d7afac5f5d605f34dae6968f2a.ctex"
+uid="uid://t4t6bmwo5nr"
+path="res://.godot/imported/cursed sword fx.png-07c2d0c9d4a42919a8c4091e98182366.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://fx/cursed sword fx/cursed sword anim real.png"
-dest_files=["res://.godot/imported/cursed sword anim real.png-28efa9d7afac5f5d605f34dae6968f2a.ctex"]
+source_file="res://fx/cursed sword fx/cursed sword fx.png"
+dest_files=["res://.godot/imported/cursed sword fx.png-07c2d0c9d4a42919a8c4091e98182366.ctex"]
 
 [params]
 

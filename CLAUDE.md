@@ -12,6 +12,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (Cursed Sword: artă nouă + rescrisă pe modelul Firewalker)
+
+**Cererea lui Răzvan:** artă nouă pusă peste cea veche, de tăiat iar în cadre; e orientată spre **vest**; tăietura să fie **EGALĂ în toate direcțiile**; „poți să o gândești cum e făcut firewalker că mereu stă aceeași mărime".
+
+**Done:**
+- **Artă nouă tăiată:** `fx/cursed sword fx/cursed sword fx.png` (768×55) → **12 cadre de 64×55** (`frame_0..11.png`). Lățimea de cadru NU e ghicită: am detectat blocurile de desen pe coloane și am ales singura împărțire exactă a lui 768 la care **niciun desen nu calcă peste graniță** (12×64 → 0 blocuri tăiate; 8×96 → 3, 16×48 → 6). Vechile `frame_0..9` (64×60) și `cursed sword anim real.png` — șterse/înlocuite.
+- **Rescrisă pe modelul Firewalker** (`firetrail.gd`), exact cum a cerut:
+  - `sword_size` în **PIXELI** (nu multiplicator) → `a.scale = _sword_visual_size() / SWORD_FRAME_W`, ca `size / 32.0` acolo. Schimbi arta, mărimea rămâne.
+  - **Raza de damage DERIVATĂ:** `_sword_radius() = sword_size × sword_hit_ratio`, ca `radius = size * 0.4` acolo. `sword_hit_ratio = 0.47` = cel mai depărtat pixel al artei (30.1) / lățimea cadrului (64) → e o **proporție**, deci rămâne corectă la orice mărime. **Asta vindecă boala de toată ziua:** arta și hitbox-ul nu se mai pot despărți, fiindcă hitbox-ul se calculează din mărime.
+  - **Cadrele au fața spre VEST:** `a.rotation = dir.angle() - PI + sword_art_rotation`, ca `direction.angle() - PI` acolo.
+- **Butoane simplificate:** `sword_art_reach`/`sword_art_lateral`/`sword_hit_reach`/`sword_hit_lateral`/`sword_hit_radius`/`sword_scale` → **`sword_size`, `sword_reach`, `sword_lateral`, `sword_hit_ratio`**. Un singur `_sword_offset(dir)` pentru artă + hitbox + debug.
+- **Arta nouă e aproape simetrică:** la `lateral = 0` mijlocul măturatului e la −1.1° (cea veche era la −13.8° și cerea 12 px de corecție). `sword_lateral = 3` → 0.2°. 0 pixeli în spatele player-ului la reach 42.
+- **Reglajul lui Răzvan, salvat:** `player.tscn` avea `sword_scale = 2.5` și `sword_art_lateral = 0.0` (reglate de el în Inspector). Redenumind butoanele, liniile alea au rămas **moarte — și Godot le ignoră în tăcere, fără nicio eroare**. I-am dus alegerea mai departe: 2.5 × cadru 64 = **160 px** → `sword_size = 160` (verificat: dă `scale = 2.500`, exact ce avea). Liniile moarte scoase din `player.tscn`.
+
+**Gotchas:**
+- **La redenumirea unui `@export` folosit ca override într-un `.tscn`, Godot NU se plânge** — override-ul dispare pur și simplu. Verifică `git diff` pe `.tscn` după orice redenumire de export, altfel arunci reglajele omului fără să afle nimeni.
+- **Verificat prin rotație:** caiet de 10 puncte în sistemul est, rotit pe fiecare din cele 8 direcții → **toate identice cu estul**. Plus verificare pe pixelii pozei: **0 pixeli de artă în afara cercului** (cel mai depărtat 32.0 din limita 36.2).
+- **Fitul discului a scăzut la 29%** (arta veche + disc: 36%, con reparat: 42%, hitbox stricat inițial: 14%) — arta nouă e mai subțire (anvelopă 821 px de artă față de 1229). Se strânge din `sword_hit_ratio` dacă vrea mai precis.
+- **La testul cu poză: eliberează player-ul precedent ȘI așteaptă să-i expire tăietura (~0.55s) înainte de următoarea poză** — altfel prinzi două slash-uri suprapuse și două camere, și măsurătoarea pe pixeli iese aiurea (am pățit-o: „3367 pixeli verzi, toți în afara cercului").
+
+---
+
 ## Session log — 2026-07-16 (Cursed Sword: butoane manuale + debug draw)
 
 **Reclamația lui Răzvan:** „dă-mi butoane să schimb eu manual și cum arată sprite-ul și cum e pus hitbox-ul că le-ai făcut de sânge." Avea dreptate: valorile erau exporturi, dar **cuplate** — îi tot spuneam „nu umbla la reach/scale că trebuie remăsurată raza". Adică nu le putea regla singur.
