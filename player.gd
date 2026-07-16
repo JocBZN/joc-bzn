@@ -78,6 +78,13 @@ const SWORD_FRAME_W := 64.0                  # lățimea unui cadru (fx/cursed s
 
 @export var sword_base_damage: int = 8       # damage de bază/tăietură; total = asta + bullet_damage
 @export var sword_slow_start: float = 1.9    # la început taie mai rar (fire_interval × asta la selectarea sabiei)
+
+# --- Stolen Halo: aureola care plutește deasupra capului după ce iei itemul ---
+const HALO_FRAME_W := 64.0                   # lățimea unui cadru (fx/halo fx: 10 cadre de 64×58)
+@export var halo_size: float = 54.0          # lățimea aureolei în px pe ecran
+@export var halo_height: float = 76.0        # cât de sus stă, deasupra centrului player-ului
+                                             # (creștetul e la ~62 px: sprite 124×124, capul la 31 px × scale 2)
+var _halo: AnimatedSprite2D = null           # aureola, o dată pusă rămâne tot restul rundei
 var _sword_frames: SpriteFrames             # cele 12 cadre din fx/cursed sword fx
 var _sword_frame_px := Vector2(64, 55)      # mărimea unui cadru, în pixeli de artă (citită din textură)
 var _sword_env := Rect2()                   # anvelopa animației (uniunea cadrelor), în pixeli de artă
@@ -732,6 +739,29 @@ func _level_up() -> void:
 func upgrade_max_hp(amount: int) -> void:
 	max_hp += amount
 	hp += amount  # te și vindecă cu cât ai crescut viața maximă
+
+# Stolen Halo: pune aureola deasupra capului, unde rămâne tot restul rundei.
+# Itemul se poate lua de mai multe ori (stivuiește damage/HP), dar aureola se pune O SINGURĂ dată
+# — altfel s-ar suprapune mai multe una peste alta, în același loc.
+func show_halo() -> void:
+	if _halo != null and is_instance_valid(_halo):
+		return
+	var frames := _load_fx_frames("res://fx/halo fx", 12.0, true)  # loop = se rotește la nesfârșit
+	if frames == null or frames.get_frame_count("fx") == 0:
+		push_warning("Stolen Halo: nu găsesc cadrele din res://fx/halo fx")
+		return
+	var a := AnimatedSprite2D.new()
+	a.sprite_frames = frames
+	a.animation = "fx"
+	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	a.z_index = 1  # peste player, ca o aureolă adevărată
+	add_child(a)   # copil al player-ului → îl urmează oriunde
+	# player-ul e la scale 2 în main.tscn; împărțim la scara lui ca px-ii ceruți să fie px reali
+	var ps: float = max(scale.x, 0.001)
+	a.position = Vector2(0.0, -halo_height) / ps
+	a.scale = Vector2.ONE * (halo_size / HALO_FRAME_W) / ps  # cadrul de 64 px scalat la halo_size
+	a.play("fx")
+	_halo = a
 
 func upgrade_fire_rate(factor: float) -> void:
 	fire_interval *= factor              # factor < 1 → pauză mai mică între trageri = tragi mai des

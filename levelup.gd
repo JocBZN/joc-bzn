@@ -43,6 +43,7 @@ var UPGRADES := [
 	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "rare", "desc": "+35% Damage · -35% Attack speed"},
 	{"id": "rusty_hacksaw", "nume": "Rusty Hacksaw", "icon": "upgrade_24.png", "rar": "uncommon", "desc": "1% instakill (+0.5% / stack)"},
 	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
+	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_27.png", "rar": "rare", "desc": "+15 Damage · +5 Max HP"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -368,3 +369,9 @@ func _apply(id: String, p) -> void:
 			else:
 				p.instakill_chance += 0.05
 				p._doctor_taken = true
+		"stolen_halo":
+			# furat din rai: damage + viață, la fel la fiecare luare (stivuiește).
+			# Aureola rămâne deasupra capului tot restul rundei; show_halo() o pune o singură dată.
+			p.bullet_damage += 15
+			p.upgrade_max_hp(5)
+			p.show_halo()

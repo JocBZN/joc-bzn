@@ -12,6 +12,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (item nou: Stolen Halo + aureolă permanentă)
+
+**Cererea lui Răzvan:** item nou „Stolen Halo", iconiță `upgrade_27`, raritate **Rare**, **+15 Damage / +5 Max HP**, stivuibil (fiecare luare adaugă la fel). Special: animația din `fx/halo fx` să stea **deasupra player-ului pentru totdeauna** după ce iei itemul.
+
+**Done:**
+- **Arta:** `fx/halo fx/Halo.png` (640×58) → **10 cadre de 64×58** (`frame_0..9.png`), aceeași metodă ca la sabie: detectez blocurile de desen pe coloane și aleg singura împărțire exactă a lui 640 fără desen tăiat (10×64 → 0 rupte; 4×160 → 2; 8×80 → 6). Cele 10 blocuri au ~350 px opaci fiecare — inel care se rotește.
+- **Itemul** (`levelup.gd`): în `UPGRADES` + o ramură în `_apply` — `p.bullet_damage += 15`, `p.upgrade_max_hp(5)` (te și vindecă), `p.show_halo()`. Stivuiește natural, fiindcă `_apply` se cheamă la fiecare luare. `bullet_damage` merge la TOATE armele (sabia face `sword_base_damage + bullet_damage`).
+- **Aureola** (`player.gd` `show_halo()`): `AnimatedSprite2D` copil al player-ului, `z_index = 1` (peste el), animație pe **loop**, la `halo_height = 76` px deasupra centrului. Se pune **O SINGURĂ dată** (`_halo` + `is_instance_valid`) — altfel, luând itemul de 3 ori, ai avea 3 aureole suprapuse în același loc.
+- **Mărimea, ca la Firewalker/sabie:** `halo_size = 54` px pe ecran, scara derivată (`halo_size / HALO_FRAME_W`), nu multiplicator → schimbi arta, mărimea rămâne.
+
+**Gotchas:**
+- **Nu există `levelup.tscn`** — `levelup.gd` e pe un `CanvasLayer` din `main.tscn`. Ca să-l testezi, instanțiază `main.tscn` și ia-l cu `get_tree().get_first_node_in_group("levelup_menu")` (player-ul: grupul `"player"`).
+- **Poziția aureolei vine dintr-o măsurătoare:** sprite-ul player-ului e 124×124 cu creștetul la y=31, deci capul e la 31 px deasupra centrului → ×2 (scale-ul player-ului din `main.tscn`) = 62 px reali. De-aia 76 lasă un spațiu firesc. Ca la orice copil al player-ului, poziția/scara se împart la `scale.x`.
+- **PowerShell nu face diferență între majuscule și minuscule la variabile:** `$W` (lățimea imaginii) și `$w` (lățimea cadrului) sunt ACEEAȘI variabilă → lățimea se împărțea cumulativ (640 → 320 → 80 → 16 → 2) și detecția de cadre dădea rezultate absurde. Folosește nume distincte, nu doar altă capitalizare.
+- **Verificat pe jocul real** (main.tscn, nu mock): itemul apare în `UPGRADES` cu datele corecte, iconița există, raritatea `rare` e definită; 3 luări → dmg +45 (15×3), max_hp +15 (5×3), **o singură aureolă**; aureola: 10 cadre, loop, y = −76 px reali, lățime 54 px, z=1. Plus poză cu aureola pe toate cele 4 direcții.
+
+---
+
 ## Session log — 2026-07-16 (BUG: hitbox-ul sabiei rămânea în urmă la size up)
 
 **Reclamația lui Răzvan:** „când iau iteme de size up parcă nu se ține bine hitboxul." Avea dreptate.
