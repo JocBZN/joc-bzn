@@ -12,6 +12,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-16 (Cursed Sword: butoane manuale + debug draw)
+
+**Reclamația lui Răzvan:** „dă-mi butoane să schimb eu manual și cum arată sprite-ul și cum e pus hitbox-ul că le-ai făcut de sânge." Avea dreptate: valorile erau exporturi, dar **cuplate** — îi tot spuneam „nu umbla la reach/scale că trebuie remăsurată raza". Adică nu le putea regla singur.
+
+**Done:**
+- **Arta și hitbox-ul, decuplate.** `sword_reach`/`sword_lateral` → despărțite în `sword_art_reach`/`sword_art_lateral` (unde se desenează) și `sword_hit_reach`/`sword_hit_lateral` (unde lovește discul). Implicit au aceleași valori (42 / 12), dar acum le poate depărta oricât. Două funcții separate: `_sword_art_offset(dir)` și `_sword_hit_offset(dir)`.
+- **`sword_debug: bool`** — desenează live, peste joc, cercul roșu al hitbox-ului + crucea albastră a ancorei artei + linia albă a direcției de privire. `_draw()` pe player + `queue_redraw()` în `_process` cât e pornit. **Ăsta e răspunsul real la reclamație:** nu poate regla ce nu vede. Cu el, dacă mută arta și uită hitbox-ul, VEDE că s-au despărțit.
+- **`sword_anim_speed`** (nou, via `a.speed_scale`) — cât de repede se joacă tăietura; 22 fps era hardcodat. Clampat la min 0.01, că 0 ar îngheța tăietura pe ecran pentru totdeauna.
+
+**Gotchas:**
+- **`_draw()` pe player e la `scale = 2`** (din main.tscn) → împarte TOT la `scale.x`: și coordonatele, și grosimile de linie, și raza. Altfel desenezi la dublu.
+- **Decizia de design:** i-am dat controlul manual cerut, cu riscul să despartă arta de hitbox și să reintroducă bug-ul inițial. Compensat prin debug draw — controlul vine la pachet cu unealta care-i arată consecința. Valorile din fabrică rămân cele măsurate.
+- **Verificat:** hitbox mutat manual (reach 100, rază 25) → 5 puncte testate, **0 nepotriviri**; poze cu arta și hitbox-ul mutate separat, ca să se vadă că nu mai sunt legate. Plus o verificare pe pixeli a pozei: la valorile din fabrică, **0 pixeli de artă în afara cercului roșu** (cel mai depărtat la 33.9 din 39.2 px de ecran) → raza 56 chiar acoperă arta.
+
+---
+
 ## Session log — 2026-07-16 (Cursed Sword: identică în toate direcțiile · hitbox = disc · sub player)
 
 **Done:**
