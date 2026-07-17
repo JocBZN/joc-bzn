@@ -16,6 +16,7 @@ const SLOW_MIN_MULT := 0.5    # viteza la slow MAXIM (0.5 = 50% din normal)
 const SLOW_HOLD := 0.5        # secunde de slow MAXIM la început, după ce atinge gheața
 const SLOW_RECOVER := 0.5     # cât durează revenirea lină la viteza normală după hold
 const SLOW_TINT := Color(0.55, 0.75, 1.35)  # filtru albastru „înghețat" (modulate)
+const ELECTRIC_TINT := Color(0.5, 0.85, 2.6)  # sclipire albastră electrică (Thunder God)
 var _slow_time: float = 0.0   # timp rămas de slow (hold + recover); reîmprospătat cât stă în gheață
 
 # Scenele de XP (le încărcăm doar dacă există deja, ca să nu dea eroare)
@@ -92,6 +93,17 @@ func _flash() -> void:
 	anim.modulate = Color(5, 5, 5)  # alb foarte strălucitor
 	_flash_tween = create_tween()
 	_flash_tween.tween_property(anim, "modulate", _slow_color(), 0.12)  # revine la tenta curentă (albastră dacă e înghețat)
+
+# Chemată de Thunder God când inamicul e lovit de curent: o sclipire albastră electrică, ceva mai
+# lungă decât cea albă de lovitură, ca să se vadă că e „electrocutat". Revine la tenta curentă.
+func flash_electric() -> void:
+	if _dying:
+		return
+	if _flash_tween != null and _flash_tween.is_valid():
+		_flash_tween.kill()
+	anim.modulate = ELECTRIC_TINT
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(anim, "modulate", _slow_color(), 0.28)
 
 func _die() -> void:
 	_dying = true

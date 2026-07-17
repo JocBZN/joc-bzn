@@ -529,6 +529,7 @@ func _apply(id: String, p) -> void:
 			# Scalează numărul: +1, +2, +3 ...
 			p.stacked_armory_stacks += 1
 		"thunder_god":
-			# zeul tunetului: la impactul glonțului, curent electric de la inamicul lovit spre TOȚI
-			# din rază (Jacob's Ladder). Repetarea crește damage-ul arcurilor (vezi thunder_damage).
+			# zeul tunetului: la impact (glonț SAU sabie), curent electric de la inamicul lovit spre
+			# TOȚI din rază (Jacob's Ladder). Damage-ul arcului = 25% din damage-ul playerului, deci
+			# crește indirect cu upgrade-urile de damage. `thunder_stacks` doar activează itemul.
 			p.thunder_stacks += 1

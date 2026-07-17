@@ -27,11 +27,11 @@ var broken_watch_stacks: int = 0              # câte proiectile bonus tragi câ
 # Stacked Armory: +1 proiectil GARANTAT pe luare, dar tras într-un ALT inamic la întâmplare
 # (nu paralel ca Twin Comets) — tragi în direcții diferite deodată. Doar la gloanțe (pistol/mage).
 var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți inamici (+1 pe luare)
-# Thunder God: la impactul unui glonț, curent electric de la inamicul LOVIT spre toți ceilalți din
-# rază (ca Jacob's Ladder din Binding of Isaac). Animația pornește din inamic, nu din player, și NU
-# se lanțuie mai departe. Doar la gloanțe (pistol/mage).
-@export var thunder_range: float = 100.0      # raza maximă de legare între inamici (px)
-var thunder_stacks: int = 0                   # de câte ori ai luat itemul (0 = nu-l ai); crește damage-ul
+# Thunder God: la impact (glonț SAU sabie), curent electric de la inamicul LOVIT spre toți ceilalți
+# din rază (ca Jacob's Ladder din Binding of Isaac). Animația pornește din inamic, nu din player, și
+# NU se lanțuie mai departe. Inamicii loviți de curent capătă o tentă albastră (enemy.flash_electric).
+@export var thunder_range: float = 200.0      # raza maximă de legare între inamici (px)
+var thunder_stacks: int = 0                   # de câte ori ai luat itemul (0 = nu-l ai)
 var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electricity fx, 14 × 64×63)
 
 # --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
@@ -518,12 +518,13 @@ func thunder_from(src: Node2D) -> void:
 		_spawn_electric_arc(src.global_position, enemy.global_position)
 		if enemy.has_method("take_damage"):
 			enemy.take_damage(dmg)
+			if enemy.has_method("flash_electric"):
+				enemy.flash_electric()   # tentă albastră electrică pe inamicul lovit de curent
 			Fx.damage_number(enemy.global_position, dmg, false)
 
-# Damage-ul unui arc de Thunder God: scalează cu bullet_damage și cu numărul de luări
-# (½ × bullet_damage per luare: 1 stack = 50%, 2 = 100%, 3 = 150% ...).
+# Damage-ul unui arc de Thunder God: 25% din damage-ul playerului (bullet_damage).
 func thunder_damage() -> int:
-	return max(1, int(round(bullet_damage * 0.5 * thunder_stacks)))
+	return max(1, int(round(bullet_damage * 0.25)))
 
 # Arcul electric vizual, întins EXACT între cele două puncte. Animația e spre NORD în poză, deci o
 # rotesc ca la gloanțe (dir.angle() + PI/2) ca să arate spre inamic, și o întind pe verticală ca
@@ -658,6 +659,9 @@ func _sword_damage_pass(t: Dictionary) -> void:
 			dealt = int(enemy.hp)
 		enemy.take_damage(dealt)
 		Fx.damage_number(enemy.global_position, dealt, is_crit or kill)
+		# Thunder God: sabia lovește un inamic → curent electric spre ceilalți din jurul lui
+		if thunder_stacks > 0:
+			thunder_from(enemy)
 		if knockback > 0.0 and enemy.has_method("apply_knockback"):
 			# îl împingem dinspre PLAYER, nu dinspre centrul tăieturii
 			var push := (enemy.global_position - global_position).normalized()

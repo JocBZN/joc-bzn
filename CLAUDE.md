@@ -13,6 +13,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Thunder God: sabie + tentă albastră + 200px + 25% dmg)
+
+**Done (peste implementarea de mai jos):**
+- **Merge și cu Cursed Sword:** `_sword_damage_pass` cheamă `thunder_from(enemy)` pentru fiecare inamic pe care-l taie (dacă `thunder_stacks > 0`), la fel ca glonțul.
+- **Tentă albastră pe inamicii loviți de curent:** `enemy.flash_electric()` (nou) — sclipire albastră electrică (`ELECTRIC_TINT = Color(0.5, 0.85, 2.6)`), ceva mai lungă (0.28s) decât cea albă de lovitură; revine la tenta curentă (albastru de frost dacă e înghețat). Chemată din `thunder_from` pe fiecare inamic ars de arc.
+- **Damage = 25% din damage-ul playerului:** `thunder_damage()` = `bullet_damage * 0.25` (nu mai scalează cu `thunder_stacks`; `thunder_stacks` doar activează itemul). Crește indirect cu upgrade-urile de damage.
+- **Rază 100 → 200px** (`thunder_range`).
+
+**Gotchas:**
+- Ordinea în `thunder_from`: `take_damage` (care dă sclipirea ALBĂ) apoi `flash_electric` (omoară tween-ul alb, pune albastru) → câștigă albastrul. Dacă inamicul moare din arc, `flash_electric` iese pe `_dying`.
+- Verificat: dmg 25% (5 la bullet_damage 19), rază 200 (inamic la 150px lovit, la 250px nu), tenta `modulate.b = 2.6`, sabia declanșează arcuri, iar un vecin nelovit de sabie ia doar damage de curent. Screenshot: inamici albaștri + arcuri + „5".
+
+---
+
 ## Session log — 2026-07-17 (Item nou: Thunder God — chain lightning ca Jacob's Ladder)
 
 **Done:**
