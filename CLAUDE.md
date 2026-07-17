@@ -8,8 +8,20 @@ Quick rules:
 - **Node lookups use groups:** `"player"` and `"enemy"` (via `get_tree().get_first_node_in_group(...)` / `get_nodes_in_group(...)`); cast results with `as Node2D` before using `global_position`.
 - This is a **survivors-like / bullet-heaven** game (Vampire Survivors style), cyberpunk theme, for Android. See the roadmap in `README.md`.
 - **Repo activ:** `Desktop\joc-bzn` (clonă pe `main`, remote `JocBZN/joc-bzn`). Notele vechi care zic „Downloads\joc-bzn-main" sunt depășite.
-- **Există un CODEX al upgrade-urilor**, artifact pe claude.ai: `https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e`. Când schimbi ceva în `levelup.gd` (item nou, raritate, efect, iconiță) sau în `game_settings.gd` (META), **actualizează-l și pe el** — altfel rămâne în urmă în tăcere (pe 2026-07-16 era în urmă cu 6 schimbări). Se citește cu WebFetch, se republică dându-i URL-ul de mai sus ca `url`.
+- **Există un CODEX al upgrade-urilor**, artifact pe claude.ai: `https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e`. Când schimbi ceva în `levelup.gd` (item nou, raritate, efect, iconiță) sau în `game_settings.gd` (META), **actualizează-l și pe el** — altfel rămâne în urmă în tăcere. **De pe 2026-07-17 e generat data-driven** din `codex.html` (în repo): editezi array-ul `ITEMS` / `SYN` de sus (efectele reale din cod), iconițele+chenarele se re-encodează base64 și se injectează în placeholder-ul `/*__ASSETS__*/` cu scriptul PowerShell (vezi session log 2026-07-17 „Codex regenerat”), apoi republici pe același URL cu `url=`. Mult mai simplu decât chirurgia pe base64.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
+
+---
+
+## Session log — 2026-07-17 (Codex regenerat data-driven + sincronizat)
+
+**Done:**
+- **Codexul (artifact) adus la zi** cu tot ce lipsea: Last Resort (redenumit), multi-crit la Adrenaline, Broken Watch, Stacked Armory, Thunder God, Plugged In. Acum **34 de upgrade-uri**, numărătorile pe tier corecte, secțiunea „Ce nu scrie în joc” actualizată (Thunder God + Plugged In, multi-crit, ce nu ajunge la Stingător).
+- **Refăcut complet abordarea:** în loc de chirurgie pe base64, codexul e acum **`codex.html` (în repo)** — un template cu design-ul cyberpunk păstrat + array-urile `ITEMS`/`META`/`SYN` (efectele reale din cod) + cod de render în JS. Iconițele și chenarele se citesc din fișiere, se encodează base64 și se injectează în `/*__ASSETS__*/` cu un script PowerShell (UTF-8 fără BOM, ca să nu strice diacriticele). Publicat pe același URL cu `Artifact url=…`.
+
+**Gotchas:**
+- **Editarea viitoare = trivială:** schimbi `ITEMS`/`SYN` de sus în `codex.html`, rulezi din nou splice-ul de assets (înlocuiește iar cele două linii `const BORDERS=…`/`const ICONS=…`), republici. Efectele din codex se scriu din `_apply` (levelup.gd) + player.gd, NU din descrierile din joc.
+- **WebFetch pe URL de artifact chiar întoarce HTML-ul brut** (salvat local ca fișier), deci se poate citi conținutul vechi — dar are cache 15 min per URL.
 
 ---
 
