@@ -518,8 +518,9 @@ func _apply(id: String, p) -> void:
 			# Nu lasă nimic în urmă — tot efectul lui se consumă aici. Îl iei iar, bubuie iar.
 			p.panic_button(100)
 		"broken_watch":
-			# ceasul stricat: șansa (50%, fixă) să tragi proiectile bonus. Nu crește ȘANSA la
-			# repetare, ci CÂTE proiectile în plus dai când se declanșează: +1, +2, +3 ...
+			# ceasul stricat: șansa (50%, fixă) să tragi proiectile bonus în ALȚI inamici la
+			# întâmplare (ca Stacked Armory, dar pe șansă). Nu crește ȘANSA la repetare, ci CÂTE
+			# proiectile dai când se declanșează: +1, +2, +3 ...
 			p.broken_watch_stacks += 1
 		"stacked_armory":
 			# arsenalul: +1 proiectil GARANTAT, dar tras într-un ALT inamic la întâmplare — pleacă

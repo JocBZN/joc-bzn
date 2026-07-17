@@ -13,6 +13,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Broken Watch → proiectile random, ca Stacked Armory)
+
+**Done:**
+- **Broken Watch nu mai adaugă proiectile PARALELE.** Acum, când se declanșează (50%), trage `broken_watch_stacks` proiectile în **ALȚI inamici la întâmplare**, exact ca Stacked Armory — doar că pe șansă, nu garantat.
+- În `_fire_bullets`, cele două s-au unit într-un singur bloc de „proiectile bonus random": `bonus = stacked_armory_stacks (garantat) + broken_watch_stacks (dacă randf() < 0.5)`, apoi `_armory_targets(target, bonus)` + `_spawn_one_bullet`. `bullet_count` nu mai e umflat de Broken Watch (salva principală rămâne curat paralelă = Twin Comets).
+
+**Gotchas:**
+- Verificat: cu 2 stack-uri Broken Watch și `bullet_count` 1 → 50% salve cu 1 glonț, 50% cu 3; când sunt 3, merg în direcții diferite (inamici random), nu paralel.
+- Descrierea itemului rămâne „50% chance to fire +1 projectile" (nu zicea nimic de paralel, deci e tot corectă).
+
+---
+
 ## Session log — 2026-07-17 (Item nou: Stacked Armory)
 
 **Done:**

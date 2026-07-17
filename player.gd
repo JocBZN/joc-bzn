@@ -19,11 +19,11 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var bullet_speed: float = 700.0    # cât de repede zboară glonțul (crește la level up)
 @export var bullet_count: int = 1          # câte gloanțe paralele tragi odată (+1 la fiecare bonus)
 @export var bullet_spacing: float = 26.0   # distanța dintre gloanțele paralele
-# Broken Watch: la fiecare salvă, ȘANSĂ (fixă) să tragi proiectile bonus. Șansa NU crește cu
-# luările — crește CÂTE proiectile bonus dai când se declanșează (+1 pe luare). Doar la gloanțe
-# (pistol/mage); stingătorul și sabia nu folosesc bullet_count.
+# Broken Watch: la fiecare salvă, ȘANSĂ (fixă) să tragi proiectile bonus în ALȚI inamici la
+# întâmplare (ca Stacked Armory, dar pe șansă). Șansa NU crește cu luările — crește CÂTE proiectile
+# bonus dai când se declanșează (+1 pe luare). Doar la gloanțe (pistol/mage).
 @export var broken_watch_chance: float = 0.5  # șansa să se declanșeze bonusul
-var broken_watch_stacks: int = 0              # câte proiectile în plus tragi când se declanșează
+var broken_watch_stacks: int = 0              # câte proiectile bonus tragi când se declanșează
 # Stacked Armory: +1 proiectil GARANTAT pe luare, dar tras într-un ALT inamic la întâmplare
 # (nu paralel ca Twin Comets) — tragi în direcții diferite deodată. Doar la gloanțe (pistol/mage).
 var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți inamici (+1 pe luare)
@@ -431,20 +431,21 @@ func _fire_bullets() -> void:
 		ex_radius = max(ex_radius, 110.0)
 		ex_damage = max(ex_damage, int(dmg_base * 0.6))
 	var perp := Vector2(-dir.y, dir.x)
-	# Broken Watch: șansă să tragi proiectilele bonus în salva asta (câte = broken_watch_stacks)
-	var count := bullet_count
-	if broken_watch_stacks > 0 and randf() < broken_watch_chance:
-		count += broken_watch_stacks
 	var any_crit := false
 	# salva principală: gloanțe paralele spre ținta cea mai apropiată (ca Twin Comets)
-	for i in count:
-		var offset := (i - (count - 1) / 2.0) * bullet_spacing
+	for i in bullet_count:
+		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing
 		if _spawn_one_bullet(global_position + perp * offset, dir, dmg_base, ex_radius, ex_damage):
 			any_crit = true
-	# Stacked Armory: proiectile în plus, fiecare tras într-un ALT inamic la întâmplare —
-	# pleacă în direcții diferite deodată (nu paralele ca salva principală).
-	if stacked_armory_stacks > 0:
-		for tnode in _armory_targets(target, stacked_armory_stacks):
+	# Proiectile BONUS trase în ALȚI inamici la întâmplare — pleacă în direcții diferite deodată,
+	# nu paralele ca salva principală:
+	#  · Stacked Armory: garantat, `stacked_armory_stacks` bucăți
+	#  · Broken Watch: 50% șansă (broken_watch_chance) să tragă `broken_watch_stacks` bucăți
+	var bonus := stacked_armory_stacks
+	if broken_watch_stacks > 0 and randf() < broken_watch_chance:
+		bonus += broken_watch_stacks
+	if bonus > 0:
+		for tnode in _armory_targets(target, bonus):
 			var enemy2 := tnode as Node2D
 			var d2 := (enemy2.global_position - global_position).normalized()
 			if _spawn_one_bullet(global_position, d2, dmg_base, ex_radius, ex_damage):
