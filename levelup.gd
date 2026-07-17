@@ -22,7 +22,7 @@ const RARITIES := {
 var UPGRADES := [
 	{"id": "cocaina",   "nume": "Weird Concoction", "icon": "upgrade_15.png", "rar": "epic", "desc": "+speed · +fire rate"},
 	{"id": "iarba",     "nume": "Wine",      "icon": "upgrade_13.png", "rar": "common",    "desc": "+3 HP/sec & heal 30"},
-	{"id": "seringa",   "nume": "Knight's Power", "icon": "upgrade_26.png", "rar": "uncommon",  "desc": "+7 Bullet damage"},
+	{"id": "seringa",   "nume": "Last Resort", "icon": "upgrade_35.png", "rar": "uncommon",  "desc": "+7 Bullet damage"},
 	{"id": "bere",      "nume": "Beer",      "icon": "upgrade_4.png", "rar": "common",    "desc": "+35 Max health"},
 	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "-3 Damage taken"},
 	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+damage · +fire rate"},

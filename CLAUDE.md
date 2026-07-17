@@ -13,6 +13,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Knight's Power redenumit Last Resort)
+
+**Done:**
+- **Knight's Power → „Last Resort"** (`levelup.gd`, itemul cu `id` intern `seringa`). Iconiță nouă: `upgrade_26.png` → **`upgrade_35.png`** (un shot aprins, băgat de Răzvan în `Upgrades/`). Efectul (+7 Bullet damage) și raritatea (Uncommon) rămân neschimbate — doar numele afișat și poza. `id`-ul intern e tot `seringa`, deci `_apply()` nu se atinge.
+- **Curățenie `weapons/`:** Răzvan a șters intenționat tot folderul `weapons/` (~10.200 fișiere, inclusiv „Super Pixel Effects Gigapack"). Commit separat de redenumire, ca să nu amestec istoricul.
+
+**Gotchas:**
+- Verificat vizual: am încărcat `upgrade_35.png` prin `levelup.gd` (128×128, textura OK) și l-am salvat ca screenshot înainte de commit — vezi [[joc-bzn-run-verify]].
+- **Codex-ul rămâne de actualizat:** cardul „Knight's Power" trebuie redenumit „Last Resort" + iconiță nouă. (Sync separat, nu blochează commit-ul.)
+
+---
+
 ## Session log — 2026-07-17 (The Nightclub înapoi la Epic)
 
 **Done:**
