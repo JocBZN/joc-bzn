@@ -31,7 +31,7 @@ var UPGRADES := [
 	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
 	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
-	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+1 Projectile"},
+	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+2 Parallel Projectiles"},
 	{"id": "strapungere", "nume": "Drill", "icon": "upgrade_16.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
 	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% chance of double damage"},
 	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger bullets · +5 damage"},
@@ -324,8 +324,8 @@ func _apply(id: String, p) -> void:
 				p.frost_slow_time += 0.5      # inamicii stau înghețați +0.5s la fiecare upgrade
 				# damage și mărime rămân la fel
 		"gloante_paralele":
-			# încă un glonț paralel (1 → 2 → 3 ...)
-			p.bullet_count += 1
+			# încă două gloanțe paralele (1 → 3 → 5 ...)
+			p.bullet_count += 2
 		"strapungere":
 			# glonțul trece prin încă un inamic înainte să dispară
 			p.pierce += 1

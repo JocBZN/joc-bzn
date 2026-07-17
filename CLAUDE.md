@@ -13,6 +13,19 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Twin Comets: +2 proiectile în loc de +1)
+
+**Done:**
+- **Twin Comets** (`levelup.gd`, `id="gloante_paralele"`, Legendary): descrierea „+1 Projectile" → **„+2 Parallel Projectiles"**, iar efectul din `_apply()` `p.bullet_count += 1` → **`+= 2`**. Deci `bullet_count` merge acum 1 → **3** → **5** → 7, nu 1 → 2 → 3.
+- **N-a fost nevoie de nimic în `player.gd`.** Spawn-ul gloanțelor se centrează singur pe orice număr: `offset = (i - (bullet_count - 1) / 2.0) * bullet_spacing` (`player.gd` ~294). La 3 gloanțe → offset-uri −26/0/+26, la 5 → −52/−26/0/+26/+52. Cu număr **impar** ai mereu un glonț fix pe centru, pe traiectoria vechiului glonț unic — arată mai bine decât numărul par de dinainte (la 2 gloanțe, ținta din mijloc era ratată).
+
+**Gotchas:**
+- **Descrierea nu e sursa de adevăr, `_apply()` este** (scrie și în README, „Project structure" → `LevelUp`). Cele două se schimbă mereu ÎMPREUNĂ, altfel itemul minte în meniu — exact asta era problema aici, la nivel de intenție.
+- **Verificat pe jocul real** cu o scenă temporară care instanțiază `main.tscn` și apelează `lv._apply("gloante_paralele", p)`: desc = „+2 Parallel Projectiles", `bullet_count` 1 → 3 → 5, offset-uri simetrice. `_apply` se poate chema direct, nu trebuie trecut prin meniu.
+- **Codex-ul de upgrade-uri** (vezi Quick rules) a fost actualizat pentru Twin Comets în aceeași sesiune.
+
+---
+
 ## Session log — 2026-07-16 (item nou: Alex's Protection · iconiță nouă la Stolen Halo)
 
 **Done:**
