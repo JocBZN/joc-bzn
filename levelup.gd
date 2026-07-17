@@ -48,6 +48,8 @@ var UPGRADES := [
 	{"id": "theo_wrath", "nume": "Theo's Wrath", "icon": "upgrade_30.png", "rar": "uncommon", "desc": "+15% Damage under 20% HP"},
 	{"id": "cigarette_pack", "nume": "Cigarette Pack", "icon": "upgrade_31.png", "rar": "common", "desc": "+5% Damage"},
 	{"id": "diesel_power", "nume": "Diesel Power", "icon": "upgrade_32.png", "rar": "uncommon", "desc": "+15% Damage · more if faster"},
+	{"id": "megane_katana", "nume": "Megane's Katana", "icon": "upgrade_33.png", "rar": "rare", "desc": "+15% Crit · more if faster"},
+	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -401,5 +403,14 @@ func _apply(id: String, p) -> void:
 			p.cig_bonus += 0.05
 		"diesel_power":
 			# motorină: cu cât mergi mai repede, cu atât dai mai mult damage. Stai pe loc = 0 bonus.
-			# Cât dă și cât e plafonul se reglează din player.gd (diesel_per_stack, diesel_speed_cap).
+			# Cât dă și cât e plafonul se reglează din player.gd (diesel_per_stack, speed_ratio_cap).
 			p.diesel_stacks += 1
+		"megane_katana":
+			# katana: cu cât mergi mai repede, cu atât critici mai des. Fratele lui Diesel Power —
+			# aceeași viteză, altă monedă (vezi player.speed_ratio() / crit_chance_now()).
+			# Stai pe loc = 0 bonus; se adună peste criticul fix de la Adrenaline.
+			p.katana_stacks += 1
+		"panic_button":
+			# butonul de panică: 100 damage la TOȚI inamicii de pe hartă, pe loc, o singură dată.
+			# Nu lasă nimic în urmă — tot efectul lui se consumă aici. Îl iei iar, bubuie iar.
+			p.panic_button(100)

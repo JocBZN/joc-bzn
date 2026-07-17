@@ -13,6 +13,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (încă 2 iteme: Megane's Katana · Panic Button)
+
+**Done:**
+- **Megane's Katana** (`upgrade_33.png`, **Rare**): șansa de critic crește cu viteza. Geamănul lui Diesel Power — aceeași intrare (viteza), altă monedă (crit în loc de damage). +15% crit la viteza de start pe luare, plafonat la 2× = **+30%**, **0 dacă stai pe loc**. Se adună peste criticul fix de la Adrenaline; `crit_chance_now()` plafonează totalul la 100%, ca Adrenaline.
+- **Refactor mic:** raportul de viteză s-a mutat într-un singur `speed_ratio()`, folosit și de Diesel Power, și de Katana. `diesel_speed_cap` → **`speed_ratio_cap`** (nu mai e doar al lui Diesel). Toate cele 3 citiri de `crit_chance` din arme (`_fire_bullets`, `_aura_pulse`, `_sword_swing`) trec acum prin `crit_chance_now()`.
+- **Panic Button** (`upgrade_34.png`, **Epic**): 100 damage fix la TOȚI inamicii de pe hartă, **o dată, chiar la luare**; după aia itemul e consumat. Damage fix intenționat: NU trece prin `damage_mult()` și nu poate da critic — e o detonare, nu o lovitură de armă. Are screen shake + numere roșii pe fiecare inamic.
+- **Pool-ul e acum 30 de upgrade-uri.**
+
+**Gotchas:**
+- **Panic Button e un Epic slab și Răzvan știe.** Când îl iei ești deja pe PAUZĂ și în siguranță, deci nu te scapă niciodată dintr-o încercuire — practic îți dă doar XP-ul de pe ecran. I-am arătat variantele (se declanșează singur sub 20% viață / la fiecare level up) și **a ales-o pe cea literală**. Dacă se plânge că e mort la joc, se schimbă **CÂND** se declanșează, nu cât lovește.
+- **Iconițele PAR inversate, dar așa le vrea:** `upgrade_33` (Megane's Katana) e **un câine**, `upgrade_34` (Panic Button) e **o katana însângerată**. L-am întrebat explicit pe 2026-07-17 și a zis să rămână așa. **Nu le „repara".**
+- **`Fx` are `PROCESS_MODE_ALWAYS`** (`fx.gd:20`), de-aia numerele de damage de la Panic Button se văd deși `_apply()` rulează cu jocul pe pauză.
+- **`_show_choices()` cade dacă pool-ul are sub 3 iteme** („Out of bounds get index '2'"). Nu e o problemă la joc (30 de iteme), dar dacă înlocuiești `lv.UPGRADES` într-un test ca să vezi un item anume, pune-i **cel puțin 3**.
+- **Verificat pe jocul real:** Katana pe loc = 0, la viteza de start = 0.15, la 1.5× = 0.225, la 5× = 0.30 (plafonat); cu Adrenaline în mers = 0.30, pe loc = 0.15 (rămâne doar Adrenaline); cu crit fix 100% + Katana = 1.0 (plafonat). Panic Button: 4 inamici × 30 HP → toți la −70, morți, curățați de pe hartă; `crit_chance` / `bullet_damage` / `damage_mult` rămân neatinse după. Poză din meniul real: chenarele Epic/Rare și textele ies corect.
+
+---
+
 ## Session log — 2026-07-17 (3 iteme noi: Theo's Wrath · Cigarette Pack · Diesel Power + `damage_mult()`)
 
 **Done:**

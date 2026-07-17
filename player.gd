@@ -116,17 +116,21 @@ const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran
 @export var frost_trail_size: float = 0.0  # lățimea gheții în px (crește cu fiecare upgrade)
 @export var frost_slow_time: float = 0.0   # cât timp stă înghețat inamicul (hold), +0.5s pe upgrade — Frostwalker
 
-# --- damage PROCENTUAL care depinde de starea de ACUM (vezi damage_mult()) ---
-# Astea NU se pot scrie o dată în bullet_damage, ca la The Nightclub: se schimbă în timpul
-# rundei (viața curentă, viteza curentă), deci se recalculează la fiecare lovitură.
+# --- bonusuri care depind de starea de ACUM (vezi damage_mult() și crit_chance_now()) ---
+# Astea NU se pot scrie o dată în bullet_damage / crit_chance, ca la The Nightclub sau Adrenaline:
+# se schimbă în timpul rundei (viața curentă, viteza curentă), deci se recalculează la fiecare lovitură.
 @export var theo_hp_threshold: float = 0.20  # Theo's Wrath se aprinde sub 20% din viața maximă
 var theo_bonus: float = 0.0                  # cât dă Theo's Wrath: +15% prima dată, +10% la fiecare repetare
 var _theo_taken: bool = false                # Theo's Wrath luat cel puțin o dată (bază vs. stack)
 var cig_bonus: float = 0.0                   # Cigarette Pack: +5% aditiv la fiecare luare
-@export var diesel_per_stack: float = 0.15   # Diesel Power: +15% pe luare, la viteza de la START
-@export var diesel_speed_cap: float = 2.0    # peste 2× viteza de start nu mai crește (altfel Alex's Protection se compune la infinit)
+@export var diesel_per_stack: float = 0.15   # Diesel Power: +15% damage pe luare, la viteza de la START
 var diesel_stacks: int = 0                   # de câte ori ai luat Diesel Power
-var _speed_base: float = 300.0               # viteza la începutul rundei (după META) = reperul lui Diesel Power
+@export var katana_per_stack: float = 0.15   # Megane's Katana: +15% șansă de critic pe luare, la viteza de la START
+var katana_stacks: int = 0                   # de câte ori ai luat Megane's Katana
+# Plafonul e comun lui Diesel Power și Megane's Katana (amândouă se uită la viteză, vezi speed_ratio()):
+# peste 2× viteza de start nu mai cresc, altfel Alex's Protection compune viteza la infinit.
+@export var speed_ratio_cap: float = 2.0
+var _speed_base: float = 300.0               # viteza la începutul rundei (după META) = reperul lor
 
 @export var max_hp: int = 100
 @export var contact_range: float = 60.0
@@ -298,12 +302,37 @@ func damage_mult() -> float:
 	# Theo's Wrath: doar cât ești sub pragul de viață (20% din max_hp)
 	if theo_bonus > 0.0 and hp <= int(round(max_hp * theo_hp_threshold)):
 		m += theo_bonus
-	# Diesel Power: 0 dacă stai pe loc, +diesel_per_stack la viteza de start, mai mult dacă ai
-	# luat viteză în rundă. `velocity` e viteza REALĂ (dacă te freci de un copac, scade și ea).
+	# Diesel Power: cu cât mergi mai repede
 	if diesel_stacks > 0:
-		var ratio: float = clampf(velocity.length() / maxf(_speed_base, 1.0), 0.0, diesel_speed_cap)
-		m += diesel_per_stack * diesel_stacks * ratio
+		m += diesel_per_stack * diesel_stacks * speed_ratio()
 	return m
+
+# Cât de repede mergi ACUM, raportat la viteza cu care ai pornit runda: 0 dacă stai pe loc,
+# 1 la viteza de start, plafonat la speed_ratio_cap. Reperul lui Diesel Power ȘI al lui
+# Megane's Katana — amândouă cresc la fel cu viteza, doar plătesc în monede diferite.
+# `velocity` e viteza REALĂ, nu statistica `speed`: dacă te freci de un copac, scade și ea.
+func speed_ratio() -> float:
+	return clampf(velocity.length() / maxf(_speed_base, 1.0), 0.0, speed_ratio_cap)
+
+# Șansa de critic de ACUM: cea fixă (Adrenaline) + cea care crește cu viteza (Megane's Katana).
+# Plafonată la 100%, ca la Adrenaline. Se citește la fiecare lovitură, din același motiv ca
+# damage_mult(): partea de la Katana se schimbă la fiecare pas pe care îl faci.
+func crit_chance_now() -> float:
+	if katana_stacks == 0:
+		return crit_chance
+	return minf(1.0, crit_chance + katana_per_stack * katana_stacks * speed_ratio())
+
+# Panic Button: 100 damage la TOȚI inamicii de pe hartă, o singură dată, chiar când iei itemul.
+# Damage fix — nu trece prin damage_mult() și nu poate da critic: e o detonare, nu o lovitură de armă.
+func panic_button(dmg: int) -> void:
+	Audio.play("hurt", -2.0)  # bubuitura (placeholder)
+	add_shake(0.6)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var enemy := e as Node2D
+		if enemy == null or not enemy.has_method("take_damage"):
+			continue
+		enemy.take_damage(dmg)
+		Fx.damage_number(enemy.global_position, dmg, true)  # roșu, ca la critic
 
 # dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:
@@ -337,7 +366,7 @@ func _fire_bullets() -> void:
 		var bullet := bullet_scene.instantiate()
 		get_parent().add_child(bullet)
 		bullet.global_position = global_position + perp * offset
-		var is_crit := randf() < crit_chance
+		var is_crit := randf() < crit_chance_now()  # Adrenaline + Megane's Katana (cu viteza)
 		if is_crit:
 			any_crit = true
 		bullet.damage = int(dmg_base * crit_mult) if is_crit else dmg_base
@@ -364,7 +393,7 @@ func _aura_pulse() -> void:
 	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult * foam_scale
 	# aura scalează și cu upgrade-urile de damage, plus procentele de acum (Theo's / Cigarette / Diesel)
 	var dmg := int(round((aura_damage + int(bullet_damage * 0.5)) * damage_mult()))
-	var is_crit := randf() < crit_chance               # Adrenaline: și stingătorul poate da critic
+	var is_crit := randf() < crit_chance_now()         # Adrenaline + Megane's Katana: și stingătorul poate da critic
 	if is_crit:
 		dmg = int(dmg * crit_mult)
 	var hit := false
@@ -424,7 +453,7 @@ func _sword_swing() -> void:
 	# taie mai tare cu upgrade-urile de damage + procentele de acum (Theo's / Cigarette / Diesel).
 	# Se fixează la începutul tăieturii, ca și criticul: o tăietură = un damage, cât mătură.
 	var dmg := int(round((sword_base_damage + bullet_damage) * damage_mult()))
-	var is_crit := randf() < crit_chance              # Adrenaline: și sabia poate da critic
+	var is_crit := randf() < crit_chance_now()        # Adrenaline + Megane's Katana: și sabia poate da critic
 	if is_crit:
 		dmg = int(dmg * crit_mult)
 	Audio.play("shoot", -10.0)  # foșnet de tăiere (placeholder)
