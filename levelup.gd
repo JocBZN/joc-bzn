@@ -52,6 +52,7 @@ var UPGRADES := [
 	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
 	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
 	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_37.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
+	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -527,3 +528,7 @@ func _apply(id: String, p) -> void:
 			# în direcții diferite deodată (spre deosebire de Twin Comets, care-s paralele).
 			# Scalează numărul: +1, +2, +3 ...
 			p.stacked_armory_stacks += 1
+		"thunder_god":
+			# zeul tunetului: la impactul glonțului, curent electric de la inamicul lovit spre TOȚI
+			# din rază (Jacob's Ladder). Repetarea crește damage-ul arcurilor (vezi thunder_damage).
+			p.thunder_stacks += 1

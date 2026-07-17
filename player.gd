@@ -27,6 +27,12 @@ var broken_watch_stacks: int = 0              # câte proiectile bonus tragi câ
 # Stacked Armory: +1 proiectil GARANTAT pe luare, dar tras într-un ALT inamic la întâmplare
 # (nu paralel ca Twin Comets) — tragi în direcții diferite deodată. Doar la gloanțe (pistol/mage).
 var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți inamici (+1 pe luare)
+# Thunder God: la impactul unui glonț, curent electric de la inamicul LOVIT spre toți ceilalți din
+# rază (ca Jacob's Ladder din Binding of Isaac). Animația pornește din inamic, nu din player, și NU
+# se lanțuie mai departe. Doar la gloanțe (pistol/mage).
+@export var thunder_range: float = 100.0      # raza maximă de legare între inamici (px)
+var thunder_stacks: int = 0                   # de câte ori ai luat itemul (0 = nu-l ai); crește damage-ul
+var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electricity fx, 14 × 64×63)
 
 # --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
 var weapon_type: String = "pistol"
@@ -188,6 +194,7 @@ func _ready() -> void:
 	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
 	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
 	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (12 cadre)
+	_electric_frames = _load_fx_frames("res://fx/electricity fx", 30.0, false)  # arcul de Thunder God (14 cadre)
 	_masoara_arta_sabiei()  # anvelopa animației → din ea se croiește dreptunghiul care lovește
 	# Cursed Sword taie mai rar la început (ca să simți creșterea când iei attack speed).
 	# O face slow o SINGURĂ dată aici; upgrade-urile de attack speed (Rabbit's Foot etc.) o accelerează după.
@@ -469,6 +476,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.instakill_chance = instakill_chance
 	bullet.explosion_radius = ex_radius
 	bullet.explosion_damage = ex_damage
+	bullet.thunder = thunder_stacks > 0  # Thunder God: la impact, curent spre inamicii din jur
 	if weapon_type == "mage":
 		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
 		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
@@ -493,6 +501,53 @@ func _armory_targets(primary: Node, n: int) -> Array:
 		else:
 			targets.append(primary)                     # niciun alt inamic → ținta principală
 	return targets
+
+# Thunder God: fulger de la inamicul lovit (src) spre TOȚI inamicii din rază — fiecare primește un
+# arc electric + damage. Chemată de glonț la impact (dacă bullet.thunder). NU se lanțuie mai departe
+# (arcurile nu declanșează alt Thunder), exact ca Jacob's Ladder.
+func thunder_from(src: Node2D) -> void:
+	if thunder_stacks <= 0 or src == null or not is_instance_valid(src):
+		return
+	var dmg := thunder_damage()
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var enemy := e as Node2D
+		if enemy == null or enemy == src:
+			continue
+		if src.global_position.distance_to(enemy.global_position) > thunder_range:
+			continue
+		_spawn_electric_arc(src.global_position, enemy.global_position)
+		if enemy.has_method("take_damage"):
+			enemy.take_damage(dmg)
+			Fx.damage_number(enemy.global_position, dmg, false)
+
+# Damage-ul unui arc de Thunder God: scalează cu bullet_damage și cu numărul de luări
+# (½ × bullet_damage per luare: 1 stack = 50%, 2 = 100%, 3 = 150% ...).
+func thunder_damage() -> int:
+	return max(1, int(round(bullet_damage * 0.5 * thunder_stacks)))
+
+# Arcul electric vizual, întins EXACT între cele două puncte. Animația e spre NORD în poză, deci o
+# rotesc ca la gloanțe (dir.angle() + PI/2) ca să arate spre inamic, și o întind pe verticală ca
+# lungimea ei să fie fix distanța dintre inamici (scale.y = d / înălțimea cadrului). Centrată între
+# cei doi → capetele cad exact pe inamici. Se joacă o dată și se distruge.
+func _spawn_electric_arc(from: Vector2, to: Vector2) -> void:
+	if _electric_frames == null or _electric_frames.get_frame_count("fx") == 0:
+		return
+	var d := from.distance_to(to)
+	if d < 1.0:
+		return
+	var dir := (to - from) / d
+	var fh := float(_electric_frames.get_frame_texture("fx", 0).get_height())
+	var a := AnimatedSprite2D.new()
+	a.sprite_frames = _electric_frames
+	a.animation = "fx"
+	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	a.z_index = 50  # peste inamici
+	a.rotation = dir.angle() + PI / 2.0
+	a.scale = Vector2(1.0, d / fh)   # x = grosimea liniei, y = întinsă pe distanță
+	get_parent().add_child(a)
+	a.global_position = (from + to) * 0.5
+	a.play("fx")
+	a.animation_finished.connect(a.queue_free)
 
 # Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
 # frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.

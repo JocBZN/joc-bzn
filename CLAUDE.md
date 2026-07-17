@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Item nou: Thunder God — chain lightning ca Jacob's Ladder)
+
+**Done:**
+- **Thunder God** (`upgrade_38.png`, **Epic**): la impactul unui glonț, curent electric de la inamicul LOVIT spre TOȚI ceilalți din rază (`thunder_range` = 100px) — fiecare primește un arc + damage. Ca **Jacob's Ladder** din Binding of Isaac. Animația pornește din inamic (nu din player), la impact, și **NU se lanțuie mai departe** (arcurile nu declanșează alt Thunder).
+- **Artă:** `fx/electricity fx/electricity.png` (896×63) tăiată în **14 cadre de 64×63** (`frame_0..13.png`, System.Drawing), încărcate cu `_load_fx_frames("res://fx/electricity fx", 30.0, false)`. Fulgerul e spre NORD și umple toată înălțimea (0..62, fără padding).
+- **Vizual (`_spawn_electric_arc`):** rotit ca gloanțele (`dir.angle() + PI/2`, „nord→direcție") și **întins pe verticală** ca lungimea să fie fix distanța dintre inamici (`scale.y = d / 63`); `scale.x = 1.0` = grosimea liniei. Centrat între cei doi → capetele cad exact pe inamici. One-shot, se auto-distruge.
+- **Damage:** `thunder_damage()` = ½ × `bullet_damage` × `thunder_stacks` (1 luare = 50%, 2 = 100% ...).
+- **Cablaj:** `_spawn_one_bullet` setează `bullet.thunder = thunder_stacks > 0`; `bullet._on_body_entered` cheamă `player.thunder_from(body)` la impact. Doar la gloanțe (pistol/mage).
+- **Pool-ul e acum 33 de upgrade-uri.**
+
+**Gotchas:**
+- **Nu se auto-lovește:** `thunder_from` sare peste `src` (inamicul lovit deja a primit damage-ul glonțului) și peste inamicii din afara razei.
+- **Nu se lanțuie recursiv:** damage-ul de arc trece prin `enemy.take_damage` direct, nu prin glonț, deci nu re-declanșează Thunder — exact ca Jacob's Ladder (un singur „salt" din inamicul lovit).
+- **Efectul e copil al World-ului** (`get_parent()`), nu al player-ului → scale natural (nu ×2), `z_index = 50` ca să fie peste inamici.
+- Verificat: cu inamici la 50/80/200px de sursă → 2 arcuri (doar cei sub 100px), damage corect, sursa neatinsă; și pe o coliziune REALĂ de glonț arcul apare.
+
+---
+
 ## Session log — 2026-07-17 (Broken Watch → proiectile random, ca Stacked Armory)
 
 **Done:**

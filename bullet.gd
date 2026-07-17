@@ -15,6 +15,7 @@ var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără ex
 var explosion_damage: int = 0      # cât damage face explozia asupra inamicilor din rază
 var explosion_frames: SpriteFrames = null  # animație de explozie (mage = violet); null → Fx.explosion
 var instakill_chance: float = 0.0  # șansa (0..1) să ucidă instant inamicul (Hacksaw)
+var thunder: bool = false          # Thunder God: la impact, curent electric spre inamicii din jur
 
 var direction: Vector2 = Vector2.RIGHT
 var time_left: float
@@ -48,6 +49,11 @@ func _on_body_entered(body: Node) -> void:
 		var col := Color(1.0, 0.2, 0.2) if kill else (Color(1.0, 0.85, 0.2) if is_crit else Color(0.6, 1.0, 1.0))
 		Fx.impact(global_position, col)
 		Fx.damage_number(global_position, dealt, is_crit or kill)
+		# Thunder God: curent electric de la inamicul lovit spre toți ceilalți din rază
+		if thunder:
+			var pl := get_tree().get_first_node_in_group("player")
+			if pl != null and pl.has_method("thunder_from"):
+				pl.thunder_from(body)
 		# împinge inamicul înapoi, dacă avem knockback
 		if knockback > 0.0 and body.has_method("apply_knockback"):
 			body.apply_knockback(direction * knockback)
