@@ -19,6 +19,11 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var bullet_speed: float = 700.0    # cât de repede zboară glonțul (crește la level up)
 @export var bullet_count: int = 1          # câte gloanțe paralele tragi odată (+1 la fiecare bonus)
 @export var bullet_spacing: float = 26.0   # distanța dintre gloanțele paralele
+# Broken Watch: la fiecare salvă, ȘANSĂ (fixă) să tragi proiectile bonus. Șansa NU crește cu
+# luările — crește CÂTE proiectile bonus dai când se declanșează (+1 pe luare). Doar la gloanțe
+# (pistol/mage); stingătorul și sabia nu folosesc bullet_count.
+@export var broken_watch_chance: float = 0.5  # șansa să se declanșeze bonusul
+var broken_watch_stacks: int = 0              # câte proiectile în plus tragi când se declanșează
 
 # --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
 var weapon_type: String = "pistol"
@@ -423,9 +428,13 @@ func _fire_bullets() -> void:
 		ex_radius = max(ex_radius, 110.0)
 		ex_damage = max(ex_damage, int(dmg_base * 0.6))
 	var perp := Vector2(-dir.y, dir.x)
+	# Broken Watch: șansă să tragi proiectilele bonus în salva asta (câte = broken_watch_stacks)
+	var count := bullet_count
+	if broken_watch_stacks > 0 and randf() < broken_watch_chance:
+		count += broken_watch_stacks
 	var any_crit := false
-	for i in bullet_count:
-		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing
+	for i in count:
+		var offset := (i - (count - 1) / 2.0) * bullet_spacing
 		var bullet := bullet_scene.instantiate()
 		get_parent().add_child(bullet)
 		bullet.global_position = global_position + perp * offset

@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Item nou: Broken Watch)
+
+**Done:**
+- **Broken Watch** (`upgrade_36.png`, **Uncommon**): „50% chance to fire +1 projectile". La fiecare salvă, șansă FIXĂ de 50% să tragi proiectile bonus. Repetarea NU crește șansa, ci CÂTE proiectile bonus dai când se declanșează: +1, +2, +3 ... (`p.broken_watch_stacks += 1` pe luare).
+- Implementat în `_fire_bullets`: `count := bullet_count`, apoi `if broken_watch_stacks > 0 and randf() < broken_watch_chance: count += broken_watch_stacks`. Bucla de tragere folosește acum `count` (și centrarea offset-ului tot pe `count`). Variabile noi în player.gd: `broken_watch_chance` (0.5, `@export`) și `broken_watch_stacks`.
+- **Pool-ul e acum 31 de upgrade-uri.**
+
+**Gotchas:**
+- **Doar la gloanțe (pistol/mage).** Stingătorul și sabia nu folosesc `bullet_count`, deci nu văd Broken Watch — exact ca Twin Comets.
+- **Nu apare în panoul de STATS.** E un bonus condiționat (pe șansă), nu un stat fix ca `bullet_count`, deci rândul „Projectiles" arată tot valoarea de bază.
+- Verificat pe 6000 de salve cu 2 stack-uri și `bullet_count` 1: ~49% trag 1 proiectil, ~51% trag 3 (1 + 2 bonus). Șansa e fixă, bonusul scalează.
+- **Raritatea (Uncommon) e ușor de schimbat** din intrarea din `UPGRADES` — pusă modest fiindcă efectul e pe șansă (Twin Comets, +2 GARANTAT, e Legendary).
+
+---
+
 ## Session log — 2026-07-17 (Multi-crit peste 100% șansă)
 
 **Done:**

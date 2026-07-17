@@ -50,6 +50,7 @@ var UPGRADES := [
 	{"id": "diesel_power", "nume": "Diesel Power", "icon": "upgrade_32.png", "rar": "uncommon", "desc": "+15% Damage · more if faster"},
 	{"id": "megane_katana", "nume": "Megane's Katana", "icon": "upgrade_33.png", "rar": "rare", "desc": "+15% Crit · more if faster"},
 	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
+	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -515,3 +516,7 @@ func _apply(id: String, p) -> void:
 			# butonul de panică: 100 damage la TOȚI inamicii de pe hartă, pe loc, o singură dată.
 			# Nu lasă nimic în urmă — tot efectul lui se consumă aici. Îl iei iar, bubuie iar.
 			p.panic_button(100)
+		"broken_watch":
+			# ceasul stricat: șansa (50%, fixă) să tragi proiectile bonus. Nu crește ȘANSA la
+			# repetare, ci CÂTE proiectile în plus dai când se declanșează: +1, +2, +3 ...
+			p.broken_watch_stacks += 1
