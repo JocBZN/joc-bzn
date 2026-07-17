@@ -13,6 +13,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Multi-crit peste 100% șansă)
+
+**Done:**
+- **Șansa de critic nu mai e plafonată la 100%.** Peste 100% intră **multi-crit** (stil Brotato): partea întreagă din șansă = crituri GARANTATE, partea fracționară = șansa de încă unul. Fiecare nivel înmulțește damage-ul cu `crit_mult` (2×): **100% → 2×, 200% → 4×, 300% → 8×** ... 150% = 50% ×2 / 50% ×4.
+- **`player.roll_crit()`** (nou) întoarce `{tiers, mult}` și e sursa unică pentru cele 3 arme (`_fire_bullets`, `_aura_pulse`, `_sword_swing`) — au trecut toate de la `randf() < crit_chance_now()` + `× crit_mult` la `roll_crit()`.
+- Plafonul scos din 2 locuri: `crit_chance_now()` (nu mai face `minf(1.0, …)`) și itemul **Adrenaline** din `levelup.gd` (nu mai face `min(1.0, …)`).
+
+**Gotchas:**
+- **Fiecare glonț dintr-o salvă își rulează propriul `roll_crit()`** (bucla din `_fire_bullets`) — la Twin Comets pot ieși crituri diferite pe gloanțe diferite, ca înainte.
+- **Se compune cu Megane's Katana:** `crit_chance_now()` = Adrenaline (fix) + Katana (crește cu viteza), deci la viteză mare poți depăși 100% și fără să maxezi Adrenaline. Panoul de STATS arată doar partea fixă (`crit_chance`), care acum poate trece de 100%.
+- Verificat pe 20.000 de trageri per prag: 100%→100% ×2, 200%→100% ×4, 150%→50/50 ×2/×4, 250%→50/50 ×4/×8. Exact.
+
+---
+
 ## Session log — 2026-07-17 (Panou de statusuri în meniul de level-up)
 
 **Done:**

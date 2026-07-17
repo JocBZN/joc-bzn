@@ -335,12 +335,23 @@ func speed_ratio() -> float:
 	return clampf(velocity.length() / maxf(_speed_base, 1.0), 0.0, speed_ratio_cap)
 
 # Șansa de critic de ACUM: cea fixă (Adrenaline) + cea care crește cu viteza (Megane's Katana).
-# Plafonată la 100%, ca la Adrenaline. Se citește la fiecare lovitură, din același motiv ca
-# damage_mult(): partea de la Katana se schimbă la fiecare pas pe care îl faci.
+# NU mai e plafonată la 100% — peste 100% intră multi-crit-ul (vezi roll_crit). Se citește la
+# fiecare lovitură, din același motiv ca damage_mult(): partea de la Katana se schimbă la fiecare pas.
 func crit_chance_now() -> float:
 	if katana_stacks == 0:
 		return crit_chance
-	return minf(1.0, crit_chance + katana_per_stack * katana_stacks * speed_ratio())
+	return crit_chance + katana_per_stack * katana_stacks * speed_ratio()
+
+# MULTI-CRIT: peste 100% șansă, criticul se declanșează de mai multe ori. Partea ÎNTREAGĂ din
+# șansă = crituri GARANTATE, partea fracționară = șansa de încă unul. Fiecare nivel înmulțește
+# damage-ul cu crit_mult (2×): 100% → 2×, 200% → 4×, 300% → 8× ... 0 crituri → ×1 (fără critic).
+# Întoarce {"tiers": int (câte crituri), "mult": float (multiplicatorul final de damage)}.
+func roll_crit() -> Dictionary:
+	var c := maxf(0.0, crit_chance_now())
+	var tiers := int(floor(c))
+	if randf() < c - float(tiers):
+		tiers += 1
+	return {"tiers": tiers, "mult": pow(crit_mult, tiers) if tiers > 0 else 1.0}
 
 # Statusurile de ACUM, pregătite pentru panoul din meniul de level-up (stil Binding of Isaac).
 # Fiecare rând: {"label", "value" (text gata formatat), "state" ∈ "same"/"up"/"down"}.
@@ -418,10 +429,11 @@ func _fire_bullets() -> void:
 		var bullet := bullet_scene.instantiate()
 		get_parent().add_child(bullet)
 		bullet.global_position = global_position + perp * offset
-		var is_crit := randf() < crit_chance_now()  # Adrenaline + Megane's Katana (cu viteza)
+		var cr := roll_crit()  # Adrenaline + Megane's Katana (cu viteza); peste 100% = multi-crit
+		var is_crit: bool = cr["tiers"] > 0
 		if is_crit:
 			any_crit = true
-		bullet.damage = int(dmg_base * crit_mult) if is_crit else dmg_base
+		bullet.damage = int(round(dmg_base * cr["mult"]))
 		bullet.is_crit = is_crit
 		bullet.speed = bullet_speed
 		bullet.pierce = pierce
@@ -445,9 +457,10 @@ func _aura_pulse() -> void:
 	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult * foam_scale
 	# aura scalează și cu upgrade-urile de damage, plus procentele de acum (Theo's / Cigarette / Diesel)
 	var dmg := int(round((aura_damage + int(bullet_damage * 0.5)) * damage_mult()))
-	var is_crit := randf() < crit_chance_now()         # Adrenaline + Megane's Katana: și stingătorul poate da critic
+	var cr := roll_crit()                              # Adrenaline + Megane's Katana; peste 100% = multi-crit
+	var is_crit: bool = cr["tiers"] > 0
 	if is_crit:
-		dmg = int(dmg * crit_mult)
+		dmg = int(round(dmg * cr["mult"]))
 	var hit := false
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
@@ -505,9 +518,10 @@ func _sword_swing() -> void:
 	# taie mai tare cu upgrade-urile de damage + procentele de acum (Theo's / Cigarette / Diesel).
 	# Se fixează la începutul tăieturii, ca și criticul: o tăietură = un damage, cât mătură.
 	var dmg := int(round((sword_base_damage + bullet_damage) * damage_mult()))
-	var is_crit := randf() < crit_chance_now()        # Adrenaline + Megane's Katana: și sabia poate da critic
+	var cr := roll_crit()                             # Adrenaline + Megane's Katana; peste 100% = multi-crit
+	var is_crit: bool = cr["tiers"] > 0
 	if is_crit:
-		dmg = int(dmg * crit_mult)
+		dmg = int(round(dmg * cr["mult"]))
 	Audio.play("shoot", -10.0)  # foșnet de tăiere (placeholder)
 	var nod := _spawn_sword_slash(_sword_dir())
 	if nod == null:

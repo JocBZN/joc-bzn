@@ -435,8 +435,9 @@ func _apply(id: String, p) -> void:
 			# glonțul trece prin încă un inamic înainte să dispară
 			p.pierce += 1
 		"critic":
-			# +15% șansă de damage dublu (plafonat la 100%)
-			p.crit_chance = min(1.0, p.crit_chance + 0.15)
+			# +15% șansă de damage dublu. NU mai e plafonat la 100%: peste 100% intră multi-crit-ul
+			# (vezi player.roll_crit) — 200% garantează ×4, 300% ×8 etc.
+			p.crit_chance += 0.15
 		"glont_mare":
 			# gloanțe mai mari (hitbox + sprite) și puțin mai puternice
 			p.bullet_scale += 0.3
