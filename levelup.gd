@@ -51,6 +51,7 @@ var UPGRADES := [
 	{"id": "megane_katana", "nume": "Megane's Katana", "icon": "upgrade_33.png", "rar": "rare", "desc": "+15% Crit · more if faster"},
 	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
 	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
+	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_37.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -520,3 +521,8 @@ func _apply(id: String, p) -> void:
 			# ceasul stricat: șansa (50%, fixă) să tragi proiectile bonus. Nu crește ȘANSA la
 			# repetare, ci CÂTE proiectile în plus dai când se declanșează: +1, +2, +3 ...
 			p.broken_watch_stacks += 1
+		"stacked_armory":
+			# arsenalul: +1 proiectil GARANTAT, dar tras într-un ALT inamic la întâmplare — pleacă
+			# în direcții diferite deodată (spre deosebire de Twin Comets, care-s paralele).
+			# Scalează numărul: +1, +2, +3 ...
+			p.stacked_armory_stacks += 1

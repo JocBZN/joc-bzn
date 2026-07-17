@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Item nou: Stacked Armory)
+
+**Done:**
+- **Stacked Armory** (`upgrade_37.png`, **Rare**): „+1 projectile at a random enemy". Proiectil GARANTAT în plus pe luare (scalează +1, +2, +3), dar spre deosebire de Twin Comets (paralele lângă țintă), fiecare proiectil bonus e tras într-un **ALT inamic la întâmplare** → pleacă în direcții diferite deodată.
+- **Refactor:** crearea unui glonț a fost scoasă în `_spawn_one_bullet(pos, dir, dmg_base, ex_radius, ex_damage) -> bool` (întoarce dacă a fost critic). Folosit și de salva principală, și de Stacked Armory. `_armory_targets(primary, n)` alege `n` inamici, preferați alții decât ținta principală.
+- Variabilă nouă: `stacked_armory_stacks` (player.gd). Efect în `_fire_bullets`, după salva principală.
+- **Pool-ul e acum 32 de upgrade-uri.**
+
+**Gotchas:**
+- **Se garantează n proiectile bonus chiar dacă nu-s destui alți inamici:** `_armory_targets` repetă lista amestecată (`others[i % size]`) și, dacă nu există niciun alt inamic, cade pe ținta principală — altfel itemul n-ar face nimic când e un singur inamic pe hartă.
+- **`tnode` din array e Variant** → `var d2 := tnode.global_position...` dă „Cannot infer type". Rezolvat cu `var enemy2 := tnode as Node2D`. (Aceeași capcană ca la `get_*_in_group` din CLAUDE.)
+- **Doar la gloanțe (pistol/mage)**, ca Twin Comets / Broken Watch. Nu apare în panoul de STATS (bonus condiționat de existența altor inamici, nu stat fix).
+- Verificat: cu 2 stack-uri și `bullet_count` 1 ies 3 gloanțe pe salvă, cele 2 bonus spre inamici diferiți aleși random (unghiuri diferite, variază de la salvă la salvă).
+
+---
+
 ## Session log — 2026-07-17 (Item nou: Broken Watch)
 
 **Done:**

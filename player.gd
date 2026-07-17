@@ -24,6 +24,9 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 # (pistol/mage); stingătorul și sabia nu folosesc bullet_count.
 @export var broken_watch_chance: float = 0.5  # șansa să se declanșeze bonusul
 var broken_watch_stacks: int = 0              # câte proiectile în plus tragi când se declanșează
+# Stacked Armory: +1 proiectil GARANTAT pe luare, dar tras într-un ALT inamic la întâmplare
+# (nu paralel ca Twin Comets) — tragi în direcții diferite deodată. Doar la gloanțe (pistol/mage).
+var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți inamici (+1 pe luare)
 
 # --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
 var weapon_type: String = "pistol"
@@ -433,31 +436,62 @@ func _fire_bullets() -> void:
 	if broken_watch_stacks > 0 and randf() < broken_watch_chance:
 		count += broken_watch_stacks
 	var any_crit := false
+	# salva principală: gloanțe paralele spre ținta cea mai apropiată (ca Twin Comets)
 	for i in count:
 		var offset := (i - (count - 1) / 2.0) * bullet_spacing
-		var bullet := bullet_scene.instantiate()
-		get_parent().add_child(bullet)
-		bullet.global_position = global_position + perp * offset
-		var cr := roll_crit()  # Adrenaline + Megane's Katana (cu viteza); peste 100% = multi-crit
-		var is_crit: bool = cr["tiers"] > 0
-		if is_crit:
+		if _spawn_one_bullet(global_position + perp * offset, dir, dmg_base, ex_radius, ex_damage):
 			any_crit = true
-		bullet.damage = int(round(dmg_base * cr["mult"]))
-		bullet.is_crit = is_crit
-		bullet.speed = bullet_speed
-		bullet.pierce = pierce
-		bullet.knockback = knockback
-		bullet.instakill_chance = instakill_chance
-		bullet.explosion_radius = ex_radius
-		bullet.explosion_damage = ex_damage
-		if weapon_type == "mage":
-			bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
-			_make_mage_orb(bullet)                       # proiectil = sferă magică animată
-		# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus sfera mage
-		bullet.scale *= bullet_scale * weapon_size_scale()
-		bullet.set_direction(dir)
+	# Stacked Armory: proiectile în plus, fiecare tras într-un ALT inamic la întâmplare —
+	# pleacă în direcții diferite deodată (nu paralele ca salva principală).
+	if stacked_armory_stacks > 0:
+		for tnode in _armory_targets(target, stacked_armory_stacks):
+			var enemy2 := tnode as Node2D
+			var d2 := (enemy2.global_position - global_position).normalized()
+			if _spawn_one_bullet(global_position, d2, dmg_base, ex_radius, ex_damage):
+				any_crit = true
 	if any_crit:
 		add_shake(0.35)
+
+# Creează un glonț cu toate proprietățile playerului, la poziția și în direcția date. Își rulează
+# propriul critic (multi-crit) și întoarce true dacă a fost critic (pt. zguduitura camerei).
+func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: float, ex_damage: int) -> bool:
+	var bullet := bullet_scene.instantiate()
+	get_parent().add_child(bullet)
+	bullet.global_position = pos
+	var cr := roll_crit()  # Adrenaline + Megane's Katana (cu viteza); peste 100% = multi-crit
+	var is_crit: bool = cr["tiers"] > 0
+	bullet.damage = int(round(dmg_base * cr["mult"]))
+	bullet.is_crit = is_crit
+	bullet.speed = bullet_speed
+	bullet.pierce = pierce
+	bullet.knockback = knockback
+	bullet.instakill_chance = instakill_chance
+	bullet.explosion_radius = ex_radius
+	bullet.explosion_damage = ex_damage
+	if weapon_type == "mage":
+		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
+		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
+	# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus sfera mage
+	bullet.scale *= bullet_scale * weapon_size_scale()
+	bullet.set_direction(dir)
+	return is_crit
+
+# Ținte pentru Stacked Armory: `n` inamici, preferați ALȚII decât ținta principală. Dacă nu-s
+# destui alți inamici, se repetă / cade pe ținta principală, ca toate proiectilele bonus să tragă.
+func _armory_targets(primary: Node, n: int) -> Array:
+	var others := []
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var enemy := e as Node2D
+		if enemy != null and enemy != primary:
+			others.append(enemy)
+	others.shuffle()
+	var targets := []
+	for i in n:
+		if others.size() > 0:
+			targets.append(others[i % others.size()])  # mai puțini decât n → se repetă
+		else:
+			targets.append(primary)                     # niciun alt inamic → ținta principală
+	return targets
 
 # Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
 # frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
