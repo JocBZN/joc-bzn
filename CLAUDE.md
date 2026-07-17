@@ -13,6 +13,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (3 iteme noi: Theo's Wrath · Cigarette Pack · Diesel Power + `damage_mult()`)
+
+**Done:**
+- **`player.damage_mult()` — damage procentual DINAMIC**, gândit ca `weapon_size_scale()`: un factor derivat, citit la folosire, nu o valoare scrisă în player. Se aplică pe damage-ul **FINAL al lovturii, exact ca `crit_mult`**, în toate cele 3 locuri unde se calculează: `_fire_bullets` (`dmg_base`, plus explozia mage care iese din el), `_aura_pulse`, `_sword_swing`. Deci merge la **toate armele**, inclusiv Stingător și sabie. Dârele de foc/gheață NU îl primesc — nici upgrade-urile normale de damage nu le ating.
+- **Theo's Wrath** (`upgrade_30.png`, **Uncommon**): +15% damage cât ești **sub 20% din viața maximă**, +10% la fiecare repetare (15 → 25 → 35%). Model „bază vs. stack" de la Hacksaw-uri (`_theo_taken`). Prag reglabil: `theo_hp_threshold`.
+- **Cigarette Pack** (`upgrade_31.png`, **Common**): +5% damage, **aditiv** la fiecare luare (5 → 10 → 15%).
+- **Diesel Power** (`upgrade_32.png`, **Uncommon**): damage cu cât mergi mai repede. `diesel_per_stack` (0.15) × stack-uri × `clamp(velocity.length() / _speed_base, 0, diesel_speed_cap)`. Pe loc = 0; la viteza de start = +15%; plafon la **2× viteza de start = +30%/stack**.
+- **Pool-ul e acum 28 de upgrade-uri** (era 25). README zicea „23" în „Project structure" — era în urmă de două sesiuni, l-am corectat.
+
+**Gotchas:**
+- **De ce nu merge scris în `bullet_damage` ca la The Nightclub:** Theo's și Diesel depind de starea de ACUM (viața, viteza), care se schimbă în fiecare secundă — un `bullet_damage *= 1.15` s-ar lipi permanent. De-aia sunt multiplicator citit la fiecare lovitură.
+- **Cigarette Pack ar fi putut fi scris direct, dar rotunjirea îl minte:** `round(10 × 1.05) = 11` = **+10%**, dublu cât scrie pe card, fiindcă `bullet_damage` e `int`. În `damage_mult()` se adună exact. Regula: procentele mici NU se compun într-un întreg mic.
+- **`_speed_base` se ia în `_ready` DUPĂ `_apply_meta()`**, altfel cine are Speed maxat din magazin (+15/nivel, până la +120) ar porni cu bonusul lui Diesel deja pe jumătate dat. Așa, Diesel măsoară doar viteza câștigată ÎN rundă.
+- **Plafonul lui Diesel e obligatoriu:** Alex's Protection face `speed *= 1.15` compus, la infinit — fără `diesel_speed_cap` bonusul creștea nelimitat.
+- **Verificat pe jocul real**, toate valorile pică fix: Cigarette 1× = 1.05, 3× = 1.15; Theo's la 25% viață = 1.0, la 20% (pe prag) = 1.15, la 10% = 1.15, 3 luări = 1.35, te vindeci → se stinge la 1.0; Diesel pe loc = 1.0, la viteza de start = 1.15, la 1.5× = 1.225, la 5× = 1.30 (plafonat); toate trei odată, sub 20% HP, în mers = 1.35. Poză din meniul real: iconițele, chenarele și descrierile ies corect.
+- **Ca să vezi output-ul unui test în consolă:** NU filtra cu `grep -v "^  "` — liniile mele de print încep cu spații și dispar toate. Am pățit-o azi și părea că testul nu printează nimic.
+
+---
+
 ## Session log — 2026-07-17 (Twin Comets: +2 proiectile în loc de +1)
 
 **Done:**

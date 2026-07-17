@@ -116,6 +116,18 @@ const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran
 @export var frost_trail_size: float = 0.0  # lățimea gheții în px (crește cu fiecare upgrade)
 @export var frost_slow_time: float = 0.0   # cât timp stă înghețat inamicul (hold), +0.5s pe upgrade — Frostwalker
 
+# --- damage PROCENTUAL care depinde de starea de ACUM (vezi damage_mult()) ---
+# Astea NU se pot scrie o dată în bullet_damage, ca la The Nightclub: se schimbă în timpul
+# rundei (viața curentă, viteza curentă), deci se recalculează la fiecare lovitură.
+@export var theo_hp_threshold: float = 0.20  # Theo's Wrath se aprinde sub 20% din viața maximă
+var theo_bonus: float = 0.0                  # cât dă Theo's Wrath: +15% prima dată, +10% la fiecare repetare
+var _theo_taken: bool = false                # Theo's Wrath luat cel puțin o dată (bază vs. stack)
+var cig_bonus: float = 0.0                   # Cigarette Pack: +5% aditiv la fiecare luare
+@export var diesel_per_stack: float = 0.15   # Diesel Power: +15% pe luare, la viteza de la START
+@export var diesel_speed_cap: float = 2.0    # peste 2× viteza de start nu mai crește (altfel Alex's Protection se compune la infinit)
+var diesel_stacks: int = 0                   # de câte ori ai luat Diesel Power
+var _speed_base: float = 300.0               # viteza la începutul rundei (după META) = reperul lui Diesel Power
+
 @export var max_hp: int = 100
 @export var contact_range: float = 60.0
 @export var contact_damage: int = 5
@@ -149,6 +161,10 @@ func _ready() -> void:
 	# arma aleasă din meniu (pistol / mage / extinguisher)
 	weapon_type = GameSettings.weapon_type
 	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
+	# Reperul lui Diesel Power = viteza cu care PORNEȘTI runda, luată DUPĂ META. Așa itemul
+	# măsoară viteza câștigată în rundă (Weird Concoction, Alex's Protection), nu ce ai cumpărat
+	# din magazin — altfel cine are Speed-ul maxat ar începe cu bonusul deja pe jumătate dat.
+	_speed_base = speed
 	_aura_tex = _make_radial_texture()   # fallback vizual pentru aura stingătorului
 	_foam_frames = _build_foam_frames()  # animația de spumă (rândul 6 din stingator_effects.png)
 	_muzzle_frames = _load_fx_frames("res://fx/muzzle", 26.0, false)
@@ -265,6 +281,30 @@ func _update_anim(directie: Vector2) -> void:
 func weapon_size_scale() -> float:
 	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult
 
+# Cât se înmulțește damage-ul unei lovituri, DUPĂ starea de acum: Cigarette Pack (mereu),
+# Theo's Wrath (doar sub 20% viață) și Diesel Power (cu cât mergi mai repede). Gândit ca
+# weapon_size_scale(): un factor derivat, citit la folosire, nu o valoare scrisă în player.
+#
+# De ce nu se scrie direct în bullet_damage, ca la The Nightclub: alea două depind de viața și
+# viteza de ACUM, care se schimbă în fiecare secundă. Cigarette Pack ar putea fi scris direct,
+# dar +5% peste un damage ÎNTREG se rotunjește urât (10 × 1.05 = 10.5 → 11, adică +10%, dublu
+# cât scrie pe item), așa că stă tot aici, unde se adună exact.
+#
+# Se aplică pe damage-ul FINAL al lovturii, exact ca și criticul (crit_mult) — deci merge la
+# toate armele, inclusiv Stingător și Cursed Sword. Dârele de foc/gheață nu-l primesc, la fel
+# cum nu primesc nici upgrade-urile obișnuite de damage.
+func damage_mult() -> float:
+	var m := 1.0 + cig_bonus  # Cigarette Pack: mereu pornit
+	# Theo's Wrath: doar cât ești sub pragul de viață (20% din max_hp)
+	if theo_bonus > 0.0 and hp <= int(round(max_hp * theo_hp_threshold)):
+		m += theo_bonus
+	# Diesel Power: 0 dacă stai pe loc, +diesel_per_stack la viteza de start, mai mult dacă ai
+	# luat viteză în rundă. `velocity` e viteza REALĂ (dacă te freci de un copac, scade și ea).
+	if diesel_stacks > 0:
+		var ratio: float = clampf(velocity.length() / maxf(_speed_base, 1.0), 0.0, diesel_speed_cap)
+		m += diesel_per_stack * diesel_stacks * ratio
+	return m
+
 # dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:
 	if weapon_type == "extinguisher":
@@ -282,12 +322,14 @@ func _fire_bullets() -> void:
 	var dir := (target.global_position - global_position).normalized()
 	Audio.play("shoot", -6.0)
 	_muzzle(global_position + dir * 34.0, dir)
+	# damage-ul acestei salve, cu procentele care depind de starea de acum (Theo's / Cigarette / Diesel)
+	var dmg_base := int(round(bullet_damage * damage_mult()))
 	# Mage Staff: fiecare glonț explodează AOE la impact (peste eventualul Jean's Bomb)
 	var ex_radius := explosion_radius
 	var ex_damage := explosion_damage
 	if weapon_type == "mage":
 		ex_radius = max(ex_radius, 110.0)
-		ex_damage = max(ex_damage, int(bullet_damage * 0.6))
+		ex_damage = max(ex_damage, int(dmg_base * 0.6))
 	var perp := Vector2(-dir.y, dir.x)
 	var any_crit := false
 	for i in bullet_count:
@@ -298,7 +340,7 @@ func _fire_bullets() -> void:
 		var is_crit := randf() < crit_chance
 		if is_crit:
 			any_crit = true
-		bullet.damage = int(bullet_damage * crit_mult) if is_crit else bullet_damage
+		bullet.damage = int(dmg_base * crit_mult) if is_crit else dmg_base
 		bullet.is_crit = is_crit
 		bullet.speed = bullet_speed
 		bullet.pierce = pierce
@@ -320,7 +362,8 @@ func _fire_bullets() -> void:
 func _aura_pulse() -> void:
 	# raza aurei e și vizualul, și zona care lovește → aceeași valoare pentru amândouă (hitbox = sprite mereu)
 	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult * foam_scale
-	var dmg := aura_damage + int(bullet_damage * 0.5)  # aura scalează și cu upgrade-urile de damage
+	# aura scalează și cu upgrade-urile de damage, plus procentele de acum (Theo's / Cigarette / Diesel)
+	var dmg := int(round((aura_damage + int(bullet_damage * 0.5)) * damage_mult()))
 	var is_crit := randf() < crit_chance               # Adrenaline: și stingătorul poate da critic
 	if is_crit:
 		dmg = int(dmg * crit_mult)
@@ -378,7 +421,9 @@ func _spawn_aura_ring(radius: float) -> void:
 # Scalează cu upgrade-urile playerului: damage (bullet_damage), attack speed (fire_interval),
 # crit (Adrenaline), knockback, instakill (Hacksaw) și mărime (Pufferfish/Rat's Burger).
 func _sword_swing() -> void:
-	var dmg := sword_base_damage + bullet_damage      # taie mai tare cu upgrade-urile de damage
+	# taie mai tare cu upgrade-urile de damage + procentele de acum (Theo's / Cigarette / Diesel).
+	# Se fixează la începutul tăieturii, ca și criticul: o tăietură = un damage, cât mătură.
+	var dmg := int(round((sword_base_damage + bullet_damage) * damage_mult()))
 	var is_crit := randf() < crit_chance              # Adrenaline: și sabia poate da critic
 	if is_crit:
 		dmg = int(dmg * crit_mult)

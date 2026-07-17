@@ -45,6 +45,9 @@ var UPGRADES := [
 	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
 	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_29.png", "rar": "rare", "desc": "+15 Damage · +5 Max HP"},
 	{"id": "alex_protection", "nume": "Alex's Protection", "icon": "upgrade_28.png", "rar": "rare", "desc": "+25% Max HP · +15% Move speed"},
+	{"id": "theo_wrath", "nume": "Theo's Wrath", "icon": "upgrade_30.png", "rar": "uncommon", "desc": "+15% Damage under 20% HP"},
+	{"id": "cigarette_pack", "nume": "Cigarette Pack", "icon": "upgrade_31.png", "rar": "common", "desc": "+5% Damage"},
+	{"id": "diesel_power", "nume": "Diesel Power", "icon": "upgrade_32.png", "rar": "uncommon", "desc": "+15% Damage · more if faster"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -382,3 +385,21 @@ func _apply(id: String, p) -> void:
 			# (ca la The Nightclub) — nu pe valoarea de start.
 			p.upgrade_max_hp(int(round(p.max_hp * 0.25)))  # +25% viață maximă (te și vindecă)
 			p.speed *= 1.15                                # +15% viteză de mișcare
+		"theo_wrath":
+			# furia lui Theo: cât ești sub 20% viață, dai mai mult damage.
+			# +15% la prima luare, apoi +10% la fiecare repetare (ca la Hacksaw-uri).
+			# Bonusul e DINAMIC — se citește în player.damage_mult() la fiecare lovitură,
+			# fiindcă se aprinde și se stinge singur, după cum îți scade sau îți crește viața.
+			if p._theo_taken:
+				p.theo_bonus += 0.10
+			else:
+				p.theo_bonus = 0.15
+				p._theo_taken = true
+		"cigarette_pack":
+			# pachetul de țigări: +5% damage, tot atâta la fiecare luare (5% → 10% → 15%).
+			# Aditiv, nu compus, ca să fie exact cât scrie pe item (vezi player.damage_mult()).
+			p.cig_bonus += 0.05
+		"diesel_power":
+			# motorină: cu cât mergi mai repede, cu atât dai mai mult damage. Stai pe loc = 0 bonus.
+			# Cât dă și cât e plafonul se reglează din player.gd (diesel_per_stack, diesel_speed_cap).
+			p.diesel_stacks += 1
