@@ -141,6 +141,11 @@ var _hedgehog_next: float = 0.0            # momentul (sec) când reflectul rede
 @export var hp_regen: int = 0              # HP regenerat pe secundă (crește la level up)
 var hp: int
 
+# Valorile cu care PORNEȘTI runda (după META), prinse în _ready. Reperul pentru panoul de
+# statusuri din meniul de level-up: un stat e gri dacă e la fel ca aici, verde dacă e mai bun,
+# roșu dacă e mai slab. Vezi stat_lines().
+var _stats_base := {}
+
 # --- XP / nivel ---
 @export var xp_to_next: int = 20  # cât XP îți trebuie pentru nivelul următor
 var xp: int = 0
@@ -181,6 +186,21 @@ func _ready() -> void:
 	if weapon_type == "sword":
 		fire_interval *= sword_slow_start
 	hp = max_hp
+	# reperul panoului de statusuri: valorile de la START, DUPĂ meta + slow-ul sabiei
+	_stats_base = {
+		"bullet_damage": float(bullet_damage),
+		"fire_interval": fire_interval,
+		"crit_chance": crit_chance,
+		"bullet_count": float(bullet_count),
+		"pierce": float(pierce),
+		"weapon_size": weapon_size_scale(),
+		"knockback": knockback,
+		"instakill_chance": instakill_chance,
+		"speed": speed,
+		"max_hp": float(max_hp),
+		"hp_regen": float(hp_regen),
+		"contact_damage": float(contact_damage),
+	}
 	anim.play("idle_south")  # pornim stând pe loc, uitându-ne în jos
 	fire_timer = Timer.new()
 	fire_timer.wait_time = fire_interval
@@ -321,6 +341,38 @@ func crit_chance_now() -> float:
 	if katana_stacks == 0:
 		return crit_chance
 	return minf(1.0, crit_chance + katana_per_stack * katana_stacks * speed_ratio())
+
+# Statusurile de ACUM, pregătite pentru panoul din meniul de level-up (stil Binding of Isaac).
+# Fiecare rând: {"label", "value" (text gata formatat), "state" ∈ "same"/"up"/"down"}.
+# "state" iese din comparația cu _stats_base (valorile de la start). La Attack Speed și Damage
+# Taken „mai bun" înseamnă mai MIC (lower_better = true), de-aia acolo se compară invers.
+func stat_lines() -> Array:
+	var b = _stats_base
+	if b.is_empty():
+		return []
+	return [
+		_stat_row("Damage", bullet_damage, b["bullet_damage"], false, str(bullet_damage)),
+		_stat_row("Attack Speed", fire_interval, b["fire_interval"], true, "%.2f/s" % (1.0 / max(fire_interval, 0.01))),
+		_stat_row("Crit", crit_chance, b["crit_chance"], false, "%d%%" % round(crit_chance * 100.0)),
+		_stat_row("Projectiles", bullet_count, b["bullet_count"], false, str(bullet_count)),
+		_stat_row("Pierce", pierce, b["pierce"], false, str(pierce)),
+		_stat_row("Weapon Size", weapon_size_scale(), b["weapon_size"], false, "%d%%" % round(weapon_size_scale() * 100.0)),
+		_stat_row("Knockback", knockback, b["knockback"], false, str(int(round(knockback)))),
+		_stat_row("Instakill", instakill_chance, b["instakill_chance"], false, "%.1f%%" % (instakill_chance * 100.0)),
+		_stat_row("Move Speed", speed, b["speed"], false, str(int(round(speed)))),
+		_stat_row("Max HP", max_hp, b["max_hp"], false, str(max_hp)),
+		_stat_row("HP Regen", hp_regen, b["hp_regen"], false, "%d/s" % hp_regen),
+		_stat_row("Damage Taken", contact_damage, b["contact_damage"], true, str(contact_damage)),
+	]
+
+func _stat_row(label: String, cur: float, base: float, lower_better: bool, disp: String) -> Dictionary:
+	var state := "same"
+	if not is_equal_approx(cur, base):
+		var better := cur > base
+		if lower_better:
+			better = cur < base
+		state = "up" if better else "down"
+	return {"label": label, "value": disp, "state": state}
 
 # Panic Button: 100 damage la TOȚI inamicii de pe hartă, o singură dată, chiar când iei itemul.
 # Damage fix — nu trece prin damage_mult() și nu poate da critic: e o detonare, nu o lovitură de armă.

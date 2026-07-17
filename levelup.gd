@@ -63,6 +63,15 @@ var _desc_labels := []
 var _current := []   # cele 3 upgrade-uri afișate acum
 var _pending := 0    # câte niveluri mai avem de ales (dacă urci mai multe deodată)
 
+var _stats_box: VBoxContainer   # rândurile panoului de statusuri (dreapta ecranului)
+
+# Culorile stării unui stat în panoul din dreapta.
+const STAT_COLORS := {
+	"same": Color(0.62, 0.62, 0.66),   # gri: neschimbat față de bază
+	"up":   Color(0.44, 0.86, 0.44),   # verde: mai bun ca la bază
+	"down": Color(0.92, 0.38, 0.36),   # roșu: mai slab ca la bază
+}
+
 func _ready() -> void:
 	add_to_group("levelup_menu")
 	process_mode = Node.PROCESS_MODE_ALWAYS  # merge și când jocul e pe pauză
@@ -125,6 +134,91 @@ func _ready() -> void:
 
 	for i in 3:
 		list.add_child(_make_row(i))
+
+	_build_stats_panel()
+
+# Panoul de statusuri din dreapta ecranului (stil Binding of Isaac): aceeași ramă Menu.png ca
+# meniul, lipită de marginea dreaptă, centrată pe verticală. Rândurile se umplu în _refresh_stats.
+func _build_stats_panel() -> void:
+	var panel := NinePatchRect.new()
+	panel.texture = load(MENU_UI_DIR + "Menu.png")
+	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	panel.patch_margin_left = 46
+	panel.patch_margin_right = 46
+	panel.patch_margin_top = 46
+	panel.patch_margin_bottom = 46
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var w := 214.0
+	var h := 476.0
+	panel.custom_minimum_size = Vector2(w, h)
+	# ancoră pe dreapta-centru, apoi offset-uri care o lipesc de margine, centrată pe verticală
+	panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	panel.offset_right = -16
+	panel.offset_left = -16 - w
+	panel.offset_top = -h / 2.0
+	panel.offset_bottom = h / 2.0
+	add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 30)
+	margin.add_theme_constant_override("margin_right", 30)
+	margin.add_theme_constant_override("margin_top", 34)
+	margin.add_theme_constant_override("margin_bottom", 34)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.text = "STATS"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))  # auriu ca rama
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(title)
+	box.add_child(title)
+
+	_stats_box = VBoxContainer.new()
+	_stats_box.add_theme_constant_override("separation", 5)
+	_stats_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(_stats_box)
+
+# Reumple panoul cu statusurile de ACUM (colorate pe stare). Chemat de fiecare dată când se
+# deschide meniul, ca să reflecte și nivelurile luate între timp (dacă urci mai multe deodată).
+func _refresh_stats() -> void:
+	if _stats_box == null:
+		return
+	for c in _stats_box.get_children():
+		_stats_box.remove_child(c)
+		c.queue_free()
+	var p = get_tree().get_first_node_in_group("player")
+	if p == null or not p.has_method("stat_lines"):
+		return
+	for row in p.stat_lines():
+		var col: Color = STAT_COLORS.get(row["state"], STAT_COLORS["same"])
+		var hb := HBoxContainer.new()
+		hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var name_lbl := Label.new()
+		name_lbl.text = row["label"]
+		name_lbl.add_theme_font_size_override("font_size", 16)
+		name_lbl.add_theme_color_override("font_color", col)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_add_outline(name_lbl)
+		hb.add_child(name_lbl)
+		var val_lbl := Label.new()
+		val_lbl.text = row["value"]
+		val_lbl.add_theme_font_size_override("font_size", 16)
+		val_lbl.add_theme_color_override("font_color", col)
+		val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		val_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_add_outline(val_lbl)
+		hb.add_child(val_lbl)
+		_stats_box.add_child(hb)
 
 # Construiește un rând-buton: [border cu iconiță]  [nume / stat]. Salvează referințele.
 func _make_row(i: int) -> Button:
@@ -250,6 +344,7 @@ func _show_choices() -> void:
 		_buttons[i].tooltip_text = u["nume"]
 		_name_labels[i].text = u["nume"]
 		_desc_labels[i].text = u["desc"]
+	_refresh_stats()
 	visible = true
 	get_tree().paused = true
 

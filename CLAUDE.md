@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Panou de statusuri în meniul de level-up)
+
+**Done:**
+- **Panou de STATS pe dreapta ecranului**, stil Binding of Isaac, apare când se deschide meniul de level-up. Aceeași ramă `Menu.png`, lipită de marginea dreaptă, centrată pe verticală (`levelup.gd`: `_build_stats_panel()` + `_refresh_stats()`, chemat din `_show_choices()`).
+- **Culori pe stare:** gri = neschimbat față de valoarea de start, **verde** = mai bun, **roșu** = mai slab. 12 rânduri: Damage, Attack Speed, Crit, Projectiles, Pierce, Weapon Size, Knockback, Instakill, Move Speed, Max HP, HP Regen, Damage Taken.
+- **Reperul („baza") = valorile cu care PORNEȘTI runda, DUPĂ meta-progresie** — prinse într-un snapshot `_stats_base` la finalul lui `player._ready()` (după META + slow-ul sabiei). Deci la nivelul 1 tot panoul e gri; meta cumpărat din magazin e deja inclus în bază, nu iese verde.
+- **`player.stat_lines()`** produce rândurile gata formatate (`{label, value, state}`); `_stat_row()` decide starea comparând cu baza.
+
+**Gotchas:**
+- **Attack Speed și Damage Taken sunt „lower_better":** valoarea brută (`fire_interval`, `contact_damage`) e mai bună când SCADE, așa că acolo comparația e inversată (`lower_better = true` în `_stat_row`). Restul: mai mare = mai bun.
+- **Attack Speed se afișează ca rată** (`1/fire_interval`, „2.50/s") ca să crească vizual când tragi mai des, deși variabila din spate scade.
+- **Crit afișat = `crit_chance` fix (Adrenaline)**, nu `crit_chance_now()` — partea dinamică de la Megane's Katana e 0 pe pauză (viteză 0), deci n-ar spune nimic util în panou.
+- Verificat vizual: Damage roșu (Rabbit's Foot −5), Attack Speed/Crit/Projectiles/Max HP/Damage Taken verzi, restul gri. Panoul intră lângă meniu la 1152×648 fără să-l acopere; pe ecrane mai late (aspect `expand`) e și mai mult loc.
+
+---
+
 ## Session log — 2026-07-17 (Knight's Power redenumit Last Resort)
 
 **Done:**
