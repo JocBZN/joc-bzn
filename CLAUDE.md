@@ -13,6 +13,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (The Nightclub înapoi la Epic)
+
+**Done:**
+- **The Nightclub: Rare → Epic** (`levelup.gd`, linia itemului). Se anulează schimbarea din `e6ccab0` (2026-07-16), unde fusese mutat Epic → Rare. **Grinder rămâne Common** — doar Nightclub s-a întors. Împărțirea pe rarități e acum: Legendary 3 · Epic 7 · Rare 6 · Uncommon 8 · Common 6 = 30.
+- Codex-ul actualizat: cardul mutat din tier-ul Rare în Epic, cu border-ul Epic (violet), numărătorile pe tier corectate.
+
+**Gotchas:**
+- **Răzvan a raportat-o ca „bug în artifact".** Nu era: codex-ul arăta Rare fiindcă exact asta scria în cod — deci își făcea treaba. Bug-ul era în joc, adică în propria lui schimbare de pe 16 iulie, pe care o uitase. **Lecție: când zice „e bugat în codex", verifică întâi codul + `git log -S`** — codex-ul e oglinda codului, dacă îl „repari" doar pe el începe să mintă, și exact asta trebuie să nu facă.
+- **Semnalul care a lămurit ce voia:** a cerut și `commit`. Codex-ul nu e în repo, deci un commit n-are sens decât dacă se schimbă codul → voia jocul schimbat, nu pagina.
+
+---
+
 ## Session log — 2026-07-17 (încă 2 iteme: Megane's Katana · Panic Button)
 
 **Done:**
