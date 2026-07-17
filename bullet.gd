@@ -54,8 +54,8 @@ func _on_body_entered(body: Node) -> void:
 		# vecinii aici strică starea („Can't change this state while flushing queries").
 		if thunder:
 			var pl := get_tree().get_first_node_in_group("player")
-			if pl != null and pl.has_method("thunder_burst"):
-				pl.call_deferred("thunder_burst", global_position, body.get_instance_id())
+			if pl != null and pl.has_method("thunder_burst_maybe"):
+				pl.call_deferred("thunder_burst_maybe", global_position, body.get_instance_id())
 		# împinge inamicul înapoi, dacă avem knockback
 		if knockback > 0.0 and body.has_method("apply_knockback"):
 			body.apply_knockback(direction * knockback)

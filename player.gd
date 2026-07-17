@@ -33,6 +33,10 @@ var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți
 @export var thunder_range: float = 200.0      # raza maximă de legare între inamici (px)
 var thunder_stacks: int = 0                   # de câte ori ai luat itemul (0 = nu-l ai)
 var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electricity fx, 14 × 64×63)
+# Plugged In: versiune „ieftină" de Thunder God — ȘANSĂ să facă exact același lucru la impact.
+# +10% pe luare (prima luare = 10%, cum a cerut Răzvan), plafonat la 100% (= Thunder God permanent).
+@export var plugged_in_chance_per: float = 0.10
+var plugged_in_stacks: int = 0                # de câte ori ai luat Plugged In
 
 # --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
 var weapon_type: String = "pistol"
@@ -476,7 +480,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.instakill_chance = instakill_chance
 	bullet.explosion_radius = ex_radius
 	bullet.explosion_damage = ex_damage
-	bullet.thunder = thunder_stacks > 0  # Thunder God: la impact, curent spre inamicii din jur
+	bullet.thunder = thunder_stacks > 0 or plugged_in_stacks > 0  # Thunder God / Plugged In: curent la impact
 	if weapon_type == "mage":
 		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
 		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
@@ -528,6 +532,20 @@ func thunder_burst(origin: Vector2, exclude_id: int) -> void:
 			if enemy.has_method("flash_electric"):
 				enemy.flash_electric()   # tentă albastră electrică pe inamicul lovit de curent
 			Fx.damage_number(enemy.global_position, dmg, false)
+
+# Se declanșează lanțul la ACEST impact? Thunder God = mereu; Plugged In = șansă (10% per luare).
+func thunder_active_on_hit() -> bool:
+	if thunder_stacks > 0:
+		return true
+	if plugged_in_stacks > 0 and randf() < minf(1.0, plugged_in_stacks * plugged_in_chance_per):
+		return true
+	return false
+
+# Variantă deferred pentru glonț: rulează rostogolirea (Thunder God / Plugged In) la momentul
+# deferred și, dacă trece, pornește lanțul. Vezi thunder_burst pentru de ce e deferred.
+func thunder_burst_maybe(origin: Vector2, exclude_id: int) -> void:
+	if thunder_active_on_hit():
+		thunder_burst(origin, exclude_id)
 
 # Damage-ul unui arc de Thunder God: 25% din damage-ul playerului (bullet_damage).
 func thunder_damage() -> int:
@@ -666,8 +684,8 @@ func _sword_damage_pass(t: Dictionary) -> void:
 			dealt = int(enemy.hp)
 		enemy.take_damage(dealt)
 		Fx.damage_number(enemy.global_position, dealt, is_crit or kill)
-		# Thunder God: sabia lovește un inamic → curent electric spre ceilalți din jurul lui
-		if thunder_stacks > 0:
+		# Thunder God / Plugged In: sabia lovește un inamic → (mereu / cu șansă) curent spre ceilalți
+		if thunder_active_on_hit():
 			thunder_from(enemy)
 		if knockback > 0.0 and enemy.has_method("apply_knockback"):
 			# îl împingem dinspre PLAYER, nu dinspre centrul tăieturii

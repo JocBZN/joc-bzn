@@ -53,6 +53,7 @@ var UPGRADES := [
 	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
 	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_37.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
 	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
+	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -533,3 +534,7 @@ func _apply(id: String, p) -> void:
 			# TOȚI din rază (Jacob's Ladder). Damage-ul arcului = 25% din damage-ul playerului, deci
 			# crește indirect cu upgrade-urile de damage. `thunder_stacks` doar activează itemul.
 			p.thunder_stacks += 1
+		"plugged_in":
+			# băgat în priză: ȘANSĂ să facă exact ce face Thunder God la impact. +10% pe luare
+			# (prima = 10%), plafonat la 100%. Folosește același lanț (thunder_burst).
+			p.plugged_in_stacks += 1

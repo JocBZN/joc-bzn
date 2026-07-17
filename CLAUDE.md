@@ -13,6 +13,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-17 (Item nou: Plugged In — Thunder God pe șansă)
+
+**Done:**
+- **Plugged In** (`upgrade_39.png`, **Rare**): „10% chance to chain lightning on hit". Face exact ce face Thunder God (același `thunder_burst`), dar cu **șansă** la impact în loc de mereu. **+10% pe luare** (prima = 10%, cum a cerut), plafonat la 100%.
+- **Decizia de declanșare unificată** în `player.thunder_active_on_hit()`: Thunder God (`thunder_stacks > 0`) → mereu true; altfel Plugged In → `randf() < min(1, plugged_in_stacks * 0.10)`. Folosită de sabie (`_sword_damage_pass`) și de glonț (prin `thunder_burst_maybe`, varianta deferred care rulează rostogolirea la momentul deferred). Flag-ul `bullet.thunder` = are vreo sursă (`thunder_stacks > 0 or plugged_in_stacks > 0`).
+- **Pool-ul e acum 34 de upgrade-uri.**
+
+**Gotchas:**
+- **Rostogolirea se face la HIT, per lovitură** (nu la tragere): fiecare glonț/tăietură care lovește un inamic rulează propria șansă. La glonț se rulează în `thunder_burst_maybe` (deferred), nu în callback-ul de coliziune.
+- **Se combină cu Thunder God:** dacă ai și Thunder God, `thunder_active_on_hit` întoarce mereu true (Plugged In devine irelevant). Damage-ul arcului e tot 25% din `bullet_damage` (Plugged In nu-l schimbă).
+- Verificat pe 40.000 de apeluri: 1/3/5 stack-uri → 10/30/50% declanșare; cu Thunder God → 100%.
+
+---
+
 ## Session log — 2026-07-17 (Thunder God: sabie + tentă albastră + 200px + 25% dmg)
 
 **Done (peste implementarea de mai jos):**
