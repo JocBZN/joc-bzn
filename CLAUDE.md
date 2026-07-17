@@ -22,7 +22,8 @@ Quick rules:
 - **Rază 100 → 200px** (`thunder_range`).
 
 **Gotchas:**
-- Ordinea în `thunder_from`: `take_damage` (care dă sclipirea ALBĂ) apoi `flash_electric` (omoară tween-ul alb, pune albastru) → câștigă albastrul. Dacă inamicul moare din arc, `flash_electric` iese pe `_dying`.
+- **Glonțul cheamă lanțul cu `call_deferred("thunder_burst", ...)`**, NU direct: impactul glonțului se emite în timpul pasului de fizică, iar a omorî vecinii acolo dă „Can't change this state while flushing queries" (39 erori la stress → 3 baseline după fix). De-aia `thunder_from` (nod) a fost spart în `thunder_from(src)` (pt. sabie, care rulează în `_process`, nu în fizică) + `thunder_burst(origin, exclude_id)` (pe poziție + id, ca să meargă deferred chiar dacă inamicul-sursă a murit între timp). **Rămân ~3-5 erori „flushing queries" pre-existente** (gloanțe/morți în coliziune), fără legătură cu Thunder God.
+- Ordinea în `thunder_burst`: `take_damage` (care dă sclipirea ALBĂ) apoi `flash_electric` (omoară tween-ul alb, pune albastru) → câștigă albastrul. Dacă inamicul moare din arc, `flash_electric` iese pe `_dying`.
 - Verificat: dmg 25% (5 la bullet_damage 19), rază 200 (inamic la 150px lovit, la 250px nu), tenta `modulate.b = 2.6`, sabia declanșează arcuri, iar un vecin nelovit de sabie ia doar damage de curent. Screenshot: inamici albaștri + arcuri + „5".
 
 ---

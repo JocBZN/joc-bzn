@@ -502,20 +502,27 @@ func _armory_targets(primary: Node, n: int) -> Array:
 			targets.append(primary)                     # niciun alt inamic → ținta principală
 	return targets
 
-# Thunder God: fulger de la inamicul lovit (src) spre TOȚI inamicii din rază — fiecare primește un
-# arc electric + damage. Chemată de glonț la impact (dacă bullet.thunder). NU se lanțuie mai departe
-# (arcurile nu declanșează alt Thunder), exact ca Jacob's Ladder.
+# Thunder God: fulger de la un inamic lovit spre TOȚI inamicii din rază — fiecare primește un arc
+# electric + damage + tentă albastră. NU se lanțuie mai departe (arcurile nu declanșează alt
+# Thunder), exact ca Jacob's Ladder.
+# `thunder_from` primește nodul lovit (îl folosește ca origine + îl exclude); e apelată de sabie.
+# `thunder_burst` lucrează pe POZIȚIE + id de exclus — așa poate fi apelată `call_deferred` de glonț
+# (impactul se emite în timpul fizicii; omorârea vecinilor acolo strică starea → o amânăm).
 func thunder_from(src: Node2D) -> void:
-	if thunder_stacks <= 0 or src == null or not is_instance_valid(src):
+	if src != null and is_instance_valid(src):
+		thunder_burst(src.global_position, src.get_instance_id())
+
+func thunder_burst(origin: Vector2, exclude_id: int) -> void:
+	if thunder_stacks <= 0:
 		return
 	var dmg := thunder_damage()
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
-		if enemy == null or enemy == src:
+		if enemy == null or enemy.get_instance_id() == exclude_id:
 			continue
-		if src.global_position.distance_to(enemy.global_position) > thunder_range:
+		if origin.distance_to(enemy.global_position) > thunder_range:
 			continue
-		_spawn_electric_arc(src.global_position, enemy.global_position)
+		_spawn_electric_arc(origin, enemy.global_position)
 		if enemy.has_method("take_damage"):
 			enemy.take_damage(dmg)
 			if enemy.has_method("flash_electric"):

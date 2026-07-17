@@ -49,11 +49,13 @@ func _on_body_entered(body: Node) -> void:
 		var col := Color(1.0, 0.2, 0.2) if kill else (Color(1.0, 0.85, 0.2) if is_crit else Color(0.6, 1.0, 1.0))
 		Fx.impact(global_position, col)
 		Fx.damage_number(global_position, dealt, is_crit or kill)
-		# Thunder God: curent electric de la inamicul lovit spre toți ceilalți din rază
+		# Thunder God: curent electric de la inamicul lovit spre toți ceilalți din rază.
+		# Amânat (call_deferred) fiindcă suntem în callback-ul de coliziune (pas de fizică) — a omorî
+		# vecinii aici strică starea („Can't change this state while flushing queries").
 		if thunder:
 			var pl := get_tree().get_first_node_in_group("player")
-			if pl != null and pl.has_method("thunder_from"):
-				pl.thunder_from(body)
+			if pl != null and pl.has_method("thunder_burst"):
+				pl.call_deferred("thunder_burst", global_position, body.get_instance_id())
 		# împinge inamicul înapoi, dacă avem knockback
 		if knockback > 0.0 and body.has_method("apply_knockback"):
 			body.apply_knockback(direction * knockback)
