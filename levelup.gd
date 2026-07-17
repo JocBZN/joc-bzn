@@ -151,8 +151,8 @@ func _build_stats_panel() -> void:
 	panel.patch_margin_top = 46
 	panel.patch_margin_bottom = 46
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var w := 350.0
-	var h := 520.0
+	var w := 372.0
+	var h := 556.0
 	panel.custom_minimum_size = Vector2(w, h)
 	# ancoră pe dreapta-centru, apoi offset-uri care o lipesc de margine, centrată pe verticală
 	panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
@@ -164,10 +164,11 @@ func _build_stats_panel() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 40)
-	margin.add_theme_constant_override("margin_right", 40)
-	margin.add_theme_constant_override("margin_top", 38)
-	margin.add_theme_constant_override("margin_bottom", 38)
+	# marginile trebuie să fie ≥ grosimea ramei (patch_margin = 46), altfel textul intră peste chenar
+	margin.add_theme_constant_override("margin_left", 54)
+	margin.add_theme_constant_override("margin_right", 54)
+	margin.add_theme_constant_override("margin_top", 58)   # titlul coborât mai jos, sub rama de sus
+	margin.add_theme_constant_override("margin_bottom", 50)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(margin)
 
