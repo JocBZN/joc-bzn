@@ -20,6 +20,7 @@ Quick rules:
 - **Culori pe stare:** gri = neschimbat față de valoarea de start, **verde** = mai bun, **roșu** = mai slab. 12 rânduri: Damage, Attack Speed, Crit, Projectiles, Pierce, Weapon Size, Knockback, Instakill, Move Speed, Max HP, HP Regen, Damage Taken.
 - **Reperul („baza") = valorile cu care PORNEȘTI runda, DUPĂ meta-progresie** — prinse într-un snapshot `_stats_base` la finalul lui `player._ready()` (după META + slow-ul sabiei). Deci la nivelul 1 tot panoul e gri; meta cumpărat din magazin e deja inclus în bază, nu iese verde.
 - **`player.stat_lines()`** produce rândurile gata formatate (`{label, value, state}`); `_stat_row()` decide starea comparând cu baza.
+- **Layout:** meniul principal NU mai e centrat — e ancorat pe **stânga-centru** (`PRESET_CENTER_LEFT`, offset 40px), ca să lase loc panoului de STATS pe dreapta. Panoul de stats e lărgit la 350px (font 19) ca să încapă textul (înainte era 214px și tăia „Attack Speed 2.50/s").
 
 **Gotchas:**
 - **Attack Speed și Damage Taken sunt „lower_better":** valoarea brută (`fire_interval`, `contact_damage`) e mai bună când SCADE, așa că acolo comparația e inversată (`lower_better = true` în `_stat_row`). Restul: mai mare = mai bun.

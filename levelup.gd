@@ -84,12 +84,8 @@ func _ready() -> void:
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 
-	# container care centrează panoul pe ecran
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(center)
-
-	# panoul ornat (Menu.png) ca ramă care se întinde curat (nine-patch)
+	# panoul ornat (Menu.png) ca ramă care se întinde curat (nine-patch).
+	# Ancorat pe STÂNGA-centru (nu mai e centrat pe ecran) ca să lase loc panoului de STATS pe dreapta.
 	var panel := NinePatchRect.new()
 	panel.texture = load(MENU_UI_DIR + "Menu.png")
 	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -97,8 +93,15 @@ func _ready() -> void:
 	panel.patch_margin_right = 46
 	panel.patch_margin_top = 46
 	panel.patch_margin_bottom = 46
-	panel.custom_minimum_size = Vector2(680, 580)
-	center.add_child(panel)
+	var pw := 680.0
+	var ph := 580.0
+	panel.custom_minimum_size = Vector2(pw, ph)
+	panel.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+	panel.offset_left = 40
+	panel.offset_right = 40 + pw
+	panel.offset_top = -ph / 2.0
+	panel.offset_bottom = ph / 2.0
+	add_child(panel)
 
 	# marginile interioare, ca să stăm în interiorul ramei
 	var margin := MarginContainer.new()
@@ -148,8 +151,8 @@ func _build_stats_panel() -> void:
 	panel.patch_margin_top = 46
 	panel.patch_margin_bottom = 46
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var w := 214.0
-	var h := 476.0
+	var w := 350.0
+	var h := 520.0
 	panel.custom_minimum_size = Vector2(w, h)
 	# ancoră pe dreapta-centru, apoi offset-uri care o lipesc de margine, centrată pe verticală
 	panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
@@ -161,29 +164,29 @@ func _build_stats_panel() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 30)
-	margin.add_theme_constant_override("margin_right", 30)
-	margin.add_theme_constant_override("margin_top", 34)
-	margin.add_theme_constant_override("margin_bottom", 34)
+	margin.add_theme_constant_override("margin_left", 40)
+	margin.add_theme_constant_override("margin_right", 40)
+	margin.add_theme_constant_override("margin_top", 38)
+	margin.add_theme_constant_override("margin_bottom", 38)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(margin)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 10)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(box)
 
 	var title := Label.new()
 	title.text = "STATS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_font_size_override("font_size", 28)
 	title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))  # auriu ca rama
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_add_outline(title)
 	box.add_child(title)
 
 	_stats_box = VBoxContainer.new()
-	_stats_box.add_theme_constant_override("separation", 5)
+	_stats_box.add_theme_constant_override("separation", 7)
 	_stats_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_stats_box)
 
@@ -204,7 +207,7 @@ func _refresh_stats() -> void:
 		hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var name_lbl := Label.new()
 		name_lbl.text = row["label"]
-		name_lbl.add_theme_font_size_override("font_size", 16)
+		name_lbl.add_theme_font_size_override("font_size", 19)
 		name_lbl.add_theme_color_override("font_color", col)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -212,7 +215,7 @@ func _refresh_stats() -> void:
 		hb.add_child(name_lbl)
 		var val_lbl := Label.new()
 		val_lbl.text = row["value"]
-		val_lbl.add_theme_font_size_override("font_size", 16)
+		val_lbl.add_theme_font_size_override("font_size", 19)
 		val_lbl.add_theme_color_override("font_color", col)
 		val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		val_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
