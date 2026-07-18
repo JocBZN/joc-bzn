@@ -10,7 +10,7 @@ const SUMMON_TEX := "res://boss/garda_0.png"  # poza statică, doar pentru momen
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 
 @export var speed: float = 70.0        # mai lent decât inamicul normal (boss greoi)
-@export var max_hp: int = 200          # mult mai rezistent
+@export var max_hp: int = 300          # mult mai rezistent
 @export var anim_fps: float = 10.0     # viteza animației de mers
 @export var xp_value: int = 50         # cât XP lasă când moare (boss → mult)
 

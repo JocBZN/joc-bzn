@@ -1,59 +1,57 @@
-[gd_resource type="SpriteFrames" load_steps=49 format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://by0cct114ow7q"]
 
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_east_0.png" id="east0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_east_1.png" id="east1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_east_2.png" id="east2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_east_3.png" id="east3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_east_4.png" id="east4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_east_5.png" id="east5"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_0.png" id="north0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_1.png" id="north1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_2.png" id="north2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_3.png" id="north3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_4.png" id="north4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_5.png" id="north5"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_east_0.png" id="north_east0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_east_1.png" id="north_east1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_east_2.png" id="north_east2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_east_3.png" id="north_east3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_east_4.png" id="north_east4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_east_5.png" id="north_east5"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_west_0.png" id="north_west0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_west_1.png" id="north_west1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_west_2.png" id="north_west2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_west_3.png" id="north_west3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_west_4.png" id="north_west4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_north_west_5.png" id="north_west5"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_0.png" id="south0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_1.png" id="south1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_2.png" id="south2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_3.png" id="south3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_4.png" id="south4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_5.png" id="south5"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_east_0.png" id="south_east0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_east_1.png" id="south_east1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_east_2.png" id="south_east2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_east_3.png" id="south_east3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_east_4.png" id="south_east4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_east_5.png" id="south_east5"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_west_0.png" id="south_west0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_west_1.png" id="south_west1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_west_2.png" id="south_west2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_west_3.png" id="south_west3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_west_4.png" id="south_west4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_south_west_5.png" id="south_west5"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_west_0.png" id="west0"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_west_1.png" id="west1"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_west_2.png" id="west2"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_west_3.png" id="west3"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_west_4.png" id="west4"]
-[ext_resource type="Texture2D" path="res://homeless directii/frames/walk_west_5.png" id="west5"]
+[ext_resource type="Texture2D" uid="uid://c45v7pbak6ow3" path="res://homeless directii/frames/walk_east_0.png" id="east0"]
+[ext_resource type="Texture2D" uid="uid://yyfnmrlng8xx" path="res://homeless directii/frames/walk_east_1.png" id="east1"]
+[ext_resource type="Texture2D" uid="uid://cfnhjxyegrigm" path="res://homeless directii/frames/walk_east_2.png" id="east2"]
+[ext_resource type="Texture2D" uid="uid://bo5c7cfbyf42q" path="res://homeless directii/frames/walk_east_3.png" id="east3"]
+[ext_resource type="Texture2D" uid="uid://capn23ldu6oou" path="res://homeless directii/frames/walk_east_4.png" id="east4"]
+[ext_resource type="Texture2D" uid="uid://we3iiw6ntxyd" path="res://homeless directii/frames/walk_east_5.png" id="east5"]
+[ext_resource type="Texture2D" uid="uid://r7h6pflwwluf" path="res://homeless directii/frames/walk_north_0.png" id="north0"]
+[ext_resource type="Texture2D" uid="uid://c71a8h2x115kd" path="res://homeless directii/frames/walk_north_1.png" id="north1"]
+[ext_resource type="Texture2D" uid="uid://nryxjj76lruv" path="res://homeless directii/frames/walk_north_2.png" id="north2"]
+[ext_resource type="Texture2D" uid="uid://gc8o8f4ku4ae" path="res://homeless directii/frames/walk_north_3.png" id="north3"]
+[ext_resource type="Texture2D" uid="uid://bjcf3qb7cggnm" path="res://homeless directii/frames/walk_north_4.png" id="north4"]
+[ext_resource type="Texture2D" uid="uid://phoipk1t02a2" path="res://homeless directii/frames/walk_north_5.png" id="north5"]
+[ext_resource type="Texture2D" uid="uid://b8225xky7vvfc" path="res://homeless directii/frames/walk_north_east_0.png" id="north_east0"]
+[ext_resource type="Texture2D" uid="uid://c44rb0asu0e8w" path="res://homeless directii/frames/walk_north_east_1.png" id="north_east1"]
+[ext_resource type="Texture2D" uid="uid://jct1b5pabibv" path="res://homeless directii/frames/walk_north_east_2.png" id="north_east2"]
+[ext_resource type="Texture2D" uid="uid://dctkilkl5ms2m" path="res://homeless directii/frames/walk_north_east_3.png" id="north_east3"]
+[ext_resource type="Texture2D" uid="uid://dcmp863gu8hla" path="res://homeless directii/frames/walk_north_east_4.png" id="north_east4"]
+[ext_resource type="Texture2D" uid="uid://cy345xham6g64" path="res://homeless directii/frames/walk_north_east_5.png" id="north_east5"]
+[ext_resource type="Texture2D" uid="uid://cdlkkac6qo4hh" path="res://homeless directii/frames/walk_north_west_0.png" id="north_west0"]
+[ext_resource type="Texture2D" uid="uid://dafpbqk5labwg" path="res://homeless directii/frames/walk_north_west_1.png" id="north_west1"]
+[ext_resource type="Texture2D" uid="uid://crg5pr0e8m3eg" path="res://homeless directii/frames/walk_north_west_2.png" id="north_west2"]
+[ext_resource type="Texture2D" uid="uid://1j8dfb4vry56" path="res://homeless directii/frames/walk_north_west_3.png" id="north_west3"]
+[ext_resource type="Texture2D" uid="uid://di5cslojd6jcm" path="res://homeless directii/frames/walk_north_west_4.png" id="north_west4"]
+[ext_resource type="Texture2D" uid="uid://cybajgk8cy758" path="res://homeless directii/frames/walk_north_west_5.png" id="north_west5"]
+[ext_resource type="Texture2D" uid="uid://dj8ickfvud0fk" path="res://homeless directii/frames/walk_south_0.png" id="south0"]
+[ext_resource type="Texture2D" uid="uid://bnalncyos8n2u" path="res://homeless directii/frames/walk_south_1.png" id="south1"]
+[ext_resource type="Texture2D" uid="uid://dsllm7rmbsw4n" path="res://homeless directii/frames/walk_south_2.png" id="south2"]
+[ext_resource type="Texture2D" uid="uid://c01x5r5xv61kk" path="res://homeless directii/frames/walk_south_3.png" id="south3"]
+[ext_resource type="Texture2D" uid="uid://cwtba8r6var5i" path="res://homeless directii/frames/walk_south_4.png" id="south4"]
+[ext_resource type="Texture2D" uid="uid://dumneyxbmavvk" path="res://homeless directii/frames/walk_south_5.png" id="south5"]
+[ext_resource type="Texture2D" uid="uid://djyre0ysyu8fb" path="res://homeless directii/frames/walk_south_east_0.png" id="south_east0"]
+[ext_resource type="Texture2D" uid="uid://bo0dfqcs7dvur" path="res://homeless directii/frames/walk_south_east_1.png" id="south_east1"]
+[ext_resource type="Texture2D" uid="uid://cvg8labie6kpy" path="res://homeless directii/frames/walk_south_east_2.png" id="south_east2"]
+[ext_resource type="Texture2D" uid="uid://rlno4jcnlbj4" path="res://homeless directii/frames/walk_south_east_3.png" id="south_east3"]
+[ext_resource type="Texture2D" uid="uid://dh665a7tjkmir" path="res://homeless directii/frames/walk_south_east_4.png" id="south_east4"]
+[ext_resource type="Texture2D" uid="uid://dv3vihmvp5vfs" path="res://homeless directii/frames/walk_south_east_5.png" id="south_east5"]
+[ext_resource type="Texture2D" uid="uid://ubw537r64ond" path="res://homeless directii/frames/walk_south_west_0.png" id="south_west0"]
+[ext_resource type="Texture2D" uid="uid://buafbvi7epuar" path="res://homeless directii/frames/walk_south_west_1.png" id="south_west1"]
+[ext_resource type="Texture2D" uid="uid://wsecohgkgux5" path="res://homeless directii/frames/walk_south_west_2.png" id="south_west2"]
+[ext_resource type="Texture2D" uid="uid://cnxtf4f1h2a2i" path="res://homeless directii/frames/walk_south_west_3.png" id="south_west3"]
+[ext_resource type="Texture2D" uid="uid://cmjcdc6tjfn2q" path="res://homeless directii/frames/walk_south_west_4.png" id="south_west4"]
+[ext_resource type="Texture2D" uid="uid://12ybxmy2q2c7" path="res://homeless directii/frames/walk_south_west_5.png" id="south_west5"]
+[ext_resource type="Texture2D" uid="uid://l7t5wfmor77f" path="res://homeless directii/frames/walk_west_0.png" id="west0"]
+[ext_resource type="Texture2D" uid="uid://btq4upju5r6o2" path="res://homeless directii/frames/walk_west_1.png" id="west1"]
+[ext_resource type="Texture2D" uid="uid://dcvb6y6kw245j" path="res://homeless directii/frames/walk_west_2.png" id="west2"]
+[ext_resource type="Texture2D" uid="uid://rhisfy1ge15c" path="res://homeless directii/frames/walk_west_3.png" id="west3"]
+[ext_resource type="Texture2D" uid="uid://cauqdf6rejdv" path="res://homeless directii/frames/walk_west_4.png" id="west4"]
+[ext_resource type="Texture2D" uid="uid://b2mj36wpkblrm" path="res://homeless directii/frames/walk_west_5.png" id="west5"]
 
 [resource]
-animations = [
-{
-"frames": [
-{
+animations = [{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("east0")
 }, {
@@ -72,12 +70,11 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("east5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"east",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("north0")
 }, {
@@ -96,12 +93,11 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("north5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"north",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("north_east0")
 }, {
@@ -120,12 +116,11 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("north_east5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"north_east",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("north_west0")
 }, {
@@ -144,12 +139,11 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("north_west5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"north_west",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("south0")
 }, {
@@ -168,12 +162,11 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("south5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"south",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("south_east0")
 }, {
@@ -192,12 +185,11 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("south_east5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"south_east",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("south_west0")
 }, {
@@ -216,12 +208,11 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("south_west5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"south_west",
 "speed": 12.0
 }, {
-"frames": [
-{
+"frames": [{
 "duration": 1.0,
 "texture": ExtResource("west0")
 }, {
@@ -240,7 +231,7 @@ animations = [
 "duration": 1.0,
 "texture": ExtResource("west5")
 }],
-"loop": true,
+"loop": 1,
 "name": &"west",
 "speed": 12.0
 }]
