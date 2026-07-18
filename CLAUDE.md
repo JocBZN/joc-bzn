@@ -13,6 +13,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-18 (VALURILE ELIMINATE → 10 minute + Final Swarm, ca la Megabonk)
+
+**Done:**
+- **Sistemul de valuri e complet scos.** În loc de „val 1 → boss → val 2 → …", runda are acum două faze, ca la Megabonk:
+  - **0:00 → 10:00**, cronometru care **scade**. Inamicii curg continuu și cresc **liniar** (+55% viață/minut, +3.5% viteză, +28% rată de spawn). La minutul 10 sunt ~6.5× mai tari ca la început.
+  - **FINAL SWARM** (după 10 min), cronometru care **urcă** de la 0. Creșterea devine **exponențială**: viața se dublează la fiecare 45s, rata de spawn la fiecare 75s, plus un salt brusc ×3 fix în secunda trecerii. Nu e menit să fie supraviețuibil — scorul e cât reziști.
+- **`difficulty.gd` rescris.** `wave` a dispărut; totul se calculează din `time`. API nou: `is_final_swarm()`, `overtime()`, `time_left()`, `RUN_LENGTH` (600s). Toate butoanele de reglaj sunt constante la începutul fișierului (`HP_PER_MIN`, `FS_HP_DOUBLE_EVERY`, `SPEED_CAP` etc.).
+- **`spawner.gd` rescris** — fără stări/valuri/boss. La fiecare tick transformă `spawn_mult()` în inamici/secundă; dacă ritmul cerut e mai rapid decât `min_interval`, **scoate mai mulți deodată** (`batch`) în loc să bată timer-ul mai des. Plafoane de siguranță: `max_enemies = 300`, `max_batch = 12`.
+- **Bossul „Garda" se cheamă DOAR de la statuie** (cum era deja în `statue.gd`) — decizia lui Răzvan, e exact modelul Megabonk. `garda.gd` citește aceiași multiplicatori, deci cu cât îl chemi mai târziu, cu atât e mai tare.
+- **HUD:** cronometru mare sus-centru (alb → **galben** în ultimul minut → **roșu cu „+"** în Final Swarm) + **kill count** sus-dreapta.
+- **Kill count** nou: `GameSettings.run_kills`, incrementat în `enemy._die()` și `garda._die()`. Apare pe HUD, pe ecranul de Game Over și în leaderboard.
+- **Leaderboard** salvează acum `{time, level, kills}` și marchează cu „SURVIVED" rundele care au trecut de cele 10 minute. Scorurile vechi n-au cheia `kills` → citite cu `s.get("kills", 0)`, deci nu crapă.
+
+**Gotchas:**
+- **Nu există formulă oficială Megabonk.** Am căutat, inclusiv date extrase din cod — comunitatea zice că sistemul intern e pe „credite" și nu e documentat public. Ce se confirmă: 10 minute, la 0 pornește „Final Swarm", iar scaling-ul urcă HP/viteză/damage/presiune de spawn. Restul numerelor sunt alese de mine ca să dea curba descrisă.
+- **Viteza inamicilor are `SPEED_CAP = 2.2`.** Fără plafon, exponențiala îi face mai rapizi decât player-ul în ~2 minute de Final Swarm și n-ai mai avea absolut nimic de făcut. Viața poate exploda, viteza nu.
+- **XP-ul crește la fel de repede ca viața în Final Swarm** (același `_fs_factor`), altfel n-ai mai lua niciun nivel exact când ai nevoie de el.
+- **BUG vechi reparat pe drum:** `_drop_xp()` adăuga gema (Area2D) în timpul callback-ului de fizică → `Can't change this state while flushing queries` la FIECARE moarte de inamic. Nu se vedea mult înainte; cu sute de morți pe minut în Final Swarm devenea spam serios. Acum e `_drop_xp.call_deferred()` în `enemy.gd` și `garda.gd`.
+- **Capcană la testat:** ecranul de level-up pune `get_tree().paused = true`, ceea ce oprește și `Difficulty.time` (corect pentru joc!). Dar `get_tree().create_timer()` merge mai departe pe pauză, așa că un test care „sare la minutul X" și așteaptă măsoară aiurea. Ca să testezi încărcarea, forțează `get_tree().paused = false` în fiecare cadru.
+- Verificat prin rulare reală: trecerea la 10:00 se face corect (cronometru roșu + banner „FINAL SWARM"), iar la +3 minute erau **213 inamici simultan la 143 fps** — deci plafoanele țin.
+
+---
+
 ## Session log — 2026-07-18 (artă nouă de inamic: „Short guy with a red", 8 direcții animate)
 
 **Done:**

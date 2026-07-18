@@ -109,8 +109,13 @@ func _die() -> void:
 	_dying = true
 	Audio.play("enemy_die", -5.0)  # inamic mort
 	GameSettings.add_run_coins(1)  # monedă pentru meta-progresie
+	GameSettings.add_kill()        # kill count (apare pe HUD și în leaderboard)
 	remove_from_group("enemy")  # nu mai e țintă și nu mai face damage cât se stinge
-	_drop_xp()
+	# Gema de XP e un Area2D și o adăugăm DEFERRED: dacă moartea vine dintr-un
+	# `_on_body_entered` (glonț), suntem în mijlocul calculelor de fizică și Godot
+	# refuză să activeze un shape nou acolo („Can't change this state while
+	# flushing queries"). Deferred = o adaugă la sfârșitul cadrului, când e sigur.
+	_drop_xp.call_deferred()
 	# animație de moarte: se umflă și se stinge, apoi dispare
 	var t := create_tween()
 	t.tween_property(anim, "scale", anim.scale * 1.4, 0.1)

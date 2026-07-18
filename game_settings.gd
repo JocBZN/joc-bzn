@@ -7,10 +7,11 @@ var character: String = "grasu"
 
 const SAVE_PATH := "user://scores.save"
 
-var scores: Array = []          # {"time": float, "level": int}, cele mai bune primele
+var scores: Array = []          # {"time": float, "level": int, "kills": int}, cele mai bune primele
 var coins: int = 0              # monede permanente (meta-progresie)
 var upgrades: Dictionary = {}   # id upgrade -> nivel deținut
 var run_coins: int = 0          # monede strânse în runda curentă (băgate la bancă la game over)
+var run_kills: int = 0          # inamici uciși în runda curentă
 
 # Upgrade-urile permanente din meniu (ecranul UPGRADES): efect pe nivel, cost de bază, nivel maxim.
 const META := [
@@ -55,9 +56,13 @@ func buy(id: String) -> bool:
 # --- monede din rundă ---
 func reset_run() -> void:
 	run_coins = 0
+	run_kills = 0
 
 func add_run_coins(n: int) -> void:
 	run_coins += n
+
+func add_kill() -> void:
+	run_kills += 1
 
 func bank_run_coins() -> void:
 	coins += run_coins
@@ -65,8 +70,8 @@ func bank_run_coins() -> void:
 	_save()
 
 # --- leaderboard ---
-func add_score(time_sec: float, level: int) -> void:
-	scores.append({"time": time_sec, "level": level})
+func add_score(time_sec: float, level: int, kills: int = 0) -> void:
+	scores.append({"time": time_sec, "level": level, "kills": kills})
 	scores.sort_custom(func(a, b): return a["time"] > b["time"])
 	if scores.size() > 10:
 		scores.resize(10)

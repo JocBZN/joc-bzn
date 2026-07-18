@@ -6,6 +6,7 @@ extends CanvasLayer
 
 var time_label: Label
 var level_label: Label
+var kills_label: Label
 
 func _ready() -> void:
 	add_to_group("gameover_screen")
@@ -45,6 +46,11 @@ func _ready() -> void:
 	level_label.add_theme_font_size_override("font_size", 24)
 	box.add_child(level_label)
 
+	kills_label = Label.new()
+	kills_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kills_label.add_theme_font_size_override("font_size", 24)
+	box.add_child(kills_label)
+
 	# buton de restart (cu puțin spațiu deasupra)
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(0, 10)
@@ -66,12 +72,18 @@ func _ready() -> void:
 
 # Chemată de player.die() când rămâi fără viață.
 func show_gameover(secunde: float, nivel: int) -> void:
-	GameSettings.add_score(secunde, nivel)  # salvează în leaderboard
+	var kills := GameSettings.run_kills
+	GameSettings.add_score(secunde, nivel, kills)  # salvează în leaderboard
 	GameSettings.bank_run_coins()  # bagă monedele din rundă la bancă
 	var m := int(secunde) / 60
 	var s := int(secunde) % 60
 	time_label.text = "Survived: %d:%02d" % [m, s]
+	# dacă a trecut de cele 10 minute, arătăm separat cât a rezistat în Final Swarm
+	if secunde >= Difficulty.RUN_LENGTH:
+		var o := int(secunde - Difficulty.RUN_LENGTH)
+		time_label.text += "   (Final Swarm: +%d:%02d)" % [o / 60, o % 60]
 	level_label.text = "Level reached: %d" % nivel
+	kills_label.text = "Kills: %d" % kills
 	visible = true
 	get_tree().paused = true
 

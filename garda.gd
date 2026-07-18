@@ -123,8 +123,9 @@ func _flash() -> void:
 
 func _die() -> void:
 	_dying = true
+	GameSettings.add_kill()  # bossul se numără și el la kill count
 	remove_from_group("enemy")
-	_drop_xp()
+	_drop_xp.call_deferred()  # vezi enemy.gd: Area2D nou nu se poate adăuga în timpul fizicii
 	var t := create_tween()
 	t.tween_property(anim, "scale", anim.scale * 1.4, 0.1)
 	t.parallel().tween_property(anim, "modulate:a", 0.0, 0.14)

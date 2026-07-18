@@ -1,96 +1,66 @@
 extends Node
 
-# Managerul de VALURI (waves). Structura unui val:
-#   1) SPAWNING — apar inamici normali `wave_duration` secunde (tot mai des/greu cu valul);
-#   2) BOSS     — apare un BOSS („Garda"); cât trăiește, nu mai apar inamici normali;
-#   3) BREAK    — o scurtă pauză, apoi începe valul următor (mai greu).
-# Textul de pe ecran ("VALUL 3", "BOSS!", "VAL TERMINAT") e afișat de HUD (hud.announce).
+# Spawner-ul de inamici. NU mai există valuri — inamicii curg continuu, iar
+# presiunea crește cu timpul (vezi `difficulty.gd` pentru modelul de scaling).
+#
+#   0:00 → 10:00   cronometrul SCADE, inamicii se îngroașă liniar
+#   după 10:00     FINAL SWARM: cronometrul urcă, totul devine exponențial
+#
+# BOSS-ul („Garda") NU mai apare automat — îl chemi tu de la statuie, când te
+# simți pregătit (`statue.gd`). Cu cât îl chemi mai târziu, cu atât e mai tare,
+# fiindcă `garda.gd` citește aceiași multiplicatori de dificultate.
 
 const ENEMY := preload("res://enemy.tscn")
-const BOSS := preload("res://garda.tscn")
 
-@export var spawn_interval: float = 1.0   # pauza de bază între apariții (la valul 1)
-@export var min_interval: float = 0.2     # cât de repede pot apărea la maximum
+@export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
+@export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
 @export var spawn_distance: float = 700.0
-@export var wave_duration: float = 25.0   # cât ține partea de spawn a unui val (secunde)
-@export var break_duration: float = 4.0   # pauza dintre valuri (secunde)
-
-enum State { SPAWNING, BOSS, BREAK }
-var _state: int = State.BREAK
-var _wave_time: float = 0.0
-var _break_time: float = 0.0
-var _boss: Node = null   # referință la boss cât e viu
+@export var max_enemies: int = 300        # plafon de siguranță, ca să nu moară framerate-ul
+@export var max_batch: int = 12           # câți inamici pot apărea deodată într-un lot
 
 var timer: Timer
+var _final_swarm_announced := false
 
 func _ready() -> void:
-	Difficulty.time = 0.0   # joc nou → resetăm cronometrul
-	Difficulty.wave = 1
-	GameSettings.reset_run()  # resetăm monedele strânse în rundă
-	Audio.play_music()      # pornim muzica de fundal
+	Difficulty.time = 0.0     # joc nou → resetăm cronometrul
+	GameSettings.reset_run()  # resetăm monedele și kill-urile strânse în rundă
+	Audio.play_music()        # pornim muzica de fundal
 	timer = Timer.new()
 	timer.wait_time = spawn_interval
-	timer.timeout.connect(_spawn_enemy)
+	timer.timeout.connect(_spawn_tick)
 	add_child(timer)
 	timer.start()
-	# primul val începe după o scurtă pauză (ca să apuci să citești textul)
-	_start_break(2.0)
+	_announce("SURVIVE 10:00", "Summon the boss at the statue when you're ready")
 
 func _exit_tree() -> void:
 	Audio.stop_music()  # ieșim din joc (meniu/restart) → oprim muzica
 
-func _process(delta: float) -> void:
-	match _state:
-		State.SPAWNING:
-			_wave_time -= delta
-			if _wave_time <= 0.0:
-				_start_boss()
-		State.BOSS:
-			# valul se termină când bossul a murit (referința nu mai e validă)
-			if _boss == null or not is_instance_valid(_boss):
-				_wave_cleared()
-		State.BREAK:
-			_break_time -= delta
-			if _break_time <= 0.0:
-				_start_wave()
+func _process(_delta: float) -> void:
+	# un singur anunț, exact când cele 10 minute s-au terminat
+	if not _final_swarm_announced and Difficulty.is_final_swarm():
+		_final_swarm_announced = true
+		_announce("FINAL SWARM", "They just keep coming. Survive as long as you can.")
+		Audio.play("levelup")
 
-# --- Fazele valului ---
+# La fiecare tick calculăm din nou cât de deasă e ploaia de inamici.
+func _spawn_tick() -> void:
+	# câți inamici pe secundă ar trebui să apară acum
+	var rate := (1.0 / spawn_interval) * Difficulty.spawn_mult()
+	var interval := 1.0 / rate
+	var batch := 1
+	# dacă ritmul cerut e mai rapid decât poate bate timer-ul, compensăm scoțând
+	# mai mulți inamici odată în loc să pornim timer-ul mai des
+	if interval < min_interval:
+		batch = int(ceil(min_interval / interval))
+		interval = min_interval
+	timer.wait_time = interval
 
-func _start_break(secs: float) -> void:
-	_state = State.BREAK
-	_break_time = secs
-
-func _start_wave() -> void:
-	_state = State.SPAWNING
-	_wave_time = wave_duration
-	Difficulty.wave = _wave_number()
-	_announce("WAVE %d" % _wave_number(), "Get ready!")
-	Audio.play("levelup")  # mic fanfaron la începutul valului
-
-func _start_boss() -> void:
-	_state = State.BOSS
-	_announce("BOSS!", "Defeat it to move on")
-	_boss = _spawn_boss()
-
-func _wave_cleared() -> void:
-	_announce("WAVE %d CLEARED" % _wave_number(), "Next wave starting...")
-	_boss = null
-	_wave = _wave_number() + 1  # trecem la valul următor
-	_start_break(break_duration)
-
-# ținem numărul de val într-o variabilă simplă (1, 2, 3, ...)
-var _wave: int = 1
-func _wave_number() -> int:
-	return _wave
-
-# --- Spawn inamici / boss ---
+	var vii := get_tree().get_nodes_in_group("enemy").size()
+	batch = min(batch, max_batch, max_enemies - vii)
+	for i in batch:
+		_spawn_enemy()
 
 func _spawn_enemy() -> void:
-	# apar inamici normali DOAR în timpul părții de spawn a valului
-	if _state != State.SPAWNING:
-		return
-	# cu cât valul e mai mare, cu atât apar mai des (dar nu sub min_interval)
-	timer.wait_time = max(min_interval, spawn_interval / Difficulty.spawn_mult())
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
@@ -100,17 +70,6 @@ func _spawn_enemy() -> void:
 	# în World (Y-sortat), la fel ca player-ul, ca să fie acoperit corect de copaci
 	player.get_parent().add_child(enemy)
 	enemy.global_position = player.global_position + offset
-
-func _spawn_boss() -> Node:
-	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player == null:
-		return null
-	var boss := BOSS.instantiate()
-	var unghi := randf() * TAU
-	var offset := Vector2(cos(unghi), sin(unghi)) * spawn_distance
-	player.get_parent().add_child(boss)
-	boss.global_position = player.global_position + offset
-	return boss
 
 # Cere HUD-ului să afișeze un text mare pe ecran (cu subtitlu).
 func _announce(text: String, sub: String = "") -> void:

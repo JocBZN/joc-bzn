@@ -9,6 +9,12 @@ extends CanvasLayer
 var health_bar: ProgressBar
 var xp_bar: ProgressBar
 var level_label: Label
+var timer_label: Label      # cronometrul mare, sus-centru
+var kills_label: Label      # numărul de inamici uciși, sus-dreapta
+
+const TIMER_NORMAL := Color(1, 1, 1)             # alb cât e liniște
+const TIMER_WARN := Color(1.0, 0.75, 0.2)        # galben sub 1 minut rămas
+const TIMER_SWARM := Color(1.0, 0.25, 0.25)      # roșu în Final Swarm
 
 # --- Banner mare pe ecran (anunțuri de val: "VALUL 3", "BOSS!", ...) ---
 var banner: Label
@@ -46,6 +52,33 @@ func _ready() -> void:
 	level_label.offset_top = -46
 	level_label.add_theme_color_override("font_color", Color.WHITE)
 	add_child(level_label)
+
+	# --- Cronometrul (sus, centrat) ---
+	# Întâi numără invers de la 10:00; după ce ajunge la 0 o ia în sus, cu roșu.
+	timer_label = Label.new()
+	timer_label.anchor_left = 0.0
+	timer_label.anchor_right = 1.0
+	timer_label.offset_top = 14
+	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	timer_label.add_theme_font_size_override("font_size", 44)
+	timer_label.add_theme_color_override("font_color", TIMER_NORMAL)
+	timer_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	timer_label.add_theme_constant_override("outline_size", 7)
+	add_child(timer_label)
+
+	# --- Kill count (sus-dreapta) ---
+	kills_label = Label.new()
+	kills_label.anchor_left = 1.0
+	kills_label.anchor_right = 1.0
+	kills_label.offset_left = -220
+	kills_label.offset_right = -20
+	kills_label.offset_top = 20
+	kills_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	kills_label.add_theme_font_size_override("font_size", 22)
+	kills_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+	kills_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	kills_label.add_theme_constant_override("outline_size", 5)
+	add_child(kills_label)
 
 # Creează o ProgressBar colorată (culoare de umplere + culoare de fundal).
 func _make_bar(fill: Color, bg: Color) -> ProgressBar:
@@ -109,6 +142,8 @@ func announce(text: String, sub: String = "") -> void:
 	_banner_tween.tween_property(_banner_box, "modulate:a", 0.0, 0.6)
 
 func _process(_delta: float) -> void:
+	_update_timer()
+	kills_label.text = "Kills: %d" % GameSettings.run_kills
 	var player := get_tree().get_first_node_in_group("player")
 	if player == null:
 		return
@@ -117,3 +152,18 @@ func _process(_delta: float) -> void:
 	xp_bar.max_value = player.xp_to_next
 	xp_bar.value = player.xp
 	level_label.text = "Level " + str(player.level)
+
+# Cronometrul: numără invers cele 10 minute, apoi urcă de la 0 cu roșu (Final Swarm).
+func _update_timer() -> void:
+	if Difficulty.is_final_swarm():
+		timer_label.text = "+" + _mmss(Difficulty.overtime())
+		timer_label.add_theme_color_override("font_color", TIMER_SWARM)
+	else:
+		var ramas := Difficulty.time_left()
+		timer_label.text = _mmss(ramas)
+		# ultimul minut se face galben, ca avertisment că vine Final Swarm
+		timer_label.add_theme_color_override("font_color", TIMER_WARN if ramas <= 60.0 else TIMER_NORMAL)
+
+func _mmss(secunde: float) -> String:
+	var s := int(secunde)
+	return "%d:%02d" % [s / 60, s % 60]

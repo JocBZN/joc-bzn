@@ -198,7 +198,12 @@ func _on_leaderboard() -> void:
 		for s in GameSettings.scores:
 			var m := int(s["time"]) / 60
 			var sec := int(s["time"]) % 60
-			_lb_list.add_child(_center_label("%d.   %d:%02d   ·   Level %d" % [rank, m, sec, s["level"]], 22))
+			# scorurile vechi (dinainte de kill count) n-au cheia "kills" → 0
+			var k: int = int(s.get("kills", 0))
+			var linie := "%d.   %d:%02d   ·   Level %d   ·   %d kills" % [rank, m, sec, s["level"], k]
+			if float(s["time"]) >= Difficulty.RUN_LENGTH:
+				linie += "   ·   SURVIVED"   # a apucat Final Swarm
+			_lb_list.add_child(_center_label(linie, 22))
 			rank += 1
 	_show("leaderboard")
 
