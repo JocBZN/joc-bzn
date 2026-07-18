@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-18 (artă nouă de inamic: „Short guy with a red", 8 direcții animate)
+
+**Done:**
+- Răzvan a șters vechiul folder `homeless directii/running homeless/` + `homeless directii pe loc/` și a pus 8 GIF-uri noi direct în `homeless directii/` (`Short_guy_with_a_red_walk_<dir>.gif`).
+- **Tăiate în cadre** cu PowerShell + .NET `System.Drawing` (`FrameDimension.Time` + `SelectActiveFrame`, ca la sprite-urile vechi — tot nu există ImageMagick/ffmpeg/Python pe mașină). Rezultat: `homeless directii/frames/walk_<dir>_<0..5>.png`, **8 direcții × 6 cadre = 48 PNG**, 120×120, fundal transparent.
+- **`enemy_frames.tres` regenerat de la zero** — 8 animații (`east`, `north`, `north_east`, `north_west`, `south`, `south_east`, `south_west`, `west`), toate cu `loop=true` și 6 cadre. Numele se potrivesc peste `DIRECTII` din `enemy.gd`, deci n-a trebuit atins codul.
+- **`north` e acum animat.** Înainte era un singur cadru static (fallback din 2026-07-07, „lipsește GIF-ul de north running") — GIF-ul nou îl are, deci punctul ăla din TODO e rezolvat.
+
+**Gotchas:**
+- **`speed = 12.0`** (nu 8.0 ca înainte): animațiile vechi aveau 4 cadre la 8 fps = 0.5s/ciclu; cele noi au 6 cadre, deci 12 fps păstrează exact aceeași cadență de mers. Dacă vrei mers mai lent/rapid, ăsta e butonul, în `enemy_frames.tres`.
+- **Hitbox-ul și `scale` NU au trebuit schimbate:** măsurat conturul opac — personajul vechi 37×60 px pe canvas 124×124, cel nou 31×59 px pe 120×120. Practic identic, deci `CircleShape2D` (rază 10 × scale 1.5) rămâne valabil.
+- `.tres`-ul nou e scris **fără `uid=`** în `ext_resource` — Godot le rezolvă pe cale și își completează singur UID-urile. (Vechiul `.tres` avea UID-uri hardcodate spre fișiere șterse → de aia dădea `Failed loading resource` la fiecare `--import`.)
+- Verificat vizual: randate toate cele 8 direcții într-o scenă de test, orientările sunt corecte (east→dreapta, west→stânga, north→din spate, south→din față).
+
+---
+
 ## Session log — 2026-07-18 (audio nou: temă de meniu + click de buton tăiat)
 
 **Done:**
