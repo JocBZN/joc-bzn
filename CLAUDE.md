@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-18 (overlay de frunze peste tot ecranul)
+
+**Done:**
+- `harta/Leaf Overlay.png` = bandă de **80×16 = 5 frunze DIFERITE de 16×16** (nu cadre de animație — verificat fiecare celulă separat: 14-24 pixeli opaci, forme diferite).
+- **Overlay de frunze în `atmosphere.gd`** (acolo era deja vignette + glow, deci toate reglajele de atmosferă stau într-un singur nod, „Atmosphere", selectabil în editor). `_setup_leaves()` face `leaf_count` Sprite2D-uri, fiecare cu un **`AtlasTexture`** care decupează una din cele 5 frunze la întâmplare; `_update_leaves()` le mișcă în fiecare cadru.
+- **Mișcarea:** cădere + legănat pe sinus (fiecare frunză cu amplitudine și frecvență proprii) + vânt lateral + rotire proprie. Când ies pe jos reintră pe sus în alt loc, când ies în lateral reintră pe partea cealaltă → ciclu fără sfârșit, fără „valuri" vizibile.
+- Reglaje `@export` pe nodul Atmosphere: `leaves_enabled`, `leaf_count` (28), `leaf_speed_min/max`, `leaf_wind`, `leaf_sway`, `leaf_scale_min/max`, `leaf_alpha`, `leaf_spin`.
+
+**Gotchas:**
+- **E pe `CanvasLayer`, deci în SPAȚIUL ECRANULUI** — frunzele nu se mișcă odată cu camera, plutesc peste toată imaginea oriunde ai fi în lume. Asta a cerut Răzvan („overlay peste tot ecranul").
+- **Layer 2 = sub vignette (3), peste lume.** Intenționat: vignette-ul întunecă și frunzele din colțuri, altfel par lipite pe geamul camerei. Dacă le vrei peste tot, inclusiv peste marginile întunecate, pui layer 4.
+- **`texture_filter = TEXTURE_FILTER_NEAREST` pe fiecare frunză** — fără el, o textură de 16px mărită de 2-3× iese ca o pată neclară în loc de pixel art.
+- **Frunzele mari cad mai repede** (`viteza * (sc / leaf_scale_max)`) — truc ieftin de adâncime: cele mari par mai aproape de cameră.
+- Le împrăștiem pe tot ecranul la pornire, nu doar sus, altfel vezi primul val care intră de sus în primele secunde.
+- Verificat prin rulare reală: 28 de frunze active, toate cele 5 feluri ies la sorți, două poze la 1.5s distanță confirmă că se mișcă și se rotesc.
+
+---
+
 ## Session log — 2026-07-18 (statuia: 3 variante alese pe șansă)
 
 **Done:**
