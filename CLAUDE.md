@@ -13,6 +13,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (frunzele: zona luată din desenul lui Răzvan + puse PESTE copac)
+
+**Done:**
+- **Frunzele trec deasupra copacului.** Erau pe `z_index = -1` (moștenit de la urmele de foc/gheață) și unele intrau în spatele coroanei. Acum `z_index = 1`.
+- **Zona nu mai vine din hitbox, ci din desenul lui.** Răzvan a pus `harta/Tree Leaf Area.png` — un screenshot cu **dreptunghiuri roșii desenate de mână peste doi copaci diferiți**. Le-am măsurat din imagine și am scos proporțiile:
+  - lățime: **0.99** și **1.10** din lățimea copacului → `LEAF_ZONE_W = 1.0`
+  - marginea de sus: **0.34** și **0.29** din înălțime → `LEAF_ZONE_TOP = 0.31`
+  - marginea de jos: **1.12** și **1.11** → `LEAF_ZONE_BOTTOM = 1.11` (puțin SUB rădăcină)
+  - Deci zona acoperă trunchiul + coroana de jos, nu iarba de lângă copac — interpretarea mea anterioară („la sud de copac") era greșită.
+- `props.gd::_leaf_zone()` calculează dreptunghiul din **conturul vizibil** al texturii (`get_used_rect`), nu din canvas, fiindcă texturile de copaci au margini transparente iar desenul lui era raportat la copacul care se vede. Rezultatul e pus în meta `leaf_zone` (a înlocuit `hitbox_rect`).
+- Reglaje ajustate pentru zona nouă, mult mai înaltă: `NR_FRUNZE` 6→8, viteze 22–45, iar `PRAG_STINGERE` 0.55→**0.8** (altfel frunzele se stingeau pe la mijlocul cutiei, nu jos lângă sol cum ceruse).
+
+**Gotchas:**
+- **Cum am măsurat desenul:** pixeli roșii (`R>150, G<90, B<90`) → **componente conectate** (flood fill), nu un simplu split pe X: logo-ul roșu de pe tricoul player-ului din screenshot contamina gruparea. Cele două dreptunghiuri ies ca cele mai mari 2 componente (2390 și 2180 px).
+- **Conturul copacului din screenshot** l-am separat de iarbă cu regula **`R - B > 10`**: iarba are R≈B (58,84,57), coroana e galben-verzuie (60,93,43 → diferență 17) iar trunchiul maro (109,62,40 → 69). Pragurile pe „verde" nu merg, iarba e tot verde.
+- **`get_used_rect()` e scump** (decomprimă textura) → cache pe textură în `_used_rect_cache`, altfel s-ar chema la fiecare copac generat, la fiecare chunk.
+- Verificat vizual: am desenat zona calculată peste 3 copaci de forme diferite și se suprapune peste dreptunghiurile lui.
+
+---
+
 ## Session log — 2026-07-18 (frunzele MUTATE: din overlay pe ecran → sub copaci)
 
 **Done:**

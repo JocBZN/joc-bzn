@@ -41,6 +41,16 @@ const TREES := [
 
 const LEAFFALL := preload("res://leaffall.gd")
 
+# Zona în care cad frunzele, măsurată din dreptunghiurile roșii pe care le-a desenat
+# Răzvan peste doi copaci în `harta/Tree Leaf Area.png`. Fracții din conturul VIZIBIL
+# al copacului (nu din canvas — texturile au margini transparente).
+# Cei doi copaci desenați au dat 0.99 și 1.10 lățime, 0.34/0.29 sus, 1.12/1.11 jos.
+const LEAF_ZONE_W := 1.0        # lățimea zonei = lățimea copacului
+const LEAF_ZONE_TOP := 0.31     # de unde începe, 0 = vârful copacului, 1 = baza lui
+const LEAF_ZONE_BOTTOM := 1.11  # unde se termină (>1 = puțin sub rădăcină)
+
+var _used_rect_cache := {}  # textură -> conturul opac (get_used_rect e scump, îl ținem minte)
+
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul cu copacii lui)
 
 func _process(_delta: float) -> void:
@@ -113,7 +123,7 @@ func _build_chunk(key: Vector2i) -> Node2D:
 		if me.get("frunze", false):
 			var lf := Node2D.new()
 			lf.set_script(LEAFFALL)
-			lf.setup(tree.get_meta("hitbox_rect"))  # ÎNAINTE de add_child: _ready() are nevoie de zonă
+			lf.setup(tree.get_meta("leaf_zone"))  # ÎNAINTE de add_child: _ready() are nevoie de zonă
 			tree.add_child(lf)
 	return container
 
@@ -173,7 +183,28 @@ func _make_tree(tex: Texture2D) -> StaticBody2D:
 	body.add_child(col)  # nu mai poți trece prin copac (nici player, nici enemy)
 	# cât s-a ridicat originea față de bază → compensăm poziția ca imaginea să rămână „plantată" pe loc
 	body.set_meta("sort_shift", sort_anchor * h * tree_scale)
-	# hitbox-ul ca dreptunghi (colț stânga-sus + mărime), în coordonatele copacului —
-	# de aici își ia `leaffall.gd` zona în care lasă frunzele
-	body.set_meta("hitbox_rect", Rect2(col.position - shape.size * 0.5, shape.size))
+	body.set_meta("leaf_zone", _leaf_zone(tex, sprite))
 	return body
+
+# Dreptunghiul în care cad frunzele, în coordonatele copacului.
+# Pornim de la conturul VIZIBIL al texturii (`get_used_rect`), nu de la canvas: texturile
+# de copaci au margini transparente, iar dreptunghiurile desenate de Răzvan erau raportate
+# la copacul care se vede.
+func _leaf_zone(tex: Texture2D, sprite: Sprite2D) -> Rect2:
+	if not _used_rect_cache.has(tex):
+		_used_rect_cache[tex] = tex.get_image().get_used_rect()
+	var used: Rect2i = _used_rect_cache[tex]
+	var w := float(tex.get_width())
+	var h := float(tex.get_height())
+	# Sprite2D e centrat: pixelul (px,py) ajunge la scale * (offset + (px - w/2, py - h/2))
+	var vis_st := (sprite.offset.x + float(used.position.x) - w * 0.5) * tree_scale
+	var vis_sus := (sprite.offset.y + float(used.position.y) - h * 0.5) * tree_scale
+	var vis_lat := float(used.size.x) * tree_scale
+	var vis_inalt := float(used.size.y) * tree_scale
+	var zona_lat := vis_lat * LEAF_ZONE_W
+	return Rect2(
+		vis_st + (vis_lat - zona_lat) * 0.5,
+		vis_sus + vis_inalt * LEAF_ZONE_TOP,
+		zona_lat,
+		vis_inalt * (LEAF_ZONE_BOTTOM - LEAF_ZONE_TOP)
+	)

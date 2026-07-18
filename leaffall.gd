@@ -4,10 +4,10 @@ extends Node2D
 # nu se vede decât la ~10% dintre copaci — vezi `props.gd`, care decide la încărcarea
 # chunk-ului care copac „pierde frunze".
 #
-# Zona de cădere e calculată din HITBOX-ul copacului (dreptunghiul de coliziune):
-#   • pe orizontală: lățimea hitbox-ului, puțin lărgită (`LATIME_FACTOR`)
-#   • pe verticală : pornesc de la marginea de SUD a hitbox-ului și cad în jos
-# Adică frunzele apar mereu în fața/sub copac, niciodată în spatele lui.
+# Zona de cădere vine gata calculată din `props.gd` (`leaf_zone`), după dreptunghiurile
+# pe care le-a desenat Răzvan peste doi copaci în `harta/Tree Leaf Area.png`: lățimea
+# plină a copacului, de la ~31% din înălțimea lui (de la vârf) până puțin sub rădăcină.
+# Adică frunzele cad peste trunchi și coroana de jos, nu pe iarbă lângă copac.
 #
 # Cât coboară, se sting: aproape de sol transparența ajunge la 0, ca și cum s-ar
 # topi în iarbă (nu dispar brusc).
@@ -17,42 +17,41 @@ const LEAF_SIZE := 16          # o celulă din bandă
 const LEAF_COUNT_IN_TEX := 5   # 5 frunze DIFERITE pe bandă (nu cadre de animație)
 
 # --- Reglaje ---
-const NR_FRUNZE := 6           # câte frunze cad odată de la un copac
-const LATIME_FACTOR := 1.5     # cât de lată e zona față de hitbox (1.0 = fix cât hitbox-ul)
-const START_SUS := 0.25        # cât de sus pornesc față de marginea de sud a hitbox-ului
-                               # (fracție din înălțimea lui) — 0 = fix pe margine
-const CADERE_MIN := 45.0       # cât de jos cad, minim (pixeli)
-const CADERE_FACTOR := 0.75    # …sau înălțimea hitbox-ului × asta, dacă e mai mult
-const VITEZA_MIN := 18.0       # pixeli/secundă
-const VITEZA_MAX := 38.0
+const NR_FRUNZE := 8           # câte frunze cad odată de la un copac
+const VITEZA_MIN := 22.0       # pixeli/secundă
+const VITEZA_MAX := 45.0
 const LEGANAT := 12.0          # cât se clatină stânga-dreapta în cădere
 const ROTIRE := 0.8            # radiani/secundă
 const SCALE_MIN := 1.0         # jumătate față de overlay-ul de dinainte (era 2.0–3.5)
 const SCALE_MAX := 1.75
 const ALPHA_MAX := 0.9
-const PRAG_STINGERE := 0.55    # de la ce % din cădere începe să se stingă
+const PRAG_STINGERE := 0.8     # de la ce % din cădere începe să se stingă
+                               # (0.8 = rămân vizibile aproape tot drumul și se topesc
+                               #  abia în ultima cincime, lângă sol)
 const PAUZA_MAX := 3.0         # cât așteaptă o frunză înainte să cadă din nou
 
+var _zona_x: float = 0.0       # centrul zonei pe orizontală
 var _zona_w: float = 40.0
 var _start_y: float = 0.0
 var _cadere: float = 60.0
 var _frunze: Array = []
 
-# Chemată de props.gd imediat după ce copacul e creat.
-# `hitbox` = dreptunghiul de coliziune al copacului, în coordonatele copacului.
-func setup(hitbox: Rect2) -> void:
-	_zona_w = hitbox.size.x * LATIME_FACTOR
-	# pornesc puțin deasupra marginii de sud (adică de la rădăcina copacului), ca să
-	# pară că se desprind din el, nu că apar din senin pe iarbă mai jos
-	_start_y = hitbox.position.y + hitbox.size.y * (1.0 - START_SUS)
-	_cadere = maxf(CADERE_MIN, hitbox.size.y * CADERE_FACTOR)
+# Chemată de props.gd imediat după ce copacul e creat (ÎNAINTE de add_child).
+# `zona` = dreptunghiul desenat, în coordonatele copacului.
+func setup(zona: Rect2) -> void:
+	_zona_x = zona.position.x + zona.size.x * 0.5
+	_zona_w = zona.size.x
+	_start_y = zona.position.y
+	_cadere = zona.size.y
 
 func _ready() -> void:
 	if not ResourceLoader.exists(LEAF_TEX):
 		push_warning("leaffall: lipsește %s" % LEAF_TEX)
 		return
 	var banda := load(LEAF_TEX)
-	z_index = -1  # sub actori (ca urmele de foc/gheață), ca să nu acopere player-ul
+	# PESTE copac: frunzele sunt copii ai copacului, iar cu z_index 0 unele intrau în
+	# spatele coroanei. z_index 1 le ține mereu deasupra artei copacului.
+	z_index = 1
 	for i in NR_FRUNZE:
 		var s := Sprite2D.new()
 		var atlas := AtlasTexture.new()
@@ -74,7 +73,7 @@ func _frunza_noua(s: Sprite2D, imprastiat := false) -> Dictionary:
 	var deja_cade := imprastiat and randf() < 0.6
 	var f := {
 		"sprite": s,
-		"x": randf_range(-_zona_w * 0.5, _zona_w * 0.5),
+		"x": _zona_x + randf_range(-_zona_w * 0.5, _zona_w * 0.5),
 		"progres": randf() if deja_cade else 0.0,   # 0 = sus (la copac), 1 = jos (la sol)
 		"viteza": randf_range(VITEZA_MIN, VITEZA_MAX),
 		"faza": randf() * TAU,
