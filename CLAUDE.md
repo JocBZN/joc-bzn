@@ -13,6 +13,19 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (statuile micșorate de 1.8×)
+
+**Done:**
+- `statue.tscn` → `Sprite2D.scale` **3.0 → 1.6666667** (3 ÷ 1.8). Statuia pe ecran: 144×237 px → **80×132 px**.
+- Cele 3 variante împart aceeași scenă, deci aveau deja același scale și același hitbox — n-a fost nimic de uniformizat, doar de confirmat (verificat prin rulare: toate 3 raportează scale 1.667 și hitbox 130×60).
+
+**Gotchas:**
+- **HITBOX-UL NU SE ATINGE.** Răzvan a cerut explicit să și-l regleze singur (`statue.tscn` → `CollisionShape2D`). A rămas 130×60, adică acum e mai lat decât statuia (80 px). Nu-l „repara" din reflex.
+- Micșorarea coboară baza statuii față de originea nodului (de la 39 px deasupra ei la ~22 px), fiindcă `offset` se scalează odată cu sprite-ul. Lăsat intenționat nemodificat; dacă vrea statuia plantată exact ca înainte, `offset.y` trebuie −70.4 în loc de −60.
+- Butonul „Summon" se ajustează singur — `_statue_top_y()` citește `sprite.scale.y`, deci n-a trebuit atins.
+
+---
+
 ## Session log — 2026-07-19 (frunzele: zona luată din desenul lui Răzvan + puse PESTE copac)
 
 **Done:**

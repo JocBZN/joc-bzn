@@ -11,7 +11,7 @@ script = ExtResource("1_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1401617209]
 texture_filter = 1
-scale = Vector2(3, 3)
+scale = Vector2(1.6666667, 1.6666667)
 texture = ExtResource("2_tex")
 offset = Vector2(0, -60)
 
