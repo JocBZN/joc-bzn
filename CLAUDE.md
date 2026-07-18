@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (Y-sort statuie: nu mai intri prin ea pe la sud)
+
+**Problema:** originea nodului Statue (= linia de Y-sort) era **sub** baza artei, la −26.4 px. Rezultat: o bandă de 26 px în care erai deja vizual sub statuie, dar tot desenat **în spatele** ei → părea că intri prin ea. Verificat înainte de reparație: 5 statui cu câte un marker la Y diferit — la −40 și −20 markerul era ascuns în spatele piedestalului.
+
+**Done:**
+- **Baza artei pusă exact pe originea nodului.** În `statue.tscn`: `Sprite2D.offset.y` −60 → **−49** și `CollisionShape2D.position.y` −100 → **−73.6**. Ambele mutate cu **aceeași** valoare (26.4 px), deci hitbox-ul lui Răzvan rămâne lipit de statuie exact cum l-a reglat — doar numărul din editor s-a schimbat. Efect secundar acceptat: statuia stă cu 26.4 px mai la sud în lume.
+- **`_aseaza_pe_origine()` în `statue.gd`** — recalculează `offset.y` din `get_used_rect()` pentru varianta aleasă la rulare. Necesar fiindcă **cele 3 variante nu se termină la același pixel** (V2 la 113, V1/V3 la 112): cu un `offset` fix din scenă, două din trei rămâneau descentrate cu 2.4 px. Acum e corect prin construcție, la orice artă viitoare.
+
+**Gotchas:**
+- **Godot nu are „offset de sortare" per nod** — sortează după Y-ul global al nodului. Singura soluție e ca originea nodului să fie chiar pe linia de contact cu solul, iar arta să fie împinsă în sus din `offset` (exact trucul folosit deja la copaci în `props.gd`, cu `sort_anchor`).
+- **Dacă muți `offset`, mută și `CollisionShape2D.position` cu aceeași valoare**, altfel hitbox-ul se dezlipește de statuie. Notă pusă și în capul lui `statue.gd`.
+- **NU atinge hitbox-ul lui** (`size`) — și-l reglează singur (acum 130×40).
+
+---
+
 ## Session log — 2026-07-19 (statuile micșorate de 1.8×)
 
 **Done:**

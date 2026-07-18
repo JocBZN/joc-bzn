@@ -7,6 +7,14 @@ extends StaticBody2D
 #   3) din locul ei IESE ÎNCET un inamic din pământ, apoi pornește după player.
 #
 # Poziția nodului Statue = BAZA statuii (picioarele) → și linia de la care te acoperă (Y-sort).
+#
+# ATENȚIE dacă schimbi `scale` sau textura: `offset`-ul sprite-ului trebuie să pună baza
+# artei EXACT pe originea nodului (adică pe 0), altfel rămâne o bandă în care ești deja
+# vizual sub statuie dar tot desenat în spatele ei — pare că intri prin ea.
+# Formula: offset.y = -(marginea_de_jos_a_artei_în_pixeli_de_textură - înălțimea_texturii/2).
+# La Statue Version 2 (128px, arta se termină la 113): offset.y = -(113 - 64) = -49.
+# Dacă muți `offset`, mută și `CollisionShape2D.position` cu exact aceeași valoare,
+# altfel hitbox-ul se dezlipește de statuie.
 
 const ENEMY := preload("res://garda.tscn")  # boss-ul „Garda", invocat DOAR de statuie
 
@@ -78,7 +86,19 @@ func _alege_varianta() -> void:
 		if zar <= 0.0:
 			if ResourceLoader.exists(v["tex"]):
 				sprite.texture = load(v["tex"])
+				_aseaza_pe_origine(sprite)
 			return
+
+# Pune BAZA artei exact pe originea nodului (= linia de Y-sort).
+# Cele 3 variante nu se termină toate la același pixel (V2 la 113, V1/V3 la 112), iar
+# `offset`-ul din scenă e potrivit doar pentru una. Îl recalculăm pentru varianta aleasă,
+# altfel rămâne o bandă de câțiva pixeli în care ești sub statuie dar desenat în spatele ei.
+func _aseaza_pe_origine(sprite: Sprite2D) -> void:
+	if sprite.texture == null:
+		return
+	var used := sprite.texture.get_image().get_used_rect()
+	var jos := float(used.position.y + used.size.y)   # marginea de jos a artei, în pixeli de textură
+	sprite.offset.y = -(jos - float(sprite.texture.get_height()) * 0.5)
 
 # Înălțimea vârfului statuii față de baza ei (negativ = în sus) — de aici se agață
 # butonul „Summon". Ne uităm la CAPUL real al statuii, nu la marginea de sus a
