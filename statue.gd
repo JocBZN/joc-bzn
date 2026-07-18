@@ -8,13 +8,17 @@ extends StaticBody2D
 #
 # Poziția nodului Statue = BAZA statuii (picioarele) → și linia de la care te acoperă (Y-sort).
 #
-# ATENȚIE dacă schimbi `scale` sau textura: `offset`-ul sprite-ului trebuie să pună baza
-# artei EXACT pe originea nodului (adică pe 0), altfel rămâne o bandă în care ești deja
-# vizual sub statuie dar tot desenat în spatele ei — pare că intri prin ea.
-# Formula: offset.y = -(marginea_de_jos_a_artei_în_pixeli_de_textură - înălțimea_texturii/2).
-# La Statue Version 2 (128px, arta se termină la 113): offset.y = -(113 - 64) = -49.
-# Dacă muți `offset`, mută și `CollisionShape2D.position` cu exact aceeași valoare,
-# altfel hitbox-ul se dezlipește de statuie.
+# DE CE arta coboară sub originea nodului (vezi ACOPERIRE_JOS):
+# Sprite-ul player-ului e CENTRAT pe punctul lui de sortare, adică se întinde ~64px SUB el.
+# Dacă arta statuii s-ar termina fix pe originea ei, atunci în clipa în care player-ul trece
+# în spatele statuii i-ar rămâne picioarele afară, sub piedestal — statuia l-ar tăia în două.
+# Copacii rezolvă asta din `sort_anchor` (props.gd): arta lor coboară 73.8px sub linia de
+# sortare, adică mai mult decât jumătatea player-ului, deci îl acoperă complet.
+# Statuia folosește exact același truc.
+#
+# Dacă schimbi ACOPERIRE_JOS, mută și `CollisionShape2D.position` cu aceeași valoare
+# (altfel hitbox-ul se dezlipește de statuie) și `Statue.position` din main.tscn în sens
+# invers (altfel statuia se mută în lume).
 
 const ENEMY := preload("res://garda.tscn")  # boss-ul „Garda", invocat DOAR de statuie
 
@@ -89,16 +93,20 @@ func _alege_varianta() -> void:
 				_aseaza_pe_origine(sprite)
 			return
 
-# Pune BAZA artei exact pe originea nodului (= linia de Y-sort).
-# Cele 3 variante nu se termină toate la același pixel (V2 la 113, V1/V3 la 112), iar
-# `offset`-ul din scenă e potrivit doar pentru una. Îl recalculăm pentru varianta aleasă,
-# altfel rămâne o bandă de câțiva pixeli în care ești sub statuie dar desenat în spatele ei.
+# Cât coboară arta statuii SUB linia de sortare (pixeli de ecran). Trebuie să fie mai mare
+# decât jumătatea sprite-ului player-ului (~64px), altfel îi rămân picioarele afară când
+# trece în spatele statuii. 74 = cât au și copacii.
+const ACOPERIRE_JOS := 74.0
+
+# Așază arta astfel încât baza ei să cadă cu ACOPERIRE_JOS sub originea nodului.
+# Se recalculează la rulare fiindcă cele 3 variante nu se termină la același pixel
+# (V2 la 113, V1/V3 la 112) — cu un `offset` fix din scenă, două din trei ar fi descentrate.
 func _aseaza_pe_origine(sprite: Sprite2D) -> void:
-	if sprite.texture == null:
+	if sprite.texture == null or sprite.scale.y == 0.0:
 		return
 	var used := sprite.texture.get_image().get_used_rect()
 	var jos := float(used.position.y + used.size.y)   # marginea de jos a artei, în pixeli de textură
-	sprite.offset.y = -(jos - float(sprite.texture.get_height()) * 0.5)
+	sprite.offset.y = ACOPERIRE_JOS / sprite.scale.y - (jos - float(sprite.texture.get_height()) * 0.5)
 
 # Înălțimea vârfului statuii față de baza ei (negativ = în sus) — de aici se agață
 # butonul „Summon". Ne uităm la CAPUL real al statuii, nu la marginea de sus a

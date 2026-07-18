@@ -48,8 +48,8 @@ y_sort_enabled = true
 script = ExtResource("13_desert")
 
 [node name="Statue" parent="World" unique_id=86867322 instance=ExtResource("12_statue")]
-position = Vector2(0, -220)
-enemy_spawn_offset = Vector2(0, -140.415)
+position = Vector2(0, -294)
+enemy_spawn_offset = Vector2(0, -66.415)
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)

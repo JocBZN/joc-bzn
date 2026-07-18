@@ -13,7 +13,29 @@ Quick rules:
 
 ---
 
-## Session log — 2026-07-19 (Y-sort statuie: nu mai intri prin ea pe la sud)
+## Session log — 2026-07-19 (Y-sort statuie, PARTEA 2 — regula reală: arta trebuie să coboare sub linia de sortare)
+
+**Context:** reparația de mai jos (baza artei pusă pe originea nodului) **nu era ce voia**. Răzvan a cerut „exact efectul de la copaci". Diagnosticat prin comparație directă: copac și statuie unul lângă altul, cu player-ul REAL la același baleiaj de Y (+60 … −90), două poze.
+
+**Regula pe care am ratat-o prima dată:**
+- Sprite-ul player-ului (`player.tscn` → `AnimatedSprite2D`, fără `offset`) e **CENTRAT** pe punctul lui de sortare → se întinde **~64px SUB** el.
+- Deci un obiect a cărui artă se termină fix pe linia lui de sortare **nu poate acoperi niciodată** player-ul complet: în clipa în care trece în spate, îi rămân picioarele afară, sub obiect. Se vedea clar la coloana −30: statuia tăia player-ul în două.
+- **Copacii n-au problema asta** fiindcă `sort_anchor = 0.35` le coboară arta **73.8px sub** linia de sortare — mai mult decât jumătatea player-ului. De-aia „efectul de la copaci" arată bine.
+- Măsurat: copac **+73.8px** sub origine (32% din înălțime), statuie era **+0.0px** (0%). Acum statuia e la **+74.0px** (38% din înălțimea ei, care e mai mică).
+
+**Done:**
+- `statue.gd`: constanta **`ACOPERIRE_JOS = 74.0`** + `_aseaza_pe_origine()` calculează `offset.y` ca baza artei să cadă cu atât sub originea nodului (per variantă, fiindcă V2 se termină la 113 iar V1/V3 la 112).
+- Mutate cu aceeași valoare, ca **nimic să nu se miște vizual**: `CollisionShape2D.position.y` −73.6 → **+0.4**, `Statue.position.y` (main.tscn) −220 → **−294**, `enemy_spawn_offset.y` −140.415 → **−66.415**.
+- Verificat în joc că cele trei repere au rămas identice: baza artei **−220**, centrul hitbox-ului **−293.6**, punctul de apariție al bossului **−360.415**.
+
+**Gotchas:**
+- **Regula generală pentru orice obiect nou care trebuie să acopere player-ul:** arta lui trebuie să coboare sub linia de sortare cu **mai mult decât jumătatea sprite-ului player-ului (~64px)**. Nu e o chestie de „unde e baza obiectului".
+- Nu confunda cu problema din partea 1 (banda în care intri prin obiect): aia cere ca linia de sortare să NU fie sub baza artei. Cele două împreună înseamnă: linia de sortare undeva **în interiorul** artei, cam la 1/3 de jos.
+- **Hitbox-ul (`size`) rămâne al lui** — 130×40, neatins. I s-a mutat doar `position`, cu exact aceeași valoare cu care s-a mutat arta.
+
+---
+
+## Session log — 2026-07-19 (Y-sort statuie: nu mai intri prin ea pe la sud — INCOMPLET, vezi partea 2)
 
 **Problema:** originea nodului Statue (= linia de Y-sort) era **sub** baza artei, la −26.4 px. Rezultat: o bandă de 26 px în care erai deja vizual sub statuie, dar tot desenat **în spatele** ei → părea că intri prin ea. Verificat înainte de reparație: 5 statui cu câte un marker la Y diferit — la −40 și −20 markerul era ascuns în spatele piedestalului.
 
