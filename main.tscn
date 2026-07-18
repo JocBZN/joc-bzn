@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://cetplbjamrhjs" path="res://rocks.gd" id="11_rocks"]
 [ext_resource type="Script" path="res://statues.gd" id="12_statues"]
 [ext_resource type="Script" uid="uid://db54v5w8totxb" path="res://desert_structures.gd" id="13_desert"]
+[ext_resource type="Script" path="res://interact_ui.gd" id="14_interact"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -59,6 +60,9 @@ script = ExtResource("3_h2yge")
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=312917518]
 script = ExtResource("7_hud")
+
+[node name="InteractUI" type="CanvasLayer" parent="." unique_id=312917519]
+script = ExtResource("14_interact")
 
 [node name="LevelUp" type="CanvasLayer" parent="." unique_id=1043180815]
 script = ExtResource("8_levelup")

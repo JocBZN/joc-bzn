@@ -13,6 +13,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (statui 3% + buton mare de interacțiune, pentru telefon)
+
+**Done:**
+- **`statue_chance` 10% → 3%** în `statues.gd`. Măsurat: **2.95%** pe 19.600 de chunk-uri.
+- **Butonul „Summon" mutat din lume pe ecran.** Înainte fiecare statuie își desena un butonaș deasupra capului: mic, se mișca odată cu camera, greu de nimerit cu degetul pe telefon. Acum e **UN SINGUR buton mare** (240×150), fix în **stânga ecranului**, la mijlocul înălțimii + 64px mai jos (unde ajunge degetul mare).
+- **`interact_ui.gd` (nou)**, `CanvasLayer` pe layer 5 (peste lume și vignette, sub level up/game over). În fiecare cadru caută statuia **cea mai apropiată** care e în raza ei și n-a fost încă invocată; butonul apare doar atunci. Stilizat cyberpunk cyan, ca meniul, și scoate același sunet de click.
+- **`statue.gd` curățat:** nu-și mai face buton propriu. Se anunță în grupul `"statue"` și expune `poate_invoca()` + `invoca()`. `_process`-ul ei a dispărut de tot (verificarea distanței se face acum o singură dată, în UI, nu o dată per statuie).
+
+**Verificat prin rulare:**
+- Butonul e **ascuns** când nu e nicio statuie în rază, **apare** când te apropii și țintește exact statuia corectă.
+- Poziția pe ecran: (44, 313), mărime 240×150 — stânga, aproape de mijloc.
+- După apăsare: `poate_invoca()` devine false, butonul dispare, iar **bossul apare** (0 → 1 Garda în lume). Confirmat și cu poze înainte/după.
+
+**Gotchas:**
+- Un singur buton pentru toate statuile e important și pentru performanță: înainte **fiecare** statuie încărcată își făcea propriul `_process` cu verificare de distanță.
+- Poziția pe verticală e `deplasare_jos` în px sub mijlocul ecranului. Prima variantă folosea o fracție înmulțită cu o înălțime de ecran hardcodată (640) — greșit pe alte rezoluții, schimbat în pixeli.
+
+---
+
 ## Session log — 2026-07-19 (hartă random la fiecare rundă + statui generate pe chunk-uri)
 
 **Done:**

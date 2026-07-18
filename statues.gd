@@ -12,7 +12,7 @@ const SEED_SALT := 0x57A7  # ca să nu iasă aceleași numere ca la copaci/pietr
 
 @export var chunk_size: int = 512
 @export var load_radius: int = 3
-@export var statue_chance: float = 0.10   # 10% din chunk-uri au o statuie
+@export var statue_chance: float = 0.03   # 3% din chunk-uri au o statuie
 @export var margin: float = 110.0         # cât de departe stă de marginea chunk-ului
 @export var min_dist_tree: float = 190.0  # cât de departe stă de un copac
 @export var tries: int = 12               # câte poziții încearcă până renunță la fereală

@@ -51,30 +51,18 @@ const VARIANTE := [
 const ALERT_DIR := "res://Upgrades/symbol_alert_002_large_red/"
 const ALERT_FRAMES := 16  # frame0000.png … frame0015.png
 
-var _button: Button
 var _summoned := false  # ca să nu poți apăsa Summon de mai multe ori
 
 func _ready() -> void:
 	_alege_varianta()
-	# --- butonul „Summon", ascuns până te apropii ---
-	_button = Button.new()
-	_button.text = "Summon"
-	_button.visible = false
-	_button.add_theme_font_size_override("font_size", 14)  # buton mic
-	_button.pressed.connect(_on_summon)
-	add_child(_button)
-	# îl centrăm deasupra vârfului statuii
-	await get_tree().process_frame
-	_button.position = Vector2(-_button.size.x * 0.5, _statue_top_y() - _button.size.y - 6.0)
+	# Butonul „Summon" NU mai e aici. Statuia doar se anunță în grupul „statue", iar
+	# `interact_ui.gd` (un singur buton mare, în stânga ecranului) o găsește pe cea mai
+	# apropiată. Motiv: pe telefon un butonaș deasupra statuii e greu de nimerit.
+	add_to_group("statue")
 
-func _process(_delta: float) -> void:
-	if _summoned:
-		return
-	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player == null:
-		return
-	# butonul apare doar când ești suficient de aproape
-	_button.visible = global_position.distance_to(player.global_position) <= interact_range
+# Mai poate fi invocată? (o singură dată per statuie)
+func poate_invoca() -> bool:
+	return not _summoned
 
 # Alege la întâmplare una din cele 3 variante, după șansele din VARIANTE.
 # Cum funcționează „roata norocului": tragem un număr între 0 și 100 și mergem prin
@@ -120,11 +108,11 @@ func _statue_top_y() -> float:
 	var varf_px := float(sprite.texture.get_image().get_used_rect().position.y)
 	return sprite.scale.y * (sprite.offset.y + varf_px - float(sprite.texture.get_height()) * 0.5)
 
-func _on_summon() -> void:
+# Pornește secvența de invocare. Chemată de `interact_ui.gd` când apeși butonul.
+func invoca() -> void:
 	if _summoned:
 		return
 	_summoned = true
-	_button.visible = false
 
 	# 1) simbol de alertă deasupra statuii
 	_spawn_alert(global_position + Vector2(0, _statue_top_y()))
