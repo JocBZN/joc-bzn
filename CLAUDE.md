@@ -13,7 +13,24 @@ Quick rules:
 
 ---
 
-## Session log — 2026-07-18 (overlay de frunze peste tot ecranul)
+## Session log — 2026-07-18 (frunzele MUTATE: din overlay pe ecran → sub copaci)
+
+**Done:**
+- **Răzvan s-a răzgândit** față de sesiunea de mai jos: nu mai vrea overlay pe tot ecranul. Acum frunzele cad **doar sub copaci**, sunt **de 2× mai mici**, **doar spre SUD** și **se sting până la transparent** aproape de sol. Overlay-ul din `atmosphere.gd` a fost scos complet.
+- **`leaffall.gd` (nou)** — se agață ca fiu al unui copac. Zona de cădere se calculează din **hitbox-ul copacului** (meta nouă `hitbox_rect` pusă în `props.gd::_make_tree`): lățimea hitbox-ului × `LATIME_FACTOR`, pornind puțin deasupra marginii lui de SUD. Fiecare frunză are viteză, legănat, rotire și pauză proprii; când ajunge jos repornește în alt loc, după o pauză.
+- **Șansa de 10%** (`leaf_chance` în `props.gd`) se aruncă **în `_chunk_trees_raw()`, din același `rng` determinist** ca pozițiile copacilor → același copac are (sau n-are) frunze de fiecare dată când reintri în zonă. Verificat: 2034 din 2034 de chunk-uri identice la a doua cerere; 486 din 4613 copaci = **10.5%**.
+
+**Gotchas:**
+- **Zarul de frunze trebuie aruncat ÎNAINTE de filtrul de deșert** (`continue`), altfel numărul de apeluri `rng` diferă între copacii din iarbă și cei blocați în deșert, iar pozițiile din chunk-urile vecine nu mai coincid. Comentariul din capul funcției despre ordinea apelurilor rng e serios.
+- **`setup(hitbox)` se cheamă ÎNAINTE de `add_child()`** — `_ready()` are deja nevoie de zonă ca să împrăștie frunzele; invers, ar porni toate din (0,0).
+- **Prima încercare cădeau prea departe** (`CADERE_FACTOR = 2.0` → 184px sub copac): arăta ca o pată galbenă separată pe iarbă, nu ca frunze care cad din copac. Acum `START_SUS = 0.25` + `CADERE_FACTOR = 0.75` → ~69px, strâns la baza copacului.
+- **`z_index = -1`** (ca urmele de foc/gheață) ca frunzele să nu acopere player-ul.
+- **Nu itera cu `for f in _frunze` dacă înlocuiești elemente** — `_frunze.find(f)` pe dicționare nu e de încredere. Mers pe index.
+- **Frunzele în pauză trebuie așezate imediat** (`_aseaza()` în `_frunza_noua`), altfel rămân la (0,0) cu alpha 1 până le vine rândul. Sunt invizibile, deci nu se vedea în joc, dar starea era incoerentă și pica la verificare.
+
+---
+
+## Session log — 2026-07-18 (overlay de frunze peste tot ecranul — ÎNLOCUIT, vezi mai sus)
 
 **Done:**
 - `harta/Leaf Overlay.png` = bandă de **80×16 = 5 frunze DIFERITE de 16×16** (nu cadre de animație — verificat fiecare celulă separat: 14-24 pixeli opaci, forme diferite).

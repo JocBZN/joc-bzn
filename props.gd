@@ -37,6 +37,9 @@ const TREES := [
 @export var hitbox_east: float = 0.0       # marginea din DREAPTA (Est)
 @export var hitbox_west: float = 0.0       # marginea din STÂNGA (Vest)
 @export var sort_anchor: float = 0.35     # de la ce % din înălțime (măsurat de la bază) copacul începe să te acopere
+@export var leaf_chance: float = 0.10     # ce șansă are un copac să-i cadă frunze (0.10 = 10%)
+
+const LEAFFALL := preload("res://leaffall.gd")
 
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul cu copacii lui)
 
@@ -75,12 +78,15 @@ func _chunk_trees_raw(key: Vector2i) -> Array:
 			key.x * chunk_size + rng.randf_range(0.0, chunk_size),
 			key.y * chunk_size + rng.randf_range(0.0, chunk_size)
 		)
+		# Aruncăm zarul pentru frunze AICI, din același rng determinist → același copac
+		# are (sau n-are) frunze de fiecare dată când reintri în zonă, nu se schimbă la reîncărcare.
+		var are_frunze := rng.randf() < leaf_chance
 		# copacii NU cresc în deșert și NICI pe gradientul (tranziția) spre deșert:
 		# blocăm oriunde podeaua arată vreun pic de deșert (d > 0), exact ca shaderul.
 		# (RNG-ul a fost deja consumat mai sus → determinismul se păstrează; doar filtrăm.)
 		if BiomeMap.desertness_at_chunk(pos / float(chunk_size)) > 0.0:
 			continue
-		out.append({"pos": pos, "tex": tex, "key": key})
+		out.append({"pos": pos, "tex": tex, "key": key, "frunze": are_frunze})
 	return out
 
 func _build_chunk(key: Vector2i) -> Node2D:
@@ -103,6 +109,12 @@ func _build_chunk(key: Vector2i) -> Node2D:
 		tree.position = me["pos"]
 		tree.position.y -= tree.get_meta("sort_shift")  # compensăm ca imaginea să rămână „plantată"
 		container.add_child(tree)
+		# copacul „norocos" (10%) primește frunze care cad sub el, spre sud
+		if me.get("frunze", false):
+			var lf := Node2D.new()
+			lf.set_script(LEAFFALL)
+			lf.setup(tree.get_meta("hitbox_rect"))  # ÎNAINTE de add_child: _ready() are nevoie de zonă
+			tree.add_child(lf)
 	return container
 
 # Distanța minimă (centru-centru) admisă între doi copaci = min_gap_hitboxes × media lățimilor lor de hitbox.
@@ -161,4 +173,7 @@ func _make_tree(tex: Texture2D) -> StaticBody2D:
 	body.add_child(col)  # nu mai poți trece prin copac (nici player, nici enemy)
 	# cât s-a ridicat originea față de bază → compensăm poziția ca imaginea să rămână „plantată" pe loc
 	body.set_meta("sort_shift", sort_anchor * h * tree_scale)
+	# hitbox-ul ca dreptunghi (colț stânga-sus + mărime), în coordonatele copacului —
+	# de aici își ia `leaffall.gd` zona în care lasă frunzele
+	body.set_meta("hitbox_rect", Rect2(col.position - shape.size * 0.5, shape.size))
 	return body
