@@ -30,6 +30,23 @@ func _ready() -> void:
 	_build_leaderboard()
 	_build_shop()
 	_show("main")
+	Audio.play_menu_music()
+	# după ce tot UI-ul e construit, punem sunetul de click pe TOATE butoanele deodată
+	# (inclusiv cele de armă și de cumpărat) — nu trebuie să-l adaugi manual la fiecare.
+	_hook_button_sounds(self)
+
+# merge recursiv prin tot meniul și conectează click-ul la orice buton găsește
+func _hook_button_sounds(n: Node) -> void:
+	for c in n.get_children():
+		if c is BaseButton and not c.pressed.is_connected(_click_sfx):
+			c.pressed.connect(_click_sfx)
+		_hook_button_sounds(c)
+
+# CLICK_DB = cât de tare e click-ul (0 = normal, -6 mai încet, +6 mai tare)
+const CLICK_DB := 0.0
+
+func _click_sfx() -> void:
+	Audio.play("button", CLICK_DB, 0.0)   # 0.0 = fără variație de ton, sună identic mereu
 
 func _show(which: String) -> void:
 	for key in _panels:
@@ -105,6 +122,7 @@ func _build_main() -> void:
 	box.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
 
 func _on_start() -> void:
+	Audio.stop_music()   # tema de meniu se oprește când intri în joc
 	get_tree().change_scene_to_file(GAME_SCENE)
 
 # ---------- CHOOSE WEAPON ----------

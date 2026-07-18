@@ -87,7 +87,7 @@ const SWORD_FRAME_W := 64.0                  # lățimea unui cadru (fx/cursed s
 
 # 160 = ce aveai tu reglat în player.tscn înainte de arta nouă (sword_scale 2.5 × cadru de 64 px).
 # Butonul s-a redenumit, așa că ți-am dus alegerea mai departe. Acum se scrie direct în pixeli.
-@export var sword_size: float = 160.0        # lățimea tăieturii în PIXELI pe ecran (ca `size` la Firewalker)
+@export var sword_size: float = 200        # lățimea tăieturii în PIXELI pe ecran (ca `size` la Firewalker)
 @export var sword_reach: float = 42.0        # cât de departe în față e centrul tăieturii
 @export var sword_lateral: float = 3.0       # cât în lateral (3 o centrează pe axa privirii; arta e aproape simetrică)
 @export var sword_art_rotation: float = 0.0  # reglaj fin peste convenția „arta e spre vest", dacă nu cade perfect

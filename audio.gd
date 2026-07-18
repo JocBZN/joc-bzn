@@ -6,26 +6,33 @@ extends Node
 # ca să poată suna mai multe efecte în același timp (multe gloanțe deodată etc.).
 
 # Numele efectului -> fișierul din folderul audio/. Adaugi aici ca să ai un sunet nou.
+# Sunetele vechi (shoot/hit/enemy_die/xp/levelup/hurt) au fost șterse — codul care le cere
+# încă există, dar `play()` nu face nimic dacă numele nu e aici. Când ai fișierul nou,
+# îl pui în audio/ și adaugi o linie mai jos; restul jocului începe să-l folosească singur.
 const SFX := {
-	"shoot": "res://audio/shoot.wav",
-	"hit": "res://audio/hit.wav",
-	"enemy_die": "res://audio/enemy_die.wav",
-	"xp": "res://audio/xp.wav",
-	"levelup": "res://audio/levelup.wav",
-	"hurt": "res://audio/hurt.wav",
+	"button": "res://audio/button.wav",
 }
+
+# Muzica de fundal, pe ecrane. Gol = n-avem încă fișier (nu se aude nimic, fără erori).
+const MUSIC_MENU := "res://audio/main menu theme.ogg"
+const MUSIC_GAME := ""
 
 const POOL_SIZE := 12       # câte "boxe" (playere) avem pregătite
 var _streams := {}          # nume -> AudioStream încărcat
 var _players: Array = []    # lista de AudioStreamPlayer
 var _next := 0              # ce boxă folosim data viitoare (rotativ)
 var _music: AudioStreamPlayer  # boxă separată doar pentru muzica de fundal (în buclă)
+var _music_path := ""       # ce melodie cântă acum (ca să n-o repornim degeaba)
 
 func _ready() -> void:
 	# rulează chiar și când jocul e pe pauză (ex. la level up)
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# încărcăm o dată fiecare sunet
+	# încărcăm o dată fiecare sunet (verificăm întâi că fișierul chiar există,
+	# altfel `load()` umple consola cu erori roșii)
 	for name in SFX:
+		if not ResourceLoader.exists(SFX[name]):
+			push_warning("Audio: lipsește %s" % SFX[name])
+			continue
 		var s = load(SFX[name])
 		if s != null:
 			_streams[name] = s
@@ -48,27 +55,44 @@ func play(name: String, volume_db: float = 0.0, pitch_rand: float = 0.08) -> voi
 	p.play()
 
 # --- Muzică de fundal, în buclă ---
-# O pornim la începutul jocului (spawner._ready) și o oprim la ieșirea din joc.
+# Meniul o pornește cu play_menu_music(), jocul cu play_music() (spawner._ready).
+func play_menu_music(volume_db: float = -14.0) -> void:
+	_play_track(MUSIC_MENU, volume_db)
+
 func play_music(volume_db: float = -12.0) -> void:
+	_play_track(MUSIC_GAME, volume_db)
+
+func stop_music() -> void:
+	_music_path = ""
+	if _music != null:
+		_music.stop()
+
+func _play_track(path: String, volume_db: float) -> void:
+	# path gol sau fișier lipsă = pur și simplu tăcere (nu crapă, nu dă erori)
+	if path == "" or not ResourceLoader.exists(path):
+		stop_music()
+		return
+	# dacă exact melodia asta cântă deja, o lăsăm în pace (să nu repornească din capăt)
+	if _music_path == path and _music != null and _music.playing:
+		return
 	if _music == null:
 		_music = AudioStreamPlayer.new()
 		_music.bus = "Master"
 		_music.process_mode = Node.PROCESS_MODE_ALWAYS  # cântă și pe pauză (ex. Game Over)
 		add_child(_music)
-	var s = load("res://audio/music.wav")
+	var s = load(path)
 	if s == null:
 		return
-	# facem WAV-ul să se repete la nesfârșit fără pauză
-	if s is AudioStreamWAV:
+	# o facem să se repete la nesfârșit, indiferent de format
+	if s is AudioStreamOggVorbis or s is AudioStreamMP3:
+		s.loop = true
+	elif s is AudioStreamWAV:
 		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		s.loop_begin = 0
+	_music_path = path
 	_music.stream = s
 	_music.volume_db = volume_db
 	_music.play()
-
-func stop_music() -> void:
-	if _music != null:
-		_music.stop()
 
 # Găsește o boxă care nu cântă; dacă toate cântă, o refolosește pe următoarea (rotativ).
 func _find_free_player() -> AudioStreamPlayer:
