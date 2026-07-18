@@ -12,6 +12,7 @@ var coins: int = 0              # monede permanente (meta-progresie)
 var upgrades: Dictionary = {}   # id upgrade -> nivel deținut
 var run_coins: int = 0          # monede strânse în runda curentă (băgate la bancă la game over)
 var run_kills: int = 0          # inamici uciși în runda curentă
+var run_spawn: Vector2 = Vector2.ZERO  # unde a început runda (lumea e infinită, startul e aleator)
 
 # Upgrade-urile permanente din meniu (ecranul UPGRADES): efect pe nivel, cost de bază, nivel maxim.
 const META := [

@@ -43,7 +43,7 @@ const VARIANTE := [
 # --- Inamicul iese din pământ ---
 @export var rise_duration: float = 1.0       # cât durează ieșirea inamicului (secunde)
 @export var rise_depth: float = 55.0         # de la ce adâncime iese (pixeli)
-@export var enemy_spawn_offset: Vector2 = Vector2(0, -80)  # unde apare față de statuie (Y negativ = mai spre NORD/sus)
+@export var enemy_spawn_offset: Vector2 = Vector2(0, -66.415)  # unde apare față de statuie (Y negativ = mai spre NORD/sus)
 
 # --- Simbolul de alertă deasupra statuii ---
 @export var alert_scale: float = 0.9

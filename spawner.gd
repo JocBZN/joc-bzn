@@ -18,12 +18,23 @@ const ENEMY := preload("res://enemy.tscn")
 @export var max_enemies: int = 300        # plafon de siguranță, ca să nu moară framerate-ul
 @export var max_batch: int = 12           # câți inamici pot apărea deodată într-un lot
 
+# --- Punctul de START, ales la întâmplare la fiecare rundă ---
+# Lumea e infinită și generată procedural din coordonate: fiecare loc arată altfel, dar
+# ACELAȘI loc arată mereu la fel. Până acum porneai mereu din (0,0), deci vedeai mereu
+# exact aceeași bucată de hartă. Acum te aruncăm într-un punct aleator → hartă nouă la
+# fiecare rundă, fără să stricăm determinismul chunk-urilor (esențial: ele se descarcă
+# și se reîncarcă în timp ce mergi).
+@export var spawn_range: float = 100000.0   # cât de departe poți fi aruncat (px, pe fiecare axă)
+@export var spawn_tries: int = 40           # câte locuri încercăm până acceptăm și deșert
+const CHUNK_PX := 512.0                     # ca în props.gd/rocks.gd — pentru întrebarea despre biom
+
 var timer: Timer
 var _final_swarm_announced := false
 
 func _ready() -> void:
 	Difficulty.time = 0.0     # joc nou → resetăm cronometrul
 	GameSettings.reset_run()  # resetăm monedele și kill-urile strânse în rundă
+	_muta_player_aleator()
 	Audio.play_music()        # pornim muzica de fundal
 	timer = Timer.new()
 	timer.wait_time = spawn_interval
@@ -31,6 +42,23 @@ func _ready() -> void:
 	add_child(timer)
 	timer.start()
 	_announce("SURVIVE 10:00", "Summon the boss at the statue when you're ready")
+
+# Aruncă player-ul într-un colț aleator al lumii infinite → altă hartă la fiecare rundă.
+# Evităm să te trezești în mijlocul deșertului (fără copaci, fără pietre, arată gol):
+# încercăm câteva puncte și îl luăm pe primul care e pe iarbă curată.
+func _muta_player_aleator() -> void:
+	randomize()   # altfel am porni de la aceeași secvență la fiecare rulare
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player == null:
+		return
+	var pos := Vector2.ZERO
+	for i in spawn_tries:
+		pos = Vector2(randf_range(-spawn_range, spawn_range), randf_range(-spawn_range, spawn_range))
+		# desertness 0 = iarbă curată (nici măcar tranziția spre deșert)
+		if BiomeMap.desertness_at_chunk(pos / CHUNK_PX) <= 0.0:
+			break
+	player.global_position = pos
+	GameSettings.run_spawn = pos
 
 func _exit_tree() -> void:
 	Audio.stop_music()  # ieșim din joc (meniu/restart) → oprim muzica

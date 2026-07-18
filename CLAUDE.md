@@ -13,6 +13,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (hartă random la fiecare rundă + statui generate pe chunk-uri)
+
+**Done:**
+- **Start aleator.** `spawner.gd::_muta_player_aleator()` aruncă player-ul într-un punct random (±100.000 px pe fiecare axă) la începutul fiecărei runde. Punctul e salvat în `GameSettings.run_spawn`. Evită deșertul: încearcă până la 40 de puncte și îl ia pe primul cu `BiomeMap.desertness_at_chunk() <= 0`, ca să nu te trezești într-o zonă goală.
+- **`statues.gd` (nou)** — statui generate procedural pe chunk-uri, ca pietrele/copacii: **10% șansă per chunk, maxim una**, poziție deterministă din `hash(key) ^ SEED_SALT`. Statuia fixă din `main.tscn` a fost ștearsă și înlocuită cu nodul `Statues`.
+- **Statuile se feresc de copaci:** până la 12 poziții încercate în chunk, verificate față de copacii din chunk-ul propriu + cele 8 vecine (prin `props._chunk_trees_raw()`, funcție pură deja existentă). Dacă niciuna nu e bună, chunk-ul rămâne fără statuie.
+- `enemy_spawn_offset` (−66.415, reglat de Răzvan în main.tscn) mutat ca default în `statue.gd`, altfel se pierdea odată cu nodul din scenă.
+
+**Verificat prin rulare:**
+- 964 statui pe 10.000 de chunk-uri = **9.64%** (10% minus ~0.4% chunk-uri prea aglomerate de copaci).
+- **0** statui mai aproape de un copac decât pragul; cea mai apropiată la 191 px (prag 190).
+- 615/615 chunk-uri dau același răspuns la a doua cerere (determinism).
+- 0 statui ieșite din chunk-ul lor (deci exact una per chunk).
+- 3 rulări consecutive → 3 puncte de start complet diferite, cu 1 / 6 / 4 statui în jur.
+
+**Gotchas:**
+- **De ce start aleator și NU o sămânță de lume?** Matematica de biomuri din `biome_map.gd` (`_hash`) trebuie să rămână **identică bit cu bit** cu `hashu()` din `biome.gdshader` — altfel deșertul desenat nu mai coincide cu locul unde blocăm copacii. O sămânță ar fi trebuit băgată în ambele, în lockstep. Mutarea punctului de start dă exact același rezultat (lume nouă la fiecare rundă) cu zero risc de desincronizare CPU↔shader.
+- **`spawn_range` nu poate crește oricât:** coordonatele 2D din Godot sunt float32, iar la valori foarte mari apar tremurături de precizie. 100.000 px e sigur (~0.008 px precizie) și oricum acoperă zeci de macro-celule de biom, adică variație mai mult decât suficientă.
+- **`randomize()` explicit** în `_muta_player_aleator()`, ca să nu pornim de la aceeași secvență la fiecare rulare.
+- **Acum pot exista mai multe statui în jurul tău** → poți invoca mai mulți boși. E consecința firească a cerinței; dacă deranjează, se limitează din `statue.gd`.
+
+---
+
 ## Session log — 2026-07-19 (Y-sort statuie, PARTEA 2 — regula reală: arta trebuie să coboare sub linia de sortare)
 
 **Context:** reparația de mai jos (baza artei pusă pe originea nodului) **nu era ce voia**. Răzvan a cerut „exact efectul de la copaci". Diagnosticat prin comparație directă: copac și statuie unul lângă altul, cu player-ul REAL la același baleiaj de Y (+60 … −90), două poze.
