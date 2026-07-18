@@ -17,6 +17,24 @@ const DESERT_PERCENT := 40  # aproximativ ce procent din macro-celule conțin de
 const BLEND_CHUNKS := 1.5   # lățimea gradientului soft (chunk-uri) — TREBUIE să fie ca blend_chunks din ground.gd / biome.gdshader
 const MASK := 0xFFFFFFFF     # pentru aritmetică pe 32 de biți (ca uint în shader)
 
+# Cât de aproape de marginea macro-celulei trebuie să ajungă un petic ca să-l LIPIM de ea.
+# De ce: fiecare macro-celulă își pune peticul independent, așa că două petice vecine puteau
+# rămâne la 1 chunk distanță → o fâșie subțire de iarbă tăia deșertul în două (și creșteau
+# pietre pe ea, fiindcă `is_desert_chunk` zicea „iarbă"). Cu lipirea, marginea unui petic e
+# ori exact pe granița celulei, ori la cel puțin EDGE_SNAP+1 chunk-uri de ea → distanța
+# dintre două petice vecine e ori 0 (se unesc), ori ≥3 chunk-uri (culoar lat, arată intenționat).
+# NU poate ieși 1 sau 2. TREBUIE să fie identic cu edge_snap din biome.gdshader.
+const EDGE_SNAP := 2
+
+# Marginile peticului pe o axă, în coordonate LOCALE de celulă (0..MACRO), după lipire.
+static func _snap_axis(lo: int, size: int) -> Vector2i:
+	var hi := lo + size
+	if lo <= EDGE_SNAP:
+		lo = 0
+	if hi >= MACRO - EDGE_SNAP:
+		hi = MACRO
+	return Vector2i(lo, hi)
+
 # Hash întreg pe 32 de biți. IDENTIC cu hashu() din biome.gdshader.
 static func _hash(cx: int, cy: int) -> int:
 	var x := cx & MASK
@@ -45,9 +63,11 @@ static func is_desert_chunk(cx: int, cy: int) -> bool:
 	var room := MACRO - f + 1                    # câte poziții încap pe o axă
 	var ox := int((h / 10000) % room)            # colțul peticului în celulă (X)
 	var oy := int((h / 1000000) % room)          # colțul peticului în celulă (Y)
+	var sx := _snap_axis(ox, f)                  # margini lipite de celulă dacă sunt aproape
+	var sy := _snap_axis(oy, f)
 	var lx := cx - mx * MACRO                     # poziția chunk-ului în macro-celulă (0..MACRO-1)
 	var ly := cy - my * MACRO
-	return lx >= ox and lx < ox + f and ly >= oy and ly < oy + f
+	return lx >= sx.x and lx < sx.y and ly >= sy.x and ly < sy.y
 
 # smootherstep (quintic) — IDENTIC cu ss() din biome.gdshader.
 static func _ss(e0: float, e1: float, x: float) -> float:
@@ -73,10 +93,14 @@ static func desertness_at_chunk(chunkf: Vector2) -> float:
 			var room := MACRO - f + 1
 			var ox := int((h / 10000) % room)
 			var oy := int((h / 1000000) % room)
-			var lox := float(mx * MACRO + ox)
-			var loy := float(my * MACRO + oy)
-			var qx := maxf(maxf(lox - chunkf.x, chunkf.x - (lox + f)), 0.0)
-			var qy := maxf(maxf(loy - chunkf.y, chunkf.y - (loy + f)), 0.0)
+			var sx := _snap_axis(ox, f)
+			var sy := _snap_axis(oy, f)
+			var lox := float(mx * MACRO + sx.x)
+			var hix := float(mx * MACRO + sx.y)
+			var loy := float(my * MACRO + sy.x)
+			var hiy := float(my * MACRO + sy.y)
+			var qx := maxf(maxf(lox - chunkf.x, chunkf.x - hix), 0.0)
+			var qy := maxf(maxf(loy - chunkf.y, chunkf.y - hiy), 0.0)
 			var dist := Vector2(qx, qy).length()
 			d = maxf(d, 1.0 - _ss(0.0, BLEND_CHUNKS, dist))
 	return d
@@ -100,10 +124,12 @@ static func desert_inset_chunk(chunkf: Vector2) -> float:
 			var room := MACRO - f + 1
 			var ox := int((h / 10000) % room)
 			var oy := int((h / 1000000) % room)
-			var lox := float(mx * MACRO + ox)
-			var loy := float(my * MACRO + oy)
-			var hix := lox + f
-			var hiy := loy + f
+			var sx := _snap_axis(ox, f)
+			var sy := _snap_axis(oy, f)
+			var lox := float(mx * MACRO + sx.x)
+			var loy := float(my * MACRO + sy.x)
+			var hix := float(mx * MACRO + sx.y)
+			var hiy := float(my * MACRO + sy.y)
 			if chunkf.x >= lox and chunkf.x < hix and chunkf.y >= loy and chunkf.y < hiy:
 				var inset := minf(minf(chunkf.x - lox, hix - chunkf.x), minf(chunkf.y - loy, hiy - chunkf.y))
 				best = maxf(best, inset)  # union: cea mai adâncă apartenență contează
@@ -124,4 +150,6 @@ static func desert_rect_of_macro(mx: int, my: int) -> Rect2i:
 	var room := MACRO - f + 1
 	var ox := int((h / 10000) % room)
 	var oy := int((h / 1000000) % room)
-	return Rect2i(mx * MACRO + ox, my * MACRO + oy, f, f)
+	var sx := _snap_axis(ox, f)
+	var sy := _snap_axis(oy, f)
+	return Rect2i(mx * MACRO + sx.x, my * MACRO + sy.x, sx.y - sx.x, sy.y - sy.x)

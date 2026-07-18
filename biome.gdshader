@@ -15,6 +15,7 @@ uniform int macro = 20;              // = MACRO din biome_map.gd
 uniform int min_size = 6;            // = MIN_SIZE din biome_map.gd
 uniform int max_size = 20;           // = MAX_SIZE din biome_map.gd
 uniform int desert_percent = 40;     // = DESERT_PERCENT din biome_map.gd
+uniform int edge_snap = 2;           // = EDGE_SNAP din biome_map.gd
 
 varying vec2 world_pos;
 
@@ -31,6 +32,16 @@ uint hashu(int cx, int cy) {
 	h = (h ^ (h >> 13u)) * 1274126177u;
 	h = h ^ (h >> 16u);
 	return h;
+}
+
+// Marginile peticului pe o axă, în coordonate LOCALE de celulă, după LIPIRE.
+// IDENTIC cu _snap_axis() din biome_map.gd — vezi acolo de ce (culoare subțiri de iarbă
+// rămâneau între două deșerturi vecine).
+vec2 snap_axis(float lo, float size) {
+	float hi = lo + size;
+	if (lo <= float(edge_snap)) { lo = 0.0; }
+	if (hi >= float(macro) - float(edge_snap)) { hi = float(macro); }
+	return vec2(lo, hi);
 }
 
 // smootherstep (quintic) — trecere lină, fără muchie.
@@ -59,9 +70,11 @@ void fragment() {
 				uint room = uint(macro) - f + 1u;             // câte poziții încap pe o axă
 				uint ox = (h / 10000u) % room;
 				uint oy = (h / 1000000u) % room;
-				// dreptunghiul de deșert, în coordonate de chunk (globale)
-				vec2 lo = vec2(m) * float(macro) + vec2(float(ox), float(oy));
-				vec2 hi = lo + vec2(float(f));
+				// dreptunghiul de deșert, în coordonate de chunk (globale), cu marginile lipite
+				vec2 sx = snap_axis(float(ox), float(f));
+				vec2 sy = snap_axis(float(oy), float(f));
+				vec2 lo = vec2(m) * float(macro) + vec2(sx.x, sy.x);
+				vec2 hi = vec2(m) * float(macro) + vec2(sx.y, sy.y);
 				vec2 q = max(max(lo - chunkf, chunkf - hi), vec2(0.0));  // 0 în interiorul peticului
 				float dist = length(q);
 				d = max(d, 1.0 - ss(0.0, blend_chunks, dist));           // soft spre exterior

@@ -28,6 +28,7 @@ func _ready() -> void:
 	_mat.set_shader_parameter("min_size", BiomeMap.MIN_SIZE)
 	_mat.set_shader_parameter("max_size", BiomeMap.MAX_SIZE)
 	_mat.set_shader_parameter("desert_percent", BiomeMap.DESERT_PERCENT)
+	_mat.set_shader_parameter("edge_snap", BiomeMap.EDGE_SNAP)
 	material = _mat
 
 func _process(_delta: float) -> void:

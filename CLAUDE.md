@@ -13,6 +13,33 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (BUG: fâșii de iarbă prin deșert)
+
+**Simptom** (screenshot de la Răzvan în `debugging/`): un culoar vertical verde tăia deșertul în două, cu pietre crescute pe el.
+
+**Cauză:** fiecare macro-celulă își plasează peticul de deșert **independent**. Când două petice vecine se opreau la exact 1 chunk unul de altul, rămânea un culoar. Pe el:
+- `desertness` (ce desenează shaderul) ieșea **0.79** → podeaua arăta aproape-deșert, dar cu iarbă transpărând = fâșia verde;
+- `is_desert_chunk` (logica) zicea **false** → creșteau pietre/copaci acolo.
+
+Deci NU era o desincronizare shader↔CPU (amândouă erau de acord); era geometria peticelor.
+
+**Fix:** `EDGE_SNAP = 2` în `biome_map.gd` + `_snap_axis()`, oglindit ca `snap_axis()` în `biome.gdshader` (uniformă nouă `edge_snap`, trimisă din `ground.gd`). Dacă marginea unui petic ajunge la ≤2 chunk-uri de granița macro-celulei, o **lipim** de graniță. Efect: distanța dintre două petice vecine e ori **0** (se unesc), ori **≥3 chunk-uri** (culoar lat, arată intenționat). Nu mai poate ieși 1 sau 2.
+
+**Măsurat pe 360.000 de chunk-uri:**
+
+| EDGE_SNAP | culoare de 1 chunk | de 2 chunk-uri | deșert din lume |
+|---|---|---|---|
+| 0 (cum era) | 294 | 201 | 19.5% |
+| 1 | 0 | 142 | 20.3% |
+| **2 (ales)** | **0** | **0** | **21.6%** |
+
+**Gotchas:**
+- **Lipirea mărește deșerturile** — 19.5% → 21.6% din lume (+2 puncte). Ăsta e prețul; dacă vreodată pare prea mult deșert, `EDGE_SNAP = 1` recuperează jumătate dar lasă culoare de 2 chunk-uri.
+- **Matematica trebuie schimbată în AMBELE locuri simultan.** `_snap_axis` apare acum în toate cele 4 funcții din `biome_map.gd` (`is_desert_chunk`, `desertness_at_chunk`, `desert_inset_chunk`, `desert_rect_of_macro`) și în shader. Verificat că sunt de acord: **0 nepotriviri** logic↔vizual pe 57.600 de chunk-uri.
+- Confirmat vizual pe chunk-ul (−281, 121), exact unde era culoarul: acum `desertness = 1.000`, `is_desert_chunk = true`, deșert compact fără pietre.
+
+---
+
 ## Session log — 2026-07-19 (statui 3% + buton mare de interacțiune, pentru telefon)
 
 **Done:**
