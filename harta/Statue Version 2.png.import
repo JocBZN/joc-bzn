@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bbo0i8g8idqyt"
-path="res://.godot/imported/statue.png-7b23b9a1469609a1fc554a215c1ed182.ctex"
+uid="uid://1tx41y7wn75g"
+path="res://.godot/imported/Statue Version 2.png-e37fa0d627b8898412fbce19fa4c0093.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://harta/statue.png"
-dest_files=["res://.godot/imported/statue.png-7b23b9a1469609a1fc554a215c1ed182.ctex"]
+source_file="res://harta/Statue Version 2.png"
+dest_files=["res://.godot/imported/Statue Version 2.png-e37fa0d627b8898412fbce19fa4c0093.ctex"]
 
 [params]
 

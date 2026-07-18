@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bsbou5krx65c7"]
 
 [ext_resource type="Script" uid="uid://bs5ou5lb66fy7" path="res://statue.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://bbo0i8g8idqyt" path="res://harta/statue.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://harta/Statue Version 2.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_statue"]
 size = Vector2(130, 60)
@@ -13,7 +13,7 @@ script = ExtResource("1_script")
 texture_filter = 1
 scale = Vector2(3, 3)
 texture = ExtResource("2_tex")
-offset = Vector2(0, -45.5)
+offset = Vector2(0, -60)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1370807853]
 position = Vector2(0, -30)

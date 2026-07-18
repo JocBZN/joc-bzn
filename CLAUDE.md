@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-18 (statuia: 3 variante alese pe șansă)
+
+**Done:**
+- Răzvan a pus `harta/Statue Version 1..3.png` și a **șters `harta/statue.png`** — adică `statue.gd` (`preload`) și `statue.tscn` (`ext_resource`) arătau spre un fișier inexistent. `preload` pe o cale lipsă e eroare de parsare, deci statuia era ruptă până la reparație.
+- **Alegere pe șansă la fiecare statuie născută:** `VARIANTE` în `statue.gd` — Version 2 **60%**, Version 1 **30%**, Version 3 **10%**. Implementat ca „roată a norocului" (scădem șansele dintr-un zar până trece de 0). Verificat pe 10.000 de trageri: 59.9 / 30.3 / 9.8.
+- `statue.tscn` arată acum spre Version 2 (varianta implicită, cea mai comună), ca scena să se deschidă normal în editor.
+
+**Gotchas:**
+- **Canvas 91×91 → 128×128**, deci `offset`-ul sprite-ului trebuia recalculat. Convenția din scenă e că `offset.y = -h/2` lipește **baza texturii** de originea nodului (originea = picioarele statuii, și linia de Y-sort). Pus pe **−60** (nu −64), ca baza artei să cadă exact unde cădea înainte. Verificat cu o linie de sol desenată: toate 3 stau perfect pe ea.
+- **Butonul „Summon" se agață de CAPUL real, nu de marginea imaginii.** Variantele noi au ~30px de gol transparent deasupra; cu formula veche (înălțimea canvas-ului) butonul plutea la ~87px deasupra capului. Acum `_statue_top_y()` folosește `texture.get_image().get_used_rect()` → iese −273/−279/−285, adică fix deasupra capului fiecărei variante, indiferent de artă.
+- **Coliziunea (130×60) a rămas neschimbată** — piedestalul nou are ~130px lățime pe ecran (48px × scale 3), deci se potrivește deja.
+- **Există o SINGURĂ statuie în `main.tscn`**, deci varianta se alege o dată pe rundă — vezi statui diferite de la o rundă la alta, nu 3 deodată în lume.
+
+---
+
 ## Session log — 2026-07-18 (VALURILE ELIMINATE → 10 minute + Final Swarm, ca la Megabonk)
 
 **Done:**

@@ -8,8 +8,15 @@ extends StaticBody2D
 #
 # Poziția nodului Statue = BAZA statuii (picioarele) → și linia de la care te acoperă (Y-sort).
 
-const STATUE_TEX := preload("res://harta/statue.png")
 const ENEMY := preload("res://garda.tscn")  # boss-ul „Garda", invocat DOAR de statuie
+
+# Cele 3 variante de statuie. La fiecare statuie născută se alege una la întâmplare,
+# după șansele de mai jos (trebuie să dea 100). Vrei alte proporții? Schimbi doar cifrele.
+const VARIANTE := [
+	{"tex": "res://harta/Statue Version 2.png", "sansa": 60},
+	{"tex": "res://harta/Statue Version 1.png", "sansa": 30},
+	{"tex": "res://harta/Statue Version 3.png", "sansa": 10},
+]
 
 @export var interact_range: float = 200.0    # cât de aproape trebuie să fii ca să apară butonul
 
@@ -36,6 +43,7 @@ var _button: Button
 var _summoned := false  # ca să nu poți apăsa Summon de mai multe ori
 
 func _ready() -> void:
+	_alege_varianta()
 	# --- butonul „Summon", ascuns până te apropii ---
 	_button = Button.new()
 	_button.text = "Summon"
@@ -56,10 +64,33 @@ func _process(_delta: float) -> void:
 	# butonul apare doar când ești suficient de aproape
 	_button.visible = global_position.distance_to(player.global_position) <= interact_range
 
-# înălțimea vârfului statuii față de baza ei (negativ = în sus)
+# Alege la întâmplare una din cele 3 variante, după șansele din VARIANTE.
+# Cum funcționează „roata norocului": tragem un număr între 0 și 100 și mergem prin
+# listă scăzând șansa fiecăreia până când numărul devine negativ — acolo ne oprim.
+func _alege_varianta() -> void:
+	var sprite := $Sprite2D as Sprite2D
+	var total := 0
+	for v in VARIANTE:
+		total += int(v["sansa"])
+	var zar := randf() * float(total)
+	for v in VARIANTE:
+		zar -= float(v["sansa"])
+		if zar <= 0.0:
+			if ResourceLoader.exists(v["tex"]):
+				sprite.texture = load(v["tex"])
+			return
+
+# Înălțimea vârfului statuii față de baza ei (negativ = în sus) — de aici se agață
+# butonul „Summon". Ne uităm la CAPUL real al statuii, nu la marginea de sus a
+# imaginii: variantele noi au ~30px de gol transparent deasupra, iar dacă măsurăm
+# canvas-ul, butonul plutește undeva în aer. `get_used_rect()` ne dă exact zona
+# desenată, deci merge la orice variantă, oricât gol ar avea în jur.
 func _statue_top_y() -> float:
 	var sprite := $Sprite2D as Sprite2D
-	return -float(STATUE_TEX.get_height()) * sprite.scale.y
+	if sprite.texture == null:
+		return -260.0
+	var varf_px := float(sprite.texture.get_image().get_used_rect().position.y)
+	return sprite.scale.y * (sprite.offset.y + varf_px - float(sprite.texture.get_height()) * 0.5)
 
 func _on_summon() -> void:
 	if _summoned:
