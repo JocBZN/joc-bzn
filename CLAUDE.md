@@ -13,6 +13,31 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (artă nouă de copaci)
+
+**Ce a făcut Răzvan:** a șters `harta/trees/spr_tree_1..16.png` și a pus `Tree Variant 1..7.png`. Deci **16 variante → 7**, și canvas **64x64 → 128x128**.
+
+**Capcana:** dublarea canvasului NU înseamnă că împarți `tree_scale` la 2. Ce contează e cât din canvas ocupă desenul, iar arta nouă e mult mai „plină":
+
+| | canvas | desen vizibil | ocupare |
+|---|---|---|---|
+| vechi | 64x64 | ~40x49 | 62% / 77% |
+| nou | 128x128 | ~97x120 | 76% / 94% |
+
+Deci raportul real e **~1.85**, nu 2.25. `tree_scale`: 4.5 → **1.85**, ca să rămână ~180x220px pe ecran, exact ca înainte.
+
+**`hitbox_factor` a trebuit și el mutat**, fiindcă e fracție din lățimea **canvasului**, nu din copacul vizibil: 0.20 → **0.24**, ca hitbox-ul să rămână la ~114px lățime reală (era 115). Cele 4 laturi din `main.tscn` (`hitbox_north/south/east/west`) sunt fracții din `base_w`, deci se traduc singure — nu le-am atins.
+
+**`sort_anchor` a rămas 0.35.** Verificat prin măsurare, nu ghicit: linia de sortare cade la **31%** din înălțimea copacului vechi și **34%** din a celui nou. Diferență neglijabilă.
+
+**Metoda de măsurare** (utilă data viitoare): conturul opac real al unui PNG se scoate cu PowerShell + `System.Drawing`, scanând alpha > 8 — vezi comenzile din această sesiune. `get_used_rect` din Godot dă același lucru, dar cere să rulezi engine-ul.
+
+**De verificat dacă apar reclamații:** `LEAF_ZONE_*` (zona în care cad frunzele) au fost derivate din desenul lui Răzvan peste copacii **vechi**. Sunt fracții din conturul vizibil, deci se traduc în principiu, dar coroana nouă are altă formă — dacă frunzele par că pică pe lângă copac, acolo e reglajul.
+
+**Verificat vizual** în `main.tscn`: copacii apar la scara corectă față de player, cu pietre și restul lumii nemodificate.
+
+---
+
 ## Session log — 2026-07-19 (logo animat în loc de titlul-text)
 
 **Cerut de Răzvan:** titlul scris cu text („ăla basic") să fie înlocuit cu logo-ul din `menu/Title/` — 4 cadre, mers **înainte-înapoi, destul de încet**.

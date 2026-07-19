@@ -6,30 +6,33 @@ extends Node2D
 # dacă pleci și te întorci. Chunk-urile depărtate se descarcă automat (performanță).
 
 const TREES := [
-	preload("res://harta/trees/spr_tree_1.png"),
-	preload("res://harta/trees/spr_tree_2.png"),
-	preload("res://harta/trees/spr_tree_3.png"),
-	preload("res://harta/trees/spr_tree_4.png"),
-	preload("res://harta/trees/spr_tree_5.png"),
-	preload("res://harta/trees/spr_tree_6.png"),
-	preload("res://harta/trees/spr_tree_7.png"),
-	preload("res://harta/trees/spr_tree_8.png"),
-	preload("res://harta/trees/spr_tree_9.png"),
-	preload("res://harta/trees/spr_tree_10.png"),
-	preload("res://harta/trees/spr_tree_11.png"),
-	preload("res://harta/trees/spr_tree_12.png"),
-	preload("res://harta/trees/spr_tree_13.png"),
-	preload("res://harta/trees/spr_tree_14.png"),
-	preload("res://harta/trees/spr_tree_15.png"),
-	preload("res://harta/trees/spr_tree_16.png"),
+	preload("res://harta/trees/Tree Variant 1.png"),
+	preload("res://harta/trees/Tree Variant 2.png"),
+	preload("res://harta/trees/Tree Variant 3.png"),
+	preload("res://harta/trees/Tree Variant 4.png"),
+	preload("res://harta/trees/Tree Variant 5.png"),
+	preload("res://harta/trees/Tree Variant 6.png"),
+	preload("res://harta/trees/Tree Variant 7.png"),
 ]
 
 @export var chunk_size: int = 512       # mărimea unui pătrat de lume (px)
 @export var load_radius: int = 3        # câte pătrate în jurul player-ului ținem încărcate
 @export var trees_per_chunk: int = 1    # câți copaci (maxim) într-un pătrat (înjumătățit de la 2)
 @export var min_gap_hitboxes: float = 2.0  # distanța minimă între copaci, măsurată în „hitbox-uri" (2 = nu se apropie mai mult de 2 hitbox-uri)
-@export var tree_scale: float = 4.5     # cât de mari sunt copacii
-@export var hitbox_factor: float = 0.20   # cât de mare e hitbox-ul (fracție din lățimea copacului)
+# ATENȚIE la aceste două valori dacă mai schimbi arta copacilor. Sunt legate de
+# dimensiunea texturii, iar arta nouă (2026-07-19) a trecut de la 64x64 la 128x128:
+# - `tree_scale` era 4.5 pe texturile vechi. Nu se împarte pur și simplu la 2: conta
+#   cât din canvas ocupă desenul. Vechii aveau ~40x49px vizibili din 64, noii au
+#   ~97x120px din 128, deci raportul real e ~1.85, nu 2.25. Așa copacii rămân la fel
+#   de mari pe ecran ca înainte (~180x220px).
+# - `hitbox_factor` e fracție din lățimea CANVASULUI, nu din copacul vizibil. Canvasul
+#   s-a dublat, deci a urcat de la 0.20 la 0.24 ca hitbox-ul să rămână la aceeași
+#   lățime reală (~114px, era 115). Cele 4 laturi din main.tscn sunt fracții din el,
+#   deci se traduc singure.
+# `sort_anchor` NU a trebuit schimbat: linia de sortare cade la 31% din înălțimea
+# copacului vechi și 34% din a celui nou — practic aceeași.
+@export var tree_scale: float = 1.85    # cât de mari sunt copacii
+@export var hitbox_factor: float = 0.24   # cât de mare e hitbox-ul (fracție din lățimea copacului)
 @export var hitbox_vertical: float = 0.8  # înălțimea hitbox-ului față de lățime: 1.0 = pătrat, mai mic = mai scund
 # Cele 4 laturi — fiecare mișcă DOAR marginea ei (pozitiv = extinde afară, negativ = trage înăuntru):
 @export var hitbox_north: float = 0.0      # marginea de SUS (Nord)
