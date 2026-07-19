@@ -8,6 +8,7 @@ var _doctor_taken: bool = false  # Doctor's Hacksaw luat cel puțin o dată
 const FIRE_TRAIL := preload("res://firetrail.gd")  # băltoaca de foc lăsată de Firewalker
 const ICE_TRAIL := preload("res://icetrail.gd")    # dâra de gheață lăsată de Frostwalker
 const GOD_TRAIL := preload("res://godtrail.gd")    # dâra combinată (Firewalker + Frostwalker = Godwalker)
+const SHOCKWAVE := preload("res://shockwave.gd")   # unda de șoc a lui Panic Button
 
 # Numele animațiilor, pe optimi de cerc (vezi _update_anim).
 # Ordinea urmează unghiul crescător (y în jos): E, SE, S, SV, V, NV, N, NE.
@@ -179,6 +180,12 @@ var fire_timer: Timer           # îl ținem ca variabilă ca să-i putem schimb
 @export var shake_max: float = 16.0    # amplitudinea maximă (pixeli)
 var _trauma: float = 0.0               # 0 = liniște, 1 = tremurat maxim
 var _shaking: bool = false             # controlăm camera DOAR cât tremurăm (ca să nu ne batem cu statuia)
+# CUTREMUR: `add_shake` e o singură lovitură de trauma, care la shake_decay = 4 se stinge în ~0.15s —
+# bun pentru un critic, prea scurt pentru Panic Button. Cutremurul ține trauma SUS pe o durată, apoi
+# o lasă să scadă lin. Vezi `start_quake`.
+var _quake_left: float = 0.0           # secunde rămase
+var _quake_total: float = 0.0
+var _quake_strength: float = 0.0
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 @onready var _cam: Camera2D = $Camera2D
@@ -254,6 +261,13 @@ func _ready() -> void:
 func add_shake(amount: float) -> void:
 	_trauma = min(1.0, _trauma + amount)
 
+# Cutremur: tremurat SUSȚINUT `dur` secunde, care slăbește spre final. Nu e `add_shake` mai mare —
+# ăla e un vârf care se stinge imediat; ăsta reîncarcă trauma în fiecare cadru (vezi `_process`).
+func start_quake(dur: float, strength: float) -> void:
+	_quake_total = max(0.01, dur)
+	_quake_left = _quake_total
+	_quake_strength = clampf(strength, 0.0, 1.0)
+
 # Desenul de reglaj pentru sabie (doar cu sword_debug pornit): dreptunghiul roșu e chiar ce
 # lovește. Desenăm pe player, care e la scale 2 în main.tscn, deci împărțim tot la scara lui
 # ca să iasă pixeli reali (și liniile la grosimea cerută).
@@ -284,6 +298,10 @@ func _process(delta: float) -> void:
 		queue_redraw()  # hitbox-ul se mișcă odată cu privirea → redesenăm în fiecare cadru
 	if _cam == null:
 		return
+	# Cutremurul reîncarcă trauma cât ține, slăbind spre final → tremurat continuu, nu un vârf.
+	if _quake_left > 0.0:
+		_quake_left = max(0.0, _quake_left - delta)
+		_trauma = max(_trauma, _quake_strength * (_quake_left / _quake_total))
 	if _trauma > 0.0:
 		_shaking = true
 		_trauma = max(0.0, _trauma - shake_decay * delta)
@@ -404,17 +422,33 @@ func _stat_row(label: String, cur: float, base: float, lower_better: bool, disp:
 		state = "up" if better else "down"
 	return {"label": label, "value": disp, "state": state}
 
-# Panic Button: 100 damage la TOȚI inamicii de pe hartă, o singură dată, chiar când iei itemul.
+# Panic Button: cutremur + undă de șoc care pleacă din player, ca „Mama Mega" din Binding of Isaac.
 # Damage fix — nu trece prin damage_mult() și nu poate da critic: e o detonare, nu o lovitură de armă.
+#
+# Damage-ul NU se mai aplică tuturor deodată: îl dă unda, pe măsură ce ajunge la fiecare inamic
+# (`shockwave.gd`). Cei de lângă tine mor primii, apoi valul se rostogolește spre margini.
+# Acoperirea rămâne aceeași — unda merge până dincolo de colțurile ecranului, deci tot ce se vede
+# încasează. Ce e MAI DEPARTE de atât nu mai încasează, spre deosebire de varianta veche care lovea
+# toată harta, inclusiv inamici pe care nici nu-i vedeai.
 func panic_button(dmg: int) -> void:
 	Audio.play("hurt", -2.0)  # bubuitura (placeholder)
-	add_shake(0.6)
-	for e in get_tree().get_nodes_in_group("enemy"):
-		var enemy := e as Node2D
-		if enemy == null or not enemy.has_method("take_damage"):
-			continue
-		enemy.take_damage(dmg)
-		Fx.damage_number(enemy.global_position, dmg, true)  # roșu, ca la critic
+	start_quake(0.9, 0.85)    # cutremurul ține cât mătură unda, plus puțin
+	var w := Node2D.new()
+	w.set_script(SHOCKWAVE)
+	w.damage = dmg
+	w.max_radius = _raza_ecran()
+	get_parent().add_child(w)
+	w.global_position = global_position
+
+# Cât trebuie să se întindă unda ca să treacă de colțurile ecranului. Jumătatea de diagonală a zonei
+# vizibile: viewport-ul împărțit la zoom-ul camerei (zoom 0.7 = se vede MAI MULT decât viewport-ul),
+# plus o marjă. Calculat, nu o constantă — altfel se strică la alt zoom sau altă rezoluție de telefon.
+func _raza_ecran() -> float:
+	var vp := get_viewport_rect().size
+	var zoom := Vector2.ONE
+	if _cam != null and _cam.zoom.x > 0.0 and _cam.zoom.y > 0.0:
+		zoom = _cam.zoom
+	return (vp / zoom).length() * 0.5 + 64.0
 
 # dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:

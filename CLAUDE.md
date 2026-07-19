@@ -13,6 +13,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (Panic Button: cutremur + undă de șoc, stil Mama Mega)
+
+**Cerut:** „când dai Panic Button să fie un cutremur și o rază care vine dinspre player, aia dă damage-ul (ca la Binding of Isaac — Mama Mega)".
+
+**Damage-ul îl dă acum UNDA, nu itemul.** `shockwave.gd` (nod nou) se umflă din player și lovește fiecare inamic **când frontul ajunge la el** — cei de lângă tine mor primii, apoi valul se rostogolește spre margini. Verifică distanțele în fiecare cadru, nu o dată la spawn: inamicii se mișcă, iar unul care fuge spre margine trebuie prins când îl ajunge valul. Ține un dicționar de `instance_id` ca nimeni să nu încaseze de două ori. Rulează în `_process`, nu în fizică — aceeași capcană „flushing queries" ca la Thunder God.
+
+**Cutremurul e un mecanism nou, nu `add_shake` mai mare.** `add_shake` e un vârf de trauma care la `shake_decay = 4` se stinge în ~0.15s: bun pentru un critic, inutil pentru un cutremur. `start_quake(dur, strength)` **reîncarcă** trauma în fiecare cadru cât ține, slăbind spre final. Măsurat: trauma la 0.15s = **0.68** (înainte era ~0 acolo), la 0.70s = 0.15, la 1.30s = 0.
+
+**Raza e calculată, nu constantă:** `_raza_ecran()` = jumătatea de diagonală a zonei vizibile (viewport ÷ zoom-ul camerei) + 64px. Dă **1008px** la setările de acum. O constantă s-ar fi stricat la alt zoom sau altă rezoluție de telefon.
+
+**Acoperirea nu s-a schimbat în practică**, deși unda are acum o rază finită iar varianta veche lovea toată harta: inamicii apar la `spawn_distance` = **700px** și vin spre tine, deci sunt mereu sub 1008. Dacă vreodată crește `spawn_distance` peste ~950, Panic Button începe să rateze inamici — atunci se leagă `_raza_ecran()` de el.
+
+**Două capcane de măsurătoare/vizual, ambele prinse prin verificare:**
+1. **Prima măsurătoare a ordinii loviturilor a ieșit falsă** (60px și 400px lovite în același milisecund). Cauza: primul cadru după încărcarea scenei are `delta` uriaș, unda sărea direct la jumătate. După ce am lăsat framerate-ul să se așeze: 60px → +23ms, 200 → +52, 400 → +136, 700 → +260. **Orice test de animație pornit imediat după încărcarea scenei minte.**
+2. **Grosimile din `_draw` sunt mari intenționat** (80→24px). Prima încercare, 26→6px, ieșea ca niște fire abia vizibile — fiindcă `atmosphere.gd` pune o vignetă peste toată lumea (CanvasLayer 3), iar unda e pe sol sub ea, deci culorile se spală; plus camera pe zoom 0.7 subțiază tot cu ~30%. Dacă se schimbă vigneta sau zoom-ul, acolo se reglează.
+
+**Verificat vizual** la mijlocul măturării: inelul se citește clar peste tot ecranul.
+
+---
+
 ## Session log — 2026-07-19 (umbră la cactuși + `ground_shadow.gd`)
 
 **Cerut:** „adaugă umbră la toți cactușii ca la copaci".
