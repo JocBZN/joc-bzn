@@ -51,6 +51,14 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-19, later session)
+*Combat & FX pass. Each item is described in full where its feature lives — this is the index.*
+- ✅ **Thunder God arcs stay glued to enemies** (`electric_arc.gd`) instead of hanging where they spawned, and the chain now fires from the **Extinguisher aura** too — one chain per pulse, from a random enemy it hit. See the Thunder God entry below.
+- 🐞 **Plugged In was doing nothing at all** since it was added on 2026-07-17 — fixed. See its entry below; this is the one change that alters run balance.
+- ✅ **Panic Button is now an earthquake + shockwave** (`shockwave.gd`) that deals its damage as the front sweeps outward, Mama Mega style.
+- ✅ **Cacti cast ground shadows**, sharing `ground_shadow.gd` with the trees.
+- ✅ **The Garda boss got a 10s burst special** (3 rapid lightning balls) and its lightning frames got a 2px black outline.
+
 ## Current state (2026-07-19)
 - ✅ **New tree art** — `harta/trees/Tree Variant 1..7.png` replaces the old `spr_tree_1..16.png`. **16 variants → 7**, canvas **64×64 → 128×128**. Trees are then **1.5× larger** than the old ones by request (`tree_scale` 2.775).
 - ✅ **Trees cast a ground shadow.** A squashed radial gradient (built once in code, reused by every tree — no asset file) pinned to the visible base of the trunk, at **`z_index = -1`** so it stays on the ground: under the tree, under the player, and under other trees regardless of Y-sorting. Same trick the fire trails use. Tunable per-instance: `shadow_alpha` / `shadow_width` / `shadow_squash` / `shadow_shift_y`. Width is measured from the tree's **visible** contour, not the canvas, so it stays correct if the art changes again. **(2026-07-19) Cacti have one too**, and the whole thing (including the pixel-scanning that finds the trunk) now lives in **`ground_shadow.gd`** so there's a single copy. It has **no `class_name`** on purpose — global names only register when the project is opened in the editor, which breaks running the game from the command line; use `const GroundShadow := preload("res://ground_shadow.gd")`. Desert structures opt in via an optional `shadow` key in `CONFIG` (only the cactus has one; houses/monuments would look wrong with a squashed ellipse under a straight wall). The cactus uses `width` **0.85** vs the tree's 0.60 — the value is a fraction of the object's contour, and a cactus is far narrower, so the same fraction gave a barely-visible smudge.
@@ -126,7 +134,8 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 - ✅ Smaller Jean's Bomb explosion animation (new frames + reduced on-screen scale).
 - Trail spritesheets are sliced into frames **at runtime** (`AtlasTexture`), so dropping in a new PNG just needs a Godot import.
 
-## Current state (2026-07-19)
+## Cumulative feature summary
+*(Everything that works, regardless of when it landed — the dated sections above are the changelog. This block used to carry a "2026-07-19" heading too, which made it look like a second changelog entry for the same day.)*
 - ✅ **Working:** player movement + follow camera · infinite world · procedural **trees + rocks** with collision (rectangle hitboxes, per-side tuning, min spacing) · **Y-sort depth** (props cover you when you walk behind them) · enemy chase AI · automatic spawner · player auto-fire + projectiles that **face the target** · enemy HP + death · player HP + contact damage.
 - ✅ **Biomes:** grass + **desert**, generated as random square patches (side 6–20 chunks) via a shared deterministic map (`biome_map.gd` / `BiomeMap`), rendered with a soft-blend shader (`biome.gdshader`). Trees & rocks don't spawn in desert. Patch edges within 2 chunks of their macro-cell boundary **snap to it** (`EDGE_SNAP`, mirrored in the shader), so two neighbouring deserts either merge or stay ≥3 chunks apart — otherwise a 1-chunk grass corridor could cut a desert in half, with rocks growing in it.
 - ✅ **Every run starts somewhere new:** the world is infinite and deterministic, so instead of reseeding generation (which would mean keeping `biome_map.gd` and `biome.gdshader` in lockstep) `spawner.gd` drops you at a **random point** in it each run. Same map math, brand-new surroundings.
