@@ -36,6 +36,14 @@ Deci raportul real e **~1.85**, nu 2.25. `tree_scale`: 4.5 → **1.85**, ca să 
 
 **Verificat vizual** în `main.tscn`: copacii apar la scara corectă față de player, cu pietre și restul lumii nemodificate.
 
+**Apoi Răzvan i-a vrut cu 1.5x mai mari** → `tree_scale` 1.85 → **2.775**. `hitbox_factor` NU s-a atins: `base_w` îl înmulțește cu `tree_scale`, deci hitbox-ul crește singur odată cu copacul, ceea ce e corect.
+
+**Umbre la copaci** (tot atunci): `_make_shadow()` în `props.gd`. Un `GradientTexture2D` radial negru, turtit, **construit o singură dată în cod și refolosit** de toți copacii — nu e fișier de artă. Reglaje `@export`: `shadow_alpha` / `shadow_width` / `shadow_squash` / `shadow_shift_y`.
+- **`z_index = -1`** e cheia: ține umbra pe sol, sub copac, sub player și sub ceilalți copaci, indiferent de sortarea pe Y. Aceeași soluție ca la urmele de foc.
+- Lățimea se ia din **conturul vizibil** (`_used()`), nu din canvas — deci rămâne corectă dacă se schimbă iar arta.
+- Prima încercare (alpha 0.30, miez până la 55%) ieșea prea difuză, arăta a vignetă. Reglat la **alpha 0.42, miez până la 72%** — se citește ca umbră, nu ca pată.
+- `_used()` e helper nou; `_leaf_zone()` folosea același cod de cache, acum îl împart.
+
 ---
 
 ## Session log — 2026-07-19 (logo animat în loc de titlul-text)

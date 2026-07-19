@@ -23,15 +23,15 @@ const TREES := [
 # dimensiunea texturii, iar arta nouă (2026-07-19) a trecut de la 64x64 la 128x128:
 # - `tree_scale` era 4.5 pe texturile vechi. Nu se împarte pur și simplu la 2: conta
 #   cât din canvas ocupă desenul. Vechii aveau ~40x49px vizibili din 64, noii au
-#   ~97x120px din 128, deci raportul real e ~1.85, nu 2.25. Așa copacii rămân la fel
-#   de mari pe ecran ca înainte (~180x220px).
+#   ~97x120px din 128, deci raportul real e ~1.85, nu 2.25. Ăsta ar fi fost „la fel
+#   de mari ca înainte"; Răzvan i-a vrut apoi cu 1.5x mai mari, de unde 1.85 × 1.5.
 # - `hitbox_factor` e fracție din lățimea CANVASULUI, nu din copacul vizibil. Canvasul
 #   s-a dublat, deci a urcat de la 0.20 la 0.24 ca hitbox-ul să rămână la aceeași
 #   lățime reală (~114px, era 115). Cele 4 laturi din main.tscn sunt fracții din el,
 #   deci se traduc singure.
 # `sort_anchor` NU a trebuit schimbat: linia de sortare cade la 31% din înălțimea
 # copacului vechi și 34% din a celui nou — practic aceeași.
-@export var tree_scale: float = 1.85    # cât de mari sunt copacii
+@export var tree_scale: float = 2.775   # cât de mari sunt copacii (1.85 × 1.5)
 @export var hitbox_factor: float = 0.24   # cât de mare e hitbox-ul (fracție din lățimea copacului)
 @export var hitbox_vertical: float = 0.8  # înălțimea hitbox-ului față de lățime: 1.0 = pătrat, mai mic = mai scund
 # Cele 4 laturi — fiecare mișcă DOAR marginea ei (pozitiv = extinde afară, negativ = trage înăuntru):
@@ -41,6 +41,11 @@ const TREES := [
 @export var hitbox_west: float = 0.0       # marginea din STÂNGA (Vest)
 @export var sort_anchor: float = 0.35     # de la ce % din înălțime (măsurat de la bază) copacul începe să te acopere
 @export var leaf_chance: float = 0.10     # ce șansă are un copac să-i cadă frunze (0.10 = 10%)
+# --- umbra de la baza copacului ---
+@export var shadow_alpha: float = 0.42    # cât de închisă e (0 = invizibilă, 1 = negru plin)
+@export var shadow_width: float = 0.60    # lățimea ei, ca fracție din lățimea vizibilă a copacului
+@export var shadow_squash: float = 0.28   # cât e de turtită: înălțime / lățime (1.0 = cerc)
+@export var shadow_shift_y: float = -6.0  # o urcă/coboară față de bază (negativ = mai sus)
 
 const LEAFFALL := preload("res://leaffall.gd")
 
@@ -52,7 +57,10 @@ const LEAF_ZONE_W := 1.0        # lățimea zonei = lățimea copacului
 const LEAF_ZONE_TOP := 0.31     # de unde începe, 0 = vârful copacului, 1 = baza lui
 const LEAF_ZONE_BOTTOM := 1.11  # unde se termină (>1 = puțin sub rădăcină)
 
+const SHADOW_TEX_SIZE := 128
+
 var _used_rect_cache := {}  # textură -> conturul opac (get_used_rect e scump, îl ținem minte)
+var _shadow_cache: GradientTexture2D  # o singură textură de umbră, refolosită de toți copacii
 
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul cu copacii lui)
 
@@ -184,19 +192,64 @@ func _make_tree(tex: Texture2D) -> StaticBody2D:
 	var center_y := (south_extra - north_extra) / 2.0
 	col.position = Vector2(center_x, (sort_anchor - 0.25) * h * tree_scale + center_y)
 	body.add_child(col)  # nu mai poți trece prin copac (nici player, nici enemy)
+	body.add_child(_make_shadow(tex, sprite))
 	# cât s-a ridicat originea față de bază → compensăm poziția ca imaginea să rămână „plantată" pe loc
 	body.set_meta("sort_shift", sort_anchor * h * tree_scale)
 	body.set_meta("leaf_zone", _leaf_zone(tex, sprite))
 	return body
+
+# Conturul opac al texturii (fără marginile transparente). `get_used_rect` citește
+# toți pixelii, deci e scump — îl ținem minte per textură.
+func _used(tex: Texture2D) -> Rect2i:
+	if not _used_rect_cache.has(tex):
+		_used_rect_cache[tex] = tex.get_image().get_used_rect()
+	return _used_rect_cache[tex]
+
+# Textura de umbră: un gradient radial negru, făcut o singură dată și refolosit de
+# toți copacii. Miez plin până la 55%, apoi margine moale.
+func _shadow_texture() -> GradientTexture2D:
+	if _shadow_cache == null:
+		var g := Gradient.new()
+		g.set_color(0, Color(0, 0, 0, 1))
+		g.set_color(1, Color(0, 0, 0, 0))
+		g.add_point(0.72, Color(0, 0, 0, 1))
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		t.width = SHADOW_TEX_SIZE
+		t.height = SHADOW_TEX_SIZE
+		_shadow_cache = t
+	return _shadow_cache
+
+# Umbra de la baza copacului: elipsă turtită, așezată pe rădăcină.
+# `z_index = -1` o ține sub copac, sub player și sub ceilalți copaci — adică pe sol,
+# indiferent de sortarea pe Y. (Aceeași soluție ca la urmele de foc.)
+func _make_shadow(tex: Texture2D, sprite: Sprite2D) -> Sprite2D:
+	var used := _used(tex)
+	var w := float(tex.get_width())
+	var h := float(tex.get_height())
+	var sh := Sprite2D.new()
+	sh.texture = _shadow_texture()
+	sh.z_index = -1
+	sh.modulate = Color(1, 1, 1, shadow_alpha)
+	# lățimea umbrei se ia din copacul VIZIBIL, nu din canvas (canvasul are margini goale)
+	var latime := float(used.size.x) * tree_scale * shadow_width
+	var t := float(SHADOW_TEX_SIZE)
+	sh.scale = Vector2(latime / t, latime * shadow_squash / t)
+	# centrată pe mijlocul copacului vizibil, la baza lui
+	var centru_x := (sprite.offset.x + float(used.position.x) + float(used.size.x) * 0.5 - w * 0.5) * tree_scale
+	var baza_y := (sprite.offset.y + float(used.end.y) - h * 0.5) * tree_scale
+	sh.position = Vector2(centru_x, baza_y + shadow_shift_y)
+	return sh
 
 # Dreptunghiul în care cad frunzele, în coordonatele copacului.
 # Pornim de la conturul VIZIBIL al texturii (`get_used_rect`), nu de la canvas: texturile
 # de copaci au margini transparente, iar dreptunghiurile desenate de Răzvan erau raportate
 # la copacul care se vede.
 func _leaf_zone(tex: Texture2D, sprite: Sprite2D) -> Rect2:
-	if not _used_rect_cache.has(tex):
-		_used_rect_cache[tex] = tex.get_image().get_used_rect()
-	var used: Rect2i = _used_rect_cache[tex]
+	var used := _used(tex)
 	var w := float(tex.get_width())
 	var h := float(tex.get_height())
 	# Sprite2D e centrat: pixelul (px,py) ajunge la scale * (offset + (px - w/2, py - h/2))
