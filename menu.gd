@@ -20,6 +20,14 @@ const BG_FRAME_COUNT := 60
 const BG_FPS := 10.0
 const BLUR_SHADER := "res://menu/menu_blur.gdshader"
 
+const TITLE_DIR := "res://menu/Title"       # logo-ul animat (4 cadre, 256x256)
+const TITLE_FRAME_COUNT := 4
+const TITLE_FRAME_TIME := 0.4               # secunde per cadru (mai mare = mai lent)
+const TITLE_SIZE := 240                     # cât de mare se afișează logo-ul, în pixeli
+# ATENȚIE la înălțime: ecranul de referință are 648px, iar cele 5 butoane ocupă 346
+# (5 × 58 + 4 × 14 separare). Deci logo + spațiere trebuie să stea sub ~274, altfel
+# butonul LEADERBOARD iese din ecran. Acum: 240 + 16 = 256, rămân ~23px marjă sus/jos.
+
 # --- reglaje pentru intro (schimbă-le liniștit, sunt doar de gust) ---
 const INTRO_CLEAR := 1.0      # câte secunde rulează video-ul curat, fără nimic peste el
 const INTRO_FADE := 0.6       # cât durează să intre blur-ul + titlul
@@ -41,6 +49,11 @@ var _animating := false
 var _blur_mat: ShaderMaterial   # materialul de pe fundal, ca să pot anima blur-ul
 var _tint: ColorRect            # stratul întunecat peste video (lizibilitate text)
 var _vig: TextureRect           # vignette-ul
+var _title_rect: TextureRect    # logo-ul animat
+var _title_frames: Array[Texture2D] = []
+var _title_i := 0
+var _title_dir := 1             # ping-pong, ca la fundal
+var _title_t := 0.0
 var _title_group: VBoxContainer # titlul + subtitlul, ca să le pot stinge împreună
 var _main_buttons: VBoxContainer
 
@@ -109,8 +122,12 @@ func _bg_setup() -> void:
 		if ResourceLoader.exists(p):
 			_frames.append(load(p))
 
-# Derulează cadrele „ping-pong" (înainte, apoi înapoi), ca reluarea să nu aibă tăietură.
 func _process(delta: float) -> void:
+	_tick_bg(delta)
+	_tick_title(delta)
+
+# Derulează cadrele „ping-pong" (înainte, apoi înapoi), ca reluarea să nu aibă tăietură.
+func _tick_bg(delta: float) -> void:
 	if not _animating or _frames.size() < 2:
 		return
 	_frame_t += delta
@@ -219,18 +236,11 @@ func _build_main() -> void:
 	_title_group = VBoxContainer.new()
 	_title_group.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_title_group)
-	var title := Label.new()
-	title.text = "Nicotine & Knives"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 78)
-	title.add_theme_color_override("font_color", ACCENT)
-	title.add_theme_color_override("font_outline_color", Color(ACCENT2.r, ACCENT2.g, ACCENT2.b, 0.9))
-	title.add_theme_constant_override("outline_size", 8)
-	_title_group.add_child(title)
-	var sub := _center_label("C Y B E R   S U R V I V O R", 18)
-	sub.add_theme_color_override("font_color", Color(0.7, 0.8, 0.95, 0.7))
-	_title_group.add_child(sub)
-	box.add_child(_spacer(28))
+	_title_group.add_child(_build_title())
+	# subtitlul „CYBER SURVIVOR" a fost scos când a intrat logo-ul: numele e deja în logo,
+	# iar textul cyan se bătea cu stilul de lemn. Ca să-l aduci înapoi, adaugi aici un
+	# _center_label(...) în _title_group și scazi TITLE_SIZE cu ~40, altfel nu mai încape.
+	box.add_child(_spacer(16))
 	# la fel, butoanele într-un grup separat — apar după titlu
 	_main_buttons = VBoxContainer.new()
 	_main_buttons.add_theme_constant_override("separation", 14)
@@ -241,6 +251,44 @@ func _build_main() -> void:
 	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
 	_main_buttons.add_child(_menu_button("UPGRADES", _on_shop))
 	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
+
+# Logo-ul animat, în locul vechiului titlu scris cu text.
+# Dacă lipsesc cadrele, ne întoarcem la titlul-text, ca meniul să nu rămână gol.
+func _build_title() -> Control:
+	for i in range(1, TITLE_FRAME_COUNT + 1):
+		var p := "%s/title_%d.png" % [TITLE_DIR, i]
+		if ResourceLoader.exists(p):
+			_title_frames.append(load(p))
+	if _title_frames.is_empty():
+		var l := _center_label("Nicotine & Knives", 78)
+		l.add_theme_color_override("font_color", ACCENT)
+		l.add_theme_color_override("font_outline_color", Color(ACCENT2.r, ACCENT2.g, ACCENT2.b, 0.9))
+		l.add_theme_constant_override("outline_size", 8)
+		return l
+	_title_rect = TextureRect.new()
+	_title_rect.texture = _title_frames[0]
+	_title_rect.custom_minimum_size = Vector2(TITLE_SIZE, TITLE_SIZE)
+	_title_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_title_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_title_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_title_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return _title_rect
+
+# aceeași idee ca la fundal: înainte, apoi înapoi (1→2→3→4→3→2→...)
+func _tick_title(delta: float) -> void:
+	if _title_rect == null or _title_frames.size() < 2:
+		return
+	_title_t += delta
+	while _title_t >= TITLE_FRAME_TIME:
+		_title_t -= TITLE_FRAME_TIME
+		_title_i += _title_dir
+		if _title_i >= _title_frames.size():
+			_title_i = _title_frames.size() - 2
+			_title_dir = -1
+		elif _title_i < 0:
+			_title_i = 1
+			_title_dir = 1
+		_title_rect.texture = _title_frames[_title_i]
 
 func _on_start() -> void:
 	Audio.stop_music()   # tema de meniu se oprește când intri în joc

@@ -13,6 +13,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (logo animat în loc de titlul-text)
+
+**Cerut de Răzvan:** titlul scris cu text („ăla basic") să fie înlocuit cu logo-ul din `menu/Title/` — 4 cadre, mers **înainte-înapoi, destul de încet**.
+
+**Făcut:** `_build_title()` + `_tick_title()` în `menu.gd`. Ping-pong la `TITLE_FRAME_TIME = 0.4` s/cadru (1→2→3→4→3→2→…), afișat la `TITLE_SIZE = 240`. Dacă lipsesc cadrele, cade înapoi pe vechiul titlu-text.
+
+**Cadrele au fost redenumite** din `frame 1.png` … `Frame 4.png` în `title_1..4.png`. Motivul: spațiu în nume + `F` mare la al patrulea. Pe Windows merge, dar **Android are sistem de fișiere case-sensitive** — `Frame 4.png` ar fi crăpat la export, tăcut.
+
+**Capcana de layout (a mușcat de două ori):** ecranul de referință e **1152×648** — proiectul nu setează `window/size/viewport_*`, deci e default-ul Godot. Cele 5 butoane ocupă singure **346px** (5 × 58 + 4 × 14 separare). La primele două încercări (logo 340, apoi 260) **butonul LEADERBOARD ieșea din ecran**. Regula: `TITLE_SIZE` + spacer ≤ ~274. Acum 240 + 16 = 256, cu ~23px marjă. **Dacă mai adaugi un buton în meniul principal, verifică marginea de jos.**
+
+**Scos:** subtitlul „C Y B E R  S U R V I V O R" — numele e deja în logo, textul cyan se bătea cu stilul de lemn, și eliberează înălțime. Comentariul din `_build_main()` spune cum se aduce înapoi.
+
+---
+
 ## Session log — 2026-07-19 (fundal animat în meniu + intro cu blur)
 
 **Cerut de Răzvan:** `menu\main menu background.mp4` să ruleze la infinit în meniul principal, ca strat de jos, sub butoane. Plus: 1 secundă imaginea curată (fără titlu/butoane) → blur gaussian → apare titlul → imediat butoanele.
