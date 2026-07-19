@@ -31,10 +31,6 @@ y_sort_enabled = true
 [node name="Props" type="Node2D" parent="World" unique_id=1885660433]
 y_sort_enabled = true
 script = ExtResource("6_props")
-hitbox_north = -0.1
-hitbox_south = -0.5
-hitbox_east = 0.1
-hitbox_west = -0.3
 
 [node name="Rocks" type="Node2D" parent="World" unique_id=771294055]
 y_sort_enabled = true

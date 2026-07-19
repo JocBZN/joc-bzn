@@ -19,21 +19,17 @@ const TREES := [
 @export var load_radius: int = 3        # câte pătrate în jurul player-ului ținem încărcate
 @export var trees_per_chunk: int = 1    # câți copaci (maxim) într-un pătrat (înjumătățit de la 2)
 @export var min_gap_hitboxes: float = 2.0  # distanța minimă între copaci, măsurată în „hitbox-uri" (2 = nu se apropie mai mult de 2 hitbox-uri)
-# ATENȚIE la aceste două valori dacă mai schimbi arta copacilor. Sunt legate de
-# dimensiunea texturii, iar arta nouă (2026-07-19) a trecut de la 64x64 la 128x128:
-# - `tree_scale` era 4.5 pe texturile vechi. Nu se împarte pur și simplu la 2: conta
-#   cât din canvas ocupă desenul. Vechii aveau ~40x49px vizibili din 64, noii au
-#   ~97x120px din 128, deci raportul real e ~1.85, nu 2.25. Ăsta ar fi fost „la fel
-#   de mari ca înainte"; Răzvan i-a vrut apoi cu 1.5x mai mari, de unde 1.85 × 1.5.
-# - `hitbox_factor` e fracție din lățimea CANVASULUI, nu din copacul vizibil. Canvasul
-#   s-a dublat, deci a urcat de la 0.20 la 0.24 ca hitbox-ul să rămână la aceeași
-#   lățime reală (~114px, era 115). Cele 4 laturi din main.tscn sunt fracții din el,
-#   deci se traduc singure.
-# `sort_anchor` NU a trebuit schimbat: linia de sortare cade la 31% din înălțimea
-# copacului vechi și 34% din a celui nou — practic aceeași.
-@export var tree_scale: float = 2.775   # cât de mari sunt copacii (1.85 × 1.5)
-@export var hitbox_factor: float = 0.24   # cât de mare e hitbox-ul (fracție din lățimea copacului)
-@export var hitbox_vertical: float = 0.8  # înălțimea hitbox-ului față de lățime: 1.0 = pătrat, mai mic = mai scund
+# `tree_scale` e singura valoare încă legată de dimensiunea texturii, deci SINGURA care
+# trebuie recalculată dacă mai schimbi arta. Vechii copaci (64x64) mergeau la 4.5; nu se
+# împarte pur și simplu la raportul canvasului, fiindcă contează cât din canvas ocupă
+# desenul: vechii aveau ~40x49px vizibili din 64, noii ~97x120px din 128 → raport ~1.85.
+#
+# Hitbox-ul și umbra NU mai depind de canvas: se măsoară din trunchiul desenat (`_trunk`),
+# deci se potrivesc singure la orice artă nouă.
+@export var tree_scale: float = 1.85    # cât de mari sunt copacii
+@export var hitbox_factor: float = 0.85   # lățimea hitbox-ului, ca fracție din TRUNCHI (1.0 = exact trunchiul)
+@export var hitbox_vertical: float = 0.55 # înălțimea hitbox-ului față de lățime: 1.0 = pătrat, mai mic = mai scund
+@export var hitbox_shift_y: float = 0.0   # urcă/coboară cutia față de rădăcină (negativ = mai sus)
 # Cele 4 laturi — fiecare mișcă DOAR marginea ei (pozitiv = extinde afară, negativ = trage înăuntru):
 @export var hitbox_north: float = 0.0      # marginea de SUS (Nord)
 @export var hitbox_south: float = 0.0      # marginea de JOS (Sud)
@@ -58,7 +54,9 @@ const LEAF_ZONE_TOP := 0.31     # de unde începe, 0 = vârful copacului, 1 = ba
 const LEAF_ZONE_BOTTOM := 1.11  # unde se termină (>1 = puțin sub rădăcină)
 
 const SHADOW_TEX_SIZE := 128
+const TRUNK_BAND := 0.18    # ce fracție din înălțimea copacului, măsurată de jos, e „trunchi"
 
+var _trunk_cache := {}      # textură -> conturul trunchiului
 var _used_rect_cache := {}  # textură -> conturul opac (get_used_rect e scump, îl ținem minte)
 var _shadow_cache: GradientTexture2D  # o singură textură de umbră, refolosită de toți copacii
 
@@ -140,9 +138,7 @@ func _build_chunk(key: Vector2i) -> Node2D:
 
 # Distanța minimă (centru-centru) admisă între doi copaci = min_gap_hitboxes × media lățimilor lor de hitbox.
 func _min_dist(tex_a: Texture2D, tex_b: Texture2D) -> float:
-	var wa := tex_a.get_width() * hitbox_factor * tree_scale * 2.0
-	var wb := tex_b.get_width() * hitbox_factor * tree_scale * 2.0
-	return min_gap_hitboxes * (wa + wb) * 0.5
+	return min_gap_hitboxes * (_hitbox_w(tex_a) + _hitbox_w(tex_b)) * 0.5
 
 # Un copac e „prea aproape" dacă se suprapune cu unul deja acceptat. Regula de departajare
 # (ca decizia să fie aceeași indiferent de ordinea în care se generează pătratele):
@@ -176,7 +172,7 @@ func _make_tree(tex: Texture2D) -> StaticBody2D:
 	# Dreptunghi (nu cerc turtit): are lățime/înălțime independente, iar fizica îl tratează
 	# corect. Un cerc scalat non-uniform devine elipsă → motorul de coliziune se strică și te teleportează.
 	var shape := RectangleShape2D.new()
-	var base_w := tex.get_width() * hitbox_factor * tree_scale * 2.0  # lățimea de bază (ca vechea rază × 2)
+	var base_w := _hitbox_w(tex)                    # lățimea trunchiului × hitbox_factor
 	var base_h := base_w * hitbox_vertical          # înălțimea de bază (simetrică sus/jos)
 	# Fiecare latură = fracție din lățimea de bază. Pozitiv extinde marginea AFARĂ, negativ o trage înăuntru.
 	var north_extra := base_w * hitbox_north  # DOAR marginea de sus (Nord)
@@ -190,7 +186,13 @@ func _make_tree(tex: Texture2D) -> StaticBody2D:
 	# +x = spre Est, +y = spre Sud (jos). Nord/Vest trag înapoi (semn minus).
 	var center_x := (east_extra - west_extra) / 2.0
 	var center_y := (south_extra - north_extra) / 2.0
-	col.position = Vector2(center_x, (sort_anchor - 0.25) * h * tree_scale + center_y)
+	# Cutia stă pe trunchi: centrată pe mijlocul lui, cu marginea de jos pe rădăcină.
+	# (Înainte era legată de `sort_anchor` și de înălțimea canvasului — de acolo venea
+	# bara care plutea prin coroană.)
+	col.position = Vector2(
+		_trunk_center_x(tex, sprite) + center_x,
+		_base_y(tex, sprite) - base_h * 0.5 + hitbox_shift_y + center_y
+	)
 	body.add_child(col)  # nu mai poți trece prin copac (nici player, nici enemy)
 	body.add_child(_make_shadow(tex, sprite))
 	# cât s-a ridicat originea față de bază → compensăm poziția ca imaginea să rămână „plantată" pe loc
@@ -204,6 +206,37 @@ func _used(tex: Texture2D) -> Rect2i:
 	if not _used_rect_cache.has(tex):
 		_used_rect_cache[tex] = tex.get_image().get_used_rect()
 	return _used_rect_cache[tex]
+
+# Conturul TRUNCHIULUI, în pixeli de textură: scanăm doar banda de jos a copacului
+# (ultimele TRUNK_BAND din înălțimea lui vizibilă) și luăm întinderea pixelilor opaci.
+#
+# De ce: până pe 2026-07-19 hitbox-ul se calcula din lățimea CANVASULUI, iar umbra din
+# mijlocul conturului întreg — adică din coroană. Ieșea o bară lată plutind prin frunziș:
+# te blocai în frunze și treceai prin trunchi. Trunchiul e ce lovești de fapt.
+func _trunk(tex: Texture2D) -> Rect2i:
+	if _trunk_cache.has(tex):
+		return _trunk_cache[tex]
+	var img := tex.get_image()
+	var used := _used(tex)
+	var banda := maxi(1, int(round(float(used.size.y) * TRUNK_BAND)))
+	var y0 := used.end.y - banda
+	var min_x := used.end.x
+	var max_x := used.position.x
+	for y in range(y0, used.end.y):
+		for x in range(used.position.x, used.end.x):
+			if img.get_pixel(x, y).a > 0.03:
+				min_x = mini(min_x, x)
+				max_x = maxi(max_x, x)
+	var r := used  # dacă banda iese goală (n-ar trebui), cădem pe conturul întreg
+	if max_x >= min_x:
+		r = Rect2i(min_x, y0, max_x - min_x + 1, banda)
+	_trunk_cache[tex] = r
+	return r
+
+# Lățimea hitbox-ului în pixeli de lume. Un singur loc care o calculează, ca verificarea
+# de distanță dintre copaci și cutia de coliziune să nu poată ajunge să nu fie de acord.
+func _hitbox_w(tex: Texture2D) -> float:
+	return float(_trunk(tex).size.x) * tree_scale * hitbox_factor
 
 # Textura de umbră: un gradient radial negru, făcut o singură dată și refolosit de
 # toți copacii. Miez plin până la 55%, apoi margine moale.
@@ -228,21 +261,29 @@ func _shadow_texture() -> GradientTexture2D:
 # indiferent de sortarea pe Y. (Aceeași soluție ca la urmele de foc.)
 func _make_shadow(tex: Texture2D, sprite: Sprite2D) -> Sprite2D:
 	var used := _used(tex)
-	var w := float(tex.get_width())
-	var h := float(tex.get_height())
 	var sh := Sprite2D.new()
 	sh.texture = _shadow_texture()
 	sh.z_index = -1
 	sh.modulate = Color(1, 1, 1, shadow_alpha)
-	# lățimea umbrei se ia din copacul VIZIBIL, nu din canvas (canvasul are margini goale)
+	# Lățimea o dă coroana (ea aruncă umbra), dar POZIȚIA o dă trunchiul — la copacii
+	# cu coroana lăsată într-o parte, mijlocul conturului nu e deasupra trunchiului
+	# și umbra ieșea pe lângă copac.
 	var latime := float(used.size.x) * tree_scale * shadow_width
 	var t := float(SHADOW_TEX_SIZE)
 	sh.scale = Vector2(latime / t, latime * shadow_squash / t)
-	# centrată pe mijlocul copacului vizibil, la baza lui
-	var centru_x := (sprite.offset.x + float(used.position.x) + float(used.size.x) * 0.5 - w * 0.5) * tree_scale
-	var baza_y := (sprite.offset.y + float(used.end.y) - h * 0.5) * tree_scale
-	sh.position = Vector2(centru_x, baza_y + shadow_shift_y)
+	sh.position = Vector2(_trunk_center_x(tex, sprite), _base_y(tex, sprite) + shadow_shift_y)
 	return sh
+
+# Mijlocul trunchiului, în coordonatele nodului (Sprite2D e centrat, de aici scăderile).
+func _trunk_center_x(tex: Texture2D, sprite: Sprite2D) -> float:
+	var trunk := _trunk(tex)
+	var w := float(tex.get_width())
+	return (sprite.offset.x + float(trunk.position.x) + float(trunk.size.x) * 0.5 - w * 0.5) * tree_scale
+
+# Linia solului: baza vizibilă a copacului, în coordonatele nodului.
+func _base_y(tex: Texture2D, sprite: Sprite2D) -> float:
+	var h := float(tex.get_height())
+	return (sprite.offset.y + float(_used(tex).end.y) - h * 0.5) * tree_scale
 
 # Dreptunghiul în care cad frunzele, în coordonatele copacului.
 # Pornim de la conturul VIZIBIL al texturii (`get_used_rect`), nu de la canvas: texturile

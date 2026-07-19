@@ -36,7 +36,22 @@ Deci raportul real e **~1.85**, nu 2.25. `tree_scale`: 4.5 → **1.85**, ca să 
 
 **Verificat vizual** în `main.tscn`: copacii apar la scara corectă față de player, cu pietre și restul lumii nemodificate.
 
-**Apoi Răzvan i-a vrut cu 1.5x mai mari** → `tree_scale` 1.85 → **2.775**. `hitbox_factor` NU s-a atins: `base_w` îl înmulțește cu `tree_scale`, deci hitbox-ul crește singur odată cu copacul, ceea ce e corect.
+**Hitbox-urile și umbrele se măsoară acum din TRUNCHI, nu din canvas** (2026-07-19, după ce Răzvan a zis că hitbox-urile „sunt ca pula" — avea dreptate).
+
+**Ce era greșit:** `hitbox_factor` era fracție din lățimea **canvasului**, iar poziția pe Y venea din `sort_anchor` × înălțimea canvasului. Pus pe desen cu `--debug-collisions`, ieșea o **bară lată plutind prin mijlocul coroanei**: te blocai în frunze și treceai prin trunchi. Umbra avea aceeași boală — centrată pe mijlocul conturului întreg, adică al coroanei, deci la copacii cu coroana lăsată într-o parte cădea pe lângă trunchi.
+
+**Fix:** `_trunk(tex)` scanează banda de jos a copacului (ultimele `TRUNK_BAND` = 18% din înălțimea vizibilă) și returnează întinderea pixelilor opaci — adică trunchiul cu rădăcinile. De acolo:
+- `_hitbox_w()` = lățimea trunchiului × `hitbox_factor` (acum **0.85, fracție din trunchi**, nu din canvas);
+- cutia se așază **cu marginea de jos pe rădăcină**, centrată pe mijlocul trunchiului (`_trunk_center_x`, `_base_y`);
+- umbra ia **lățimea din coroană** (ea aruncă umbra) dar **poziția din trunchi**.
+
+**Consecință importantă:** rămâne **`tree_scale` singura valoare legată de dimensiunea texturii**. La următoarea schimbare de artă doar ea trebuie recalculată; hitbox-ul și umbra se potrivesc singure.
+
+**Am șters cele 4 reglaje de laturi din `main.tscn`** (`hitbox_north/south/east/west` = -0.1 / -0.5 / 0.1 / -0.3). Erau calibrate pentru cutia veche și, fiind fracții din `base_w`, pe geometria nouă ar fi deformat-o (`south -0.5` tăia jumătate din trunchi). Acum sunt 0; exporturile rămân, pentru reglaj fin.
+
+**`_min_dist()` folosește același `_hitbox_w()`** — distanța dintre copaci și cutia de coliziune nu mai pot ajunge să nu fie de acord.
+
+**Apoi Răzvan i-a vrut cu 1.5x mai mari** → `tree_scale` 1.85 → **2.775**, dar s-a răzgândit în aceeași zi și i-a vrut înapoi → **1.85**. `hitbox_factor` NU s-a atins: `base_w` îl înmulțește cu `tree_scale`, deci hitbox-ul crește singur odată cu copacul, ceea ce e corect.
 
 **Umbre la copaci** (tot atunci): `_make_shadow()` în `props.gd`. Un `GradientTexture2D` radial negru, turtit, **construit o singură dată în cod și refolosit** de toți copacii — nu e fișier de artă. Reglaje `@export`: `shadow_alpha` / `shadow_width` / `shadow_squash` / `shadow_shift_y`.
 - **`z_index = -1`** e cheia: ține umbra pe sol, sub copac, sub player și sub ceilalți copaci, indiferent de sortarea pe Y. Aceeași soluție ca la urmele de foc.
