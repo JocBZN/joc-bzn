@@ -13,6 +13,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (umbră la cactuși + `ground_shadow.gd`)
+
+**Cerut:** „adaugă umbră la toți cactușii ca la copaci".
+
+**Codul de umbră a ieșit din `props.gd` în `ground_shadow.gd`** (fișier nou, funcții statice) în loc să fie copiat. Nu era doar desenul elipsei: și scanarea pixelilor care găsește conturul opac (`used_rect`) și **banda de trunchi** (`trunk_rect`) — adică exact reglajul greu de pe 2026-07-19, care așază umbra pe trunchi, nu pe mijlocul coroanei. Două copii ale acelei măsurători s-ar fi desincronizat la prima ajustare.
+
+- `props.gd` păstrează aceleași `_used` / `_trunk` / `_trunk_center_x` / `_base_y` ca **scurtături** — le folosește și hitbox-ul, nu doar umbra, deci n-am vrut să rescriu apelanții.
+- **Fără `class_name`** în `ground_shadow.gd`. Am încercat întâi cu `class_name GroundShadow` și rularea directă a crăpat: `Identifier "GroundShadow" not declared` — numele globale se înregistrează doar când proiectul e **deschis în editor**, iar eu rulez jocul din linia de comandă. Fiecare utilizator îl ia cu `const GroundShadow := preload("res://ground_shadow.gd")`, ca la `LEAFFALL`. **De ținut minte pentru orice script nou partajat.**
+
+**Umbra e per-tip, prin cheia opțională `shadow` din `CONFIG`** (`desert_structures.gd`): dacă lipsește, structura n-are umbră. Doar cactusul o are. Casa și monumentul n-au fost cerute — și oricum o elipsă turtită sub un perete drept arată prost; dacă le vrei, cheia e acolo.
+
+**Reglaj:** `width` 0.85 la cactus vs **0.60** la copac. Nu e o valoare aleasă la ochi — lățimea e o fracție din conturul obiectului, iar cactusul e mult mai îngust decât un copac, deci aceeași fracție dădea o pată de nimic sub el.
+
+**Verificat vizual** (3 cactuși + un copac pe nisip): umbrele cad centrat pe bază, în același stil, iar **copacul a rămas identic** după refactor.
+
+---
+
 ## Session log — 2026-07-19 (Thunder God pe Stingător + BUG: Plugged In era mort de tot)
 
 **Cerut:** „vreau să meargă Thunder God și cu Stingătorul". Era a treia armă rămasă pe dinafară (mergea deja pe glonț și pe sabie).

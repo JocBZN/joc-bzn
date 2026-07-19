@@ -44,6 +44,7 @@ const TREES := [
 @export var shadow_shift_y: float = -6.0  # o urcă/coboară față de bază (negativ = mai sus)
 
 const LEAFFALL := preload("res://leaffall.gd")
+const GroundShadow := preload("res://ground_shadow.gd")  # umbra de la bază, comună cu cactușii
 
 # Zona în care cad frunzele, măsurată din dreptunghiurile roșii pe care le-a desenat
 # Răzvan peste doi copaci în `harta/Tree Leaf Area.png`. Fracții din conturul VIZIBIL
@@ -53,12 +54,8 @@ const LEAF_ZONE_W := 1.0        # lățimea zonei = lățimea copacului
 const LEAF_ZONE_TOP := 0.31     # de unde începe, 0 = vârful copacului, 1 = baza lui
 const LEAF_ZONE_BOTTOM := 1.11  # unde se termină (>1 = puțin sub rădăcină)
 
-const SHADOW_TEX_SIZE := 128
-const TRUNK_BAND := 0.18    # ce fracție din înălțimea copacului, măsurată de jos, e „trunchi"
-
-var _trunk_cache := {}      # textură -> conturul trunchiului
-var _used_rect_cache := {}  # textură -> conturul opac (get_used_rect e scump, îl ținem minte)
-var _shadow_cache: GradientTexture2D  # o singură textură de umbră, refolosită de toți copacii
+# Măsurătorile de contur/trunchi, cache-ul lor și textura de umbră stau acum în `ground_shadow.gd`
+# (le folosesc și cactușii). Constantele SHADOW_TEX_SIZE / TRUNK_BAND sunt tot acolo.
 
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul cu copacii lui)
 
@@ -200,90 +197,37 @@ func _make_tree(tex: Texture2D) -> StaticBody2D:
 	body.set_meta("leaf_zone", _leaf_zone(tex, sprite))
 	return body
 
-# Conturul opac al texturii (fără marginile transparente). `get_used_rect` citește
-# toți pixelii, deci e scump — îl ținem minte per textură.
-func _used(tex: Texture2D) -> Rect2i:
-	if not _used_rect_cache.has(tex):
-		_used_rect_cache[tex] = tex.get_image().get_used_rect()
-	return _used_rect_cache[tex]
-
-# Conturul TRUNCHIULUI, în pixeli de textură: scanăm doar banda de jos a copacului
-# (ultimele TRUNK_BAND din înălțimea lui vizibilă) și luăm întinderea pixelilor opaci.
+# Conturul opac al texturii (fără marginile transparente) și conturul trunchiului.
 #
-# De ce: până pe 2026-07-19 hitbox-ul se calcula din lățimea CANVASULUI, iar umbra din
-# mijlocul conturului întreg — adică din coroană. Ieșea o bară lată plutind prin frunziș:
+# De ce contează trunchiul: până pe 2026-07-19 hitbox-ul se calcula din lățimea CANVASULUI, iar
+# umbra din mijlocul conturului întreg — adică din coroană. Ieșea o bară lată plutind prin frunziș:
 # te blocai în frunze și treceai prin trunchi. Trunchiul e ce lovești de fapt.
+#
+# Măsurătoarea (și cache-ul ei — scanarea pixelilor e scumpă) stă în `ground_shadow.gd`, ca s-o
+# poată folosi și cactușii din `desert_structures.gd`. Aici rămân doar scurtăturile.
+func _used(tex: Texture2D) -> Rect2i:
+	return GroundShadow.used_rect(tex)
+
 func _trunk(tex: Texture2D) -> Rect2i:
-	if _trunk_cache.has(tex):
-		return _trunk_cache[tex]
-	var img := tex.get_image()
-	var used := _used(tex)
-	var banda := maxi(1, int(round(float(used.size.y) * TRUNK_BAND)))
-	var y0 := used.end.y - banda
-	var min_x := used.end.x
-	var max_x := used.position.x
-	for y in range(y0, used.end.y):
-		for x in range(used.position.x, used.end.x):
-			if img.get_pixel(x, y).a > 0.03:
-				min_x = mini(min_x, x)
-				max_x = maxi(max_x, x)
-	var r := used  # dacă banda iese goală (n-ar trebui), cădem pe conturul întreg
-	if max_x >= min_x:
-		r = Rect2i(min_x, y0, max_x - min_x + 1, banda)
-	_trunk_cache[tex] = r
-	return r
+	return GroundShadow.trunk_rect(tex)
 
 # Lățimea hitbox-ului în pixeli de lume. Un singur loc care o calculează, ca verificarea
 # de distanță dintre copaci și cutia de coliziune să nu poată ajunge să nu fie de acord.
 func _hitbox_w(tex: Texture2D) -> float:
 	return float(_trunk(tex).size.x) * tree_scale * hitbox_factor
 
-# Textura de umbră: un gradient radial negru, făcut o singură dată și refolosit de
-# toți copacii. Miez plin până la 55%, apoi margine moale.
-func _shadow_texture() -> GradientTexture2D:
-	if _shadow_cache == null:
-		var g := Gradient.new()
-		g.set_color(0, Color(0, 0, 0, 1))
-		g.set_color(1, Color(0, 0, 0, 0))
-		g.add_point(0.72, Color(0, 0, 0, 1))
-		var t := GradientTexture2D.new()
-		t.gradient = g
-		t.fill = GradientTexture2D.FILL_RADIAL
-		t.fill_from = Vector2(0.5, 0.5)
-		t.fill_to = Vector2(1.0, 0.5)
-		t.width = SHADOW_TEX_SIZE
-		t.height = SHADOW_TEX_SIZE
-		_shadow_cache = t
-	return _shadow_cache
-
-# Umbra de la baza copacului: elipsă turtită, așezată pe rădăcină.
-# `z_index = -1` o ține sub copac, sub player și sub ceilalți copaci — adică pe sol,
-# indiferent de sortarea pe Y. (Aceeași soluție ca la urmele de foc.)
+# Umbra de la baza copacului: elipsă turtită, așezată pe rădăcină. Vezi `ground_shadow.gd`.
 func _make_shadow(tex: Texture2D, sprite: Sprite2D) -> Sprite2D:
-	var used := _used(tex)
-	var sh := Sprite2D.new()
-	sh.texture = _shadow_texture()
-	sh.z_index = -1
-	sh.modulate = Color(1, 1, 1, shadow_alpha)
-	# Lățimea o dă coroana (ea aruncă umbra), dar POZIȚIA o dă trunchiul — la copacii
-	# cu coroana lăsată într-o parte, mijlocul conturului nu e deasupra trunchiului
-	# și umbra ieșea pe lângă copac.
-	var latime := float(used.size.x) * tree_scale * shadow_width
-	var t := float(SHADOW_TEX_SIZE)
-	sh.scale = Vector2(latime / t, latime * shadow_squash / t)
-	sh.position = Vector2(_trunk_center_x(tex, sprite), _base_y(tex, sprite) + shadow_shift_y)
-	return sh
+	return GroundShadow.make(tex, sprite, tree_scale,
+		shadow_alpha, shadow_width, shadow_squash, shadow_shift_y)
 
-# Mijlocul trunchiului, în coordonatele nodului (Sprite2D e centrat, de aici scăderile).
+# Mijlocul trunchiului și linia solului, în coordonatele nodului. Le folosește și hitbox-ul,
+# nu doar umbra — de-aia rămân scurtături aici. Calculul e în `ground_shadow.gd`.
 func _trunk_center_x(tex: Texture2D, sprite: Sprite2D) -> float:
-	var trunk := _trunk(tex)
-	var w := float(tex.get_width())
-	return (sprite.offset.x + float(trunk.position.x) + float(trunk.size.x) * 0.5 - w * 0.5) * tree_scale
+	return GroundShadow.trunk_center_x(tex, sprite, tree_scale)
 
-# Linia solului: baza vizibilă a copacului, în coordonatele nodului.
 func _base_y(tex: Texture2D, sprite: Sprite2D) -> float:
-	var h := float(tex.get_height())
-	return (sprite.offset.y + float(_used(tex).end.y) - h * 0.5) * tree_scale
+	return GroundShadow.base_y(tex, sprite, tree_scale)
 
 # Dreptunghiul în care cad frunzele, în coordonatele copacului.
 # Pornim de la conturul VIZIBIL al texturii (`get_used_rect`), nu de la canvas: texturile

@@ -8,6 +8,8 @@ extends Node2D
 # Casele/monumentele sunt legate de „identitatea" deșertului (macro-celula lui) → deterministe și
 # independente de chunk. FIECARE structură are propriul scale + hitbox (vezi CONFIG). Totul se auto-descarcă.
 
+const GroundShadow := preload("res://ground_shadow.gd")  # umbra de la bază, comună cu copacii
+
 const STRUCT_DIR := "res://harta/desert structures/"
 const SEED_CACTUS := 0xCAC705   # sămânța împrăștierii de cactuși (per-chunk)
 const SEED_SPECIAL := 0x5DEC1A  # sămânța caselor/monumentelor (per-deșert)
@@ -21,6 +23,9 @@ const CONFIG := {
 	"cactus": {
 		"scale": 1.5, "hitbox_factor": 0.22, "hitbox_vertical": 0.35, "sort_anchor": 0.30,
 		"north": 0.0, "south": 0.0, "east": 0.0, "west": 0.0,
+		# umbră la bază, ca la copaci (vezi `shadow` mai jos). Cactusul e mult mai îngust decât un
+		# copac, deci lățimea e o fracție mai mare din conturul lui — altfel iese o pată de nimic.
+		"shadow": {"alpha": 0.42, "width": 0.85, "squash": 0.30, "shift_y": -2.0},
 	},
 	"house": {
 		"scale": 3.5, "hitbox_factor": 0.42, "hitbox_vertical": 0.55, "sort_anchor": 0.55,
@@ -241,5 +246,12 @@ func _make_struct(tex: Texture2D, cfg: Dictionary) -> StaticBody2D:
 	var center_y := (south_extra - north_extra) / 2.0
 	col.position = Vector2(center_x, (sa - 0.25) * h * sc + center_y)
 	body.add_child(col)
+	# Umbră la bază, doar pentru tipurile care au cheia „shadow" în CONFIG (deocamdată doar cactusul —
+	# casa și monumentul n-au fost cerute, iar la ele o elipsă turtită sub un perete drept arată prost).
+	# Aceeași funcție ca la copaci: `ground_shadow.gd`.
+	if cfg.has("shadow"):
+		var s: Dictionary = cfg["shadow"]
+		body.add_child(GroundShadow.make(tex, sprite, sc,
+			s["alpha"], s["width"], s["squash"], s["shift_y"]))
 	body.set_meta("sort_shift", sa * h * sc)
 	return body
