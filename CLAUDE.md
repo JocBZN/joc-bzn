@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (Thunder God: arcul stă lipit de inamici)
+
+**Reclamația lui Răzvan:** „thunder god lasă animația în urmă, vreau să urmărească inamicii (să stea ca o frânghie între ei lipită)".
+
+**Cauza:** `_spawn_electric_arc` întindea arcul **o singură dată**, la spawn: calcula poziția/unghiul/lungimea din pozițiile de atunci și le scria fix pe `AnimatedSprite2D`. Inamicii se mișcă în continuare cele ~0.5s cât ține animația (14 cadre @ 30fps) → arcul rămânea plutind în urma lor.
+
+**Rezolvarea:** `electric_arc.gd` (fișier nou), pus pe sprite-ul arcului. Ține cele două **noduri** de la capete și în `_process` reface în fiecare cadru `global_position` (mijlocul), `rotation` și `scale.y` (= distanța / înălțimea cadrului). Aceeași matematică de dinainte, doar că rulată continuu, nu o dată.
+
+- **Capătul de origine** (inamicul lovit) se recuperează din `exclude_id` cu `instance_from_id` în `thunder_burst`. Poate fi deja **mort** — `thunder_burst` e `call_deferred`, exact motivul pentru care lucrează pe poziție + id (vezi log-ul din 2026-07-17). Dacă e mort, `src_node` rămâne `null`.
+- **Capăt mort = poziție înghețată**, nu arc dispărut: `electric_arc.gd` actualizează `from_pos`/`to_pos` doar când nodul e `is_instance_valid`, altfel păstrează ultima valoare. Așa arată natural când moare un inamic în timpul descărcării.
+- `_spawn_electric_arc(from, to, n_from := null, n_to := null)` — nodurile sunt opționale, deci un apel vechi cu doar 2 puncte încă merge (arc fix, ca înainte).
+
+**Verificat** cu o scenă temporară: două noduri mutate după spawn → mijlocul arcului și lungimea lui se potrivesc **exact** cu noile poziții (375,325 vs 375,325; lungime 570.09 vs distanță 570.09). Și `player.gd` compilează.
+
+**Nu am atins** damage-ul, raza (200px), `thunder_active_on_hit` sau Plugged In — doar vizualul.
+
+---
+
 ## Session log — 2026-07-19 (artă nouă de copaci)
 
 **Ce a făcut Răzvan:** a șters `harta/trees/spr_tree_1..16.png` și a pus `Tree Variant 1..7.png`. Deci **16 variante → 7**, și canvas **64x64 → 128x128**.

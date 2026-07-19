@@ -520,13 +520,18 @@ func thunder_burst(origin: Vector2, exclude_id: int) -> void:
 	if thunder_stacks <= 0:
 		return
 	var dmg := thunder_damage()
+	# Nodul de origine (inamicul lovit), ca arcul să-l urmărească dacă a supraviețuit impactului.
+	# Poate fi deja mort (thunder_burst e deferred) → atunci rămâne punctul fix `origin`.
+	var src_node := instance_from_id(exclude_id) as Node2D
+	if src_node != null and not is_instance_valid(src_node):
+		src_node = null
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null or enemy.get_instance_id() == exclude_id:
 			continue
 		if origin.distance_to(enemy.global_position) > thunder_range:
 			continue
-		_spawn_electric_arc(origin, enemy.global_position)
+		_spawn_electric_arc(origin, enemy.global_position, src_node, enemy)
 		if enemy.has_method("take_damage"):
 			enemy.take_damage(dmg)
 			if enemy.has_method("flash_electric"):
@@ -551,27 +556,24 @@ func thunder_burst_maybe(origin: Vector2, exclude_id: int) -> void:
 func thunder_damage() -> int:
 	return max(1, int(round(bullet_damage * 0.25)))
 
-# Arcul electric vizual, întins EXACT între cele două puncte. Animația e spre NORD în poză, deci o
-# rotesc ca la gloanțe (dir.angle() + PI/2) ca să arate spre inamic, și o întind pe verticală ca
-# lungimea ei să fie fix distanța dintre inamici (scale.y = d / înălțimea cadrului). Centrată între
-# cei doi → capetele cad exact pe inamici. Se joacă o dată și se distruge.
-func _spawn_electric_arc(from: Vector2, to: Vector2) -> void:
+# Arcul electric vizual, întins între cele două capete. Rotirea/întinderea le face `electric_arc.gd`
+# în fiecare cadru, ca arcul să stea LIPIT ca o frânghie între inamici cât timp aceștia se mișcă
+# (înainte era întins o dată la spawn și rămânea în urmă). `n_from`/`n_to` sunt nodurile de urmărit;
+# dacă unul e null sau moare, capătul lui rămâne la ultima poziție. Se joacă o dată și se distruge.
+func _spawn_electric_arc(from: Vector2, to: Vector2, n_from: Node2D = null, n_to: Node2D = null) -> void:
 	if _electric_frames == null or _electric_frames.get_frame_count("fx") == 0:
 		return
-	var d := from.distance_to(to)
-	if d < 1.0:
+	if from.distance_to(to) < 1.0:
 		return
-	var dir := (to - from) / d
 	var fh := float(_electric_frames.get_frame_texture("fx", 0).get_height())
 	var a := AnimatedSprite2D.new()
+	a.set_script(load("res://electric_arc.gd"))
 	a.sprite_frames = _electric_frames
 	a.animation = "fx"
 	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	a.z_index = 50  # peste inamici
-	a.rotation = dir.angle() + PI / 2.0
-	a.scale = Vector2(1.0, d / fh)   # x = grosimea liniei, y = întinsă pe distanță
 	get_parent().add_child(a)
-	a.global_position = (from + to) * 0.5
+	a.setup(from, to, n_from, n_to, fh)
 	a.play("fx")
 	a.animation_finished.connect(a.queue_free)
 
