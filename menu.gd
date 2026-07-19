@@ -14,15 +14,41 @@ var WEAPONS := [
 	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png"},
 ]
 
+const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (720p) pentru secunda de intro
+const BG_FRAMES_DIR := "res://menu/bg_frames"       # cadrele de animație (640x360)
+const BG_FRAME_COUNT := 60
+const BG_FPS := 10.0
+const BLUR_SHADER := "res://menu/menu_blur.gdshader"
+
+# --- reglaje pentru intro (schimbă-le liniștit, sunt doar de gust) ---
+const INTRO_CLEAR := 1.0      # câte secunde rulează video-ul curat, fără nimic peste el
+const INTRO_FADE := 0.6       # cât durează să intre blur-ul + titlul
+const INTRO_BUTTONS := 0.35   # cât durează să apară butoanele, imediat după titlu
+const MENU_BLUR := 3.0        # cât de tare e blur-ul la final (0 = deloc, 8 = maxim)
+
 var _panels := {}
 var _weapon_buttons := []
 var _lb_list: VBoxContainer
 var _coins_label: Label
 var _shop_rows := []
 
+var _bg_rect: TextureRect       # fundalul (întâi cadrul clar, apoi cadrele animate)
+var _frames: Array[Texture2D] = []
+var _frame_i := 0
+var _frame_dir := 1             # ping-pong: 1 = înainte, -1 = înapoi
+var _frame_t := 0.0
+var _animating := false
+var _blur_mat: ShaderMaterial   # materialul de pe fundal, ca să pot anima blur-ul
+var _tint: ColorRect            # stratul întunecat peste video (lizibilitate text)
+var _vig: TextureRect           # vignette-ul
+var _title_group: VBoxContainer # titlul + subtitlul, ca să le pot stinge împreună
+var _main_buttons: VBoxContainer
+
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_gradient_bg()
+	# ordinea de adăugare = ordinea straturilor: video jos de tot, apoi tint, vignette, UI
+	_bg_setup()
+	_tint_overlay()
 	_vignette()
 	_build_main()
 	_build_weapon()
@@ -34,6 +60,8 @@ func _ready() -> void:
 	# după ce tot UI-ul e construit, punem sunetul de click pe TOATE butoanele deodată
 	# (inclusiv cele de armă și de cumpărat) — nu trebuie să-l adaugi manual la fiecare.
 	_hook_button_sounds(self)
+	# ultimul, fiindcă așteaptă (await) — tot ce e mai sus trebuie să fie deja gata
+	await _play_intro()
 
 # merge recursiv prin tot meniul și conectează click-ul la orice buton găsește
 func _hook_button_sounds(n: Node) -> void:
@@ -52,7 +80,90 @@ func _show(which: String) -> void:
 	for key in _panels:
 		_panels[key].visible = (key == which)
 
-# fundal cu gradient vertical (mov-navy închis → aproape negru)
+# ---------- FUNDAL ANIMAT ----------
+# Fundalul e primul copil, deci stă sub tot restul meniului.
+#
+# De ce cadre PNG/WebP și nu video: Godot poate reda doar Ogg Theora (.mp4/H.264 nu e
+# inclus în engine), iar conversia în Theora a ieșit de fiecare dată cu imaginea coruptă.
+# Așa că am tăiat 6 secunde din „main menu background.mp4" în cadre (vezi README).
+#
+# Cadrele animate sunt mici (640x360) fiindcă se văd doar blurate; pentru secunda de
+# intro, cât imaginea e clară, folosim un cadru separat de 720p.
+func _bg_setup() -> void:
+	if not ResourceLoader.exists(BG_STILL):
+		_gradient_bg()   # dacă lipsesc cadrele, meniul arată ca înainte
+		return
+	_bg_rect = TextureRect.new()
+	_bg_rect.texture = load(BG_STILL)
+	_bg_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_bg_rect.stretch_mode = TextureRect.STRETCH_SCALE
+	_bg_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_blur_mat = ShaderMaterial.new()
+	_blur_mat.shader = load(BLUR_SHADER)
+	_blur_mat.set_shader_parameter("blur_amount", 0.0)
+	_bg_rect.material = _blur_mat
+	add_child(_bg_rect)
+	for i in range(1, BG_FRAME_COUNT + 1):
+		var p := "%s/frame_%03d.webp" % [BG_FRAMES_DIR, i]
+		if ResourceLoader.exists(p):
+			_frames.append(load(p))
+
+# Derulează cadrele „ping-pong" (înainte, apoi înapoi), ca reluarea să nu aibă tăietură.
+func _process(delta: float) -> void:
+	if not _animating or _frames.size() < 2:
+		return
+	_frame_t += delta
+	var step := 1.0 / BG_FPS
+	while _frame_t >= step:
+		_frame_t -= step
+		_frame_i += _frame_dir
+		if _frame_i >= _frames.size():
+			_frame_i = _frames.size() - 2
+			_frame_dir = -1
+		elif _frame_i < 0:
+			_frame_i = 1
+			_frame_dir = 1
+		_bg_rect.texture = _frames[_frame_i]
+
+# strat întunecat peste video, ca textul alb să rămână lizibil peste imagini deschise
+func _tint_overlay() -> void:
+	_tint = ColorRect.new()
+	_tint.color = Color(0.02, 0.02, 0.06, 0.55)
+	_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_tint)
+
+func _set_blur(v: float) -> void:
+	if _blur_mat:
+		_blur_mat.set_shader_parameter("blur_amount", v)
+
+# Intro: 1 secundă video curat (fără titlu, fără butoane) → blur + titlu → butoanele.
+func _play_intro() -> void:
+	_set_blur(0.0)
+	_tint.modulate.a = 0.0
+	_vig.modulate.a = 0.0
+	_title_group.modulate.a = 0.0
+	_main_buttons.modulate.a = 0.0
+	_main_buttons.visible = false   # ascunse de tot, ca să nu poți da click pe ele în intro
+
+	await get_tree().create_timer(INTRO_CLEAR).timeout
+
+	# de aici încolo imaginea e blurată, deci trecem pe cadrele mici — nu se vede diferența
+	_animating = true
+
+	# blur, întunecare și titlu intră toate odată
+	var t := create_tween().set_parallel(true)
+	t.tween_method(_set_blur, 0.0, MENU_BLUR, INTRO_FADE)
+	t.tween_property(_tint, "modulate:a", 1.0, INTRO_FADE)
+	t.tween_property(_vig, "modulate:a", 1.0, INTRO_FADE)
+	t.tween_property(_title_group, "modulate:a", 1.0, INTRO_FADE)
+	await t.finished
+
+	_main_buttons.visible = true
+	create_tween().tween_property(_main_buttons, "modulate:a", 1.0, INTRO_BUTTONS)
+
+# fundal cu gradient vertical (mov-navy închis → aproape negru) — rezervă, dacă lipsește video-ul
 func _gradient_bg() -> void:
 	var grad := Gradient.new()
 	grad.set_color(0, Color(0.07, 0.05, 0.15))
@@ -84,6 +195,7 @@ func _vignette() -> void:
 	tr.stretch_mode = TextureRect.STRETCH_SCALE
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(tr)
+	_vig = tr
 
 func _make_panel(key: String) -> VBoxContainer:
 	var panel := Control.new()
@@ -103,23 +215,32 @@ func _make_panel(key: String) -> VBoxContainer:
 # ---------- MAIN ----------
 func _build_main() -> void:
 	var box := _make_panel("main")
+	# titlul și subtitlul stau împreună, ca să le pot stinge/aprinde dintr-o mișcare la intro
+	_title_group = VBoxContainer.new()
+	_title_group.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(_title_group)
 	var title := Label.new()
-	title.text = "JOC-BZN"
+	title.text = "Nicotine & Knives"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 78)
 	title.add_theme_color_override("font_color", ACCENT)
 	title.add_theme_color_override("font_outline_color", Color(ACCENT2.r, ACCENT2.g, ACCENT2.b, 0.9))
 	title.add_theme_constant_override("outline_size", 8)
-	box.add_child(title)
+	_title_group.add_child(title)
 	var sub := _center_label("C Y B E R   S U R V I V O R", 18)
 	sub.add_theme_color_override("font_color", Color(0.7, 0.8, 0.95, 0.7))
-	box.add_child(sub)
+	_title_group.add_child(sub)
 	box.add_child(_spacer(28))
-	box.add_child(_menu_button("START", _on_start))
-	box.add_child(_menu_button("CHOOSE CHARACTER", _show.bind("character")))
-	box.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
-	box.add_child(_menu_button("UPGRADES", _on_shop))
-	box.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
+	# la fel, butoanele într-un grup separat — apar după titlu
+	_main_buttons = VBoxContainer.new()
+	_main_buttons.add_theme_constant_override("separation", 14)
+	_main_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(_main_buttons)
+	_main_buttons.add_child(_menu_button("START", _on_start))
+	_main_buttons.add_child(_menu_button("CHOOSE CHARACTER", _show.bind("character")))
+	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
+	_main_buttons.add_child(_menu_button("UPGRADES", _on_shop))
+	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
 
 func _on_start() -> void:
 	Audio.stop_music()   # tema de meniu se oprește când intri în joc

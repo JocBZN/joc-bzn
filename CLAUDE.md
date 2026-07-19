@@ -13,6 +13,35 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (fundal animat în meniu + intro cu blur)
+
+**Cerut de Răzvan:** `menu\main menu background.mp4` să ruleze la infinit în meniul principal, ca strat de jos, sub butoane. Plus: 1 secundă imaginea curată (fără titlu/butoane) → blur gaussian → apare titlul → imediat butoanele.
+
+**Ce s-a făcut:** exact secvența de mai sus, în `menu.gd` (`_play_intro()`), cu blur-ul din `menu/menu_blur.gdshader` pus ca material pe fundal. Reglaje: `INTRO_CLEAR` / `INTRO_FADE` / `INTRO_BUTTONS` / `MENU_BLUR`. Titlul și butoanele stau acum în două containere separate (`_title_group`, `_main_buttons`) ca să poată fi stinse/aprinse independent.
+
+**Capcana mare — Godot NU poate reda mp4.** Engine-ul are doar **Ogg Theora**; H.264 nu e inclus. Am convertit cu ffmpeg și **toate variantele de `.ogv` au ieșit corupte** (blocuri magenta/verzi după câteva secunde). Am izolat vina, nu am ghicit:
+- mp4-ul sursă decodează **curat** cap-coadă;
+- `.ogv`-ul crapă în **propriul decodor ffmpeg** (`error in unpack_block_qpis`, rată de eroare 0.92);
+- persistă la `-b:v` și la `-q:v`, cu `-threads 1` și cu decodare single-thread.
+
+Deci encoderul `libtheora` din build-ul Gyan 8.1.2 produce bitstream stricat. **Nu mai pierde timp pe Theora.**
+
+**Soluția aleasă de Răzvan:** secvență de cadre în loc de video.
+- `menu/bg_frames/` — 60 × WebP 640×360, 10 fps, 6 secunde, redate **ping-pong** (înainte apoi înapoi) ca reluarea să nu aibă tăietură. Derulate manual în `_process()`.
+- `menu/bg_still.webp` — un singur cadru 720p, clar, pentru secunda de intro.
+
+**De ce două rezoluții:** cadrele animate se văd **doar blurate** (blur-ul pornește la 1s și nu mai pleacă), deci 640×360 nu se observă. 60 de cadre la 720p ar fi însemnat **~440 MB VRAM** — inacceptabil pe renderer-ul Mobile. Așa: 0.8 MB pe disc, ~53 MB VRAM.
+
+**Gotchas:**
+- mp4-ul sursă (79 MB) e în `.gitignore` — există doar local la Răzvan. Cadrele generate sunt cele comise.
+- Regenerarea cadrelor cere ffmpeg (`winget install Gyan.FFmpeg`); comenzile exacte sunt în acest log și în README.
+- WebP-urile noi trebuie importate înainte de o rulare directă: `godot --headless --path <proj> --import`.
+- `_bg_setup()` cade elegant înapoi pe gradientul vechi (`_gradient_bg()`) dacă lipsesc cadrele.
+
+**Verificat vizual** cu screenshot-uri la 0.5s / 1.4s / 2.3s / 8s: intro curat, blur + titlu, butoane, și fără artefacte târziu în animație.
+
+---
+
 ## Session log — 2026-07-19 (BUG: fâșii de iarbă prin deșert)
 
 **Simptom** (screenshot de la Răzvan în `debugging/`): un culoar vertical verde tăia deșertul în două, cu pietre crescute pe el.

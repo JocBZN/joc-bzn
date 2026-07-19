@@ -4,3 +4,7 @@
 
 # macOS
 .DS_Store
+
+# Sursa video pentru fundalul de meniu (79 MB) — prea mare pentru git.
+# Cadrele folosite efectiv de joc sunt în menu/bg_frames/ și SUNT în repo.
+menu/*.mp4
