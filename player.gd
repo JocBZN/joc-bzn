@@ -517,7 +517,11 @@ func thunder_from(src: Node2D) -> void:
 		thunder_burst(src.global_position, src.get_instance_id())
 
 func thunder_burst(origin: Vector2, exclude_id: int) -> void:
-	if thunder_stacks <= 0:
+	# ATENȚIE: aici NU se verifică `thunder_stacks > 0`. Așa era înainte și făcea Plugged In complet
+	# inutil: `thunder_active_on_hit()` trecea rostogolirea de 10%, apoi burst-ul ieșea imediat pe ușă
+	# fiindcă `thunder_stacks` era 0. Decizia „se declanșează?" aparține lui `thunder_active_on_hit()`
+	# (singurul apelant, pe toate cele 3 arme) — dublarea ei aici doar rupea itemul.
+	if thunder_stacks <= 0 and plugged_in_stacks <= 0:
 		return
 	var dmg := thunder_damage()
 	# Nodul de origine (inamicul lovit), ca arcul să-l urmărească dacă a supraviețuit impactului.
@@ -589,6 +593,7 @@ func _aura_pulse() -> void:
 	if is_crit:
 		dmg = int(round(dmg * cr["mult"]))
 	var hit := false
+	var loviti: Array[Node2D] = []   # cine a încasat pulsul → din ei pornește Thunder God (vezi jos)
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null:
@@ -598,11 +603,20 @@ func _aura_pulse() -> void:
 			Fx.damage_number(enemy.global_position, dmg, is_crit)
 			if knockback > 0.0 and enemy.has_method("apply_knockback"):
 				enemy.apply_knockback((enemy.global_position - global_position).normalized() * knockback)
+			loviti.append(enemy)
 			hit = true
 	if hit:
 		Audio.play("shoot", -12.0)  # foșnet slab (placeholder până ai sunet de spumă)
 		if is_crit:
 			add_shake(0.35)  # zguduitură ca la gloanțele critice
+		# Thunder God / Plugged In și pe Stingător. UN SINGUR lanț pe puls, dintr-un inamic lovit la
+		# întâmplare — NU câte unul din fiecare. Aura lovește tot ce prinde deodată; un lanț de fiecare
+		# ar da N×N arcuri pe puls (10 inamici = 90 de arcuri, de câteva ori pe secundă) — și ilizibil,
+		# și greu. Un lanț per puls păstrează regula celorlalte arme: un impact = o descărcare.
+		if thunder_active_on_hit():
+			var vii := loviti.filter(func(n: Node2D) -> bool: return is_instance_valid(n))
+			if not vii.is_empty():
+				thunder_from(vii[randi() % vii.size()])
 	_spawn_aura_ring(radius)
 
 # Vizual placeholder al aurei: un nor bleu-alb care se extinde din player și se stinge.

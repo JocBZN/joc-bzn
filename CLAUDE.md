@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (Thunder God pe Stingător + BUG: Plugged In era mort de tot)
+
+**Cerut:** „vreau să meargă Thunder God și cu Stingătorul". Era a treia armă rămasă pe dinafară (mergea deja pe glonț și pe sabie).
+
+**Un singur lanț pe puls, dintr-un inamic lovit la întâmplare** — nu câte unul din fiecare inamic prins de aură. Aura lovește tot ce prinde deodată, deci un lanț de fiecare ar da N×N arcuri per puls (10 inamici = 90 de arcuri, de câteva ori pe secundă): ilizibil și greu. Un lanț per puls păstrează regula celorlalte arme: **un impact = o descărcare**. Inamicii morți din puls sunt filtrați (`is_instance_valid`) înainte de a alege sursa.
+
+**BUG găsit în drum — Plugged In nu făcea NIMIC de când există (2026-07-17).** `thunder_burst` începea cu `if thunder_stacks <= 0: return`. Dar Plugged In lasă `thunder_stacks` pe 0 — el trece doar rostogolirea din `thunder_active_on_hit()`. Deci: rostogolirea de 10% ieșea true, se chema `thunder_burst`, și burst-ul ieșea imediat pe ușă. Zero arcuri, zero damage. Itemul era decor pur.
+
+- **Cauza de fond:** decizia „se declanșează?" era luată în **două** locuri. `thunder_active_on_hit()` e singura poartă și e chemată de toți cei 3 apelanți; verificarea duplicată din `thunder_burst` doar contrazicea poarta.
+- **Fix:** guard-ul acceptă acum oricare sursă (`thunder_stacks <= 0 and plugged_in_stacks <= 0`).
+- **Verificat empiric, în ambele sensuri:** cu Plugged In la 100% (10 stack-uri) și aura pe 8 inamici → **0 arcuri cu codul vechi, 2 cu cel nou**. Thunder God dădea 2 în ambele cazuri (2 și nu 7 fiindcă `thunder_range` = 200px, iar inamicii de pe partea opusă a cercului sunt mai departe — corect).
+
+**Lecție:** când o poartă de decizie e deja centralizată, verificarea „de siguranță" repetată în aval nu e gratis — aici a omorât un item întreg, în tăcere, timp de 2 zile.
+
+---
+
 ## Session log — 2026-07-19 (Thunder God: arcul stă lipit de inamici)
 
 **Reclamația lui Răzvan:** „thunder god lasă animația în urmă, vreau să urmărească inamicii (să stea ca o frânghie între ei lipită)".
