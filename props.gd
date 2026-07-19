@@ -31,10 +31,10 @@ const TREES := [
 @export var hitbox_vertical: float = 0.55 # înălțimea hitbox-ului față de lățime: 1.0 = pătrat, mai mic = mai scund
 @export var hitbox_shift_y: float = 0.0   # urcă/coboară cutia față de rădăcină (negativ = mai sus)
 # Cele 4 laturi — fiecare mișcă DOAR marginea ei (pozitiv = extinde afară, negativ = trage înăuntru):
-@export var hitbox_north: float = 0.0      # marginea de SUS (Nord)
+@export var hitbox_north: float = 0.2      # marginea de SUS (Nord)
 @export var hitbox_south: float = 0.0      # marginea de JOS (Sud)
-@export var hitbox_east: float = 0.0       # marginea din DREAPTA (Est)
-@export var hitbox_west: float = 0.0       # marginea din STÂNGA (Vest)
+@export var hitbox_east: float = 0.5       # marginea din DREAPTA (Est)
+@export var hitbox_west: float = 0.5       # marginea din STÂNGA (Vest)
 @export var sort_anchor: float = 0.35     # de la ce % din înălțime (măsurat de la bază) copacul începe să te acopere
 @export var leaf_chance: float = 0.10     # ce șansă are un copac să-i cadă frunze (0.10 = 10%)
 # --- umbra de la baza copacului ---

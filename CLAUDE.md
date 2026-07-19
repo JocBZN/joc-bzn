@@ -51,6 +51,13 @@ Deci raportul real e **~1.85**, nu 2.25. `tree_scale`: 4.5 → **1.85**, ca să 
 
 **`_min_dist()` folosește același `_hitbox_w()`** — distanța dintre copaci și cutia de coliziune nu mai pot ajunge să nu fie de acord.
 
+**Reglajul final l-a făcut Răzvan singur, în editor**, peste cutia derivată din trunchi:
+- `hitbox_east` = `hitbox_west` = **0.5** → cutia iese **dublul** lățimii derivate. Trunchiul gol se simțea prea subțire când intrai în el.
+- `hitbox_north` **0.2** + `hitbox_south` **−0.2** (al doilea pe nodul `Props` din `main.tscn`) → mută cutia în sus fără să-i schimbe înălțimea.
+- `sort_anchor` 0.35 → **0.355**.
+
+Astea sunt **gust, nu matematică** — cutia derivată din trunchi e baza pe care o modifică. Dacă se schimbă iar arta, baza se recalculează singură, dar aceste patru valori rămân și s-ar putea să nu mai fie potrivite.
+
 **Apoi Răzvan i-a vrut cu 1.5x mai mari** → `tree_scale` 1.85 → **2.775**, dar s-a răzgândit în aceeași zi și i-a vrut înapoi → **1.85**. `hitbox_factor` NU s-a atins: `base_w` îl înmulțește cu `tree_scale`, deci hitbox-ul crește singur odată cu copacul, ceea ce e corect.
 
 **Umbre la copaci** (tot atunci): `_make_shadow()` în `props.gd`. Un `GradientTexture2D` radial negru, turtit, **construit o singură dată în cod și refolosit** de toți copacii — nu e fișier de artă. Reglaje `@export`: `shadow_alpha` / `shadow_width` / `shadow_squash` / `shadow_shift_y`.

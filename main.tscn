@@ -10,9 +10,9 @@
 [ext_resource type="Script" uid="uid://8nc8hcu2le1g" path="res://gameover.gd" id="9_gameover"]
 [ext_resource type="Script" uid="uid://cc1xvb48auo54" path="res://atmosphere.gd" id="10_atmo"]
 [ext_resource type="Script" uid="uid://cetplbjamrhjs" path="res://rocks.gd" id="11_rocks"]
-[ext_resource type="Script" path="res://statues.gd" id="12_statues"]
+[ext_resource type="Script" uid="uid://cipslm7dumpgc" path="res://statues.gd" id="12_statues"]
 [ext_resource type="Script" uid="uid://db54v5w8totxb" path="res://desert_structures.gd" id="13_desert"]
-[ext_resource type="Script" path="res://interact_ui.gd" id="14_interact"]
+[ext_resource type="Script" uid="uid://di3mvgfhw7dac" path="res://interact_ui.gd" id="14_interact"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -31,6 +31,8 @@ y_sort_enabled = true
 [node name="Props" type="Node2D" parent="World" unique_id=1885660433]
 y_sort_enabled = true
 script = ExtResource("6_props")
+hitbox_south = -0.2
+sort_anchor = 0.355
 
 [node name="Rocks" type="Node2D" parent="World" unique_id=771294055]
 y_sort_enabled = true
