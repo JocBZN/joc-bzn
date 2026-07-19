@@ -20,8 +20,18 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var lightning_damage: int = 15     # cât rău face bila
 @export var lightning_speed: float = 340.0 # cât de repede zboară bila
 
+# --- Atac special: o dată la 10s aruncă atacul normal de 3 ori la rând, foarte rapid ---
+@export var special_interval: float = 10.0  # o dată la câte secunde
+@export var special_shots: int = 3          # câte bile aruncă în rafală
+@export var special_gap: float = 0.12       # pauza ÎNTRE bilele rafalei (mic = rafală strânsă)
+
 const LIGHTNING := preload("res://lightning.tscn")
 var _atk_cooldown := 0.0
+var _special_cooldown := 0.0
+# Rafala e derulată din `_physics_process` cu un contor, NU cu `await`: dacă garda moare în mijlocul
+# rafalei, o corutină și-ar relua firul pe un nod deja eliberat. Contorul dispare odată cu nodul.
+var _burst_left := 0
+var _burst_timer := 0.0
 
 var hp: int
 var _dying := false
@@ -87,9 +97,31 @@ func _physics_process(delta: float) -> void:
 	# unghiul spre player → octant 0..7 → animația de mers pe direcția aia
 	var idx := wrapi(int(round(dir.angle() / (PI / 4.0))), 0, 8)
 	anim.play(DIRECTII[idx])
-	# atac de la distanță: aruncă o bilă de lightning când e în rază și cooldown-ul e gata
+	var in_range := global_position.distance_to(player.global_position) <= attack_range
 	_atk_cooldown -= delta
-	if _atk_cooldown <= 0.0 and global_position.distance_to(player.global_position) <= attack_range:
+	_special_cooldown -= delta
+
+	# Rafala în curs: scoate bilele una după alta. Ținta se recitește la fiecare bilă (`player` e
+	# proaspăt în fiecare cadru), deci rafala te urmărește dacă fugi — nu pleacă toate în același loc.
+	if _burst_left > 0:
+		_burst_timer -= delta
+		if _burst_timer <= 0.0:
+			_fire_lightning(player)
+			_burst_left -= 1
+			_burst_timer = special_gap
+		return  # cât ține rafala, atacul normal tace
+
+	# Atacul special: o dată la `special_interval`, dacă e în rază.
+	if _special_cooldown <= 0.0 and in_range:
+		_burst_left = special_shots
+		_burst_timer = 0.0                 # prima bilă pleacă imediat
+		_special_cooldown = special_interval
+		# ca atacul normal să nu se lipească de coada rafalei
+		_atk_cooldown = maxf(_atk_cooldown, special_shots * special_gap + attack_interval * 0.5)
+		return
+
+	# Atacul normal: o bilă când cooldown-ul e gata.
+	if _atk_cooldown <= 0.0 and in_range:
 		_fire_lightning(player)
 		_atk_cooldown = attack_interval
 

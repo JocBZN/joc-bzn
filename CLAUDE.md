@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-19 (Garda: rafală la 10s + contur negru pe bila de lightning)
+
+**Cerut:** „o dată la 10 secunde un special attack care aruncă atacul lui normal de 3 ori unul după altul foarte rapid" + „la fiecare frame din animația de atac a gărzii un stroke negru de 2px".
+
+**Rafala** (`garda.gd`): `special_interval` 10s, `special_shots` 3, `special_gap` 0.12s.
+- **Derulată cu un contor din `_physics_process`, NU cu `await`.** Dacă garda moare în mijlocul rafalei, o corutină și-ar relua firul pe un nod deja eliberat; contorul dispare odată cu nodul. (Am ales asta din start tocmai ca să nu apară bug-ul.)
+- **Ținta se recitește la fiecare bilă** → rafala te urmărește dacă fugi, nu pleacă toate trei spre locul unde erai.
+- Cât ține rafala, atacul normal tace (`return`), iar după ea `_atk_cooldown` primește o pauză, ca bila normală să nu se lipească de coada rafalei.
+- **Măsurat pe 13s:** normale la 2438/4452/6472/8500ms (cadență 2s, neschimbată), rafală la **9556 / 9688 / 9820** (+132ms între bile — 120 configurat, restul e cuantizarea la 60fps), apoi normalul reia la 10903. Zero erori „flushing queries", deși bilele se adaugă în timpul fizicii.
+
+**Conturul negru** — „animația de atac a gărzii" = **cele 10 cadre ale bilei de lightning** (`boss/lightning_burst_003_large_violet/`). Garda **nu are** animație proprie de atac: are doar `summon` + mers pe 8 direcții. Dacă Răzvan voia altceva, asta e presupunerea de corectat.
+- Scriptul: `scratchpad\stroke.ps1` (PowerShell + System.Drawing, ca la tăiatul GIF-urilor — n-avem ImageMagick/Python). Pune negru opac unde era transparent și există pixel opac la distanță ≤ R, **disc, nu pătrat** (colțuri rotunjite). Pixelii originali nu se ating. Masca se citește din desenul ORIGINAL, altfel negrul proaspăt ar genera și mai mult negru.
+- **PNG-urile modificate TREBUIE reimportate** (`--headless --import`), altfel jocul rulează cadrele vechi din cache. Vezi și nota din `joc-bzn-run-verify`.
+- **Capcană PowerShell:** parametrul `-Out` s-a ciocnit cu variabila `$out` din script (PowerShell nu ține cont de majuscule) → obiectul devenea String și tot scriptul crăpa în cascadă. Redenumit `$OutPath`. La fel, array-urile nu trec corect prin `-File`; cu `-Command` merg.
+- **Rezultatul e discutabil vizual și i-am arătat comparația.** Arta are o grămadă de scântei de 1-2px; un contur de 2px le transformă în bulgări unde negrul e mai mare decât scânteia. Inelul mare arată bine conturat. Am lăsat **2px, cum a cerut**, și am pregătit varianta de 1px — dacă zice, se reaplică din originalele din git într-o comandă.
+
+---
+
 ## Session log — 2026-07-19 (Panic Button: cutremur + undă de șoc, stil Mama Mega)
 
 **Cerut:** „când dai Panic Button să fie un cutremur și o rază care vine dinspre player, aia dă damage-ul (ca la Binding of Isaac — Mama Mega)".
