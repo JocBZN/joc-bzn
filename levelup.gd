@@ -51,7 +51,7 @@ var UPGRADES := [
 	{"id": "megane_katana", "nume": "Megane's Katana", "icon": "upgrade_33.png", "rar": "rare", "desc": "+15% Crit - more if faster"},
 	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
 	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
-	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_37.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
+	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_46.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
 	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},

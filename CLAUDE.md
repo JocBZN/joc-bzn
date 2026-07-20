@@ -13,6 +13,16 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (iconiță nouă Stacked Armory + artă nouă xp2)
+
+**Cerut de Răzvan:** iconița Stacked Armory → `upgrade_46.png`; separat, a schimbat el arta gemei xp2 (`xp/xp2.png`, acum un orb albastru în spirală).
+
+**Făcut:** icon `upgrade_37.png` → `upgrade_46.png` în `levelup.gd` și în codex (injectat base64, republicat). `upgrade_37` nu mai e referit de niciun item — iconița veche rămâne în `ICONS` din codex, nefolosită dar inofensivă.
+
+**Reimportate AMBELE imagini** (`--headless --import`) — pasul ușor de uitat: la o rulare directă (nu din editor) texturile noi/înlocuite trebuie importate întâi, altfel `load()` crapă cu „No loader found". Verificat: `xp2` se încarcă fără eroare, iconița Stacked Armory apare pe card (butoiul cu arme), gemele xp2 sunt culese și dau XP normal.
+
+---
+
 ## Session log — 2026-07-20 (item nou: Duridama — inamici auriți, mecanică în 2 lovituri)
 
 **Cerut de Răzvan:** `upgrade_45` Duridama (Legendary) — 1% șansă la lovire să facă inamicul auriu (overlay auriu + îngheață exact în cadrul lovit); după ce lovești un inamic deja auriu, moare instant și lasă 2× XP.
