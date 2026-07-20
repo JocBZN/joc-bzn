@@ -58,6 +58,8 @@ var _title_dir := 1             # ping-pong, ca la fundal
 var _title_t := 0.0
 var _title_group: Control       # slot de mărime fixă; ține locul titlului în layout
 var _title_mover: Control       # titlul propriu-zis, mutat liber în interiorul slotului
+var _intro_running := false     # cât e true, o apăsare pe ecran sare peste intro
+var _intro_tweens: Array[Tween] = []   # tween-urile intro-ului, ca să le pot opri la skip
 var _main_buttons: VBoxContainer
 
 func _ready() -> void:
@@ -167,6 +169,7 @@ func _set_blur(v: float) -> void:
 # iar butoanele apar din spatele lui. Butoanele își țin locul în layout tot timpul (doar
 # transparente + dezactivate), altfel titlul ar sări brusc când apar ele.
 func _play_intro() -> void:
+	_intro_running = true
 	_set_blur(0.0)
 	_tint.modulate.a = 0.0
 	_vig.modulate.a = 0.0
@@ -176,30 +179,71 @@ func _play_intro() -> void:
 
 	# layout-ul se calculează abia după un cadru; până atunci pozițiile sunt încă zero
 	await get_tree().process_frame
+	if not _intro_running: return
 	var rise := _title_rise_offset()
 	_title_mover.position.y = rise
 
 	await get_tree().create_timer(INTRO_CLEAR).timeout
+	if not _intro_running: return
 
 	# blur, întunecare și titlu intră toate odată
 	var t := create_tween().set_parallel(true)
+	_intro_tweens.append(t)
 	t.tween_method(_set_blur, 0.0, MENU_BLUR, INTRO_FADE)
 	t.tween_property(_tint, "modulate:a", 1.0, INTRO_FADE)
 	t.tween_property(_vig, "modulate:a", 1.0, INTRO_FADE)
 	t.tween_property(_title_group, "modulate:a", 1.0, INTRO_FADE)
 	await t.finished
+	if not _intro_running: return
 
 	# o pauză în care titlul stă singur în mijloc
 	await get_tree().create_timer(INTRO_HOLD).timeout
+	if not _intro_running: return
 
 	# titlul alunecă în sus spre locul lui, iar butoanele se aprind pe la jumătatea drumului
 	var t2 := create_tween().set_parallel(true)
+	_intro_tweens.append(t2)
 	t2.tween_property(_title_mover, "position:y", 0.0, INTRO_RISE) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	t2.tween_property(_main_buttons, "modulate:a", 1.0, INTRO_BUTTONS) \
 		.set_delay(INTRO_RISE * 0.5)
 	await t2.finished
+	if not _intro_running: return
 
+	_intro_running = false
+	_intro_tweens.clear()
+	_set_buttons_enabled(true)
+
+# Orice apăsare pe ecran (sau tastă) în timpul intro-ului sare direct la meniul gata.
+func _input(event: InputEvent) -> void:
+	if not _intro_running:
+		return
+	var pressed: bool = (event is InputEventScreenTouch and event.pressed) \
+		or (event is InputEventMouseButton and event.pressed) \
+		or (event is InputEventKey and event.pressed and not event.echo)
+	if pressed:
+		get_viewport().set_input_as_handled()
+		_skip_intro()
+
+# Duce intro-ul direct în starea finală: oprește tween-urile pornite (altfel ar continua
+# să scrie peste valorile puse aici) și pune totul la valorile de final.
+func _skip_intro() -> void:
+	_intro_running = false   # oprește și corutina _play_intro la următorul await
+	for t in _intro_tweens:
+		if is_instance_valid(t) and t.is_valid():
+			t.kill()
+	_intro_tweens.clear()
+
+	_set_blur(MENU_BLUR)
+	_tint.modulate.a = 1.0
+	_vig.modulate.a = 1.0
+	_title_group.modulate.a = 1.0
+	_main_buttons.modulate.a = 1.0
+	_title_mover.position.y = 0.0
+
+	# butoanele se activează abia din cadrul următor, ca apăsarea care a dat skip să nu
+	# ajungă din greșeală pe START
+	await get_tree().process_frame
 	_set_buttons_enabled(true)
 
 # Cât de jos pornește titlul: exact atât cât să fie centrat pe ecran, ca înainte de a urca.

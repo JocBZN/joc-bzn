@@ -26,7 +26,12 @@ Quick rules:
 - **Titlul se mișcă singur, în interiorul unui slot fix.** Nu poți anima poziția unui copil de container (containerul i-o rescrie la fiecare layout), așa că `_title_group` a devenit un `Control` simplu de `TITLE_SIZE × TITLE_SIZE` care ține locul în VBox, iar `_title_mover` (logo-ul, ancorat FULL_RECT în el) e mutat liber. `_title_rise_offset()` calculează cât de jos pornește: exact cât să fie centrat pe ecran. Tween cubic EASE_IN_OUT până la `position:y = 0`.
 - **Offset-ul se calculează după `await get_tree().process_frame`** — înainte de primul layout toate pozițiile sunt zero și ar ieși un offset greșit.
 
-**Verificat vizual** cu screenshot-uri la 0.25s / 0.85s (fundalul se mișcă — cadre diferite), 2.0s (titlu centrat, fără butoane), 2.9s (titlu la jumătatea urcării), 3.1s (butoane pe la jumătatea fade-ului) și 3.7s (meniu final, identic cu cel dinainte).
+**Skip la apăsare pe ecran** (`_input()` + `_skip_intro()`): orice touch\click\tastă cât `_intro_running` e true duce meniul direct în starea finală. Două capcane, ambele rezolvate:
+- **Tween-urile pornite trebuie omorâte**, altfel continuă să scrie peste valorile puse de skip și meniul „se dezface" înapoi. De aia se țin în `_intro_tweens`.
+- **Corutina `_play_intro()` trăiește mai departe după skip** — `await`-urile pe timer nu se pot anula. După fiecare `await` are acum `if not _intro_running: return`, altfel ar reaprinde butoanele sau ar repoziționa titlul peste starea finală.
+- Butoanele se activează abia din **cadrul următor** (`await get_tree().process_frame`), ca apăsarea care a dat skip să nu ajungă din greșeală pe START.
+
+**Verificat vizual** cu screenshot-uri la 0.25s / 0.85s (fundalul se mișcă — cadre diferite), 2.0s (titlu centrat, fără butoane), 2.9s (titlu la jumătatea urcării), 3.1s (butoane pe la jumătatea fade-ului) și 3.7s (meniu final, identic cu cel dinainte). **Skip testat la 0.4s / 1.3s / 2.9s** (înainte de fade, în timpul fade-ului, în timpul urcării) — toate trei ajung la exact aceeași stare: `title y=0.0`, `blur=3.00`, `alpha butoane=1.00`, toate cele 5 butoane active. Plus o rulare fără skip, ca să nu fi stricat drumul normal.
 
 ---
 
