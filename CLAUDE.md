@@ -13,6 +13,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (item nou: Unusual Clover + statul NOROC)
+
+**Cerut de Răzvan:** `upgrade_43` — Unusual Clover (Rare), **+5 Luck**. 5 noroc = −2.5% common, −2.5% uncommon, +2% rare, +2% epic, +1% legendary; în același timp +2% la fiecare item cu șansă (crit 15% → 17%).
+
+**Norocul face DOUĂ lucruri diferite, în două fișiere:**
+1. **Înclină rarităţile** (`levelup.gd`): `LUCK_TAKE` ia 0.5 puncte de la common și uncommon per punct de noroc, `LUCK_GIVE` împarte ce s-a luat în raportul **2:2:1** (rare:epic:legendary). Deci la 5 noroc iese exact ce s-a cerut.
+2. **Umflă șansele itemelor** (`player.gd`): `LUCK_CHANCE_PER = 0.004` → +0.4 puncte procentuale per punct (5 noroc = +2%). Se aplică la crit, instakill, Broken Watch și Plugged In.
+
+**Decizie de design pe care am luat-o singur (spune dacă vrei altfel):** norocul umflă doar șansele itemelor pe care **LE AI**. Fără Adrenaline, criticul rămâne 0%, nu 2% — altfel norocul ți-ar strecura mecanici pe care nu le-ai ales niciodată. De aia `crit_chance_now()` și `instakill_chance_now()` întorc 0 când itemul lipsește.
+
+**`minf` din `_sanse_cu_noroc()` NU e cosmetic.** La 60+ noroc, common ar deveni **negativ** — iar un segment negativ pe „roata norocului" ar face ca raritatea de după el să înghită diferența, adică exact invers decât te-ai aștepta. Cu clamp la 0, ce se ia se și dă, deci **totalul rămâne 100 oricât noroc ai** (verificat până la 80: se saturează la C 0 · U 0 · R 44 · E 39 · L 17).
+
+**Verificat cu cifre exacte:**
+- calculat: 5 noroc → C 27.50 · U 27.50 · R 22.00 · E 17.00 · L 6.00, total 100.00 — exact ce s-a cerut;
+- tras real, 120.000 de rânduri cu 5 noroc: abatere maximă **0.16 puncte procentuale**;
+- crit 15% → **17%** la 5 noroc, **19%** la 10; instakill 5% → 7%;
+- fără Adrenaline\Hacksaw: **0%**, adică norocul chiar nu inventează șanse.
+
+**Regresie de layout prinsă pe screenshot:** rândul nou „Luck" a făcut 13 rânduri în panoul de STATS, iar ultimul („Damage Taken") ieșea peste ramă — panoul are **înălțime fixă** și rândurile nu se micșorează singure. Spațierea a scăzut de la 7 la 3. **Dacă mai adaugi un stat, verifică marginea de jos a panoului.**
+
+**Panoul arată acum valorile CU noroc** (`crit_chance_now()` în loc de `crit_chance`), plus un rând „Luck" — altfel ar fi scris 15% după ce criticul real devenise 17%.
+
+**Codex:** actualizat și **republicat** (item + nota „Raritatea chiar contează acum"), iconița injectată base64. Sincronizare verificată: 36 = 36 id-uri, zero diferențe.
+
+---
+
 ## Session log — 2026-07-20 (raritatea chiar contează + aureola cu 2px la stânga)
 
 **Cerut de Răzvan:** raritatea să însemne ceva — Common 30% · Uncommon 30% · Rare 20% · Epic 15% · Legendary 5%. Plus aureola de la Stolen Halo mutată cu 2px la stânga.

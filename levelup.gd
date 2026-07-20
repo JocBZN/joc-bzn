@@ -55,6 +55,7 @@ var UPGRADES := [
 	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},
+	{"id": "unusual_clover", "nume": "Unusual Clover", "icon": "upgrade_43.png", "rar": "rare", "desc": "+5 Luck"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -73,6 +74,12 @@ const RARITY_CHANCE := {
 	"legendary": 5.0,
 }
 const RARITY_TRIES := 12   # câte încercări până cădem pe plasa de siguranță (vezi _trage_unul)
+
+# NOROCUL (Unusual Clover) mută procentele de mai sus: ia de la cele slabe și dă celor bune.
+# Pe PUNCT de noroc — 5 noroc (o luare) = exact ce s-a cerut: −2.5 common, −2.5 uncommon,
+# +2 rare, +2 epic, +1 legendary.
+const LUCK_TAKE := {"common": 0.5, "uncommon": 0.5}                  # cât ia, per punct
+const LUCK_GIVE := {"rare": 2.0, "epic": 2.0, "legendary": 1.0}      # în ce RAPORT împarte
 
 var _buttons := []
 var _borders := []      # TextureRect cu border-ul rarității
@@ -208,7 +215,10 @@ func _build_stats_panel() -> void:
 	box.add_child(title)
 
 	_stats_box = VBoxContainer.new()
-	_stats_box.add_theme_constant_override("separation", 7)
+	# ATENȚIE: panoul are înălțime FIXĂ, iar rândurile nu se micșorează singure — la 13 rânduri
+	# (de când există „Luck") spațierea 7 împingea ultimul rând peste ramă. Dacă mai adaugi un
+	# stat, verifică marginea de jos a panoului: fie scazi spațierea, fie fontul (19).
+	_stats_box.add_theme_constant_override("separation", 3)
 	_stats_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_stats_box)
 
@@ -350,15 +360,41 @@ func open() -> void:
 # Trage o raritate după procentele din RARITY_CHANCE („roata norocului": tăiem un segment
 # proporțional pentru fiecare și vedem unde cade săgeata).
 func _trage_raritate() -> String:
+	var sanse := _sanse_cu_noroc(_norocul_meu())
 	var total := 0.0
-	for k in RARITY_CHANCE:
-		total += RARITY_CHANCE[k]
+	for k in sanse:
+		total += sanse[k]
 	var r := randf() * total
-	for k in RARITY_CHANCE:
-		r -= RARITY_CHANCE[k]
+	for k in sanse:
+		r -= sanse[k]
 		if r <= 0.0:
 			return k
 	return "common"   # doar dacă se strecoară o eroare de virgulă la ultimul segment
+
+func _norocul_meu() -> float:
+	var p = get_tree().get_first_node_in_group("player")
+	return float(p.luck) if p != null and "luck" in p else 0.0
+
+# Șansele finale, după ce norocul ia de la common\uncommon și dă la rare\epic\legendary.
+# Ce se ia se și dă — deci totalul rămâne mereu 100, oricât noroc ai.
+# `minf` NU e cosmetic: la mult noroc (60+) common ar deveni NEGATIV, ceea ce ar strica
+# roata (segment negativ = raritatea de după el ar înghiți diferența). Așa, când o categorie
+# ajunge la 0 se oprește acolo, iar celelalte primesc doar cât s-a luat cu adevărat.
+func _sanse_cu_noroc(luck: float) -> Dictionary:
+	var out := RARITY_CHANCE.duplicate()
+	if luck <= 0.0:
+		return out
+	var luat := 0.0
+	for k in LUCK_TAKE:
+		var scade: float = minf(LUCK_TAKE[k] * luck, out[k])
+		out[k] -= scade
+		luat += scade
+	var total_give := 0.0
+	for k in LUCK_GIVE:
+		total_give += LUCK_GIVE[k]
+	for k in LUCK_GIVE:
+		out[k] += luat * (LUCK_GIVE[k] / total_give)
+	return out
 
 # Un item din raritatea trasă, care să nu fie deja pe ecran.
 func _trage_unul(deja: Array):
@@ -569,6 +605,11 @@ func _apply(id: String, p) -> void:
 			# aceeași viteză, altă monedă (vezi player.speed_ratio() / crit_chance_now()).
 			# Stai pe loc = 0 bonus; se adună peste criticul fix de la Adrenaline.
 			p.katana_stacks += 1
+		"unusual_clover":
+			# trifoiul: +5 noroc. Se stivuiește (a doua luare = 10 noroc). Norocul înclină
+			# rarităţile la level up ȘI umflă șansele itemelor pe care le ai — vezi
+			# `_sanse_cu_noroc()` aici și `player.luck_bonus()` dincolo.
+			p.luck += 5
 		"undying_spirit":
 			# spiritul: prima moarte nu te termină, ci te trimite în Limbo (vezi limbo.gd).
 			# Nu se stack-uiește — a doua luare nu-ți dă a doua viață, fiindcă `undying_used`

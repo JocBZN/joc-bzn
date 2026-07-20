@@ -119,6 +119,17 @@ var _slashes: Array = []                    # tăieturile în curs; le rotim dup
 var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s-a uitat player-ul (pt. tăietura sabiei)
 
 # --- upgrade-uri de armă ---
+# --- Unusual Clover: NOROCUL. Face două lucruri complet diferite: ---
+#  1. înclină șansele de RARITATE la level up (calculul e în levelup.gd, `_sanse_cu_noroc`);
+#  2. adaugă puncte procentuale la șansele itemelor pe care LE AI deja (aici, `luck_bonus`).
+# Ce NU face: nu-ți dă o șansă pe care n-ai luat-o niciodată. Fără Adrenaline criticul rămâne
+# 0%, nu 2% — altfel norocul ți-ar strecura pe furiș mecanici pe care nu le-ai ales.
+const LUCK_CHANCE_PER := 0.004   # +0.4 puncte procentuale per punct de noroc (5 noroc = +2%)
+var luck: int = 0
+
+func luck_bonus() -> float:
+	return luck * LUCK_CHANCE_PER
+
 @export var crit_chance: float = 0.0       # șansa (0..1) ca o lovitură să fie critică
 @export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
 @export var instakill_chance: float = 0.0  # șansa (0..1) ca o lovitură să ucidă instant inamicul (Hacksaw)
@@ -380,9 +391,19 @@ func speed_ratio() -> float:
 # NU mai e plafonată la 100% — peste 100% intră multi-crit-ul (vezi roll_crit). Se citește la
 # fiecare lovitură, din același motiv ca damage_mult(): partea de la Katana se schimbă la fiecare pas.
 func crit_chance_now() -> float:
-	if katana_stacks == 0:
-		return crit_chance
-	return crit_chance + katana_per_stack * katana_stacks * speed_ratio()
+	# fără niciun item de crit, norocul n-are ce umfla (vezi `luck_bonus`)
+	if crit_chance <= 0.0 and katana_stacks == 0:
+		return 0.0
+	var c := crit_chance + luck_bonus()
+	if katana_stacks > 0:
+		c += katana_per_stack * katana_stacks * speed_ratio()
+	return c
+
+# Instakill-ul (Hacksaw) cu norocul inclus. La fel: dacă n-ai itemul, rămâne 0.
+func instakill_chance_now() -> float:
+	if instakill_chance <= 0.0:
+		return 0.0
+	return instakill_chance + luck_bonus()
 
 # MULTI-CRIT: peste 100% șansă, criticul se declanșează de mai multe ori. Partea ÎNTREAGĂ din
 # șansă = crituri GARANTATE, partea fracționară = șansa de încă unul. Fiecare nivel înmulțește
@@ -406,12 +427,15 @@ func stat_lines() -> Array:
 	return [
 		_stat_row("Damage", bullet_damage, b["bullet_damage"], false, str(bullet_damage)),
 		_stat_row("Attack Speed", fire_interval, b["fire_interval"], true, "%.2f/s" % (1.0 / max(fire_interval, 0.01))),
-		_stat_row("Crit", crit_chance, b["crit_chance"], false, "%d%%" % round(crit_chance * 100.0)),
+		# Crit și Instakill se afișează CU norocul inclus (`*_now()`), altfel panoul ar arăta
+		# 15% după ce ai luat un trifoi care ți-a dus criticul real la 17%.
+		_stat_row("Crit", crit_chance_now(), b["crit_chance"], false, "%d%%" % round(crit_chance_now() * 100.0)),
 		_stat_row("Projectiles", bullet_count, b["bullet_count"], false, str(bullet_count)),
 		_stat_row("Pierce", pierce, b["pierce"], false, str(pierce)),
 		_stat_row("Weapon Size", weapon_size_scale(), b["weapon_size"], false, "%d%%" % round(weapon_size_scale() * 100.0)),
 		_stat_row("Knockback", knockback, b["knockback"], false, str(int(round(knockback)))),
-		_stat_row("Instakill", instakill_chance, b["instakill_chance"], false, "%.1f%%" % (instakill_chance * 100.0)),
+		_stat_row("Instakill", instakill_chance_now(), b["instakill_chance"], false, "%.1f%%" % (instakill_chance_now() * 100.0)),
+		_stat_row("Luck", luck, 0.0, false, str(luck)),
 		_stat_row("Move Speed", speed, b["speed"], false, str(int(round(speed)))),
 		_stat_row("Max HP", max_hp, b["max_hp"], false, str(max_hp)),
 		_stat_row("HP Regen", hp_regen, b["hp_regen"], false, "%d/s" % hp_regen),
@@ -492,7 +516,7 @@ func _fire_bullets() -> void:
 	#  · Stacked Armory: garantat, `stacked_armory_stacks` bucăți
 	#  · Broken Watch: 50% șansă (broken_watch_chance) să tragă `broken_watch_stacks` bucăți
 	var bonus := stacked_armory_stacks
-	if broken_watch_stacks > 0 and randf() < broken_watch_chance:
+	if broken_watch_stacks > 0 and randf() < broken_watch_chance + luck_bonus():
 		bonus += broken_watch_stacks
 	if bonus > 0:
 		for tnode in _armory_targets(target, bonus):
@@ -516,7 +540,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.speed = bullet_speed
 	bullet.pierce = pierce
 	bullet.knockback = knockback
-	bullet.instakill_chance = instakill_chance
+	bullet.instakill_chance = instakill_chance_now()
 	bullet.explosion_radius = ex_radius
 	bullet.explosion_damage = ex_damage
 	bullet.thunder = thunder_stacks > 0 or plugged_in_stacks > 0  # Thunder God / Plugged In: curent la impact
@@ -585,7 +609,7 @@ func thunder_burst(origin: Vector2, exclude_id: int) -> void:
 func thunder_active_on_hit() -> bool:
 	if thunder_stacks > 0:
 		return true
-	if plugged_in_stacks > 0 and randf() < minf(1.0, plugged_in_stacks * plugged_in_chance_per):
+	if plugged_in_stacks > 0 and randf() < minf(1.0, plugged_in_stacks * plugged_in_chance_per + luck_bonus()):
 		return true
 	return false
 
@@ -733,7 +757,8 @@ func _sword_damage_pass(t: Dictionary) -> void:
 			continue
 		loviti[id] = true
 		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură)
-		var kill := instakill_chance > 0.0 and randf() < instakill_chance
+		var ik := instakill_chance_now()
+		var kill := ik > 0.0 and randf() < ik
 		var dealt := dmg
 		if kill and "hp" in enemy:
 			dealt = int(enemy.hp)
