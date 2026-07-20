@@ -7,6 +7,11 @@ const GAME_SCENE := "res://main.tscn"
 const ACCENT := Color(0.2, 0.9, 1.0)    # cyan
 const ACCENT2 := Color(1.0, 0.2, 0.6)   # magenta (glow-ul titlului)
 
+# Culorile butoanelor de meniu (lemn, ca logo-ul). Schimbă-le doar aici — toate butoanele
+# mari (START, BACK etc.) își iau culoarea din ele, în `_menu_button()`.
+const BTN_MAIN := Color("9e603f")     # principala: umplutura butonului
+const BTN_SECOND := Color("594232")   # secundara: conturul
+
 var WEAPONS := [
 	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png"},
 	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png"},
@@ -534,12 +539,15 @@ func _menu_button(text: String, cb: Callable) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(360, 58)
 	b.add_theme_font_size_override("font_size", 24)
-	b.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0))
-	b.add_theme_color_override("font_hover_color", ACCENT)
+	b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))       # crem, nu alb rece
+	b.add_theme_color_override("font_hover_color", Color(1.0, 0.98, 0.94))
 	b.add_theme_color_override("font_pressed_color", Color.WHITE)
-	b.add_theme_stylebox_override("normal", _sb(Color(0.06, 0.08, 0.16, 0.85), Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.5)))
-	b.add_theme_stylebox_override("hover", _sb(Color(0.10, 0.16, 0.28, 0.95), ACCENT))
-	b.add_theme_stylebox_override("pressed", _sb(Color(0.15, 0.35, 0.5, 0.95), ACCENT))
+	# Opace, NU transparente ca stilul vechi: cu transparență, butoanele de sus ieșeau
+	# vizibil mai deschise decât cele de jos (transpărea cerul din fundalul blurat).
+	# hover\pressed sunt aceleași culori, doar deschise treptat — nu culori noi de întreținut
+	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
+	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
+	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.pressed.connect(cb)
 	return b

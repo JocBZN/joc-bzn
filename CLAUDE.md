@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (butoanele de meniu: culori de lemn în loc de cyan)
+
+**Cerut de Răzvan:** culoarea principală a butoanelor `#9e603f`, secundara `#594232`.
+
+**Interpretare:** principala = **umplutura**, secundara = **conturul** (principala e cea care ocupă suprafața). Dacă voia invers, se schimbă între ele cele două constante.
+
+**Unde:** `BTN_MAIN` / `BTN_SECOND`, constante sus în `menu.gd`, folosite în `_menu_button()`. Deci prind toate butoanele mari — inclusiv BACK-urile din celelalte panouri. `hover`\`pressed` nu sunt culori noi de întreținut: aceleași două, cu `.lightened(0.10)` / `.lightened(0.20)`. Textul a trecut de la alb-albăstrui la crem, fiindcă albul rece se bătea cu maro; `font_hover_color` era ACCENT (cyan) — evident nepotrivit acum.
+
+**Butoanele au devenit OPACE.** Stilul vechi avea alpha 0.85–0.95, iar peste fundalul blurat butoanele de sus (peste cer) ieșeau vizibil mai deschise decât cele de jos (peste iarbă) — aceeași culoare, aspect diferit. Cu hex-uri cerute explicit, transparența ar fi însemnat că nu vezi niciodată culoarea cerută.
+
+**NU s-au atins** butoanele de armă (`_build_weapon`, verde\cyan pe selecție) și cele de cumpărat din shop (verzi) — au stilurile lor. Dacă se vrea toată paleta pe lemn, alea sunt următoarele.
+
+**Capcană de test, nu de joc:** `_shot()` din scriptul de verificare e o corutină; chemată **fără `await`**, poza se salva după ce apucam să schimb stilurile, așa că „poza normală" arăta de fapt hover+pressed. Am pierdut o rundă crezând că e bug de culoare. La orice `_shot()` care e urmat de alte schimbări: `await _shot(...)`.
+
+**Verificat pe pixeli**, nu doar din ochi: umplutura `#9E603F` și conturul `#594232` exact, contur de 3px (scanare pe orizontală prin marginea butonului). Plus poză cu hover și pressed, ca să se vadă că se disting între ele.
+
+---
+
 ## Session log — 2026-07-20 (intro meniu: fundal viu din prima + titlul urcă lin)
 
 **Cerut de Răzvan (în două runde):** pauză de încă o secundă între titlu și butoane; apoi „animația de background să ruleze din prima, nu să aștepte" și „titlul să nu se teleporteze, să meargă smooth până în locul lui".
