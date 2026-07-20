@@ -39,6 +39,14 @@ var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electrici
 @export var plugged_in_chance_per: float = 0.10
 var plugged_in_stacks: int = 0                # de câte ori ai luat Plugged In
 
+# Duridama: la fiecare lovitură, șansă să „aurească" inamicul (îl îngheață); următoarea lovitură
+# îl ucide instant și dă 2× XP. +1% pe luare. Rostogolirea o face enemy.gd, cu șansa de aici.
+const DURIDAMA_PER := 0.01
+var duridama_stacks: int = 0
+
+func duridama_chance() -> float:
+	return minf(1.0, duridama_stacks * DURIDAMA_PER)
+
 # Undying Spirit: prima moarte te trimite în Limbo în loc de Game Over (vezi limbo.gd).
 # Se consumă la prima folosire — a doua oară mori normal, chiar dacă ai luat itemul de mai multe ori.
 var has_undying: bool = false

@@ -59,6 +59,7 @@ var UPGRADES := [
 	{"id": "the_office", "nume": "The Office", "icon": "upgrade_40.png", "rar": "uncommon", "desc": "+2.5 Luck - +5% Attack Speed"},
 	{"id": "royal_flush", "nume": "Royal Flush", "icon": "upgrade_42.png", "rar": "epic", "desc": "+10 Luck"},
 	{"id": "tome_knowledge", "nume": "Tome of Knowledge", "icon": "upgrade_44.png", "rar": "rare", "desc": "50% less XP to level up"},
+	{"id": "duridama", "nume": "Duridama", "icon": "upgrade_45.png", "rar": "legendary", "desc": "1% to gild an enemy - next hit instakills"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -629,6 +630,10 @@ func _apply(id: String, p) -> void:
 		"royal_flush":
 			# chinta roială: dublu față de trifoi, fără nimic pe lângă.
 			p.luck += 10.0
+		"duridama":
+			# aurirea: +1% șansă/lovitură să înghețe inamicul; următoarea lovitură = instakill + 2× XP.
+			# Logica e în enemy.gd (`_try_golden` / moartea aurită); aici doar creștem șansa.
+			p.duridama_stacks += 1
 		"undying_spirit":
 			# spiritul: prima moarte nu te termină, ci te trimite în Limbo (vezi limbo.gd).
 			# Nu se stack-uiește — a doua luare nu-ți dă a doua viață, fiindcă `undying_used`

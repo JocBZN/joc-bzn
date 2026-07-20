@@ -13,6 +13,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (item nou: Duridama — inamici auriți, mecanică în 2 lovituri)
+
+**Cerut de Răzvan:** `upgrade_45` Duridama (Legendary) — 1% șansă la lovire să facă inamicul auriu (overlay auriu + îngheață exact în cadrul lovit); după ce lovești un inamic deja auriu, moare instant și lasă 2× XP.
+
+**Mecanica trăiește în `enemy.gd`** (nu în player), fiindcă starea „auriu" e a inamicului:
+- `take_damage()`: dacă e deja `golden` → `_die(2.0)` (instakill + 2× XP); altfel rulează `_try_golden()`, iar dacă iese, se aurește **fără să-i scadă viața** (lovitura îl îngheață, nu-l rănește).
+- `_make_golden()`: `anim.pause()` îngheață **exact cadrul curent**, `modulate = GOLD_TINT`, oprește knockback-ul și orice tween de sclipire.
+- `_physics_process`: `if _dying or golden: return` — aurit = complet înghețat (nici mișcare, nici schimbare de animație/culoare). De aia trebuie `anim.pause()` separat: `_process` nu mai cheamă `anim.play()`, dar `AnimatedSprite2D` își avansează singur cadrele dacă nu e pausat.
+- `flash_electric()` are gardă pe `golden`, ca Thunder God să nu-i strice filtrul auriu.
+
+**Șansa e pe player** (`duridama_chance() = duridama_stacks * 0.01`, plafon 1.0), citită de inamic. +1% pe luare.
+
+**Capcană de rotunjire prinsă de test:** 2× XP aplicat pe valoarea deja scalată dădea raport **1.7**, nu 2 — la minutul 1 `xp_mult=2.6`, deci `round(2.6)=3` vs `round(5.2)=5`. Fix: rotunjesc **întâi** valoarea normală, apoi o dublez → 3 vs 6, exact 2×.
+
+**Decizie luată singur (spune dacă vrei altfel):** Norocul NU umflă șansa Duridama (spre deosebire de crit/instakill). Aurirea + instakill garantat pe Legendary e deja foarte tare; n-am vrut s-o fac și mai probabilă fără să ceri. Se adaugă ușor (`+ luck_bonus()` în `duridama_chance`) dacă vrei.
+
+**Verificat pe jocul real:** șansa se adună (0.01/stack, plafon 1.0); lovitura 1 aurește fără pierdere de HP, `anim.pause()` confirmat, modulate auriu, inamicul nu se mișcă 0.5s; lovitura 2 dă instakill + o gemă; raport XP aurit/normal **exact 2.0**; poză cu aurii lângă normali (se disting clar); cardul de level up arată corect (trofeu auriu, Legendary).
+
+**Codex:** adăugat + republicat, iconița injectată. Sync: **40 = 40**.
+
+---
+
 ## Session log — 2026-07-20 (Rabbit's Foot → move speed · Twin Comets pe proiectilele bonus)
 
 **Cerut de Răzvan:** Rabbit's Foot să dea +25% viteză de MIȘCARE, nu de atac. Iar Twin Comets (gloanțe paralele) să se aplice și celorlalte proiectile, nu doar celui principal.
