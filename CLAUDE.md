@@ -13,15 +13,20 @@ Quick rules:
 
 ---
 
-## Session log — 2026-07-20 (intro meniu: pauză între titlu și butoane)
+## Session log — 2026-07-20 (intro meniu: fundal viu din prima + titlul urcă lin)
 
-**Cerut de Răzvan:** tranziție mai lentă la început între titlu și butoanele de meniu — „încă o secundă între ele".
+**Cerut de Răzvan (în două runde):** pauză de încă o secundă între titlu și butoane; apoi „animația de background să ruleze din prima, nu să aștepte" și „titlul să nu se teleporteze, să meargă smooth până în locul lui".
 
-**Ce s-a făcut:** constantă nouă `INTRO_HOLD := 1.0` în `menu.gd`, plus un `await get_tree().create_timer(INTRO_HOLD).timeout` în `_play_intro()`, între `await t.finished` (blur + titlu gata) și aprinderea butoanelor. Nimic altceva nu s-a atins.
+**Cronologia intro-ului acum:** `INTRO_CLEAR` 1.0s fundal animat curat → `INTRO_FADE` 0.6s intră blur + titlul (în mijlocul ecranului) → `INTRO_HOLD` 1.0s titlul stă singur → `INTRO_RISE` 0.7s titlul urcă la locul lui, cu butoanele aprinzându-se (`INTRO_BUTTONS` 0.35s) pe la jumătatea urcării. Meniul e complet pe la ~3.3s.
 
-Cronologia intro-ului acum: `INTRO_CLEAR` 1.0s video curat → `INTRO_FADE` 0.6s blur+titlu → **`INTRO_HOLD` 1.0s doar titlul** → `INTRO_BUTTONS` 0.35s butoanele. Total până la meniul complet: ~2.95s (era ~1.95s).
+**Fundalul pornea înghețat** fiindcă `_animating` se punea pe `true` abia după `INTRO_CLEAR`, iar până atunci se afișa cadrul static de 720p (`bg_still.webp`). Acum `_bg_setup()` pune direct `_frames[0]` și `_animating = true`. **Compromisul acceptat:** prima secundă, cât imaginea e clară, se văd cadrele de 640×360 întinse la 720p, nu still-ul de 720p. Pe arta asta (plată, pictată) nu se observă — verificat pe screenshot. Still-ul rămâne doar ca rezervă dacă lipsesc cadrele.
 
-**Verificat vizual** cu screenshot-uri la 2.2s (titlu singur, butoane deloc) și 3.2s (butoane complet vizibile).
+**„Teleportarea" titlului era layout, nu animație.** Titlul și butoanele stăteau în același `VBoxContainer` centrat: cât butoanele erau `visible = false` nu ocupau loc, deci cutia era scundă și titlul ieșea în mijloc; când apăreau butoanele, cutia creștea și titlul sărea sus dintr-un cadru. Pauza de 1s adăugată mai devreme doar a făcut saltul mai vizibil. Două schimbări:
+- **Butoanele își țin locul tot timpul** — rămân `visible`, doar cu `modulate.a = 0` și `disabled = true` (`_set_buttons_enabled()`). Layout-ul e final din primul cadru, deci nimic nu mai sare. `disabled` (nu `mouse_filter`) fiindcă blochează și focus/tastatură, nu doar mouse-ul.
+- **Titlul se mișcă singur, în interiorul unui slot fix.** Nu poți anima poziția unui copil de container (containerul i-o rescrie la fiecare layout), așa că `_title_group` a devenit un `Control` simplu de `TITLE_SIZE × TITLE_SIZE` care ține locul în VBox, iar `_title_mover` (logo-ul, ancorat FULL_RECT în el) e mutat liber. `_title_rise_offset()` calculează cât de jos pornește: exact cât să fie centrat pe ecran. Tween cubic EASE_IN_OUT până la `position:y = 0`.
+- **Offset-ul se calculează după `await get_tree().process_frame`** — înainte de primul layout toate pozițiile sunt zero și ar ieși un offset greșit.
+
+**Verificat vizual** cu screenshot-uri la 0.25s / 0.85s (fundalul se mișcă — cadre diferite), 2.0s (titlu centrat, fără butoane), 2.9s (titlu la jumătatea urcării), 3.1s (butoane pe la jumătatea fade-ului) și 3.7s (meniu final, identic cu cel dinainte).
 
 ---
 

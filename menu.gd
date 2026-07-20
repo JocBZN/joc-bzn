@@ -31,7 +31,8 @@ const TITLE_SIZE := 240                     # cât de mare se afișează logo-ul
 # --- reglaje pentru intro (schimbă-le liniștit, sunt doar de gust) ---
 const INTRO_CLEAR := 1.0      # câte secunde rulează video-ul curat, fără nimic peste el
 const INTRO_FADE := 0.6       # cât durează să intre blur-ul + titlul
-const INTRO_HOLD := 1.0       # cât stă titlul singur pe ecran, înainte să apară butoanele
+const INTRO_HOLD := 1.0       # cât stă titlul singur în mijloc, înainte să urce
+const INTRO_RISE := 0.7       # cât durează urcarea titlului spre locul lui final
 const INTRO_BUTTONS := 0.35   # cât durează să apară butoanele
 const MENU_BLUR := 3.0        # cât de tare e blur-ul la final (0 = deloc, 8 = maxim)
 
@@ -55,7 +56,8 @@ var _title_frames: Array[Texture2D] = []
 var _title_i := 0
 var _title_dir := 1             # ping-pong, ca la fundal
 var _title_t := 0.0
-var _title_group: VBoxContainer # titlul + subtitlul, ca să le pot stinge împreună
+var _title_group: Control       # slot de mărime fixă; ține locul titlului în layout
+var _title_mover: Control       # titlul propriu-zis, mutat liber în interiorul slotului
 var _main_buttons: VBoxContainer
 
 func _ready() -> void:
@@ -122,6 +124,11 @@ func _bg_setup() -> void:
 		var p := "%s/frame_%03d.webp" % [BG_FRAMES_DIR, i]
 		if ResourceLoader.exists(p):
 			_frames.append(load(p))
+	# animația pornește din prima, nu după intro: fundalul e viu de la primul cadru.
+	# Cadrul static de 720p rămâne doar ca rezervă, dacă lipsesc cadrele animate.
+	if _frames.size() >= 2:
+		_bg_rect.texture = _frames[0]
+		_animating = true
 
 func _process(delta: float) -> void:
 	_tick_bg(delta)
@@ -156,19 +163,23 @@ func _set_blur(v: float) -> void:
 	if _blur_mat:
 		_blur_mat.set_shader_parameter("blur_amount", v)
 
-# Intro: 1 secundă video curat (fără titlu, fără butoane) → blur + titlu → pauză → butoanele.
+# Intro: fundal animat curat → blur + titlul apare în mijloc → titlul urcă la locul lui,
+# iar butoanele apar din spatele lui. Butoanele își țin locul în layout tot timpul (doar
+# transparente + dezactivate), altfel titlul ar sări brusc când apar ele.
 func _play_intro() -> void:
 	_set_blur(0.0)
 	_tint.modulate.a = 0.0
 	_vig.modulate.a = 0.0
 	_title_group.modulate.a = 0.0
 	_main_buttons.modulate.a = 0.0
-	_main_buttons.visible = false   # ascunse de tot, ca să nu poți da click pe ele în intro
+	_set_buttons_enabled(false)   # invizibile, dar tot ocupă loc — deci nu se poate da click
+
+	# layout-ul se calculează abia după un cadru; până atunci pozițiile sunt încă zero
+	await get_tree().process_frame
+	var rise := _title_rise_offset()
+	_title_mover.position.y = rise
 
 	await get_tree().create_timer(INTRO_CLEAR).timeout
-
-	# de aici încolo imaginea e blurată, deci trecem pe cadrele mici — nu se vede diferența
-	_animating = true
 
 	# blur, întunecare și titlu intră toate odată
 	var t := create_tween().set_parallel(true)
@@ -178,11 +189,30 @@ func _play_intro() -> void:
 	t.tween_property(_title_group, "modulate:a", 1.0, INTRO_FADE)
 	await t.finished
 
-	# o pauză în care titlul stă singur, ca să nu vină butoanele peste el
+	# o pauză în care titlul stă singur în mijloc
 	await get_tree().create_timer(INTRO_HOLD).timeout
 
-	_main_buttons.visible = true
-	create_tween().tween_property(_main_buttons, "modulate:a", 1.0, INTRO_BUTTONS)
+	# titlul alunecă în sus spre locul lui, iar butoanele se aprind pe la jumătatea drumului
+	var t2 := create_tween().set_parallel(true)
+	t2.tween_property(_title_mover, "position:y", 0.0, INTRO_RISE) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	t2.tween_property(_main_buttons, "modulate:a", 1.0, INTRO_BUTTONS) \
+		.set_delay(INTRO_RISE * 0.5)
+	await t2.finished
+
+	_set_buttons_enabled(true)
+
+# Cât de jos pornește titlul: exact atât cât să fie centrat pe ecran, ca înainte de a urca.
+func _title_rise_offset() -> float:
+	if _title_mover == null:
+		return 0.0
+	var center_y := _title_mover.global_position.y + _title_mover.size.y * 0.5
+	return size.y * 0.5 - center_y
+
+func _set_buttons_enabled(on: bool) -> void:
+	for b in _main_buttons.get_children():
+		if b is BaseButton:
+			b.disabled = not on
 
 # fundal cu gradient vertical (mov-navy închis → aproape negru) — rezervă, dacă lipsește video-ul
 func _gradient_bg() -> void:
@@ -236,11 +266,16 @@ func _make_panel(key: String) -> VBoxContainer:
 # ---------- MAIN ----------
 func _build_main() -> void:
 	var box := _make_panel("main")
-	# titlul și subtitlul stau împreună, ca să le pot stinge/aprinde dintr-o mișcare la intro
-	_title_group = VBoxContainer.new()
-	_title_group.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Titlul stă într-un slot de mărime fixă, NU direct în VBox. Motivul: un container își
+	# rescrie copiii la fiecare layout, deci nu i-aș putea anima poziția — iar slotul ține
+	# locul ocupat, așa că restul meniului nu se mișcă atunci când titlul urcă la intro.
+	_title_group = Control.new()
+	_title_group.custom_minimum_size = Vector2(TITLE_SIZE, TITLE_SIZE)
+	_title_group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_title_group)
-	_title_group.add_child(_build_title())
+	_title_mover = _build_title()
+	_title_group.add_child(_title_mover)
+	_title_mover.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	# subtitlul „CYBER SURVIVOR" a fost scos când a intrat logo-ul: numele e deja în logo,
 	# iar textul cyan se bătea cu stilul de lemn. Ca să-l aduci înapoi, adaugi aici un
 	# _center_label(...) în _title_group și scazi TITLE_SIZE cu ~40, altfel nu mai încape.
