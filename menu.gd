@@ -31,7 +31,8 @@ const TITLE_SIZE := 240                     # cât de mare se afișează logo-ul
 # --- reglaje pentru intro (schimbă-le liniștit, sunt doar de gust) ---
 const INTRO_CLEAR := 1.0      # câte secunde rulează video-ul curat, fără nimic peste el
 const INTRO_FADE := 0.6       # cât durează să intre blur-ul + titlul
-const INTRO_BUTTONS := 0.35   # cât durează să apară butoanele, imediat după titlu
+const INTRO_HOLD := 1.0       # cât stă titlul singur pe ecran, înainte să apară butoanele
+const INTRO_BUTTONS := 0.35   # cât durează să apară butoanele
 const MENU_BLUR := 3.0        # cât de tare e blur-ul la final (0 = deloc, 8 = maxim)
 
 var _panels := {}
@@ -155,7 +156,7 @@ func _set_blur(v: float) -> void:
 	if _blur_mat:
 		_blur_mat.set_shader_parameter("blur_amount", v)
 
-# Intro: 1 secundă video curat (fără titlu, fără butoane) → blur + titlu → butoanele.
+# Intro: 1 secundă video curat (fără titlu, fără butoane) → blur + titlu → pauză → butoanele.
 func _play_intro() -> void:
 	_set_blur(0.0)
 	_tint.modulate.a = 0.0
@@ -176,6 +177,9 @@ func _play_intro() -> void:
 	t.tween_property(_vig, "modulate:a", 1.0, INTRO_FADE)
 	t.tween_property(_title_group, "modulate:a", 1.0, INTRO_FADE)
 	await t.finished
+
+	# o pauză în care titlul stă singur, ca să nu vină butoanele peste el
+	await get_tree().create_timer(INTRO_HOLD).timeout
 
 	_main_buttons.visible = true
 	create_tween().tween_property(_main_buttons, "modulate:a", 1.0, INTRO_BUTTONS)

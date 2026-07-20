@@ -13,6 +13,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (intro meniu: pauză între titlu și butoane)
+
+**Cerut de Răzvan:** tranziție mai lentă la început între titlu și butoanele de meniu — „încă o secundă între ele".
+
+**Ce s-a făcut:** constantă nouă `INTRO_HOLD := 1.0` în `menu.gd`, plus un `await get_tree().create_timer(INTRO_HOLD).timeout` în `_play_intro()`, între `await t.finished` (blur + titlu gata) și aprinderea butoanelor. Nimic altceva nu s-a atins.
+
+Cronologia intro-ului acum: `INTRO_CLEAR` 1.0s video curat → `INTRO_FADE` 0.6s blur+titlu → **`INTRO_HOLD` 1.0s doar titlul** → `INTRO_BUTTONS` 0.35s butoanele. Total până la meniul complet: ~2.95s (era ~1.95s).
+
+**Verificat vizual** cu screenshot-uri la 2.2s (titlu singur, butoane deloc) și 3.2s (butoane complet vizibile).
+
+---
+
 ## Session log — 2026-07-19 (Garda: rafală la 10s + contur negru pe bila de lightning)
 
 **Cerut:** „o dată la 10 secunde un special attack care aruncă atacul lui normal de 3 ori unul după altul foarte rapid" + „la fiecare frame din animația de atac a gărzii un stroke negru de 2px".
