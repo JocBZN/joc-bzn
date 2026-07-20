@@ -505,15 +505,13 @@ func _fire_bullets() -> void:
 	if weapon_type == "mage":
 		ex_radius = max(ex_radius, 110.0)
 		ex_damage = max(ex_damage, int(dmg_base * 0.6))
-	var perp := Vector2(-dir.y, dir.x)
 	var any_crit := false
 	# salva principală: gloanțe paralele spre ținta cea mai apropiată (ca Twin Comets)
-	for i in bullet_count:
-		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing
-		if _spawn_one_bullet(global_position + perp * offset, dir, dmg_base, ex_radius, ex_damage):
-			any_crit = true
+	if _fire_volley(global_position, dir, dmg_base, ex_radius, ex_damage):
+		any_crit = true
 	# Proiectile BONUS trase în ALȚI inamici la întâmplare — pleacă în direcții diferite deodată,
-	# nu paralele ca salva principală:
+	# nu paralele între ele, dar FIECARE e o salvă completă (Twin Comets se aplică și lor, nu doar
+	# proiectilului principal):
 	#  · Stacked Armory: garantat, `stacked_armory_stacks` bucăți
 	#  · Broken Watch: 50% șansă (broken_watch_chance) să tragă `broken_watch_stacks` bucăți
 	var bonus := stacked_armory_stacks
@@ -523,10 +521,22 @@ func _fire_bullets() -> void:
 		for tnode in _armory_targets(target, bonus):
 			var enemy2 := tnode as Node2D
 			var d2 := (enemy2.global_position - global_position).normalized()
-			if _spawn_one_bullet(global_position, d2, dmg_base, ex_radius, ex_damage):
+			if _fire_volley(global_position, d2, dmg_base, ex_radius, ex_damage):
 				any_crit = true
 	if any_crit:
 		add_shake(0.35)
+
+# O salvă de `bullet_count` gloanțe paralele (Twin Comets), centrată pe `origin`, toate în
+# direcția `dir`. Întoarce true dacă VREUNUL a fost critic. Folosită și de salva principală,
+# și de proiectilele bonus — de aia Twin Comets înmulțește acum și proiectilele bonus.
+func _fire_volley(origin: Vector2, dir: Vector2, dmg_base: int, ex_radius: float, ex_damage: int) -> bool:
+	var perp := Vector2(-dir.y, dir.x)
+	var any_crit := false
+	for i in bullet_count:
+		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing
+		if _spawn_one_bullet(origin + perp * offset, dir, dmg_base, ex_radius, ex_damage):
+			any_crit = true
+	return any_crit
 
 # Creează un glonț cu toate proprietățile playerului, la poziția și în direcția date. Își rulează
 # propriul critic (multi-crit) și întoarce true dacă a fost critic (pt. zguduitura camerei).

@@ -13,6 +13,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (Rabbit's Foot → move speed · Twin Comets pe proiectilele bonus)
+
+**Cerut de Răzvan:** Rabbit's Foot să dea +25% viteză de MIȘCARE, nu de atac. Iar Twin Comets (gloanțe paralele) să se aplice și celorlalte proiectile, nu doar celui principal.
+
+**Rabbit's Foot:** `upgrade_fire_rate(0.80)` → `p.speed *= 1.25` (model de la Alex's Protection, se compune la fiecare luare). Desc: „+25% Attack speed" → „+25% Move speed". Verificat: viteza 315 → 394 (+25%), cadența **neschimbată**.
+
+**Twin Comets pe bonus:** înainte, `bullet_count` (paralelele) se aplica DOAR salvei principale; proiectilele Stacked Armory / Broken Watch trăgeau câte 1 glonț. Am extras salva într-un helper `_fire_volley(origin, dir, ...)` folosit și de salva principală, și de fiecare țintă bonus — deci fiecare proiectil bonus e acum o salvă întreagă. Verificat prin numărarea gloanțelor reale din lume: bullet_count=3 + 2× Stacked Armory → **9 gloanțe** (3 + 2×3); fără Twin Comets → 3 (1 + 2×1). Înainte ar fi fost 5.
+
+**Codex:** ambele descrieri actualizate + republicat. Nota de sinergie „Ce nu ajunge la Stingător" rămâne validă (Twin Comets tot pe gloanțe). Sync: 39 = 39.
+
+---
+
 ## Session log — 2026-07-20 (item nou: Tome of Knowledge)
 
 **Cerut de Răzvan:** `upgrade_44` Tome of Knowledge (Rare) — 50% mai puțin XP până la nivel.
