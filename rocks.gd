@@ -69,8 +69,6 @@ func _chunk_of(pos: Vector2) -> Vector2i:
 # Pozițiile (și textura) pietrelor unui pătrat, calculate DETERMINIST din cheia lui, fără noduri.
 # Ordinea apelurilor rng (întâi textura, apoi x, apoi y) trebuie să fie ca la construire.
 func _chunk_rocks_raw(key: Vector2i) -> Array:
-	if BiomeMap.is_desert_chunk(key.x, key.y):
-		return []  # în deșert NU se pun pietre
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(key) ^ SEED_SALT
 	var count := rng.randi_range(0, rocks_per_chunk)
@@ -81,6 +79,11 @@ func _chunk_rocks_raw(key: Vector2i) -> Array:
 			key.x * chunk_size + rng.randf_range(0.0, chunk_size),
 			key.y * chunk_size + rng.randf_range(0.0, chunk_size)
 		)
+		# Verificare PE POZIȚIE, exact ca la copaci (props.gd) — nu pe chunk. Cu verificarea
+		# veche pe chunk (`is_desert_chunk`) rămânea o fâșie pe gradientul de la marginea
+		# deșertului unde intrau și pietre, și cactuși → pietre înfipte în cactuși.
+		if BiomeMap.desertness_at_chunk(pos / float(chunk_size)) > 0.0:
+			continue
 		out.append({"pos": pos, "tex": tex, "key": key})
 	return out
 

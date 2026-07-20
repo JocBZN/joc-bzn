@@ -15,16 +15,19 @@ const SEED_SALT := 0x57A7  # ca să nu iasă aceleași numere ca la copaci/pietr
 @export var statue_chance: float = 0.03   # 3% din chunk-uri au o statuie
 @export var margin: float = 110.0         # cât de departe stă de marginea chunk-ului
 @export var min_dist_tree: float = 190.0  # cât de departe stă de un copac
+@export var min_dist_rock: float = 150.0  # cât de departe stă de o piatră (pietrele sunt mai mici)
 @export var tries: int = 12               # câte poziții încearcă până renunță la fereală
 
 var _loaded := {}
 var _props: Node2D = null   # nodul Props, ca să știm unde sunt copacii
+var _rocks: Node2D = null   # nodul Rocks — statuile se feresc și de pietre, nu doar de copaci
 
 func _ready() -> void:
-	# fratele „Props" din main.tscn — îl folosim ca să nu punem statui peste copaci
+	# frații „Props" și „Rocks" din main.tscn — îi folosim ca să nu punem statui peste ei
 	var p := get_parent()
 	if p != null:
 		_props = p.get_node_or_null("Props") as Node2D
+		_rocks = p.get_node_or_null("Rocks") as Node2D
 
 func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
@@ -57,7 +60,7 @@ func chunk_statue_pos(key: Vector2i) -> Vector2:
 			key.x * chunk_size + rng.randf_range(margin, chunk_size - margin),
 			key.y * chunk_size + rng.randf_range(margin, chunk_size - margin)
 		)
-		if not _langa_copac(p, key):
+		if not _langa_copac(p, key) and not _langa_piatra(p, key):
 			return p
 	# Chunk prea aglomerat de copaci → renunțăm la statuie aici. Preferăm asta în locul unei
 	# statui înfipte într-un copac. Costă ~0.4% din cele 10% (măsurat pe ~1000 de statui).
@@ -71,6 +74,18 @@ func _langa_copac(pos: Vector2, key: Vector2i) -> bool:
 		for dy in [-1, 0, 1]:
 			for t in _props._chunk_trees_raw(Vector2i(key.x + dx, key.y + dy)):
 				if pos.distance_to(t["pos"]) < min_dist_tree:
+					return true
+	return false
+
+# Aceeași idee ca la copaci, pe pietre. Fără asta, statuia putea ieși înfiptă într-o piatră:
+# se ferea doar de copaci, deși pietrele stau în exact aceleași locuri (în afara deșertului).
+func _langa_piatra(pos: Vector2, key: Vector2i) -> bool:
+	if _rocks == null or not _rocks.has_method("_chunk_rocks_raw"):
+		return false
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			for r in _rocks._chunk_rocks_raw(Vector2i(key.x + dx, key.y + dy)):
+				if pos.distance_to(r["pos"]) < min_dist_rock:
 					return true
 	return false
 

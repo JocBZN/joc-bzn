@@ -50,9 +50,14 @@ const DEFAULT_CFG := {
 @export var houses_max: int = 2            # case maxim per deșert
 @export var monument_chance: float = 0.5   # șansa ca un deșert să aibă un monument (0.5 = unul la 2 deșerturi)
 @export var min_gap_hitboxes: float = 3.0  # distanța minimă cactus-cactus (și cactus-structură), în „hitbox-uri"
+@export var min_gap_specials: float = 1.2  # distanța minimă casă-casă / casă-monument (vezi _place_special)
+
+const SPECIAL_TRIES := 12   # câte poziții încearcă o casă\monument până se așază
 
 var _by_name := {}  # "cactus"/"house"/"monument" -> {"tex": Texture2D, "cfg": Dictionary}
 var _loaded := {}   # Vector2i (chunk) -> Node2D (containerul cu structurile lui)
+var _specials_cache := {}   # Vector2i (macro-celulă) -> lista de case\monumente ale deșertului
+var _radius_cache := -1     # câte chunk-uri în jur trebuie verificate (vezi _neighbor_radius)
 
 func _ready() -> void:
 	_load_dir(STRUCT_DIR)
@@ -144,30 +149,62 @@ func _cacti_in_chunk(key: Vector2i) -> Array:
 func _special_in_chunk(key: Vector2i) -> Array:
 	var out := []
 	var mc := BiomeMap.macro_of_chunk(key.x, key.y)
+	for s in _desert_specials(mc):
+		if _in_chunk(s["pos"], key):
+			var c: Dictionary = s.duplicate()
+			c["key"] = key
+			out.append(c)
+	return out
+
+# Toate casele\monumentele unui deșert, calculate O SINGURĂ DATĂ per macro-celulă.
+# Se calculează pe deșert întreg (nu pe chunk) tocmai ca structurile să se poată feri
+# una de alta — înainte erau puse la întâmplare și se puteau suprapune între ele.
+func _desert_specials(mc: Vector2i) -> Array:
+	if _specials_cache.has(mc):
+		return _specials_cache[mc]
+	var out := []
 	var rect := BiomeMap.desert_rect_of_macro(mc.x, mc.y)
 	if rect.size.x == 0:
-		return out  # chunk-ul nu e într-o macro-celulă cu deșert
+		_specials_cache[mc] = out
+		return out  # macro-celula n-are deșert
 	var drng := RandomNumberGenerator.new()
 	drng.seed = hash(mc) ^ SEED_SPECIAL
 	# CASE: houses_min..houses_max garantate per deșert
 	if _by_name.has("house"):
-		var hc: Dictionary = _by_name["house"]
-		var inset: float = hc["cfg"].get("min_inset_px", 0.0)
 		var n := drng.randi_range(houses_min, houses_max)
 		for i in n:
-			var p := _rand_in_rect_inset(drng, rect, inset)
-			if _in_chunk(p, key):
-				out.append({"pos": p, "tex": hc["tex"], "cfg": hc["cfg"], "key": key, "special": true})
+			_place_special(drng, rect, _by_name["house"], out)
 	# MONUMENT: monument_chance per deșert (unul la 2 deșerturi la 0.5)
-	if _by_name.has("monument"):
-		var has_monument := drng.randf() < monument_chance
-		if has_monument:
-			var mo: Dictionary = _by_name["monument"]
-			var inset2: float = mo["cfg"].get("min_inset_px", 0.0)
-			var p := _rand_in_rect_inset(drng, rect, inset2)
-			if _in_chunk(p, key):
-				out.append({"pos": p, "tex": mo["tex"], "cfg": mo["cfg"], "key": key, "special": true})
+	if _by_name.has("monument") and drng.randf() < monument_chance:
+		_place_special(drng, rect, _by_name["monument"], out)
+	_specials_cache[mc] = out
 	return out
+
+# Încearcă mai multe poziții și o ia pe prima liberă. Dacă deșertul e prea mic ca să
+# încapă toate (n-ar avea unde), NU sare structura — casele sunt garantate — ci alege
+# poziția cea mai depărtată dintre încercări, ca suprapunerea să fie minimă.
+func _place_special(rng: RandomNumberGenerator, rect: Rect2i, c: Dictionary, out: Array) -> void:
+	var inset: float = c["cfg"].get("min_inset_px", 0.0)
+	var best := {}
+	var best_score := -INF
+	for t in SPECIAL_TRIES:
+		var cand := {"pos": _rand_in_rect_inset(rng, rect, inset),
+			"tex": c["tex"], "cfg": c["cfg"], "special": true}
+		var score := _clearance(cand, out)
+		if score >= 0.0:
+			out.append(cand)
+			return
+		if score > best_score:
+			best_score = score
+			best = cand
+	out.append(best)
+
+# Cât spațiu liber are `me` față de cele deja puse: negativ = se calcă.
+func _clearance(me: Dictionary, others: Array) -> float:
+	var worst := INF
+	for o in others:
+		worst = minf(worst, _footprint_center(me).distance_to(_footprint_center(o)) - _min_dist(me, o))
+	return worst
 
 # Toate structurile brute ale unui chunk (specialele întâi → cactușii le evită la spacing).
 func _chunk_structs_raw(key: Vector2i) -> Array:
@@ -181,8 +218,9 @@ func _build_chunk(key: Vector2i) -> Node2D:
 	add_child(container)
 	var mine := _chunk_structs_raw(key)
 	var neighbors := []
-	for dx in [-1, 0, 1]:
-		for dy in [-1, 0, 1]:
+	var r := _neighbor_radius()
+	for dx in range(-r, r + 1):
+		for dy in range(-r, r + 1):
 			if dx == 0 and dy == 0:
 				continue
 			neighbors.append_array(_chunk_structs_raw(Vector2i(key.x + dx, key.y + dy)))
@@ -204,20 +242,65 @@ func _hitbox_width(item: Dictionary) -> float:
 	return tex.get_width() * cfg["hitbox_factor"] * cfg["scale"] * 2.0
 
 func _min_dist(a: Dictionary, b: Dictionary) -> float:
-	return min_gap_hitboxes * (_hitbox_width(a) + _hitbox_width(b)) * 0.5
+	# între două structuri „special" (casă\monument) e nevoie de un prag mai mic: sunt mari
+	# și garantate, iar cu pragul de cactus n-ar încăpea două într-un deșert mic
+	var both_special: bool = a.get("special", false) and b.get("special", false)
+	var gap := min_gap_specials if both_special else min_gap_hitboxes
+	return gap * (_hitbox_width(a) + _hitbox_width(b)) * 0.5
+
+# Unde stă DE FAPT hitbox-ul, față de poziția brută. Nodul e coborât cu `sort_shift`, iar
+# colliderul are propriul offset — deci pozițiile brute a două tipuri diferite nu sunt
+# puncte comparabile. Testul de distanță trebuie făcut între centrele reale de hitbox.
+func _footprint_center(item: Dictionary) -> Vector2:
+	var tex: Texture2D = item["tex"]
+	var cfg: Dictionary = item["cfg"]
+	var sc: float = cfg["scale"]
+	var base_w := tex.get_width() * float(cfg["hitbox_factor"]) * sc * 2.0
+	var center_x := (base_w * float(cfg["east"]) - base_w * float(cfg["west"])) / 2.0
+	var center_y := (base_w * float(cfg["south"]) - base_w * float(cfg["north"])) / 2.0
+	# pos.y - sort_shift + (sa-0.25)*h*sc  se simplifică la  pos.y - 0.25*h*sc
+	var y: float = item["pos"].y - 0.25 * tex.get_height() * sc + center_y
+	return Vector2(item["pos"].x + center_x, y)
 
 func _too_close(me: Dictionary, my_index: int, mine: Array, neighbors: Array) -> bool:
 	for j in my_index:
-		var other: Dictionary = mine[j]
-		if me["pos"].distance_to(other["pos"]) < _min_dist(me, other):
+		if _clash(me, mine[j]):
 			return true
 	var my_key: Vector2i = me["key"]
 	for other in neighbors:
+		# Casele\monumentele NU sunt sărite niciodată, deci cactusul trebuie să se dea la o
+		# parte MEREU în fața lor. Regula de ordine după cheia chunk-ului e doar între două
+		# structuri care pot fi amândouă sărite (cactus-cactus), ca să nu dispară amândouă.
+		# Aici era bug-ul: cactusul ignora o casă aflată într-un chunk cu cheia „mai mare".
+		if other.get("special", false):
+			if _clash(me, other):
+				return true
+			continue
 		var ok: Vector2i = other["key"]
 		var key_smaller := ok.x < my_key.x or (ok.x == my_key.x and ok.y < my_key.y)
-		if key_smaller and me["pos"].distance_to(other["pos"]) < _min_dist(me, other):
+		if key_smaller and _clash(me, other):
 			return true
 	return false
+
+func _clash(a: Dictionary, b: Dictionary) -> bool:
+	return _footprint_center(a).distance_to(_footprint_center(b)) < _min_dist(a, b)
+
+# Câte chunk-uri în jur trebuie verificate: cea mai mare distanță minimă dintre două tipuri,
+# împărțită la mărimea chunk-ului. Cu raza fixă 1 de dinainte, o casă la 690px de un cactus
+# putea cădea în al doilea chunk și scăpa neverificată (chunk-ul are doar 512px).
+func _neighbor_radius() -> int:
+	if _radius_cache >= 0:
+		return _radius_cache
+	var worst := 0.0
+	for ka in _by_name:
+		for kb in _by_name:
+			var a: Dictionary = _by_name[ka].duplicate()
+			var b: Dictionary = _by_name[kb].duplicate()
+			a["special"] = ka != "cactus"
+			b["special"] = kb != "cactus"
+			worst = maxf(worst, _min_dist(a, b))
+	_radius_cache = maxi(1, ceili(worst / float(chunk_size)))
+	return _radius_cache
 
 func _make_struct(tex: Texture2D, cfg: Dictionary) -> StaticBody2D:
 	var sc: float = cfg["scale"]
