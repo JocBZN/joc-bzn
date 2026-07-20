@@ -56,6 +56,8 @@ var UPGRADES := [
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},
 	{"id": "unusual_clover", "nume": "Unusual Clover", "icon": "upgrade_43.png", "rar": "rare", "desc": "+5 Luck"},
+	{"id": "the_office", "nume": "The Office", "icon": "upgrade_40.png", "rar": "uncommon", "desc": "+2.5 Luck · +5% Attack Speed"},
+	{"id": "royal_flush", "nume": "Royal Flush", "icon": "upgrade_42.png", "rar": "epic", "desc": "+10 Luck"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -609,7 +611,15 @@ func _apply(id: String, p) -> void:
 			# trifoiul: +5 noroc. Se stivuiește (a doua luare = 10 noroc). Norocul înclină
 			# rarităţile la level up ȘI umflă șansele itemelor pe care le ai — vezi
 			# `_sanse_cu_noroc()` aici și `player.luck_bonus()` dincolo.
-			p.luck += 5
+			p.luck += 5.0
+		"the_office":
+			# biroul: noroc pe jumătate, dar vine la pachet cu cadență. Singurul item de noroc
+			# care dă și altceva — de aia e Uncommon, nu Rare.
+			p.luck += 2.5
+			p.upgrade_fire_rate(0.95)   # +5% attack speed (ca la Rolling Papers, care e 0.90)
+		"royal_flush":
+			# chinta roială: dublu față de trifoi, fără nimic pe lângă.
+			p.luck += 10.0
 		"undying_spirit":
 			# spiritul: prima moarte nu te termină, ci te trimite în Limbo (vezi limbo.gd).
 			# Nu se stack-uiește — a doua luare nu-ți dă a doua viață, fiindcă `undying_used`

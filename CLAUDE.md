@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (încă 2 iteme de noroc: The Office + Royal Flush)
+
+**Cerut de Răzvan:** `upgrade_40` The Office (Uncommon) = +2.5 Luck și +5% Attack Speed · `upgrade_42` Royal Flush (Epic) = +10 Luck.
+
+**Schimbarea care nu se vede în cerință: `luck` a trebuit să devină ZECIMAL.** Era `int`, iar The Office dă **+2.5** — cu întreg s-ar fi pierdut tăcut jumătatea la fiecare luare (2.5 → 2), și nimeni n-ar fi observat decât după ce nu ieșeau socotelile. Acum `var luck: float`.
+- Afișarea în panou: `("%.1f" % luck).trim_suffix(".0")` — 2.5 rămâne „2.5", dar 5.0 se scrie „5", nu „5.0".
+
+**Cadența** folosește convenția existentă: `upgrade_fire_rate(0.95)` pentru +5%, exact ca Rolling Papers care e `0.90` pentru +10%. **De reținut:** factorul înmulțește pauza dintre trageri, deci 0.95 înseamnă de fapt **+5.3%** trageri pe secundă, nu fix 5%. Așa e peste tot în joc — nu am schimbat convenția pentru un singur item.
+
+**Verificat:** stivuire 2.5 + 10 + 5 = **17.5**; noroc fracționar 2.5 dă exact jumătate din deplasarea lui 5 (C 28.75 · U 28.75 · R 21 · E 16 · L 5.5, total 100.00); crit 15% → 16% la 2.5 noroc, → 22% la 17.5; panoul afișează „2.5" și „5" corect; ambele iconițe se încarcă și rândurile arată bine pe ecran.
+
+**Codex:** ambele iteme adăugate și republicat, cu o notă nouă „Cum se adună Norocul". Sincronizare: **38 = 38** id-uri, iar cele trei iconițe de noroc decodează la exact dimensiunile fișierelor originale.
+
+---
+
 ## Session log — 2026-07-20 (item nou: Unusual Clover + statul NOROC)
 
 **Cerut de Răzvan:** `upgrade_43` — Unusual Clover (Rare), **+5 Luck**. 5 noroc = −2.5% common, −2.5% uncommon, +2% rare, +2% epic, +1% legendary; în același timp +2% la fiecare item cu șansă (crit 15% → 17%).

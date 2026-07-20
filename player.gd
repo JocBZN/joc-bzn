@@ -125,7 +125,7 @@ var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s
 # Ce NU face: nu-ți dă o șansă pe care n-ai luat-o niciodată. Fără Adrenaline criticul rămâne
 # 0%, nu 2% — altfel norocul ți-ar strecura pe furiș mecanici pe care nu le-ai ales.
 const LUCK_CHANCE_PER := 0.004   # +0.4 puncte procentuale per punct de noroc (5 noroc = +2%)
-var luck: int = 0
+var luck: float = 0.0            # ZECIMAL, nu întreg: The Office dă +2.5
 
 func luck_bonus() -> float:
 	return luck * LUCK_CHANCE_PER
@@ -435,7 +435,8 @@ func stat_lines() -> Array:
 		_stat_row("Weapon Size", weapon_size_scale(), b["weapon_size"], false, "%d%%" % round(weapon_size_scale() * 100.0)),
 		_stat_row("Knockback", knockback, b["knockback"], false, str(int(round(knockback)))),
 		_stat_row("Instakill", instakill_chance_now(), b["instakill_chance"], false, "%.1f%%" % (instakill_chance_now() * 100.0)),
-		_stat_row("Luck", luck, 0.0, false, str(luck)),
+		# fără „.0" degeaba: 2.5 rămâne „2.5", dar 5.0 se scrie „5"
+		_stat_row("Luck", luck, 0.0, false, ("%.1f" % luck).trim_suffix(".0")),
 		_stat_row("Move Speed", speed, b["speed"], false, str(int(round(speed)))),
 		_stat_row("Max HP", max_hp, b["max_hp"], false, str(max_hp)),
 		_stat_row("HP Regen", hp_regen, b["hp_regen"], false, "%d/s" % hp_regen),
