@@ -48,6 +48,7 @@ var _coins_label: Label
 var _shop_rows := []
 
 var _bg_rect: TextureRect       # fundalul (întâi cadrul clar, apoi cadrele animate)
+var _bg_next: TextureRect       # cadrul următor, peste primul, pentru trecerea lină
 var _frames: Array[Texture2D] = []
 var _frame_i := 0
 var _frame_dir := 1             # ping-pong: 1 = înainte, -1 = înapoi
@@ -127,6 +128,16 @@ func _bg_setup() -> void:
 	_blur_mat.set_shader_parameter("blur_amount", 0.0)
 	_bg_rect.material = _blur_mat
 	add_child(_bg_rect)
+	# Al doilea strat, exact peste primul: ține cadrul URMĂTOR și i se plimbă transparența
+	# de la 0 la 1 între cadre. Fără el, la 10 fps mișcarea se vede în trepte.
+	_bg_next = TextureRect.new()
+	_bg_next.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_bg_next.stretch_mode = TextureRect.STRETCH_SCALE
+	_bg_next.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_bg_next.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bg_next.material = _blur_mat      # același material: se blurează la fel ca stratul de jos
+	_bg_next.modulate.a = 0.0
+	add_child(_bg_next)
 	for i in range(1, BG_FRAME_COUNT + 1):
 		var p := "%s/frame_%03d.webp" % [BG_FRAMES_DIR, i]
 		if ResourceLoader.exists(p):
@@ -142,6 +153,9 @@ func _process(delta: float) -> void:
 	_tick_title(delta)
 
 # Derulează cadrele „ping-pong" (înainte, apoi înapoi), ca reluarea să nu aibă tăietură.
+# Sursa are doar 10 cadre pe secundă, deci între ele se face trecere lină (cross-fade):
+# stratul de jos ține cadrul curent, cel de sus cadrul următor, iar transparența lui
+# urcă de la 0 la 1 pe durata unui cadru. Altfel imaginea sare din 10 în 10 cadre.
 func _tick_bg(delta: float) -> void:
 	if not _animating or _frames.size() < 2:
 		return
@@ -149,14 +163,29 @@ func _tick_bg(delta: float) -> void:
 	var step := 1.0 / BG_FPS
 	while _frame_t >= step:
 		_frame_t -= step
-		_frame_i += _frame_dir
-		if _frame_i >= _frames.size():
-			_frame_i = _frames.size() - 2
-			_frame_dir = -1
-		elif _frame_i < 0:
-			_frame_i = 1
-			_frame_dir = 1
-		_bg_rect.texture = _frames[_frame_i]
+		_advance_frame()
+	_bg_rect.texture = _frames[_frame_i]
+	_bg_next.texture = _frames[_peek_next_frame()]
+	_bg_next.modulate.a = clampf(_frame_t / step, 0.0, 1.0)
+
+func _advance_frame() -> void:
+	_frame_i += _frame_dir
+	if _frame_i >= _frames.size():
+		_frame_i = _frames.size() - 2
+		_frame_dir = -1
+	elif _frame_i < 0:
+		_frame_i = 1
+		_frame_dir = 1
+
+# Ce cadru urmează, FĂRĂ să mișc starea — la capete ping-pong-ul se întoarce, deci
+# „următorul" nu e mereu `_frame_i + 1`.
+func _peek_next_frame() -> int:
+	var i := _frame_i + _frame_dir
+	if i >= _frames.size():
+		i = _frames.size() - 2
+	elif i < 0:
+		i = 1
+	return i
 
 # strat întunecat peste video, ca textul alb să rămână lizibil peste imagini deschise
 func _tint_overlay() -> void:
