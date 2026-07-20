@@ -20,12 +20,12 @@ const RARITIES := {
 
 # "desc" = statul afișat sub nume. "rar" = raritatea (border + culoare). Efectul e în _apply().
 var UPGRADES := [
-	{"id": "cocaina",   "nume": "Weird Concoction", "icon": "upgrade_15.png", "rar": "epic", "desc": "+speed · +fire rate"},
+	{"id": "cocaina",   "nume": "Weird Concoction", "icon": "upgrade_15.png", "rar": "epic", "desc": "+speed - +fire rate"},
 	{"id": "iarba",     "nume": "Wine",      "icon": "upgrade_13.png", "rar": "common",    "desc": "+3 HP/sec & heal 30"},
 	{"id": "seringa",   "nume": "Last Resort", "icon": "upgrade_35.png", "rar": "uncommon",  "desc": "+7 Bullet damage"},
 	{"id": "bere",      "nume": "Beer",      "icon": "upgrade_4.png", "rar": "common",    "desc": "+35 Max health"},
 	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "-3 Damage taken"},
-	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+damage · +fire rate"},
+	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+damage - +fire rate"},
 	{"id": "foite",     "nume": "Rolling Papers", "icon": "upgrade_7.png", "rar": "common",    "desc": "+10% Attack speed"},
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "common",    "desc": "-15% XP to level"},
 	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
@@ -33,22 +33,22 @@ var UPGRADES := [
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
 	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+2 Parallel Projectiles"},
 	{"id": "strapungere", "nume": "Drill", "icon": "upgrade_16.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
-	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% chance of double damage"},
-	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger bullets · +5 damage"},
+	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% Crit chance"},
+	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger bullets - +5 damage"},
 	{"id": "recul", "nume": "Knockback Stick", "icon": "upgrade_22.png", "rar": "uncommon", "desc": "Bullets knock enemies back"},
 	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+10 Weapon size"},
 	{"id": "burger", "nume": "Rat's Burger", "icon": "upgrade_18.png", "rar": "rare", "desc": "+30% Weapon size"},
-	{"id": "rabbit_foot", "nume": "Rabbit's Foot", "icon": "upgrade_20.png", "rar": "uncommon", "desc": "-5 Damage · +25% Attack speed"},
+	{"id": "rabbit_foot", "nume": "Rabbit's Foot", "icon": "upgrade_20.png", "rar": "uncommon", "desc": "-5 Damage - +25% Attack speed"},
 	{"id": "hedgehog", "nume": "Mike's Hedgehog", "icon": "upgrade_21.png", "rar": "epic", "desc": "Reflect 100% damage (once/3s)"},
-	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "epic", "desc": "+35% Damage · -35% Attack speed"},
+	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "epic", "desc": "+35% Damage - -35% Attack speed"},
 	{"id": "rusty_hacksaw", "nume": "Rusty Hacksaw", "icon": "upgrade_24.png", "rar": "uncommon", "desc": "1% instakill (+0.5% / stack)"},
 	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
-	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_29.png", "rar": "rare", "desc": "+15 Damage · +5 Max HP"},
-	{"id": "alex_protection", "nume": "Alex's Protection", "icon": "upgrade_28.png", "rar": "rare", "desc": "+25% Max HP · +15% Move speed"},
+	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_29.png", "rar": "rare", "desc": "+15 Damage - +5 Max HP"},
+	{"id": "alex_protection", "nume": "Alex's Protection", "icon": "upgrade_28.png", "rar": "rare", "desc": "+25% Max HP - +15% Move speed"},
 	{"id": "theo_wrath", "nume": "Theo's Wrath", "icon": "upgrade_30.png", "rar": "uncommon", "desc": "+15% Damage under 20% HP"},
 	{"id": "cigarette_pack", "nume": "Cigarette Pack", "icon": "upgrade_31.png", "rar": "common", "desc": "+5% Damage"},
-	{"id": "diesel_power", "nume": "Diesel Power", "icon": "upgrade_32.png", "rar": "uncommon", "desc": "+15% Damage · more if faster"},
-	{"id": "megane_katana", "nume": "Megane's Katana", "icon": "upgrade_33.png", "rar": "rare", "desc": "+15% Crit · more if faster"},
+	{"id": "diesel_power", "nume": "Diesel Power", "icon": "upgrade_32.png", "rar": "uncommon", "desc": "+15% Damage - more if faster"},
+	{"id": "megane_katana", "nume": "Megane's Katana", "icon": "upgrade_33.png", "rar": "rare", "desc": "+15% Crit - more if faster"},
 	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
 	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
 	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_37.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
@@ -56,7 +56,7 @@ var UPGRADES := [
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},
 	{"id": "unusual_clover", "nume": "Unusual Clover", "icon": "upgrade_43.png", "rar": "rare", "desc": "+5 Luck"},
-	{"id": "the_office", "nume": "The Office", "icon": "upgrade_40.png", "rar": "uncommon", "desc": "+2.5 Luck · +5% Attack Speed"},
+	{"id": "the_office", "nume": "The Office", "icon": "upgrade_40.png", "rar": "uncommon", "desc": "+2.5 Luck - +5% Attack Speed"},
 	{"id": "royal_flush", "nume": "Royal Flush", "icon": "upgrade_42.png", "rar": "epic", "desc": "+10 Luck"},
 ]
 
@@ -531,7 +531,9 @@ func _apply(id: String, p) -> void:
 			# glonțul trece prin încă un inamic înainte să dispară
 			p.pierce += 1
 		"critic":
-			# +15% șansă de damage dublu. NU mai e plafonat la 100%: peste 100% intră multi-crit-ul
+			# +15% șansă de CRIT. (Criticul înmulțește damage-ul cu crit_mult = 2×, de aici venea
+			# vechea formulare „damage dublu" — dar e crit, se cumulează cu Megane's Katana și îl
+			# umflă Norocul.) NU mai e plafonat la 100%: peste 100% intră multi-crit-ul
 			# (vezi player.roll_crit) — 200% garantează ×4, 300% ×8 etc.
 			p.crit_chance += 0.15
 		"glont_mare":

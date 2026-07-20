@@ -13,6 +13,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (Adrenaline = „crit", nu „dublu damage" + liniuță în loc de punct)
+
+**Cerut de Răzvan:** Adrenaline să fie crit, nu „șansă de dublu damage". Iar la descrieri, separatorul dintre statusuri (`+15 damage · +5 Max HP`) să fie liniuță ` - `, nu punctul `·`.
+
+**Adrenaline era DEJA crit mecanic** — `p.crit_chance += 0.15`, iar criticul înmulțește cu `crit_mult = 2×`, de unde venea vechea formulare „damage dublu". Deci **n-am schimbat nicio mecanică**, doar textul înșelător: desc `+15% chance of double damage` → `+15% Crit chance`, plus comentariul și codexul. (Contribuia deja la rândul „Crit" din panou și se cumula cu Megane's Katana — nimic din astea nu s-a schimbat.)
+
+**Punctul → liniuță** la toate cele 10 descrieri cu două statusuri. Făcut cu un regex care atinge **doar câmpul `desc`**, nu punctele din comentarii sau din alte texte (`· ` → ` - ` doar între `"desc": "..."`). Verificat: 0 descrieri mai au `·`.
+
+**Codexul:** are texte proprii, mai bogate, unde `·` apare în propoziții, nu ca separator de statusuri — **acolo NU l-am atins**. Am corectat doar formularea lui Adrenaline (acuratețe, nu stil) și am republicat.
+
+---
+
 ## Session log — 2026-07-20 (încă 2 iteme de noroc: The Office + Royal Flush)
 
 **Cerut de Răzvan:** `upgrade_40` The Office (Uncommon) = +2.5 Luck și +5% Attack Speed · `upgrade_42` Royal Flush (Epic) = +10 Luck.
