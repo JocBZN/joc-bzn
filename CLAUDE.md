@@ -13,6 +13,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (item nou: Tome of Knowledge)
+
+**Cerut de Răzvan:** `upgrade_44` Tome of Knowledge (Rare) — 50% mai puțin XP până la nivel.
+
+**Același model ca Grinder** (care e −15%): `p.xp_to_next = max(5, int(p.xp_to_next * 0.5))`. **De ce o reducere unică e de fapt permanentă:** pragul următor se calculează din `xp_to_next` curent (×1.2 pe nivel în `_level_up`), deci dacă îl tai o dată la jumătate, toate nivelurile de după rămân la jumătate. Se stivuiește (a doua luare = 25% din original).
+
+**Verificat:** 20 → 10 → 5 pe două luări. Iconița se încarcă, rândul arată corect (carte deschisă, Rare).
+
+**Codex:** adăugat și republicat, iconița injectată. Sync: **39 = 39** id-uri.
+
+---
+
 ## Session log — 2026-07-20 (Adrenaline = „crit", nu „dublu damage" + liniuță în loc de punct)
 
 **Cerut de Răzvan:** Adrenaline să fie crit, nu „șansă de dublu damage". Iar la descrieri, separatorul dintre statusuri (`+15 damage · +5 Max HP`) să fie liniuță ` - `, nu punctul `·`.

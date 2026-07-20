@@ -58,6 +58,7 @@ var UPGRADES := [
 	{"id": "unusual_clover", "nume": "Unusual Clover", "icon": "upgrade_43.png", "rar": "rare", "desc": "+5 Luck"},
 	{"id": "the_office", "nume": "The Office", "icon": "upgrade_40.png", "rar": "uncommon", "desc": "+2.5 Luck - +5% Attack Speed"},
 	{"id": "royal_flush", "nume": "Royal Flush", "icon": "upgrade_42.png", "rar": "epic", "desc": "+10 Luck"},
+	{"id": "tome_knowledge", "nume": "Tome of Knowledge", "icon": "upgrade_44.png", "rar": "rare", "desc": "50% less XP to level up"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -498,6 +499,11 @@ func _apply(id: String, p) -> void:
 		"grinder":
 			# eficiență: nivelezi mai repede (îți trebuie mai puțin XP)
 			p.xp_to_next = max(5, int(p.xp_to_next * 0.85))
+		"tome_knowledge":
+			# tomul: jumătate din XP-ul necesar. Ca la Grinder, reducerea se propagă la toate
+			# nivelurile următoare — pragul crește din valoarea deja tăiată (×1.2 pe nivel).
+			# Se stivuiește: a doua luare înjumătățește iar (25% din original).
+			p.xp_to_next = max(5, int(p.xp_to_next * 0.5))
 		"jean_bomb":
 			# LEGENDAR: +20 damage și gloanțele explodează AOE la impact
 			p.bullet_damage += 20
