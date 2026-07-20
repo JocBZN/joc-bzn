@@ -59,6 +59,21 @@ var UPGRADES := [
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
 
+# ȘANSELE PE RARITATE (în procente, per rând afișat).
+# Până acum raritatea era DOAR culoare: cele 3 iteme se alegeau uniform din listă, deci un
+# Legendary ieșea la fel de des ca un Common — ba chiar mai des pe categorie, fiindcă acolo
+# sunt mai puține iteme. Acum se trage întâi RARITATEA, după procentele de mai jos, și abia
+# apoi un item din raritatea aia. Deci câte iteme are o categorie nu-i mai schimbă șansa:
+# adaugi un Legendary nou → Legendary rămâne tot 5%, doar se împarte între mai multe.
+const RARITY_CHANCE := {
+	"common": 30.0,
+	"uncommon": 30.0,
+	"rare": 20.0,
+	"epic": 15.0,
+	"legendary": 5.0,
+}
+const RARITY_TRIES := 12   # câte încercări până cădem pe plasa de siguranță (vezi _trage_unul)
+
 var _buttons := []
 var _borders := []      # TextureRect cu border-ul rarității
 var _icons := []        # TextureRect cu iconița upgrade-ului (peste border)
@@ -332,10 +347,48 @@ func open() -> void:
 	if not visible:
 		_show_choices()
 
+# Trage o raritate după procentele din RARITY_CHANCE („roata norocului": tăiem un segment
+# proporțional pentru fiecare și vedem unde cade săgeata).
+func _trage_raritate() -> String:
+	var total := 0.0
+	for k in RARITY_CHANCE:
+		total += RARITY_CHANCE[k]
+	var r := randf() * total
+	for k in RARITY_CHANCE:
+		r -= RARITY_CHANCE[k]
+		if r <= 0.0:
+			return k
+	return "common"   # doar dacă se strecoară o eroare de virgulă la ultimul segment
+
+# Un item din raritatea trasă, care să nu fie deja pe ecran.
+func _trage_unul(deja: Array):
+	for t in RARITY_TRIES:
+		var rar := _trage_raritate()
+		var candidati := []
+		for u in UPGRADES:
+			if u.get("rar", "common") == rar and not deja.has(u):
+				candidati.append(u)
+		if not candidati.is_empty():
+			return candidati[randi() % candidati.size()]
+	# Plasă de siguranță: dacă raritatea trasă e goală de fiecare dată (s-ar întâmpla doar
+	# dacă rămâne o categorie fără iteme), luăm orice a mai rămas — mai bine un rând cu
+	# raritatea „greșită" decât un rând gol, care ar bloca alegerea.
+	var rest := []
+	for u in UPGRADES:
+		if not deja.has(u):
+			rest.append(u)
+	return rest[randi() % rest.size()] if not rest.is_empty() else null
+
+func _trage_iteme(n: int) -> Array:
+	var out := []
+	for i in n:
+		var u = _trage_unul(out)
+		if u != null:
+			out.append(u)
+	return out
+
 func _show_choices() -> void:
-	var pool := UPGRADES.duplicate()
-	pool.shuffle()
-	_current = pool.slice(0, 3)  # primele 3 după amestecare = 3 alese la întâmplare
+	_current = _trage_iteme(3)
 	for i in 3:
 		var u = _current[i]
 		# iconița

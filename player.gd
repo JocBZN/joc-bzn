@@ -108,7 +108,7 @@ const HALO_FRAME_W := 64.0                   # lățimea unui cadru (fx/halo fx:
 @export var halo_size: float = 54.0          # lățimea aureolei în px pe ecran
 # Offset pe ECRAN, nerotit — aureola stă mereu deasupra capului, indiferent încotro te uiți.
 # (La sabie un offset nerotit ar fi greșit, fiindcă tăietura se rotește cu privirea. Aici nu.)
-@export var halo_side: float = -2.0          # cât în lateral (− = spre stânga pe ecran)
+@export var halo_side: float = -4.0          # cât în lateral (− = spre stânga pe ecran)
 @export var halo_height: float = 76.0        # cât de sus stă, deasupra centrului player-ului
 											 # (creștetul e la ~62 px: sprite 124×124, capul la 31 px × scale 2)
 var _halo: AnimatedSprite2D = null           # aureola, o dată pusă rămâne tot restul rundei

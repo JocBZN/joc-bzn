@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (raritatea chiar contează + aureola cu 2px la stânga)
+
+**Cerut de Răzvan:** raritatea să însemne ceva — Common 30% · Uncommon 30% · Rare 20% · Epic 15% · Legendary 5%. Plus aureola de la Stolen Halo mutată cu 2px la stânga.
+
+**Până acum raritatea era DOAR culoare.** `_show_choices()` făcea `pool.shuffle()` + `slice(0, 3)`, adică alegere uniformă din toată lista. Efectul secundar perfid: cu cât o categorie avea mai PUȚINE iteme, cu atât fiecare item al ei ieșea mai des — dar categoria per total ieșea proporțional cu câte iteme are. Legendary (4 din 35) apărea în **11.4%** din rânduri.
+
+**Acum se trage întâi raritatea, apoi un item din ea** (`_trage_raritate()` → `_trage_unul()` → `_trage_iteme()`, cu `RARITY_CHANCE` sus în `levelup.gd`). Consecință importantă: **câte iteme are o categorie nu-i mai schimbă șansa**. Adaugi un Legendary nou → Legendary rămâne 5%, doar se împarte între mai multe iteme.
+
+**Cât s-a schimbat de fapt echilibrul** (uniform → ponderat): common 17.1% → **30%**, uncommon 25.7% → 30%, rare 22.9% → 20%, epic 22.9% → **15%**, legendary 11.4% → **5%**. Adică Legendary apare de peste **două ori mai rar**, iar Epic cu o treime mai rar. Rundele devin simțitor mai lente în putere — e exact ce s-a cerut, dar merită știut dacă începe să pară anemic.
+
+**Verificat statistic**, pe 60.000 de rânduri: abatere maximă **0.24 puncte procentuale** față de țintă, **0** rânduri cu item dublat, și toate cele **35** de iteme apar (niciunul blocat de logica nouă).
+
+**Plasa de siguranță:** dacă raritatea trasă n-are niciun item liber, se re-trage de `RARITY_TRIES` ori, apoi se ia orice a rămas. Nu se poate declanșa azi (cea mai mică categorie are 4 iteme, iar noi alegem 3), dar dacă cineva golește o categorie, rândul nu rămâne gol — ar bloca alegerea.
+
+**Aureola:** `halo_side` de la `-2.0` la `-4.0` în `player.gd`. **Atenție, valoarea NU e în pixeli de ecran direct** — se împarte la scale-ul player-ului (2). Verificat: `-4.0` → poziție locală `-2.00` → **`-4.00` px pe ecran**, deci exact 2px mai la stânga decât înainte.
+
+---
+
 ## Session log — 2026-07-20 (item nou: Undying Spirit + mecanica LIMBO)
 
 **Cerut de Răzvan:** `upgrade_41` — „Undyind Spirit" (**typo, l-am scris `Undying Spirit`**). Când mori te duce într-o lume fără structuri, alb-negru, cu mulți inamici deodată, de dificultatea de acum 1 minut; reziști 1 minut și te întorci unde ai rămas, fără inamicii care erau pe tine.
