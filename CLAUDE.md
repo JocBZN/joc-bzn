@@ -13,6 +13,84 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-20 (item nou: Undying Spirit + mecanica LIMBO)
+
+**Cerut de Răzvan:** `upgrade_41` — „Undyind Spirit" (**typo, l-am scris `Undying Spirit`**). Când mori te duce într-o lume fără structuri, alb-negru, cu mulți inamici deodată, de dificultatea de acum 1 minut; reziști 1 minut și te întorci unde ai rămas, fără inamicii care erau pe tine.
+
+**Decis cu el (întrebat explicit, nu presupus):** o singură dată pe rundă · te trezești cu **50%** din viața maximă · dacă mori în Limbo e **Game Over definitiv**.
+
+**Descrierea din joc e doar „Second chance"** — cerută scurtă intenționat, ca să nu strice surpriza. Explicația întreagă stă în codex, nu pe cardul de level up.
+
+**Cum e făcut — NU se încarcă altă scenă.** Rămânem în aceeași lume și o dezbrăcăm (`limbo.gd`, nod `Limbo` în `main.tscn`, CanvasLayer pe `layer = 5` — peste HUD, sub Game Over-ul de pe 20):
+- generatoarele de decor (`Props`, `Rocks`, `DesertStructures`, `Statues`) sunt oprite, ascunse **și golite**;
+- spawner-ul normal e oprit (grup nou `"spawner"`), ca să nu curgă inamici de dificultatea reală;
+- `Difficulty` primește `frozen` + `mult_time_override`;
+- shader alb-negru peste ecran (`limbo_bw.gdshader`).
+Avantajul: nu se pierde nimic din starea rundei (upgrade-uri, XP, poziție).
+
+**Capcana cea mai urâtă — golirea generatoarelor.** Nu e destul să le ascunzi (hitbox-urile rămân, te lovești de copaci invizibili) și nu e destul să le ștergi copiii: fiecare ține un dicționar `_loaded` cu chunk-urile puse. Dacă nu-l golești odată cu ele, la revenire crede că bucățile alea există deja și **lumea rămâne goală pe veci**. Verificat: 50 structuri → 0 în Limbo → 50 înapoi.
+
+**Dificultatea „de acum un minut"** e un override curat în `difficulty.gd`: `_mult_time()` alimentează DOAR multiplicatorii (viață/viteză/spawn), pe când ce se vede pe ecran (cronometru, anunțul de Final Swarm) rămâne pe `time`. Astfel timpul rundei poate sta înghețat fără să se strice HUD-ul. Măsurat: la minutul 3:00 `enemy_hp_mult` normal = **2.66**, în Limbo = **2.11** (adică exact 2:01).
+
+**Cronometrul de Limbo — desenat de `limbo.gd`, NU de HUD.** Numără invers de la 1:00, mare (64 vs 44) și roșu aprins; HUD-ul își ascunde cronometrul lui cât ești acolo (oricum e înghețat, ar fi stat blocat degeaba).
+- **De ce nu în HUD:** filtrul alb-negru e pe `layer = 5`, adică PESTE HUD (layer 0) — deci îi mănâncă și lui culoarea. Prima variantă chiar așa a ieșit: cronometrul se mărea corect, dar apărea **gri**, oricât roșu îi dădeam. Testul l-a prins, nu ochiul. Acum eticheta stă în aceeași CanvasLayer cu overlay-ul, adăugată DUPĂ el → se desenează peste filtru și rămâne roșie. **Orice vrei colorat în Limbo trebuie pus acolo, nu în HUD.**
+- `ceil` la afișare, altfel la intrare ar scrie 0:59 în loc de 1:00.
+
+**Bug găsit de test, nu de mine:** la moartea ÎN Limbo, `_process` ieșea devreme și lăsa `Difficulty.frozen` + spawner-ul oprit agățate peste ecranul de Game Over. Acum există `_abort()`, care eliberează starea globală dar NU te mută și NU stinge alb-negrul (mori acolo, cu atmosferă cu tot).
+
+**Testat pe jocul real** (`main.tscn` instanțiat, rundă dusă la minutul 3, player omorât): intrare (viață 50/100, 0 structuri, 40 inamici, dificultate 2:01, cronometru înghețat) → ieșire după minut (structuri regenerate, dificultate repornită, **întors exact pe poziția morții**, inamici șterși) → **a doua moarte = Game Over real**. Prima rulare a arătat calea de moarte-în-Limbo, fiindcă player-ul de test nu se apără; ca să pot testa și întoarcerea, l-am făcut rezistent DUPĂ verificarea vieții de intrare.
+
+**Codex — actualizat ȘI republicat** pe același URL (item + nota „Limbo nu e o a doua viață"). Iconița `upgrade_41.png` a fost injectată base64 în `const ICONS={...}` din `codex.html` (13092 caractere; verificat că decodează înapoi în exact cei 9817 octeți ai PNG-ului original).
+- **Capcană la injectare:** verificarea „există deja iconița?" nu se poate face căutând `upgrade_41.png` în tot fișierul — numele apare și în `ITEMS`, deci pare mereu prezent și nu injectezi niciodată. Caută `"upgrade_41.png":"data:`.
+- **Verificare de sincronizare** (merită rulată la fiecare item nou): extrage id-urile din `levelup.gd` și din `codex.html` și compară-le cu `comm`. Acum: 35 = 35, zero diferențe.
+
+---
+
+## Session log — 2026-07-20 (BUG: structuri înfipte una în alta — cactus în casă, piatră în cactus, statuie în piatră)
+
+**Cerut de Răzvan:** screenshot cu un cactus crescut prin casa abandonată + „poate așa interacționează și alte structuri între ele".
+
+**Nu am ghicit — am măsurat.** Test care rulează generarea REALĂ pe 2809 chunk-uri și caută hitbox-uri care se intersectează. Start: **2 suprapuneri din 519 structuri** (rare, de asta a apărut abia acum). Apoi un al doilea test, între sisteme diferite. Patru bug-uri, toate din aceeași familie: *fiecare sistem se verifică doar pe el însuși*.
+
+**1. Regula de departajare se aplica și caselor.** `_too_close()` avea o regulă „cine are cheia de chunk mai mică câștigă", ca doi cactuși vecini să nu dispară amândoi. Dar casele/monumentele **nu sunt sărite niciodată**, deci un cactus lângă o casă dintr-un chunk cu cheia „mai mare" pur și simplu o ignora. **Ambele** suprapuneri din test veneau de aici. Acum: în fața unei structuri „special", cactusul se dă la o parte MEREU; regula de ordine rămâne doar cactus-cactus.
+
+**2. Distanțele se măsurau între puncte necomparabile.** Nodul e coborât cu `sort_shift`, iar colliderul are propriul offset — diferite per tip (monument −156px, cactus −48px). Testul folosea pozițiile brute. A doua suprapunere avea monumentul cu poziția brută într-un chunk și hitbox-ul în cel de dedesubt. Acum `_footprint_center()` dă centrul real de hitbox și distanța se măsoară între alea.
+
+**3. Raza de căutare era prea mică.** Vecinii se luau pe ±1 chunk (512px), dar distanța minimă cactus-casă e **691px** — o casă putea cădea în al doilea chunk și să scape neverificată. Acum `_neighbor_radius()` o calculează din cea mai mare distanță minimă dintre tipuri.
+
+**4. Casele și monumentele nu se verificau ÎNTRE ELE deloc** — erau puse la întâmplare în deșert. Acum `_desert_specials()` le generează pe deșert întreg (nu pe chunk, cu cache per macro-celulă), cu `SPECIAL_TRIES` încercări fiecare. Dacă deșertul e prea mic, **nu sar structura** (casele sunt garantate), ci aleg poziția cea mai depărtată. Prag separat `min_gap_specials = 1.2` — cu pragul de cactus (3.0) n-ar încăpea două case într-un deșert mic.
+
+**Între sisteme (măsurat separat):**
+- **Pietrele intrau în cactuși** (3 cazuri): `rocks.gd` se excludea din deșert **pe chunk** (`is_desert_chunk`), dar cactușii apar și pe gradientul de la margine → rămânea o fâșie unde intrau amândoi. Acum verifică **pe poziție** (`desertness > 0.0`), exact ca la copaci în `props.gd`.
+- **Statuile intrau în pietre** (3 cazuri): `statues.gd` se ferea doar de copaci. Acum și de pietre (`_langa_piatra`, `min_dist_rock = 150`).
+- Copacii erau deja curați (excluși din deșert pe poziție).
+
+**Rezultat, tot măsurat:** 0 suprapuneri pe toate cele patru combinații. Costul: 511→496 cactuși, 820→680 pietre (cele de pe nisip), 65→64 statui. Casele și monumentele își păstrează numărul garantat (4 și 4). Poză de sus peste un deșert cu casă: spațiu curat în jur, densitatea neschimbată.
+
+**De reținut pentru orice sistem nou de generare:** dacă pui obiecte în lume, nu e destul să te ferești de tine însuți. Familia asta de bug-uri reapare la fiecare sistem adăugat.
+
+---
+
+## Session log — 2026-07-20 (fundalul de meniu: trecere lină între cadre)
+
+**Cerut de Răzvan:** „animația de background nu e smooth deloc".
+
+**Cauza:** sursa are **10 cadre pe secundă**, iar jocul redă la 60 — deci fiecare cadru stă 6 cadre redate și apoi sare. Nu era o problemă de fps al jocului.
+
+**Soluția — cross-fade între cadre.** Un al doilea `TextureRect` (`_bg_next`) exact peste primul ține **cadrul următor**, iar `modulate.a` îi urcă de la 0 la 1 pe durata unui cadru de sursă (`_frame_t / step`). `_tick_bg()` a fost spart în `_advance_frame()` (mișcă starea) și `_peek_next_frame()` (doar se uită înainte, fără s-o mute) — necesar fiindcă la capetele ping-pong-ului „următorul" nu e `_frame_i + 1`, ci se întoarce.
+
+**Capcana reală, care a mâncat o rundă: shaderul de blur ignora `modulate`.** `menu_blur.gdshader` făcea `COLOR = texture(...)`, adică **scria peste** COLOR-ul de intrare, care conține transparența pusă din cod. Stratul de sus se desena mereu opac → cross-fade-ul nu avea niciun efect, deși codul GDScript era corect. Fix: `vec4 mod_col = COLOR;` la început, `* mod_col` la final, pe **ambele** ramuri (și pe scurtătura fără blur). **`MODULATE` nu există în Godot 4.7** — am încercat întâi așa și shaderul a picat la compilare; Godot cade atunci pe shaderul implicit, care respectă modulate, deci **măsurătorile ies brusc „bune" dar fără blur**. Dacă vezi netezime perfectă și imagine clară în același timp, caută `SHADER ERROR` în stdout.
+
+**Măsurat, nu privit:** diferența medie de luminozitate între cadre redate consecutiv.
+- Înainte: 34 din 41 de cadre **identice**, apoi salt (raport maxim/mediu **7.4**) — exact tiparul sacadării.
+- După: diferențe distribuite egal, 0.03–0.11, raport maxim/mediu **1.9**.
+- Blur-ul confirmat separat (altfel „netezimea" putea veni din shaderul picat): contrastul local scade cu **74%** față de imaginea curată. **Banda de măsurat trebuie să fie fără UI** — prima oară am eșantionat o zonă în care apare logo-ul și ieșea că blur-ul *crește* claritatea cu 700%.
+- Poză la alpha 0.56 (mijlocul amestecului, pe fundal **neblurat**, unde s-ar vedea cel mai tare): fără imagine dublă. Mișcarea între cadre e mică, deci amestecul nu se citește ca fantomă.
+
+**De știut:** shaderul se aplică acum corect pe orice `modulate` pus pe fundal — dacă vrei vreodată să stingi fundalul în fade, merge direct.
+
+---
+
 ## Session log — 2026-07-20 (butoanele de meniu: culori de lemn în loc de cyan)
 
 **Cerut de Răzvan:** culoarea principală a butoanelor `#9e603f`, secundara `#594232`.
