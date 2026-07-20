@@ -40,8 +40,28 @@ const SPEED_CAP := 2.2         # oricât ar trece, inamicii nu depășesc 2.2× 
 # Timpul scurs de la începutul rundei (secunde). Spawner-ul îl resetează la joc nou.
 var time: float = 0.0
 
+# --- LIMBO (itemul Undying Spirit) ---
+# `frozen` = cronometrul rundei stă pe loc: minutul petrecut în Limbo nu-ți umflă scorul
+# și nu împinge runda spre Final Swarm.
+# `mult_time_override` >= 0 → inamicii se calculează după ACEL moment, nu după `time`.
+# Așa cere itemul: în Limbo vin inamici de dificultatea de acum un minut.
+# Ce se vede pe ecran (cronometru, anunțul de Final Swarm) rămâne pe `time`.
+var frozen := false
+var mult_time_override := -1.0
+
 func _process(delta: float) -> void:
-	time += delta
+	if not frozen:
+		time += delta
+
+# Timpul din care se calculează CÂT DE TARI sunt inamicii (≠ timpul afișat).
+func _mult_time() -> float:
+	return mult_time_override if mult_time_override >= 0.0 else time
+
+func _mult_is_fs() -> bool:
+	return _mult_time() >= RUN_LENGTH
+
+func _mult_overtime() -> float:
+	return maxf(0.0, _mult_time() - RUN_LENGTH)
 
 # --- Unde suntem în rundă ---
 
@@ -60,14 +80,14 @@ func time_left() -> float:
 # Minutele din faza 1, oprite la 10 (ca liniarul să nu curgă și în Final Swarm —
 # acolo preia exponențiala).
 func _phase1_minutes() -> float:
-	return minf(time, RUN_LENGTH) / 60.0
+	return minf(_mult_time(), RUN_LENGTH) / 60.0
 
 # Factorul exponențial: 1.0 înainte de Final Swarm, apoi se dublează la fiecare
 # `double_every` secunde.
 func _fs_factor(double_every: float) -> float:
-	if not is_final_swarm():
+	if not _mult_is_fs():
 		return 1.0
-	return pow(2.0, overtime() / double_every)
+	return pow(2.0, _mult_overtime() / double_every)
 
 # --- Multiplicatorii pe care îi citesc inamicii și spawner-ul ---
 
@@ -80,7 +100,7 @@ func enemy_speed_mult() -> float:
 
 func spawn_mult() -> float:
 	var m := 1.0 + SPAWN_PER_MIN * _phase1_minutes()
-	if is_final_swarm():
+	if _mult_is_fs():
 		m *= FS_SPAWN_JUMP * _fs_factor(FS_SPAWN_DOUBLE_EVERY)
 	return m
 

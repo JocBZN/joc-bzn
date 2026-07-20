@@ -54,6 +54,7 @@ var UPGRADES := [
 	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_37.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
 	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
+	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -515,6 +516,11 @@ func _apply(id: String, p) -> void:
 			# aceeași viteză, altă monedă (vezi player.speed_ratio() / crit_chance_now()).
 			# Stai pe loc = 0 bonus; se adună peste criticul fix de la Adrenaline.
 			p.katana_stacks += 1
+		"undying_spirit":
+			# spiritul: prima moarte nu te termină, ci te trimite în Limbo (vezi limbo.gd).
+			# Nu se stack-uiește — a doua luare nu-ți dă a doua viață, fiindcă `undying_used`
+			# rămâne consumat. E o plasă de siguranță, o singură dată pe rundă.
+			p.has_undying = true
 		"panic_button":
 			# butonul de panică: 100 damage la TOȚI inamicii de pe hartă, pe loc, o singură dată.
 			# Nu lasă nimic în urmă — tot efectul lui se consumă aici. Îl iei iar, bubuie iar.

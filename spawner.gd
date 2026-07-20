@@ -32,6 +32,7 @@ var timer: Timer
 var _final_swarm_announced := false
 
 func _ready() -> void:
+	add_to_group("spawner")   # ca Limbo să ne poată opri cât ești acolo
 	Difficulty.time = 0.0     # joc nou → resetăm cronometrul
 	GameSettings.reset_run()  # resetăm monedele și kill-urile strânse în rundă
 	_muta_player_aleator()

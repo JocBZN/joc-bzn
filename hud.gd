@@ -15,6 +15,7 @@ var kills_label: Label      # numărul de inamici uciși, sus-dreapta
 const TIMER_NORMAL := Color(1, 1, 1)             # alb cât e liniște
 const TIMER_WARN := Color(1.0, 0.75, 0.2)        # galben sub 1 minut rămas
 const TIMER_SWARM := Color(1.0, 0.25, 0.25)      # roșu în Final Swarm
+const TIMER_SIZE := 44                           # mărimea cronometrului de rundă
 
 # --- Banner mare pe ecran (anunțuri de val: "VALUL 3", "BOSS!", ...) ---
 var banner: Label
@@ -60,7 +61,7 @@ func _ready() -> void:
 	timer_label.anchor_right = 1.0
 	timer_label.offset_top = 14
 	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	timer_label.add_theme_font_size_override("font_size", 44)
+	timer_label.add_theme_font_size_override("font_size", TIMER_SIZE)
 	timer_label.add_theme_color_override("font_color", TIMER_NORMAL)
 	timer_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	timer_label.add_theme_constant_override("outline_size", 7)
@@ -155,6 +156,13 @@ func _process(_delta: float) -> void:
 
 # Cronometrul: numără invers cele 10 minute, apoi urcă de la 0 cu roșu (Final Swarm).
 func _update_timer() -> void:
+	# În Limbo cronometrul rundei e înghețat, deci n-are ce să arate. Numărătoarea de
+	# acolo o desenează `limbo.gd`, nu HUD-ul — trebuie să stea DEASUPRA filtrului
+	# alb-negru, altfel roșul ei iese gri (filtrul acoperă și HUD-ul).
+	var limbo := get_tree().get_first_node_in_group("limbo")
+	timer_label.visible = not (limbo != null and limbo.active)
+	if not timer_label.visible:
+		return
 	if Difficulty.is_final_swarm():
 		timer_label.text = "+" + _mmss(Difficulty.overtime())
 		timer_label.add_theme_color_override("font_color", TIMER_SWARM)

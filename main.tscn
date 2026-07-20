@@ -13,6 +13,7 @@
 [ext_resource type="Script" uid="uid://cipslm7dumpgc" path="res://statues.gd" id="12_statues"]
 [ext_resource type="Script" uid="uid://db54v5w8totxb" path="res://desert_structures.gd" id="13_desert"]
 [ext_resource type="Script" uid="uid://di3mvgfhw7dac" path="res://interact_ui.gd" id="14_interact"]
+[ext_resource type="Script" path="res://limbo.gd" id="15_limbo"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -70,3 +71,6 @@ script = ExtResource("9_gameover")
 
 [node name="Atmosphere" type="Node" parent="." unique_id=494741935]
 script = ExtResource("10_atmo")
+
+[node name="Limbo" type="CanvasLayer" parent="."]
+script = ExtResource("15_limbo")

@@ -39,6 +39,11 @@ var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electrici
 @export var plugged_in_chance_per: float = 0.10
 var plugged_in_stacks: int = 0                # de câte ori ai luat Plugged In
 
+# Undying Spirit: prima moarte te trimite în Limbo în loc de Game Over (vezi limbo.gd).
+# Se consumă la prima folosire — a doua oară mori normal, chiar dacă ai luat itemul de mai multe ori.
+var has_undying: bool = false
+var undying_used: bool = false
+
 # --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
 var weapon_type: String = "pistol"
 # Stingător = AURĂ: pulsează în jurul tău, mai mare cu nivelul, mai des cu cadența
@@ -1034,6 +1039,15 @@ func take_damage(amount: int) -> void:
 func die() -> void:
 	if dead:
 		return
+	# Undying Spirit: prima moarte nu e finală. Te duce în Limbo (lumea alb-negru) și,
+	# dacă reziști minutul, te întoarce aici. O SINGURĂ dată pe rundă — a doua oară
+	# `undying_used` e deja true și cazi pe Game Over-ul normal de mai jos.
+	if has_undying and not undying_used:
+		var limbo := get_tree().get_first_node_in_group("limbo")
+		if limbo != null and not limbo.active:
+			undying_used = true
+			limbo.enter(self)
+			return
 	dead = true
 	var screen := get_tree().get_first_node_in_group("gameover_screen")
 	if screen != null:
