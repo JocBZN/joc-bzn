@@ -133,7 +133,8 @@ func _fire_lightning(player: Node2D) -> void:
 	var proj := LIGHTNING.instantiate()
 	parent.add_child(proj)
 	proj.global_position = global_position + dir * 80.0  # pornește puțin în fața gărzii
-	proj.damage = lightning_damage
+	# bila lovește mai tare pe măsură ce runda avansează, ca damage-ul de contact
+	proj.damage = maxi(1, int(round(lightning_damage * Difficulty.enemy_damage_mult())))
 	proj.speed = lightning_speed
 	proj.set_direction(dir)
 

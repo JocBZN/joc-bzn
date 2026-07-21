@@ -1046,15 +1046,19 @@ func _nearest_enemy() -> Node2D:
 
 func _take_contact_damage() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
+	# Cât lovesc inamicii ACUM: `contact_damage` e statul TĂU (îl scade Vodka), iar
+	# `Difficulty.enemy_damage_mult()` e cât de duri au devenit ei cu timpul (×1 în primele
+	# 1:30, ×2 la minutul 10). Minimul de 1 ca un stat foarte bun să nu ducă damage-ul la 0.
+	var dmg := maxi(1, int(round(contact_damage * Difficulty.enemy_damage_mult())))
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null:
 			continue
 		if global_position.distance_to(enemy.global_position) < contact_range:
-			take_damage(contact_damage)
+			take_damage(dmg)
 			# Mike's Hedgehog: reflectă 100% din damage înapoi în inamic, cel mult o dată la 3s
 			if hedgehog and now >= _hedgehog_next and enemy.has_method("take_damage"):
-				enemy.take_damage(contact_damage)
+				enemy.take_damage(dmg)
 				_hedgehog_next = now + 3.0
 
 func _regen() -> void:

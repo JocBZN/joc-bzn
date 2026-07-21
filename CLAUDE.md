@@ -13,6 +13,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (dificultatea: creștere COMPUSĂ după 1:30 + inamicii lovesc mai tare)
+
+**Reclamat de Răzvan:** „inamicii sunt prea slabi după primul 1:30, fă-i să fie din ce în ce mai OP". L-am întrebat cât de brutal (i-am arătat tabele cu 3 variante) și a ales **×1.40/minut** pentru viață și **×2 la minutul 10** pentru damage.
+
+**De ce rămâneau în urmă:** faza 1 creștea LINIAR (`1 + 0.55 × minute`), iar build-ul playerului se înmulțește (damage × crit × proiectile × AOE). La minutul 10 inamicii aveau doar **6.5×** viață. Plus: **damage-ul lor nu creștea DELOC** — un inamic de la minutul 10 lovea exact cât unul de la secunda 0.
+
+**Ce s-a schimbat în `difficulty.gd`:**
+- **Primele `RAMP_START = 90s` au rămas neatinse** (liniarul vechi) — reclamația era despre ce vine DUPĂ 1:30, nu despre început.
+- După 1:30 viața devine compusă: `pow(HP_GROWTH_PER_MIN, minute_de_rampă)`, cu **1.40**.
+- Nou: `enemy_damage_mult()` — `DMG_GROWTH_PER_MIN = 1.0844` (adică `2^(1/8.5)`, fiindcă din 1:30 până la 10:00 sunt 8.5 minute de rampă), iar în Final Swarm se dublează la fiecare 2 minute (`FS_DMG_DOUBLE_EVERY`). Se aplică la damage-ul de contact (`player._take_contact_damage`, inclusiv reflexia de la Mike's Hedgehog) și la bilele Gărzii (`garda.gd`).
+- ⚠️ **XP-ul a primit ACELAȘI factor compus ca viața.** Dacă îl lăsam liniar, la minutul 10 aveai inamici de 32× viață care dădeau 4× XP → ritmul upgrade-urilor s-ar fi prăbușit și ieșea „imposibil", nu „greu". Raportul xp/hp rămâne acum **1.59 constant** după 1:30 (verificat în tabel), adică exact echilibrul dinainte.
+
+**Măsurat** (test temporar care plimbă `Difficulty.time` și naște inamici reali):
+
+| timp | viață (mult) | viața reală a unui inamic | damage la contact (bază 5) |
+|---|---|---|---|
+| 1:30 | 1.8× | 54 | 5 |
+| 5:00 | 5.9× | 177 | 7 |
+| 7:00 | 11.6× | — | 8 |
+| 10:00 | 31.9× | 956 | 10 |
+| 12:00 | ~250× | — | 20 |
+
+**De semnalat lui Răzvan (efect secundar real):** itemele cu damage FIX rămân acum mult în urmă — `fire_trail_damage = 5`, `frost_trail_damage = 2` și **Panic Button (100 damage)**, care la minutul 10 nu mai omoară un inamic de 956 HP. Aceeași problemă pe care tocmai am rezolvat-o la Jean's Bomb (trecut pe procent). Merită trecute și ele pe procent din damage-ul playerului — dar e decizia lui.
+
+---
+
 ## Session log — 2026-07-21 (Undying Spirit apare o singură dată + Jean's Bomb pe procent)
 
 **Cerut de Răzvan:** „dacă playerul a luat o dată Undying Spirit, fă să nu-i mai apară niciodată runda aia" + „la Jean's Bomb, în loc de 25 damage în zonă fă să fie 15% of damage (și să scaleze cu +20 damage prima parte, și explozia cu range +20 și 10% of damage)".
