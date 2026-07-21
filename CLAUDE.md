@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (Undying Spirit apare o singură dată + Jean's Bomb pe procent)
+
+**Cerut de Răzvan:** „dacă playerul a luat o dată Undying Spirit, fă să nu-i mai apară niciodată runda aia" + „la Jean's Bomb, în loc de 25 damage în zonă fă să fie 15% of damage (și să scaleze cu +20 damage prima parte, și explozia cu range +20 și 10% of damage)".
+
+**Iteme „unice"** — mecanism GENERAL, nu un caz special pentru Undying: în dicționarul itemului pui `"unic": true`, iar `_on_choice` îi trece id-ul în `_luate_unic` după ce l-ai ales. `_trage_unul` filtrează prin `_e_disponibil()` — și în tragerea pe raritate, ȘI în plasa de siguranță (dacă lipsea din a doua, itemul ar fi reapărut exact în cazul rar în care categoria rămâne goală). Lista se golește singură la rundă nouă, fiindcă `main.tscn` se reîncarcă. **Deocamdată doar Undying Spirit e marcat**; oricare altul se marchează la fel, cu un singur cuvânt.
+
+**Jean's Bomb** nu mai face 25 damage fix în zonă, ci **un procent din damage-ul salvei**:
+- câmp nou pe player: `explosion_damage_pct` (15% la prima luare, **+10%** la fiecare repetare), iar raza e 130 la prima luare și **+20** la repetare (înainte era `=130`, deci repetarea nu făcea nimic pe rază). Partea directă rămâne `+20 damage` de fiecare dată.
+- calculul se face **la tragere**, în `_fire_bullets`: `ex_damage = maxi(ex_damage, int(round(dmg_base * explosion_damage_pct)))`. `dmg_base` include deja `damage_mult()` (Theo's / Cigarette / Diesel), deci explozia crește singură cu tot ce iei pe damage — asta era și ideea: 25 fix devenea neglijabil după 10 minute.
+- `max`-ul păstrează regula veche a Mage Staff-ului (60% din damage) — la mage câștigă tot 60%, ca înainte.
+- `explosion_damage` (fix) a rămas în cod, dar acum nu-l mai setează nimeni.
+
+**Verificat** headless: raza 130 → 150, procentul 0.15 → 0.25, iar glonțul chiar tras avea `damage=62, explosion_radius=150, explosion_damage=16` (= 25% din 62, cu tot cu +5% de la Cigarette Pack). Pentru unic: **11 apariții la 300 de pagini** înainte de a-l lua, **0 după**.
+
+---
+
 ## Session log — 2026-07-21 (Gunslinger + item nou: Death Sentence)
 
 **Cerut de Răzvan:** „schimb poza la Stacked Armory — e upgrade_47, și numele în Gunslinger" + „upgrade nou — upgrade_49 (Rare) Death Sentence: -35% movement speed, +20% attack damage, +20% attack speed".

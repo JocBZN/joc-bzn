@@ -155,7 +155,11 @@ const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran
 @export var weapon_size_mult: float = 1.0  # Rat's Burger: × 1.30 peste mărimea curentă
 @export var knockback: float = 0.0         # cât împinge inamicul înapoi
 @export var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără) — Jean's Bomb
-@export var explosion_damage: int = 0      # cât damage face explozia AOE
+@export var explosion_damage: int = 0      # damage FIX al exploziei (nefolosit acum, vezi mai jos)
+# Jean's Bomb: explozia face un PROCENT din damage-ul salvei (15% la prima luare, +10% pe
+# repetare), calculat la fiecare tragere în `_fire_bullets` — deci crește singur cu upgrade-urile
+# de damage luate după. Înainte era un 25 fix, care rămânea în urmă până devenea neglijabil.
+@export var explosion_damage_pct: float = 0.0
 @export var fire_trail_time: float = 0.0   # cât rămâne dâra de foc pe jos (0 = fără) — Firewalker
 @export var fire_trail_damage: int = 0     # damage pe tick al dârei de foc
 @export var fire_trail_size: float = 0.0   # lățimea focului în px (crește cu fiecare upgrade)
@@ -518,9 +522,12 @@ func _fire_bullets() -> void:
 	_muzzle(global_position + dir * 34.0, dir)
 	# damage-ul acestei salve, cu procentele care depind de starea de acum (Theo's / Cigarette / Diesel)
 	var dmg_base := int(round(bullet_damage * damage_mult()))
-	# Mage Staff: fiecare glonț explodează AOE la impact (peste eventualul Jean's Bomb)
 	var ex_radius := explosion_radius
 	var ex_damage := explosion_damage
+	# Jean's Bomb: explozia = procent din damage-ul salvei, recalculat la fiecare tragere
+	if explosion_damage_pct > 0.0:
+		ex_damage = maxi(ex_damage, int(round(dmg_base * explosion_damage_pct)))
+	# Mage Staff: fiecare glonț explodează AOE la impact (peste eventualul Jean's Bomb)
 	if weapon_type == "mage":
 		ex_radius = max(ex_radius, 110.0)
 		ex_damage = max(ex_damage, int(dmg_base * 0.6))

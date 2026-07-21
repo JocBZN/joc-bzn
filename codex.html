@@ -179,8 +179,8 @@ const RARS = [
 
 // Efectele REALE, citite din levelup.gd (_apply) și player.gd — nu descrierile din joc.
 const ITEMS = [
-  { id: "jean_bomb", name: "Jean's Bomb", icon: "upgrade_9.png", rar: "legendary",
-    eff: "<b>+20 damage</b> și gloanțele explodează la impact: rază <b>130</b>, <b>25 damage</b> în zonă." },
+  { id: "jean_bomb", name: "Jean's Bomb", icon: "upgrade_9.png", rar: "legendary", isRework: true,
+    eff: "<b>+20 damage</b> și gloanțele explodează la impact: rază <b>130</b>, iar explozia face <b>15% din damage-ul tău</b> (nu 25 fix, ca înainte). La repetare: <b>+20 damage</b>, <b>+20 rază</b> și <b>+10% damage</b> la explozie. Procentul se ia din damage-ul de la momentul tragerii, deci <b>crește singur</b> cu tot ce iei pe damage după." },
   { id: "gloante_paralele", name: "Twin Comets", icon: "upgrade_19.png", rar: "legendary", isRework: true,
     eff: "<b>+2 proiectile garantate</b>, trase în <b>alți 2 inamici random</b> (stack → +4, +6). Aceeași mecanică cu Stacked Armory, dar două odată — se adună în același contor, deci Twin Comets + Stacked Armory = 3 proiectile bonus.",
     warn: "Doar la gloanțe" },
@@ -242,8 +242,8 @@ const ITEMS = [
     eff: "<b>1% șansă/lovitură</b> (+1% pe stack) să <b>aurească</b> un inamic: îngheață exact în cadrul lovit, cu filtru auriu, fără să-i scadă viața. <b>Următoarea lovitură îl ucide instant</b> și lasă <b>2× XP</b>.",
     warn: "Merge cu orice armă" },
   { id: "undying_spirit", name: "Undying Spirit", icon: "upgrade_41.png", rar: "legendary", isNew: true,
-    eff: "Prima moarte nu te termină: ajungi în <b>LIMBO</b> — lume goală, alb-negru — cu <b>jumătate din viață</b> și un val de inamici pe tine. Reziști <b>1:00</b> și te întorci exact unde ai murit, cu inamicii de acolo <b>șterși</b>.",
-    warn: "O singură dată pe rundă · mori în Limbo = Game Over" },
+    eff: "Prima moarte nu te termină: ajungi în <b>LIMBO</b> — lume goală, alb-negru — cu <b>jumătate din viață</b> și un val de inamici pe tine. Reziști <b>1:00</b> și te întorci exact unde ai murit, cu inamicii de acolo <b>șterși</b>. Odată luat, <b>iese din listă</b> pentru toată runda — nu se stivuiește, deci a doua luare ar fi fost un Legendary irosit.",
+    warn: "Nu mai apare după ce l-ai luat · mori în Limbo = Game Over" },
 
   { id: "seringa", name: "Last Resort", icon: "upgrade_35.png", rar: "uncommon", isNew: true,
     eff: "<b>+7 Bullet damage.</b> (Fostul „Knight's Power”, redenumit, cu iconiță nouă.)" },

@@ -28,7 +28,7 @@ var UPGRADES := [
 	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+damage - +fire rate"},
 	{"id": "foite",     "nume": "Rolling Papers", "icon": "upgrade_7.png", "rar": "common",    "desc": "+10% Attack speed"},
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "common",    "desc": "-15% XP to level"},
-	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
+	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & AOE for 15% of damage"},
 	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
 	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+2 projectiles at random enemies"},
@@ -58,7 +58,10 @@ var UPGRADES := [
 	{"id": "death_sentence", "nume": "Death Sentence", "icon": "upgrade_49.png", "rar": "rare", "desc": "-35% speed, +20% damage & attack speed"},
 	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
-	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},
+	# "unic": itemul dispare din listă după ce l-ai luat o dată — nu mai apare deloc în runda asta.
+	# Undying Spirit se consumă la prima moarte și NU se stivuiește, deci a doua luare ar fi fost
+	# un rând irosit (mai rău: un Legendary irosit).
+	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance", "unic": true},
 	{"id": "unusual_clover", "nume": "Unusual Clover", "icon": "upgrade_43.png", "rar": "rare", "desc": "+5 Luck"},
 	{"id": "the_office", "nume": "The Office", "icon": "upgrade_40.png", "rar": "uncommon", "desc": "+2.5 Luck - +5% Attack Speed"},
 	{"id": "royal_flush", "nume": "Royal Flush", "icon": "upgrade_42.png", "rar": "epic", "desc": "+10 Luck"},
@@ -98,6 +101,9 @@ var _desc_labels := []
 var _current := []   # cele 3 upgrade-uri afișate acum
 var _pending := 0    # câte niveluri mai avem de ales (dacă urci mai multe deodată)
 var _reroll := false # Lucky Die: pagina se retrage, dar nivelul NU se consumă (vezi _on_choice)
+# Id-urile itemelor marcate "unic" pe care le-ai luat deja în runda asta — nu mai intră în tragere.
+# Se golește singur la rundă nouă: scena `main.tscn` se reîncarcă, deci scriptul o ia de la zero.
+var _luate_unic := []
 
 var _stats_box: VBoxContainer   # rândurile panoului de statusuri (dreapta ecranului)
 
@@ -405,13 +411,13 @@ func _sanse_cu_noroc(luck: float) -> Dictionary:
 		out[k] += luat * (LUCK_GIVE[k] / total_give)
 	return out
 
-# Un item din raritatea trasă, care să nu fie deja pe ecran.
+# Un item din raritatea trasă, care să nu fie deja pe ecran și să nu fie un „unic" deja luat.
 func _trage_unul(deja: Array):
 	for t in RARITY_TRIES:
 		var rar := _trage_raritate()
 		var candidati := []
 		for u in UPGRADES:
-			if u.get("rar", "common") == rar and not deja.has(u):
+			if u.get("rar", "common") == rar and not deja.has(u) and _e_disponibil(u):
 				candidati.append(u)
 		if not candidati.is_empty():
 			return candidati[randi() % candidati.size()]
@@ -420,9 +426,13 @@ func _trage_unul(deja: Array):
 	# raritatea „greșită" decât un rând gol, care ar bloca alegerea.
 	var rest := []
 	for u in UPGRADES:
-		if not deja.has(u):
+		if not deja.has(u) and _e_disponibil(u):
 			rest.append(u)
 	return rest[randi() % rest.size()] if not rest.is_empty() else null
+
+# Un item „unic" (Undying Spirit) iese din joc după prima luare — nu-l mai poți primi în runda asta.
+func _e_disponibil(u) -> bool:
+	return not _luate_unic.has(u["id"])
 
 # `exclude` = iteme interzise pe lângă cele deja trase în runda asta. Îl folosește Lucky Die,
 # ca pagina de după reroll să fie chiar ALTA, nu aceleași iteme trase din nou.
@@ -461,8 +471,12 @@ func _show_choices(exclude: Array = []) -> void:
 func _on_choice(index: int) -> void:
 	var p = get_tree().get_first_node_in_group("player")
 	_reroll = false
+	var ales = _current[index]
 	if p != null:
-		_apply(_current[index]["id"], p)
+		_apply(ales["id"], p)
+	# itemele „unice" ies din listă imediat ce le-ai luat (vezi _e_disponibil)
+	if ales.get("unic", false) and not _luate_unic.has(ales["id"]):
+		_luate_unic.append(ales["id"])
 	if _reroll:
 		# Lucky Die: pagină nouă pe loc, fără să consume nivelul — tot un item alegi la final.
 		# Cele 3 iteme de pe pagina rerulată sunt excluse, ca reroll-ul să însemne chiar altceva.
@@ -519,10 +533,16 @@ func _apply(id: String, p) -> void:
 			# Se stivuiește: a doua luare înjumătățește iar (25% din original).
 			p.xp_to_next = max(5, int(p.xp_to_next * 0.5))
 		"jean_bomb":
-			# LEGENDAR: +20 damage și gloanțele explodează AOE la impact
-			p.bullet_damage += 20
-			p.explosion_radius = 130.0
-			p.explosion_damage = 25
+			# LEGENDAR: +20 damage și gloanțele explodează AOE la impact.
+			# Explozia NU mai face damage fix (25), ci un PROCENT din damage-ul salvei — așa
+			# crește singură cu tot ce iei mai târziu pe damage, în loc să rămână în urmă.
+			p.bullet_damage += 20                # partea directă: +20 la fiecare luare
+			if p.explosion_damage_pct <= 0.0:
+				p.explosion_radius = 130.0       # prima luare: raza de bază
+				p.explosion_damage_pct = 0.15    # 15% din damage
+			else:
+				p.explosion_radius += 20.0       # repetare: rază mai mare
+				p.explosion_damage_pct += 0.10   # și +10% din damage
 		"firewalker":
 			# lasă o dâră de foc când mergi; fiecare upgrade o ține mai mult și mai mare
 			if p.fire_trail_time <= 0.0:
