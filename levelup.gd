@@ -51,8 +51,11 @@ var UPGRADES := [
 	{"id": "megane_katana", "nume": "Megane's Katana", "icon": "upgrade_33.png", "rar": "rare", "desc": "+15% Crit - more if faster"},
 	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
 	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
-	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_46.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
+	# id-ul a rămas „stacked_armory": pe 2026-07-21 itemul a fost redenumit Gunslinger și a primit
+	# altă iconiță (upgrade_47), dar efectul e neschimbat, iar id-ul ține legăturile vechi.
+	{"id": "stacked_armory", "nume": "Gunslinger", "icon": "upgrade_47.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
 	{"id": "lucky_die", "nume": "Lucky Die", "icon": "upgrade_48.png", "rar": "rare", "desc": "Reroll: a new page of items"},
+	{"id": "death_sentence", "nume": "Death Sentence", "icon": "upgrade_49.png", "rar": "rare", "desc": "-35% speed, +20% damage & attack speed"},
 	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},
@@ -543,7 +546,7 @@ func _apply(id: String, p) -> void:
 				# damage și mărime rămân la fel
 		"gloante_paralele":
 			# +2 proiectile GARANTATE, trase în ALȚI inamici la întâmplare — exact mecanica de la
-			# Stacked Armory, doar că două odată (e legendary). NU mai sunt gloanțe paralele:
+			# Gunslinger, doar că două odată (e legendary). NU mai sunt gloanțe paralele:
 			# id-ul „gloante_paralele" a rămas doar ca să nu stric referințele vechi.
 			p.stacked_armory_stacks += 2
 		"strapungere":
@@ -580,6 +583,15 @@ func _apply(id: String, p) -> void:
 			# The Nightclub: +35% damage, dar -35% attack speed (tragi mai rar)
 			p.bullet_damage = int(round(p.bullet_damage * 1.35))
 			p.upgrade_fire_rate(1.35)
+		"death_sentence":
+			# condamnarea la moarte: te încetinești ca să lovești mai tare și mai des.
+			# Toate trei sunt PROCENTE pe valoarea curentă (ca la The Nightclub), deci se compun
+			# la fiecare luare: a doua oară -35% din ce mai aveai, nu -70% din viteza de start.
+			# ⚠️ Nu are plasă de siguranță pe viteză: luat de multe ori te lasă aproape pe loc
+			# (0.65^4 = 18% din viteza inițială). E intenționat — itemul e un pariu.
+			p.speed *= 0.65                                    # -35% viteză de mișcare
+			p.bullet_damage = int(round(p.bullet_damage * 1.20))  # +20% damage
+			p.upgrade_fire_rate(0.80)                          # +20% attack speed (tragi mai des)
 		"rusty_hacksaw":
 			# 1% instakill la prima luare, apoi +0.5% la fiecare repetare
 			if p._rusty_taken:
@@ -657,7 +669,7 @@ func _apply(id: String, p) -> void:
 			p.panic_button(100)
 		"broken_watch":
 			# ceasul stricat: șansa (50%, fixă) să tragi proiectile bonus în ALȚI inamici la
-			# întâmplare (ca Stacked Armory, dar pe șansă). Nu crește ȘANSA la repetare, ci CÂTE
+			# întâmplare (ca Gunslinger, dar pe șansă). Nu crește ȘANSA la repetare, ci CÂTE
 			# proiectile dai când se declanșează: +1, +2, +3 ...
 			p.broken_watch_stacks += 1
 		"lucky_die":

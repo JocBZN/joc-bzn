@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (Gunslinger + item nou: Death Sentence)
+
+**Cerut de Răzvan:** „schimb poza la Stacked Armory — e upgrade_47, și numele în Gunslinger" + „upgrade nou — upgrade_49 (Rare) Death Sentence: -35% movement speed, +20% attack damage, +20% attack speed".
+
+**Gunslinger** = fostul Stacked Armory: alt nume, altă iconiță (`upgrade_47.png`, un revolver), **efect neschimbat**. **Id-ul a rămas `stacked_armory`** — la fel ca la Twin Comets, id-ul e cheia din `_apply` și din toate referințele vechi; numele afișat e doar text. Am schimbat „Stacked Armory" → „Gunslinger" și în comentariile din `levelup.gd` + `player.gd`, ca să nu rămână două nume pentru același lucru. `upgrade_46.png` (borcanul cu săgeți) nu mai e folosit de niciun item.
+
+**Death Sentence** (Rare, `upgrade_49.png` — bila cu lanț, exact tema): `p.speed *= 0.65`, `p.bullet_damage = int(round(p.bullet_damage * 1.20))`, `p.upgrade_fire_rate(0.80)`. Convenția de attack speed din proiect: factorul înmulțește **intervalul**, deci 0.80 = tragi cu 20% mai des (ca `foite` cu 0.90 sau `nightclub` cu 1.35 în sens invers).
+- ⚠️ **Toate trei sunt procente pe valoarea CURENTĂ**, deci se compun la repetare (ca The Nightclub). Măsurat: 315 → 204.75 → 133.09 viteză; damage 19 → 23 → 28; cadență 2.00/s → 2.50/s → 3.12/s. La a patra luare rămâi cu **18%** din viteza de start. **N-am pus plafon intenționat** — itemul e un pariu, dar dacă Răzvan zice că e prea brutal, o singură linie cu `maxf(p.speed * 0.65, ceva)` rezolvă.
+
+**Verificat** cu test temporar headless (numerele de mai sus, aplicate prin chiar `Levelup._apply`) + captură windowed a paginii de level-up cu toate trei itemele noi: iconițele se randează, iar panoul de statusuri arată exact povestea itemului — Damage și Attack Speed **verzi**, Move Speed **roșu**.
+
+**Codex actualizat** (același URL): Gunslinger redenumit (cu notă că e fostul Stacked Armory) + cardul Death Sentence. Iconițele injectate cu același `add_icon.ps1` din sesiunea anterioară — merge la fel de bine în buclă pentru mai multe iconițe.
+
+---
+
 ## Session log — 2026-07-21 (item nou: Lucky Die — reroll la pagina de iteme)
 
 **Cerut de Răzvan:** „upgrade nou — upgrade_48 (Rare) Lucky Die — reroll item page (când iei upgrade-ul îți apare o pagină nouă de upgrade-uri)".

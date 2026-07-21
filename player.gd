@@ -19,15 +19,15 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var bullet_damage: int = 10        # cât rău fac gloanțele (crește la level up)
 @export var bullet_speed: float = 700.0    # cât de repede zboară glonțul (crește la level up)
 # Gloanțe paralele: din 2026-07-21 NICIUN item nu mai crește `bullet_count` (Twin Comets dădea
-# +2, acum dă proiectile bonus ca Stacked Armory). Mecanica rămâne funcțională, gata de refolosit.
+# +2, acum dă proiectile bonus ca Gunslinger). Mecanica rămâne funcțională, gata de refolosit.
 @export var bullet_count: int = 1          # câte gloanțe paralele tragi odată
 @export var bullet_spacing: float = 26.0   # distanța dintre gloanțele paralele
 # Broken Watch: la fiecare salvă, ȘANSĂ (fixă) să tragi proiectile bonus în ALȚI inamici la
-# întâmplare (ca Stacked Armory, dar pe șansă). Șansa NU crește cu luările — crește CÂTE proiectile
+# întâmplare (ca Gunslinger, dar pe șansă). Șansa NU crește cu luările — crește CÂTE proiectile
 # bonus dai când se declanșează (+1 pe luare). Doar la gloanțe (pistol/mage).
 @export var broken_watch_chance: float = 0.5  # șansa să se declanșeze bonusul
 var broken_watch_stacks: int = 0              # câte proiectile bonus tragi când se declanșează
-# Stacked Armory (+1 pe luare) și Twin Comets (+2 pe luare): proiectile GARANTATE trase în ALȚI
+# Gunslinger (+1 pe luare) și Twin Comets (+2 pe luare): proiectile GARANTATE trase în ALȚI
 # inamici la întâmplare — pleacă în direcții diferite deodată. Doar la gloanțe (pistol/mage).
 var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți inamici
 # Thunder God: la impact (glonț SAU sabie), curent electric de la inamicul LOVIT spre toți ceilalți
@@ -457,7 +457,7 @@ func stat_lines() -> Array:
 	]
 
 # Câte proiectile pleacă GARANTAT la o salvă: cele paralele + cele trase în alți inamici
-# (Stacked Armory / Twin Comets). Broken Watch NU intră aici — e pe șansă, nu garantat.
+# (Gunslinger / Twin Comets). Broken Watch NU intră aici — e pe șansă, nu garantat.
 # Fără asta, rândul „Projectiles" din panou ar rămâne veșnic pe 1, deși itemele îl cresc.
 func projectiles_total() -> int:
 	return bullet_count + stacked_armory_stacks
@@ -530,7 +530,7 @@ func _fire_bullets() -> void:
 		any_crit = true
 	# Proiectile BONUS trase în ALȚI inamici la întâmplare — pleacă în direcții diferite deodată,
 	# nu paralele între ele, dar FIECARE e o salvă completă:
-	#  · Stacked Armory (+1 pe luare) și Twin Comets (+2 pe luare): garantate,
+	#  · Gunslinger (+1 pe luare) și Twin Comets (+2 pe luare): garantate,
 	#    `stacked_armory_stacks` bucăți
 	#  · Broken Watch: 50% șansă (broken_watch_chance) să tragă `broken_watch_stacks` bucăți
 	var bonus := stacked_armory_stacks
@@ -582,7 +582,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.set_direction(dir)
 	return is_crit
 
-# Ținte pentru Stacked Armory: `n` inamici, preferați ALȚII decât ținta principală. Dacă nu-s
+# Ținte pentru Gunslinger: `n` inamici, preferați ALȚII decât ținta principală. Dacă nu-s
 # destui alți inamici, se repetă / cade pe ținta principală, ca toate proiectilele bonus să tragă.
 func _armory_targets(primary: Node, n: int) -> Array:
 	var others := []

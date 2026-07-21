@@ -52,6 +52,10 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-21, Gunslinger + Death Sentence)
+- ✅ **Stacked Armory is now Gunslinger** — new name, new icon (`upgrade_47.png`), **same effect**. The id stays `stacked_armory`: it is the key `_apply` matches on and what every older reference points at; the display name is just text. Comments in `levelup.gd` / `player.gd` were renamed along with it. `upgrade_46.png` is now unused.
+- ✅ **Death Sentence** (Rare, `upgrade_49.png`) — **−35% move speed, +20% damage, +20% attack speed**. All three are percentages of the *current* value, like The Nightclub, so they compound: 315 → 205 → 133 speed, 19 → 23 → 28 damage, 2.00/s → 2.50/s → 3.12/s. Four stacks leave you at 18% of your starting speed — **deliberately uncapped**, the item is a gamble. Note the project's attack-speed convention: the factor multiplies the *interval*, so 0.80 means firing 20% more often.
+
 ## Current state (2026-07-21, new item: Lucky Die)
 - ✅ **Lucky Die** (Rare, `upgrade_48.png`) — **rerolls the item page**. Taking it deals a fresh page of three items and **does not spend the level-up**, so you still walk away with a real item. Lives entirely in `levelup.gd`: `_apply` raises a `_reroll` flag, and `_on_choice` re-shows the page and returns *before* decrementing `_pending`.
 - ℹ️ **The reroll is guaranteed to be different.** `_show_choices` / `_trage_iteme` take an optional `exclude` list; the three items you just rerolled are passed in, so none of them can come back — and since Lucky Die is one of them, it can't reappear either, which rules out an endless reroll chain from a single level-up.
