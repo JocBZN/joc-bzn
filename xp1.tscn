@@ -9,6 +9,7 @@ radius = 36.0
 [node name="XP1" type="Area2D"]
 script = ExtResource("1_xp")
 value = 1
+tier = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.05, 0.05)

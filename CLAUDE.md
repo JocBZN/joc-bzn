@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (bulele de XP — contopire vizibilă, nu ștergere)
+
+**Cerut de Răzvan**, imediat după sesiunea de mai jos: „la xp nu vreau să dispară, vreau să pui un overlay roșu pe poza xp2 — și când se strâng foarte multe geme de xp într-un loc, 20 de cele xp simplu (nu xp2) devin o singură bulă de xp3".
+
+**Regula (în `xp.gd`):** când `CLUSTER_NR = 20` geme de ACELAȘI fel ajung la mai puțin de `CLUSTER_RAZA = 260px` una de alta, toate **zboară spre centrul lor** și se contopesc într-o bulă care valorează exact cât ele la un loc. Bulele se contopesc și ele între ele, după aceeași regulă → numărul de geme rămâne mic de la sine, oricât ar dura runda (măsurat: ~80 geme + ~70 bule, constant, cu bule de 26.000 XP). Gema rară **xp2 nu se contopește** (cerut explicit). Cine se contopește se știe după `tier` (1 = xp1, 2 = xp2, 3 = bulă) — `@export`, setat în fiecare `.tscn`.
+
+⚠️ **Capcana care a făcut ca la prima încercare să nu se contopească NIMIC:** verificarea era în `_ready()`, dar cine creează o gemă îi pune poziția **după** `add_child` (vezi `enemy._drop_xp`), deci în `_ready` gema e încă la (0,0) și nu găsește niciun vecin. Rezolvat cu `_incearca_contopirea.call_deferred()` — rulează la sfârșitul cadrului, când poziția e deja pusă. **Regulă generală: nimic care depinde de poziția unui nod nou nu se face în `_ready`.**
+
+**Culoarea bulei:** arta lui `xp/xp2.png`, vopsită roșu **la rulare** (`_textura_rosie`): fiecare pixel primește nuanța `NUANTA_BULA` (0.0 = roșu) și își păstrează saturația + luminozitatea → același desen, aceleași umbre, altă culoare. O singură prelucrare pe rundă, ținută într-un `static`. **Intenționat NU există `xp3.png`**: schimbi `xp2.png`, bula se ia automat după el, fără reimport.
+
+**Overlay-ul roșu cerut a fost încercat primul și a ieșit prost** — testat pe 4 variante și comparat cu ochii: additiv 0.8 și 1.0 = orbul rămâne albastru, doar marginile bat în mov; roșu peste el la 0.55 = noroios; canale R↔B inversate = portocaliu (se bate cu xp1 galben). Rotirea nuanței cu −210° dădea miezul măsliniu. Câștigătoarea a fost nuanța FIXĂ. Poza comparativă a celor trei geme pe iarbă: `debugging/geme_xp1_xp2_xp3.png`.
+
+**De semnalat lui Răzvan:** gemele **xp2 se adună la nesfârșit** (5% din ~30 de morți pe secundă = ~1.5/s; măsurat 207 după 2:30 de Final Swarm). Nu strică framerate-ul acum, dar la o rundă lungă ar deveni aceeași problemă — și „rara" nu mai pare rară când e tot ecranul plin. Așteaptă decizia lui (contopire și pentru ele / șansă mai mică de drop în Final Swarm / lăsat așa).
+
+---
+
 ## Session log — 2026-07-21 (laghitul din Final Swarm — măsurat și reparat)
 
 **Reclamat de Răzvan:** „după ce se termină timer-ul și trec 2 minute începe să lagheze rău de tot".
@@ -26,7 +42,9 @@ t= 720 fps= 68 noduri= 7860 inamici=54 xp=2327
 t= 780 fps=  4 noduri=17224 inamici=88 xp=5390   <-- gemele de XP
 ```
 
-**Cauza 1 — gemele de XP nu dispăreau niciodată.** Inamicii și gloanțele stăteau constante; gemele creșteau liniar la nesfârșit. Plafon în `xp.gd`: `MAX_GEME = 200`, iar gema cea mai depărtată de player **se varsă** în cea nouă (valoarea se adună) și dispare. **Nu pierzi XP** — doar se strânge în mai puține globuri, alea de lângă tine. Rezultat: noduri constant ~1500, **144 FPS toată runda**.
+**Cauza 1 — gemele de XP nu dispăreau niciodată.** Inamicii și gloanțele stăteau constante; gemele creșteau liniar la nesfârșit. Rezultat după reparare: noduri constant ~1500, **144 FPS toată runda**.
+
+Prima variantă (plafon de 200, gema cea mai depărtată se vărsa în cea nouă și dispărea) **a fost respinsă de Răzvan**: „la xp nu vreau să dispară". A cerut în loc o contopire VIZIBILĂ — 20 de geme simple devin o bulă. Vezi log-ul de mai jos.
 
 **Cauza 2 — Thunder God, într-o gloată.** Test separat cu player slab (inamicii se adună la plafonul de 300): **4400 de arcuri electrice vii** → 6 FPS. Un impact = un arc pentru FIECARE inamic din rază, iar arcurile au `_process` propriu. Plafoane în `player.gd`, **doar pe vizual — damage-ul îl încasează toți din rază ca înainte**: `THUNDER_MAX_ARCE = 10` arcuri desenate per descărcare, `THUNDER_MAX_ARCE_VII = 60` arcuri vii în total.
 
