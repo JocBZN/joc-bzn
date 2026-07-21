@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (Twin Comets: proiectile în alți inamici, nu gloanțe paralele)
+
+**Cerut de Răzvan:** „Twin Comets — în loc de parallel bullets îți dă +2 projectiles". L-am întrebat ce înseamnă exact (în cod erau două mecanici diferite) și a ales: **cele 2 proiectile pleacă spre ALȚI inamici la întâmplare**, ca la Stacked Armory, nu în evantai spre aceeași țintă.
+
+**Schimbarea e de o linie** (`levelup.gd`, `_apply`): `p.bullet_count += 2` → `p.stacked_armory_stacks += 2`. Twin Comets și Stacked Armory **se adună în același contor**, deci ambele luate = 3 proiectile bonus, fiecare tras într-un alt inamic. Descrierea din joc: „+2 projectiles at random enemies". **Id-ul a rămas `gloante_paralele`** ca să nu stric referințele vechi (log-uri, codex) — numele lui nu mai descrie ce face.
+
+**Consecință de care trebuie ținut cont:** acum **niciun item nu mai crește `bullet_count`**, deci gloanțele paralele sunt cod viu dar nefolosit (`bullet_spacing`, `_fire_volley` cu un singur glonț). L-am lăsat pe loc, gata de refolosit dacă vrea un item nou de tip „shotgun". A dispărut și înmulțirea de dinainte (Twin Comets ×proiectilele bonus, adăugată pe 07-20): înainte 2× Twin + 1× Armory dădeau 5 gloanțe pe salvă principală + 5 pe cea bonus; acum e liniar.
+
+⚠️ **Panoul de statusuri arăta `bullet_count` direct**, deci după schimbare ar fi rămas veșnic pe „Projectiles 1", deși itemele îl cresc. Adăugat `player.projectiles_total()` = `bullet_count + stacked_armory_stacks` (Broken Watch NU intră — e pe șansă, nu garantat) și rândul „Projectiles" îl folosește pe el.
+
+**Verificat** cu un test temporar headless care pune 4 inamici falși în grupul `"enemy"`, aplică itemul prin chiar `Levelup._apply` și numără gloanțele dintr-o salvă: **1 → 3** (1× Twin) **→ 6** (2× Twin + 1× Armory), iar panoul afișează aceleași cifre. Trucul: proiectilele bonus se recunosc după `has_method("set_direction")`, iar ținte false ajung să fie simple `Node2D` puse în grupul `"enemy"`.
+
+**Codex actualizat** (același URL): efectul rescris + o etichetă nouă **„modificat"** (`isRework`, badge auriu, pe lângă „nou"/`isNew`) — un item vechi cu efect schimbat e mai perfid decât unul nou, fiindcă Răzvan crede că știe ce face.
+
+---
+
 ## Session log — 2026-07-21 (sfera magică: 7 cadre în loc de 14 + contur negru de 1px)
 
 **Cerut de Răzvan:** „la mage_orb ți-am șters niște frame-uri, vreau să le folosești doar pe alea ce au rămas + să le pui un stroke negru de 1px".

@@ -31,7 +31,7 @@ var UPGRADES := [
 	{"id": "jean_bomb", "nume": "Jean's Bomb", "icon": "upgrade_9.png", "rar": "legendary", "desc": "+20 damage & explosive AOE"},
 	{"id": "firewalker", "nume": "Firewalker", "icon": "upgrade_10.png", "rar": "epic", "desc": "Burning trail while moving"},
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing trail slows enemies"},
-	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+2 Parallel Projectiles"},
+	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+2 projectiles at random enemies"},
 	{"id": "strapungere", "nume": "Drill", "icon": "upgrade_16.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
 	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% Crit chance"},
 	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger bullets - +5 damage"},
@@ -532,8 +532,10 @@ func _apply(id: String, p) -> void:
 				p.frost_slow_time += 0.5      # inamicii stau înghețați +0.5s la fiecare upgrade
 				# damage și mărime rămân la fel
 		"gloante_paralele":
-			# încă două gloanțe paralele (1 → 3 → 5 ...)
-			p.bullet_count += 2
+			# +2 proiectile GARANTATE, trase în ALȚI inamici la întâmplare — exact mecanica de la
+			# Stacked Armory, doar că două odată (e legendary). NU mai sunt gloanțe paralele:
+			# id-ul „gloante_paralele" a rămas doar ca să nu stric referințele vechi.
+			p.stacked_armory_stacks += 2
 		"strapungere":
 			# glonțul trece prin încă un inamic înainte să dispară
 			p.pierce += 1
@@ -650,8 +652,8 @@ func _apply(id: String, p) -> void:
 			p.broken_watch_stacks += 1
 		"stacked_armory":
 			# arsenalul: +1 proiectil GARANTAT, dar tras într-un ALT inamic la întâmplare — pleacă
-			# în direcții diferite deodată (spre deosebire de Twin Comets, care-s paralele).
-			# Scalează numărul: +1, +2, +3 ...
+			# în direcții diferite deodată. Aceeași mecanică pe care o dă și Twin Comets (+2);
+			# se adună în același contor. Scalează numărul: +1, +2, +3 ...
 			p.stacked_armory_stacks += 1
 		"thunder_god":
 			# zeul tunetului: la impact (glonț SAU sabie), curent electric de la inamicul lovit spre
