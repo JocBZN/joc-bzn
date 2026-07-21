@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (Thunder God: Legendary + damage care se stivuiește)
+
+**Cerut de Răzvan:** „vreau ca Thunder God să fie legendary și să scaleze % of damage. La început are 25% și vreau cu fiecare luare să crească cu 25%".
+
+- **Raritate:** `epic` → `legendary` în `levelup.gd`. Descrierea din joc: „Chain lightning for 25% of damage (+25%/stack)".
+- **Damage:** `thunder_stacks` nu mai e doar un întrerupător (0/1), ci scalează. Nou: `player.thunder_damage_pct()` = `THUNDER_PCT_PER_STACK (0.25) × maxi(thunder_stacks, 1)`.
+- ⚠️ **`maxi(..., 1)` e esențial pentru Plugged In:** el pornește lanțul cu `thunder_stacks == 0`, deci fără el arcul lui ar fi făcut **0 damage** și itemul ar fi devenit decor. Așa, Plugged In singur rămâne la 25% — el crește ȘANSA, nu damage-ul. (E a doua oară când Plugged In se sparge din cauza unei condiții pe `thunder_stacks`; prima e documentată în comentariul lung din `thunder_burst`.)
+- **Am adăugat și `damage_mult()`** în `thunder_damage()`: procentul se ia acum din damage-ul REAL al momentului (cu Theo's Wrath / Cigarette / Diesel), ca la Jean's Bomb. Înainte se lua din `bullet_damage` brut. **E o schimbare pe care Răzvan nu a cerut-o explicit** — i-am spus, se scoate cu o singură tăietură dacă nu o vrea.
+
+**Măsurat** (headless, prin `Levelup._apply`): fără nimic 25%/5 damage · doar Plugged In 25%/5 · Thunder God 1× 25%/5 · 2× 50%/10 · 3× 75%/14; după `+20 damage` arcul urcă la 29, iar după `+5% damage mult` la 31.
+
+**Codex actualizat**: cardul s-a mutat la Legendary, marcat „modificat", plus nota din secțiunea de sinergii (Plugged In crește doar șansa).
+
+---
+
 ## Session log — 2026-07-21 (dificultatea: creștere COMPUSĂ după 1:30 + inamicii lovesc mai tare)
 
 **Reclamat de Răzvan:** „inamicii sunt prea slabi după primul 1:30, fă-i să fie din ce în ce mai OP". L-am întrebat cât de brutal (i-am arătat tabele cu 3 variante) și a ales **×1.40/minut** pentru viață și **×2 la minutul 10** pentru damage.

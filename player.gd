@@ -38,6 +38,7 @@ const THUNDER_MAX_ARCE := 10                  # câte arcuri se DESENEAZĂ dintr
 const THUNDER_MAX_ARCE_VII := 60              # câte arcuri pot exista pe ecran în total, din toate descărcările
 var _arce_vii: int = 0                        # câte arcuri sunt vii acum (vezi `_spawn_electric_arc`)
 var thunder_stacks: int = 0                   # de câte ori ai luat itemul (0 = nu-l ai)
+const THUNDER_PCT_PER_STACK := 0.25           # cât damage face arcul, pe luare (vezi thunder_damage_pct)
 var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electricity fx, 14 × 64×63)
 # Plugged In: versiune „ieftină" de Thunder God — ȘANSĂ să facă exact același lucru la impact.
 # +10% pe luare (prima luare = 10%, cum a cerut Răzvan), plafonat la 100% (= Thunder God permanent).
@@ -663,9 +664,16 @@ func thunder_burst_maybe(origin: Vector2, exclude_id: int) -> void:
 	if thunder_active_on_hit():
 		thunder_burst(origin, exclude_id)
 
-# Damage-ul unui arc de Thunder God: 25% din damage-ul playerului (bullet_damage).
+# Procentul din damage pe care îl face un arc: 25% la prima luare a lui Thunder God, +25% la
+# fiecare repetare (2× = 50%, 3× = 75%...). Plugged In singur rămâne la 25% — el crește ȘANSA
+# să pornească lanțul, nu cât lovește; de-aia se folosește `maxi(thunder_stacks, 1)`.
+func thunder_damage_pct() -> float:
+	return THUNDER_PCT_PER_STACK * float(maxi(thunder_stacks, 1))
+
+# Damage-ul unui arc de Thunder God. `damage_mult()` intră în calcul (ca la Jean's Bomb), deci
+# procentul e din damage-ul REAL al momentului, cu tot cu Theo's Wrath / Cigarette / Diesel.
 func thunder_damage() -> int:
-	return max(1, int(round(bullet_damage * 0.25)))
+	return maxi(1, int(round(bullet_damage * damage_mult() * thunder_damage_pct())))
 
 # Arcul electric vizual, întins între cele două capete. Rotirea/întinderea le face `electric_arc.gd`
 # în fiecare cadru, ca arcul să stea LIPIT ca o frânghie între inamici cât timp aceștia se mișcă

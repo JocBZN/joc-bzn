@@ -52,6 +52,11 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-21, Thunder God is Legendary and stacks)
+- ✅ **Thunder God moved from Epic to Legendary and its arc now stacks:** `thunder_damage_pct()` = **25% of your damage per stack** (2× = 50%, 3× = 75%). `thunder_stacks` used to be a plain on/off switch.
+- ⚠️ **`maxi(thunder_stacks, 1)` is load-bearing.** Plugged In fires the same chain with `thunder_stacks == 0`, so a naive `0.25 * thunder_stacks` would have made its arcs deal **zero damage** and quietly turned the item into decoration. Plugged In raises the *chance*, never the damage — alone, its arc stays at 25%.
+- ℹ️ `thunder_damage()` now also multiplies by `damage_mult()`, so the percentage comes off your *real* current damage (Theo's Wrath / Cigarette / Diesel included), matching how Jean's Bomb works. Measured: 5 → 10 → 14 damage per arc across three stacks at base damage, 29 after a `+20 damage` pick.
+
 ## Current state (2026-07-21, difficulty curve)
 *Răzvan's complaint: "enemies are too weak after the first 1:30". They were — phase 1 grew **linearly** (`1 + 0.55 × minutes`) while a build grows multiplicatively, so at minute 10 enemies had only **6.5×** health. And their damage never scaled at all: a minute-10 enemy hit exactly as hard as a second-0 one.*
 - ✅ **Phase 1 compounds after 1:30.** The first `RAMP_START` = 90s is untouched; past it, health is `pow(HP_GROWTH_PER_MIN, ramp_minutes)` with **1.40 per minute**. Measured on real spawned enemies: **54 HP at 1:30 → 177 at 5:00 → 956 at 10:00** (was 30 → 54 → ~120 → 195).

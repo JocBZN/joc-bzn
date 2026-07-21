@@ -56,7 +56,7 @@ var UPGRADES := [
 	{"id": "stacked_armory", "nume": "Gunslinger", "icon": "upgrade_47.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
 	{"id": "lucky_die", "nume": "Lucky Die", "icon": "upgrade_48.png", "rar": "rare", "desc": "Reroll: a new page of items"},
 	{"id": "death_sentence", "nume": "Death Sentence", "icon": "upgrade_49.png", "rar": "rare", "desc": "-35% speed, +20% damage & attack speed"},
-	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
+	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "legendary", "desc": "Chain lightning for 25% of damage (+25%/stack)"},
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 	# "unic": itemul dispare din listă după ce l-ai luat o dată — nu mai apare deloc în runda asta.
 	# Undying Spirit se consumă la prima moarte și NU se stivuiește, deci a doua luare ar fi fost
@@ -704,11 +704,13 @@ func _apply(id: String, p) -> void:
 			# se adună în același contor. Scalează numărul: +1, +2, +3 ...
 			p.stacked_armory_stacks += 1
 		"thunder_god":
-			# zeul tunetului: la impact (glonț SAU sabie), curent electric de la inamicul lovit spre
-			# TOȚI din rază (Jacob's Ladder). Damage-ul arcului = 25% din damage-ul playerului, deci
-			# crește indirect cu upgrade-urile de damage. `thunder_stacks` doar activează itemul.
+			# zeul tunetului (LEGENDARY din 2026-07-21): la impact (glonț SAU sabie), curent
+			# electric de la inamicul lovit spre TOȚI din rază (Jacob's Ladder). Damage-ul arcului
+			# e un PROCENT din damage-ul playerului: 25% la prima luare, +25% la fiecare repetare
+			# (vezi player.thunder_damage_pct) — deci acum se stivuiește, nu doar se activează.
 			p.thunder_stacks += 1
 		"plugged_in":
 			# băgat în priză: ȘANSĂ să facă exact ce face Thunder God la impact. +10% pe luare
 			# (prima = 10%), plafonat la 100%. Folosește același lanț (thunder_burst).
+			# Crește doar ȘANSA: singur, arcul lui rămâne la 25% din damage.
 			p.plugged_in_stacks += 1
