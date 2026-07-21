@@ -52,6 +52,11 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-21, new item: Lucky Die)
+- ✅ **Lucky Die** (Rare, `upgrade_48.png`) — **rerolls the item page**. Taking it deals a fresh page of three items and **does not spend the level-up**, so you still walk away with a real item. Lives entirely in `levelup.gd`: `_apply` raises a `_reroll` flag, and `_on_choice` re-shows the page and returns *before* decrementing `_pending`.
+- ℹ️ **The reroll is guaranteed to be different.** `_show_choices` / `_trage_iteme` take an optional `exclude` list; the three items you just rerolled are passed in, so none of them can come back — and since Lucky Die is one of them, it can't reappear either, which rules out an endless reroll chain from a single level-up.
+- ⚠️ **A dropped-in PNG needs `--headless --import`** before the game can `load()` it. `upgrade_48.png` arrived without its `.import` file, which would have left the row blank. (`upgrade_47.png` is in the repo too, currently unused.)
+
 ## Current state (2026-07-21, Twin Comets rework)
 - ✅ **Twin Comets no longer fires parallel bullets.** It now grants **+2 guaranteed projectiles aimed at other random enemies** — the Stacked Armory mechanic, two at a time. Both items feed the same counter (`stacked_armory_stacks`), so Twin Comets + Stacked Armory = 3 bonus projectiles, each hunting its own enemy. One line in `levelup.gd`; the id stays `gloante_paralele` so old references keep resolving, even though the name no longer describes it.
 - ℹ️ **Nothing raises `bullet_count` any more**, so the parallel-bullet machinery (`bullet_spacing`, `_fire_volley`) is live but unused — left in place, ready for a future shotgun-style item. The old multiplier (Twin Comets scaling the bonus projectiles too) is gone; the count is now linear.

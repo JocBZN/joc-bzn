@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (item nou: Lucky Die — reroll la pagina de iteme)
+
+**Cerut de Răzvan:** „upgrade nou — upgrade_48 (Rare) Lucky Die — reroll item page (când iei upgrade-ul îți apare o pagină nouă de upgrade-uri)".
+
+**Cum e făcut** (tot în `levelup.gd`, nimic în `player.gd` — itemul nu atinge playerul):
+- `_apply("lucky_die")` doar ridică steagul `_reroll = true`.
+- `_on_choice` îl citește **după** `_apply`: dacă e ridicat, cheamă `_show_choices(_current)` și face `return` **înainte** de `_pending -= 1` → nivelul NU se consumă, deci după reroll tot alegi un item. Meniul rămâne deschis și jocul pe pauză, fără să clipească.
+- `_show_choices` și `_trage_iteme` au primit un parametru nou `exclude` (implicit gol, deci restul codului merge neatins). La reroll se trimit chiar cele 3 iteme de pe pagina veche → **pagina nouă e garantat alta**, iar Lucky Die (fiind pe pagina veche) **nu poate reapărea pe ea**, deci nu se poate intra într-un lanț de reroll-uri la nesfârșit din aceeași alegere.
+
+⚠️ **Iconița nouă avea nevoie de reimport** — `upgrade_48.png` venise fără `.import`, deci `load()` ar fi întors `null` și rândul ar fi rămas gol. Rulat `--headless --import`. (În repo mai e și `upgrade_47.png`, nefolosit de niciun item.)
+
+**Verificat** cu un test temporar headless care instanțiază `main.tscn`, deschide level-up-ul, forțează Lucky Die pe prima poziție și apasă: `_pending` rămâne **1**, meniul rămâne vizibil, pagina nouă are **0 iteme comune** cu cea veche și nu conține `lucky_die`; după o alegere normală `_pending` ajunge 0, meniul se închide și pauza se ridică. Plus o captură windowed a paginii, ca să văd că iconița și border-ul verde de Rare chiar se randează.
+⚠️ **Capcană la testele care instanțiază `main.tscn`:** `add_child` direct din `_ready` crapă („Parent node is busy setting up children"). Se face cu `add_child.call_deferred(main)` + 2-3 `await get_tree().process_frame`, altfel scena nu intră în arbore, `_ready`-urile nu rulează și primești rezultate false (la mine `_current` ieșea gol).
+
+**Codex actualizat** (același URL) cu itemul nou. Iconița a fost injectată în harta `ICONS` **fără să ating linia uriașă** de base64 deja existentă: un `.ps1` mic (`scratchpad\add_icon.ps1`) care adaugă o linie `ICONS["upgrade_48.png"]="data:..."` chiar înainte de `const RARS`. Mult mai ieftin decât re-splice-ul complet și fără riscul de a strica diacriticele (citit/scris tot cu `UTF8Encoding($false)`).
+
+---
+
 ## Session log — 2026-07-21 (Twin Comets: proiectile în alți inamici, nu gloanțe paralele)
 
 **Cerut de Răzvan:** „Twin Comets — în loc de parallel bullets îți dă +2 projectiles". L-am întrebat ce înseamnă exact (în cod erau două mecanici diferite) și a ales: **cele 2 proiectile pleacă spre ALȚI inamici la întâmplare**, ca la Stacked Armory, nu în evantai spre aceeași țintă.

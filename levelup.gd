@@ -52,6 +52,7 @@ var UPGRADES := [
 	{"id": "panic_button", "nume": "Panic Button", "icon": "upgrade_34.png", "rar": "epic", "desc": "100 Damage to all enemies, once"},
 	{"id": "broken_watch", "nume": "Broken Watch", "icon": "upgrade_36.png", "rar": "uncommon", "desc": "50% chance to fire +1 projectile"},
 	{"id": "stacked_armory", "nume": "Stacked Armory", "icon": "upgrade_46.png", "rar": "rare", "desc": "+1 projectile at a random enemy"},
+	{"id": "lucky_die", "nume": "Lucky Die", "icon": "upgrade_48.png", "rar": "rare", "desc": "Reroll: a new page of items"},
 	{"id": "thunder_god", "nume": "Thunder God", "icon": "upgrade_38.png", "rar": "epic", "desc": "Hits chain lightning to nearby enemies"},
 	{"id": "plugged_in", "nume": "Plugged In", "icon": "upgrade_39.png", "rar": "rare", "desc": "10% chance to chain lightning on hit"},
 	{"id": "undying_spirit", "nume": "Undying Spirit", "icon": "upgrade_41.png", "rar": "legendary", "desc": "Second chance"},
@@ -93,6 +94,7 @@ var _name_labels := []
 var _desc_labels := []
 var _current := []   # cele 3 upgrade-uri afișate acum
 var _pending := 0    # câte niveluri mai avem de ales (dacă urci mai multe deodată)
+var _reroll := false # Lucky Die: pagina se retrage, dar nivelul NU se consumă (vezi _on_choice)
 
 var _stats_box: VBoxContainer   # rândurile panoului de statusuri (dreapta ecranului)
 
@@ -419,16 +421,18 @@ func _trage_unul(deja: Array):
 			rest.append(u)
 	return rest[randi() % rest.size()] if not rest.is_empty() else null
 
-func _trage_iteme(n: int) -> Array:
+# `exclude` = iteme interzise pe lângă cele deja trase în runda asta. Îl folosește Lucky Die,
+# ca pagina de după reroll să fie chiar ALTA, nu aceleași iteme trase din nou.
+func _trage_iteme(n: int, exclude: Array = []) -> Array:
 	var out := []
 	for i in n:
-		var u = _trage_unul(out)
+		var u = _trage_unul(out + exclude)
 		if u != null:
 			out.append(u)
 	return out
 
-func _show_choices() -> void:
-	_current = _trage_iteme(3)
+func _show_choices(exclude: Array = []) -> void:
+	_current = _trage_iteme(3, exclude)
 	for i in 3:
 		var u = _current[i]
 		# iconița
@@ -453,8 +457,14 @@ func _show_choices() -> void:
 
 func _on_choice(index: int) -> void:
 	var p = get_tree().get_first_node_in_group("player")
+	_reroll = false
 	if p != null:
 		_apply(_current[index]["id"], p)
+	if _reroll:
+		# Lucky Die: pagină nouă pe loc, fără să consume nivelul — tot un item alegi la final.
+		# Cele 3 iteme de pe pagina rerulată sunt excluse, ca reroll-ul să însemne chiar altceva.
+		_show_choices(_current)
+		return
 	_pending -= 1
 	if _pending > 0:
 		_show_choices()          # mai ai un nivel de ales (ai urcat mai multe deodată)
@@ -650,6 +660,12 @@ func _apply(id: String, p) -> void:
 			# întâmplare (ca Stacked Armory, dar pe șansă). Nu crește ȘANSA la repetare, ci CÂTE
 			# proiectile dai când se declanșează: +1, +2, +3 ...
 			p.broken_watch_stacks += 1
+		"lucky_die":
+			# zarul norocos: nu atinge NIMIC pe player — cere doar o pagină nouă de iteme.
+			# Nivelul nu se consumă (vezi `_reroll` din _on_choice), deci după reroll tot alegi
+			# un item. Poate să reapară și el pe pagina nouă? NU: pagina veche e exclusă, deci
+			# nu poți intra într-un lanț de reroll-uri la nesfârșit din aceeași alegere.
+			_reroll = true
 		"stacked_armory":
 			# arsenalul: +1 proiectil GARANTAT, dar tras într-un ALT inamic la întâmplare — pleacă
 			# în direcții diferite deodată. Aceeași mecanică pe care o dă și Twin Comets (+2);
