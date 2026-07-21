@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (sfera magică: 7 cadre în loc de 14 + contur negru de 1px)
+
+**Cerut de Răzvan:** „la mage_orb ți-am șters niște frame-uri, vreau să le folosești doar pe alea ce au rămas + să le pui un stroke negru de 1px".
+
+**Cadrele.** Șterse `frame_7` … `frame_13`; au rămas **`frame_0` … `frame_6`** (7 cadre, 64×64). **Nu a fost nevoie de nicio modificare de cod:** `_load_fx_frames` (`player.gd`) numără de la 0 și se oprește la primul cadru care lipsește, deci numerotarea rămasă fiind continuă, animația s-a scurtat singură. La 18 FPS, bucla ține acum 0.39s în loc de 0.78s (proiectilul e loop, deci se vede doar ca o pulsație de două ori mai rapidă). Dacă vrei viteza veche, scazi FPS-ul la 9 în `player.gd:233`.
+
+**Conturul.** Aceeași idee ca la bila de lightning (vezi log-ul din 2026-07-19), dar **făcut din Godot**, nu din PowerShell/System.Drawing — un script temporar care încarcă PNG-ul cu `Image.load_from_file`, îl prelucrează și îl salvează la loc. Mai simplu și fără capcanele de PowerShell.
+- **Diferența importantă față de data trecută: se conturează DOAR silueta exterioară.** Prima încercare a fost regula veche („orice pixel transparent lipit de unul plin devine negru") și a ieșit **noroioasă**: arta sferei e plină de scântei mici și de goluri interioare, așa că negrul intra peste tot prin mijloc și înghițea desenul. Acum pixelii goi din INTERIORUL siluetei sunt excluși printr-un **flood fill de la marginea imaginii** — negru primesc doar cei legați de „afară".
+- Prag de alfa **0.25** (sub el, pixelul e considerat gol). Cu 0.05 conturul stătea prea departe de formă, fiindcă arta are un halou foarte slab în jur; cu 0.5 mânca din desen.
+- Originalele au fost citite din backup (scratchpad), nu din fișierele deja modificate → scriptul e re-rulabil fără să îngroașe conturul la fiecare rulare. Backup-ul e temporar; sursa de adevăr pentru originale rămâne git (`git checkout HEAD~1 -- fx/mage_orb`).
+- **Reimport obligatoriu** după rescrierea PNG-urilor (`--headless --import`), altfel jocul rulează cadrele vechi din cache.
+
+**Verificat vizual**, la mărimea reală din joc (35px pe ecran, `mage_orb_size`), pe fundal întunecat ȘI pe nisip: conturul se citește clar pe deșert, unde chiar era nevoie de el. ⚠️ **Capcană la verificare:** proiectul are `stretch/mode="canvas_items"` fără `viewport_width` setat, deci baza e 1152×648; dacă rulezi captura cu `--resolution 460x200`, tot ce vezi e micșorat cu 0.4 și trage la concluzii greșite despre cât de gros arată conturul. Rulează captura la **1152×648** și mărește imaginea în cod (`Image.resize` cu `INTERPOLATE_NEAREST`).
+
+**De semnalat lui Răzvan:** sursa e 64px, dar sfera se desenează la 35px → 1px de contur devine ~0.55px pe ecran, deci pe cadrele mari conturul iese **întrerupt, punctat**. Dacă vrea un contur continuu, varianta e 2px (se reaplică din backup/git într-o rulare).
+
+---
+
 ## Session log — 2026-07-21 (bulele de XP — contopire vizibilă, nu ștergere)
 
 **Cerut de Răzvan**, imediat după sesiunea de mai jos: „la xp nu vreau să dispară, vreau să pui un overlay roșu pe poza xp2 — și când se strâng foarte multe geme de xp într-un loc, 20 de cele xp simplu (nu xp2) devin o singură bulă de xp3".

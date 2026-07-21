@@ -52,6 +52,11 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-21, mage orb art)
+- ✅ **The magic orb is 7 frames instead of 14, with a 1px black outline.** Răzvan deleted `frame_7` … `frame_13` from `fx/mage_orb/`; **no code change was needed** — `_load_fx_frames` counts up from 0 and stops at the first missing frame, so a contiguous set just shortens the loop (0.39s instead of 0.78s at 18 FPS; drop the FPS to 9 in `player.gd` if you want the old pace).
+- ✅ **The outline is applied to the outer silhouette only.** The obvious rule — "any transparent pixel touching an opaque one goes black", the one used for the lightning ball back on 07-19 — turns this art to mud: the orb is made of small sparkles with transparent gaps, so black floods the middle. A **flood fill from the image border** marks what is genuinely "outside"; only those pixels can become outline. Alpha threshold **0.25** (0.05 sits too far out, the art has a faint halo; 0.5 eats into the drawing). Done with a throwaway Godot script (`Image.load_from_file` → process → `save_png`), reading the originals from a backup so it can be re-run without thickening. **Modified PNGs must be reimported** (`--headless --import`) or the game keeps playing the cached old frames.
+- ℹ️ **The source is 64px but the orb draws at 35px** (`mage_orb_size`), so 1px of outline is ~0.55px on screen and reads **dashed** on the larger frames. Switching to 2px is one re-run from the originals in git.
+
 ## Current state (2026-07-21, performance pass)
 *The game used to crawl ~2 minutes into Final Swarm — 144 FPS → 4 FPS. Measured, not guessed: an instrumented run that jumps straight to 10:00 and logs FPS + a per-script node census every 5s.*
 - 🐞 **XP gems were never removed** — the whole cause of the late-game slowdown. In Final Swarm ~30 enemies die per second and you cannot possibly collect them all, so the gems piled up forever: **5390 gems / 17k nodes at 13:00**, each an `Area2D` animating itself every physics frame. Nodes are now flat at ~1500 and the run holds **144 FPS**, via bubbles:
