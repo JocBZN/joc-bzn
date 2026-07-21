@@ -292,7 +292,20 @@ func _ready() -> void:
 	ice_timer.start()
 
 # Adaugă „traumă" (tremurat). Se cheamă de ex. la lovitură critică.
+# ⚠️ Are un RĂGAZ MINIM între două zguduituri, și nu e cosmetic: fiecare critic adăuga 0.35
+# traumă, iar trauma scade cu `shake_decay` (4.0) pe secundă. Peste ~11.4 atacuri pe secundă
+# se aduna mai repede decât scădea, se lipea de 1.0 și ecranul tremura CONTINUU, fără oprire
+# (raportat de Răzvan pe 2026-07-21, cu 12.92 atacuri/s și 9 proiectile — vezi session log).
+# Cu răgazul de 0.12s intră cel mult ~2.9 traumă/s, deci sub cei 4.0 care se sting: tremuratul
+# rămâne o pulsație, oricât de repede ai trage.
+const SHAKE_MIN_GAP := 0.12
+var _shake_next: float = 0.0
+
 func add_shake(amount: float) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _shake_next:
+		return
+	_shake_next = now + SHAKE_MIN_GAP
 	_trauma = min(1.0, _trauma + amount)
 
 # Cutremur: tremurat SUSȚINUT `dur` secunde, care slăbește spre final. Nu e `add_shake` mai mare —

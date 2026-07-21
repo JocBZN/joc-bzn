@@ -13,6 +13,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (BUG: ecranul tremura continuu — de la cadența de tragere)
+
+**Reclamat de Răzvan:** „la un moment dat am efect de shake pe ecran încontinuu, nu știu de la ce" + o înregistrare de ecran în `debugging/`.
+
+**Cauza (matematică, nu ghicită):** fiecare lovitură critică adaugă `0.35` traumă (`add_shake`), iar trauma scade cu `shake_decay = 4.0` pe secundă. Deci **peste ~11.4 atacuri pe secundă se adună mai repede decât se stinge**, trauma se lipește de 1.0 și camera tremură fără oprire. În video: **Attack Speed 12.92/s, 9 proiectile, 43% crit** — cu 9 proiectile și 43% crit, practic FIECARE salvă are măcar un critic, deci 12.92 × 0.35 = 4.52 > 4.0. Exact peste prag.
+
+**Cum am citit videoclipul** (util data viitoare — **ffmpeg EXISTĂ** pe mașina asta: `~/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_*/ffmpeg-*/bin/`):
+- diferența dintre cadre consecutive, pe secundă, arată unde e agitație: `-vf "scale=480:-1,tblend=all_mode=difference,signalstats,metadata=print:file=diff.txt"`, apoi mediat cu awk. Secundele cu `diff ≈ 0.01` sunt meniul de level-up (ecran înghețat), cele cu `diff ≈ 2` sunt joc.
+- ⚠️ **Capcană:** filtrul `metadata=print:file=` NU acceptă căi Windows cu `C:` (parserul de filtre taie la `:`). Se face `cd` în folderul de ieșire și se dă doar numele fișierului.
+- cadrele extrase cu `-ss <t> -frames:v 1` s-au citit direct ca imagini — **panoul STATS din meniul de level-up e cea mai bună sursă de adevăr**: de acolo au ieșit cele 12.92 atacuri/s care explică totul.
+
+**Fix:** `add_shake` are acum un **răgaz minim** (`SHAKE_MIN_GAP = 0.12s`) între două zguduituri. Peste ~8.3 impulsuri pe secundă restul se ignoră, deci intră cel mult 2.9 traumă/s — sub cei 4.0 care se sting. **Sub 8 atacuri/s nu se schimbă absolut nimic** (la 2 atacuri/s impulsurile sunt oricum la 0.5s distanță), deci senzația de la un critic izolat rămâne identică.
+
+**Măsurat**, cu un test care reproduce exact statisticile din video (12.92/s, 9 proiectile, 43% crit): **înainte** trauma urca la 0.94 și camera stătea la 18.3px offset; **după**, trauma face vârfuri fixe de 0.35 și offset-ul rămâne ~2px, stabil 12 secunde la rând.
+
+**Notă:** `debugging/*.mp4` a intrat în `.gitignore` — videoul rămâne pe disc, dar 14 MB în istoric pentru un raport de bug nu merită. Capturile PNG rămân în repo.
+
+---
+
 ## Session log — 2026-07-21 (Thunder God: Legendary + damage care se stivuiește)
 
 **Cerut de Răzvan:** „vreau ca Thunder God să fie legendary și să scaleze % of damage. La început are 25% și vreau cu fiecare luare să crească cu 25%".

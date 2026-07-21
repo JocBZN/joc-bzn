@@ -8,3 +8,8 @@
 # Sursa video pentru fundalul de meniu (79 MB) — prea mare pentru git.
 # Cadrele folosite efectiv de joc sunt în menu/bg_frames/ și SUNT în repo.
 menu/*.mp4
+
+# Înregistrările de ecran puse aici ca să raportezi un bug (zeci de MB fiecare).
+# Rămân pe disc, dar nu intră în istoric — concluzia lor ajunge oricum în CLAUDE.md.
+# Capturile PNG din debugging/ rămân în repo, alea sunt mici și utile.
+debugging/*.mp4
