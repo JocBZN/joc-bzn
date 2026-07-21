@@ -180,7 +180,7 @@ const RARS = [
 // Efectele REALE, citite din levelup.gd (_apply) și player.gd — nu descrierile din joc.
 const ITEMS = [
   { id: "jean_bomb", name: "Jean's Bomb", icon: "upgrade_9.png", rar: "legendary", isRework: true,
-    eff: "<b>+20 damage</b> și gloanțele explodează la impact: rază <b>130</b>, iar explozia face <b>15% din damage-ul tău</b> (nu 25 fix, ca înainte). La repetare: <b>+20 damage</b>, <b>+20 rază</b> și <b>+10% damage</b> la explozie. Procentul se ia din damage-ul de la momentul tragerii, deci <b>crește singur</b> cu tot ce iei pe damage după." },
+    eff: "<b>+20 damage</b> și gloanțele explodează la impact: rază <b>130</b>, iar explozia face <b>15% din damage-ul tău</b> (nu 25 fix, ca înainte). La repetare: <b>+20 damage</b>, <b>+20 rază</b> și <b>+10% damage</b> la explozie. Explozia <b>nu mai suflă inamicii</b> (îi împrăștia tocmai din grămada în care îi adunaseși). Procentul se ia din damage-ul de la momentul tragerii, deci <b>crește singur</b> cu tot ce iei pe damage după." },
   { id: "gloante_paralele", name: "Twin Comets", icon: "upgrade_19.png", rar: "legendary", isRework: true,
     eff: "<b>+2 proiectile garantate</b>, trase în <b>alți 2 inamici random</b> (stack → +4, +6). Aceeași mecanică cu Stacked Armory, dar două odată — se adună în același contor, deci Twin Comets + Stacked Armory = 3 proiectile bonus.",
     warn: "Doar la gloanțe" },
@@ -299,6 +299,8 @@ const SYN = [
     body: "Adrenaline nu mai e plafonat. Cu <b>Megane's Katana</b> la viteză mare poți trece de 100%: partea întreagă = crituri garantate, restul = șansă. 200% = <b>×4</b>, 300% = <b>×8</b>." },
   { title: "Thunder God + Plugged In", accent: "var(--cyan)",
     body: "Plugged In e Thunder God <b>pe șansă</b> (10%/luare). Dacă ai <b>Thunder God</b> (mereu 100%), Plugged In devine inutil. Plugged In crește doar ȘANSA: singur, arcul lui rămâne la <b>25%</b>. Damage-ul îl urcă doar repetarea lui <b>Thunder God</b> (+25% pe luare), iar legarea se face în rază de 200px." },
+  { title: "Gloanțele se corectează în zbor", accent: "var(--cyan)",
+    body: "Din 2026-07-21 fiecare glonț <b>își urmărește ținta</b> și anticipează unde va fi, în loc să plece drept spre unde era. Pe inamici care se mișcă lateral la ~400px, rata de lovire a urcat de la <b>0%</b> la <b>85%</b>. Contează mai ales cu multe proiectile bonus (Gunslinger, Twin Comets, Broken Watch), care acum își caută ținte <b>în rază de 600px</b>, nu la celălalt capăt al hărții." },
   { title: "Ce nu ajunge la Stingător", accent: "var(--magenta)",
     body: "<b>Twin Comets, Broken Watch, Stacked Armory, Drill</b> lucrează pe gloanțe — Stingătorul (aură) nu le vede, iar sabia doar pe unele. Thunder God/Plugged In merg pe gloanțe ȘI sabie." },
   { title: "Raritatea chiar contează acum", accent: "var(--cyan)",

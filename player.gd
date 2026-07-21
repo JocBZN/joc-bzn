@@ -39,6 +39,7 @@ const THUNDER_MAX_ARCE_VII := 60              # câte arcuri pot exista pe ecran
 var _arce_vii: int = 0                        # câte arcuri sunt vii acum (vezi `_spawn_electric_arc`)
 var thunder_stacks: int = 0                   # de câte ori ai luat itemul (0 = nu-l ai)
 const THUNDER_PCT_PER_STACK := 0.25           # cât damage face arcul, pe luare (vezi thunder_damage_pct)
+const ARMORY_RANGE_SQ := 600.0 * 600.0        # raza în care se caută ținte pentru proiectilele bonus
 var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electricity fx, 14 × 64×63)
 # Plugged In: versiune „ieftină" de Thunder God — ȘANSĂ să facă exact același lucru la impact.
 # +10% pe luare (prima luare = 10%, cum a cerut Răzvan), plafonat la 100% (= Thunder God permanent).
@@ -547,7 +548,7 @@ func _fire_bullets() -> void:
 		ex_damage = max(ex_damage, int(dmg_base * 0.6))
 	var any_crit := false
 	# salva principală: `bullet_count` gloanțe paralele spre ținta cea mai apropiată
-	if _fire_volley(global_position, dir, dmg_base, ex_radius, ex_damage):
+	if _fire_volley(global_position, dir, dmg_base, ex_radius, ex_damage, target):
 		any_crit = true
 	# Proiectile BONUS trase în ALȚI inamici la întâmplare — pleacă în direcții diferite deodată,
 	# nu paralele între ele, dar FIECARE e o salvă completă:
@@ -561,7 +562,7 @@ func _fire_bullets() -> void:
 		for tnode in _armory_targets(target, bonus):
 			var enemy2 := tnode as Node2D
 			var d2 := (enemy2.global_position - global_position).normalized()
-			if _fire_volley(global_position, d2, dmg_base, ex_radius, ex_damage):
+			if _fire_volley(global_position, d2, dmg_base, ex_radius, ex_damage, enemy2):
 				any_crit = true
 	if any_crit:
 		add_shake(0.35)
@@ -569,18 +570,18 @@ func _fire_bullets() -> void:
 # O salvă de `bullet_count` gloanțe paralele, centrată pe `origin`, toate în direcția `dir`.
 # Întoarce true dacă VREUNUL a fost critic. Folosită și de salva principală, și de proiectilele
 # bonus. Momentan `bullet_count` e mereu 1 (niciun item nu-l mai crește) → o salvă = un glonț.
-func _fire_volley(origin: Vector2, dir: Vector2, dmg_base: int, ex_radius: float, ex_damage: int) -> bool:
+func _fire_volley(origin: Vector2, dir: Vector2, dmg_base: int, ex_radius: float, ex_damage: int, tinta: Node2D = null) -> bool:
 	var perp := Vector2(-dir.y, dir.x)
 	var any_crit := false
 	for i in bullet_count:
 		var offset := (i - (bullet_count - 1) / 2.0) * bullet_spacing
-		if _spawn_one_bullet(origin + perp * offset, dir, dmg_base, ex_radius, ex_damage):
+		if _spawn_one_bullet(origin + perp * offset, dir, dmg_base, ex_radius, ex_damage, tinta):
 			any_crit = true
 	return any_crit
 
 # Creează un glonț cu toate proprietățile playerului, la poziția și în direcția date. Își rulează
 # propriul critic (multi-crit) și întoarce true dacă a fost critic (pt. zguduitura camerei).
-func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: float, ex_damage: int) -> bool:
+func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: float, ex_damage: int, tinta: Node2D = null) -> bool:
 	var bullet := bullet_scene.instantiate()
 	get_parent().add_child(bullet)
 	bullet.global_position = pos
@@ -595,6 +596,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.explosion_radius = ex_radius
 	bullet.explosion_damage = ex_damage
 	bullet.thunder = thunder_stacks > 0 or plugged_in_stacks > 0  # Thunder God / Plugged In: curent la impact
+	bullet.target = tinta   # glontul se corecteaza in zbor spre ea (vezi homing-ul din bullet.gd)
 	if weapon_type == "mage":
 		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
 		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
@@ -607,10 +609,18 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 # destui alți inamici, se repetă / cade pe ținta principală, ca toate proiectilele bonus să tragă.
 func _armory_targets(primary: Node, n: int) -> Array:
 	var others := []
+	var toti := []
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy != null and enemy != primary:
-			others.append(enemy)
+			toti.append(enemy)
+			# Preferam inamicii din RAZA UTILA. Inainte se alegeau la intamplare din toata harta,
+			# deci cu multe proiectile bonus jumatate plecau spre celalalt capat al ecranului si
+			# mureau de batranete (lifetime 2s x 700px/s = ~1400px) fara sa atinga nimic.
+			if global_position.distance_squared_to(enemy.global_position) <= ARMORY_RANGE_SQ:
+				others.append(enemy)
+	if others.is_empty():
+		others = toti   # nimeni aproape -> tragem oricum, ca inainte
 	others.shuffle()
 	var targets := []
 	for i in n:

@@ -13,6 +13,35 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (gloanțe cu urmărire + explozia lui Jean's Bomb nu mai suflă)
+
+**Cerut de Răzvan:** „la Jean's Bomb — bomba să nu-i mai miște pe inamici" + „fă tracking mai bun la proiectile, că atunci când ai mai multe proiectile trackingul e prost rău, trece prin inamici".
+
+**1) Explozia nu mai suflă** (`bullet.gd`, `_explode`): scos `apply_knockback` + constanta `EXPLOSION_KNOCKBACK`. Knockback-ul de la GLONȚ (itemul Knockback Stick) rămâne neatins.
+
+**2) Gloanțele își urmăresc ținta.** `bullet.gd` are acum `homing_turn` (rad/s) și `target`, iar player-ul îi dă ținta la tragere (`_fire_volley`/`_spawn_one_bullet` au primit un parametru `tinta`). Trei detalii care fac diferența:
+- ⚠️ **Anticiparea e obligatorie, nu un moft.** Prima versiune vira spre unde era inamicul ACUM: rata de lovire a ieșit **0%**. Cauza e clasica problemă de rachetă — raza de viraj a glonțului (`speed / homing_turn` = 700/8 = 87px) e mai mare decât distanța la care trece pe lângă țintă, deci o ratează la limită și apoi **orbitează** în jurul ei până moare de bătrânețe. Acum țintește unde VA FI (`spre + velocity × timp_de_zbor`).
+- **Dacă ținta a rămas în spate, glonțul nu se mai întoarce** (`aim.dot(direction) > 0`) — altfel orbitează la nesfârșit. Trece pe lângă și își caută altă țintă în față.
+- **Re-țintirea e ieftină**: doar când ținta a murit, cel mult o dată la 0.2s, doar în față, cu `length_squared`. În Final Swarm sunt sute de gloanțe și sute de inamici.
+- Proiectilele bonus își caută ținte doar în **600px** (`ARMORY_RANGE_SQ`). Înainte se alegeau din TOATĂ harta, deci multe plecau spre celălalt capăt și mureau de bătrânețe (lifetime 2s × 700px/s = ~1400px).
+
+**Măsurat** (12 inamici care se rotesc în jurul playerului la 400px, deci se mișcă mereu perpendicular pe glonț; 9 proiectile pe salvă):
+
+| homing (rad/s) | rata de lovire |
+|---|---|
+| 0 (vechiul comportament) | **0%** |
+| 4 | 75% |
+| **8 (ales)** | **85%** |
+| 16 | 89% |
+
+**Performanță:** 200 de inamici + tragere la 12.5 salve/s → **141.8 FPS fără urmărire vs 144.5 cu** (adică zero cost măsurabil).
+
+**De semnalat lui Răzvan:** cauza de fond a lui „trece prin inamici" e că **hitbox-ul inamicului e mult mai mic decât desenul**: desenul are 47×89px pe ecran, hitbox-ul e un cerc de 30px (`CircleShape2D` lăsat pe raza default 10, × scale 1.5). Gloanțele care trec prin cap sau prin picioare nu ating nimic. Urmărirea maschează problema (ținteșc centrul), dar dacă vrea, hitbox-ul se face capsulă pe măsura corpului. **N-am schimbat-o**: un hitbox mai mare schimbă și cum se înghesuie inamicii între ei și cât de aproape ajung de player.
+
+⚠️ **Greșeala mea, de reținut:** am curățat fișierele de test cu `rm -f *.gd.uid` și am șters **toate cele 33 de `.uid`-uri ale proiectului** (Godot le folosește ca identificatori de script). Recuperate cu `git checkout -- "*.gd.uid"`. La curățenie se șterg fișierele pe nume, niciodată cu wildcard peste o extensie a proiectului.
+
+---
+
 ## Session log — 2026-07-21 (BUG: ecranul tremura continuu — de la cadența de tragere)
 
 **Reclamat de Răzvan:** „la un moment dat am efect de shake pe ecran încontinuu, nu știu de la ce" + o înregistrare de ecran în `debugging/`.
