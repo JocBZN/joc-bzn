@@ -9,7 +9,14 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 var hp: int
 var _dying := false
 var _knockback := Vector2.ZERO  # împins temporar de gloanțe
-var _flash_tween: Tween
+
+# --- Sclipirea de la lovitură ---
+# Nu e un Tween, ci un simplu cronometru care se scurge în `_physics_process`. Un tween per
+# lovitură părea curat, dar la 300 de inamici loviți de mai multe ori pe secundă (aură, Thunder
+# God) însemna mii de obiecte Tween create și aruncate în fiecare secundă — pur cost.
+var _flash_time := 0.0        # cât mai ține sclipirea
+var _flash_dur := 0.0         # cât a ținut în total (pt. stingerea liniară)
+var _flash_color := Color(1, 1, 1)
 
 # --- Slow de la Frostwalker (gheața lăsată de player) ---
 const SLOW_MIN_MULT := 0.5    # viteza la slow MAXIM (0.5 = 50% din normal)
@@ -18,6 +25,7 @@ const SLOW_RECOVER := 0.5     # cât durează revenirea lină la viteza normală
 const SLOW_TINT := Color(0.55, 0.75, 1.35)  # filtru albastru „înghețat" (modulate)
 const ELECTRIC_TINT := Color(0.5, 0.85, 2.6)  # sclipire albastră electrică (Thunder God)
 var _slow_time: float = 0.0   # timp rămas de slow (hold + recover); reîmprospătat cât stă în gheață
+var _player: Node2D = null    # ținut minte, nu căutat prin arbore la fiecare cadru
 
 # --- Duridama: inamic „aurit" (upgrade_45) ---
 # La 1% (× stack) când e lovit, inamicul devine AURIU: îngheață exact în cadrul în care a fost
@@ -47,7 +55,11 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _dying or golden:
 		return   # aurit = înghețat: nici mișcare, nici schimbare de animație/culoare
-	var player := get_tree().get_first_node_in_group("player") as Node2D
+	# Player-ul se ține minte, nu se caută prin arbore în fiecare cadru: la 300 de inamici
+	# asta însemna 300 de căutări pe cadru, degeaba (e mereu același nod).
+	if _player == null or not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player") as Node2D
+	var player := _player
 	if player == null:
 		return
 	var directie := (player.global_position - global_position).normalized()
@@ -57,11 +69,17 @@ func _physics_process(delta: float) -> void:
 	# scade slow-ul și pune filtrul albastru cât timp e înghețat (dar nu în timpul unei sclipiri de lovitură)
 	if _slow_time > 0.0:
 		_slow_time = max(0.0, _slow_time - delta)
-	if _flash_tween == null or not _flash_tween.is_valid():
+	if _flash_time > 0.0:
+		# sclipirea se stinge lin spre tenta curentă (albă/albastră, după slow)
+		_flash_time = maxf(0.0, _flash_time - delta)
+		anim.modulate = _slow_color().lerp(_flash_color, _flash_time / _flash_dur)
+	else:
 		anim.modulate = _slow_color()
 	# angle() = unghiul spre player (0 = est, crește în sensul acelor de ceas) → octant 0..7
 	var idx := wrapi(int(round(directie.angle() / (PI / 4.0))), 0, 8)
-	anim.play(DIRECTII[idx])
+	# doar când chiar se schimbă direcția (ca la player): play() în fiecare cadru costă degeaba
+	if anim.animation != DIRECTII[idx]:
+		anim.play(DIRECTII[idx])
 
 # Chemată de gheața Frostwalker: reîmprospătează slow-ul la maxim.
 # `hold` = câte secunde stă la slow MAXIM (crește cu fiecare upgrade); apoi revine în SLOW_RECOVER sec.
@@ -116,29 +134,27 @@ func _try_golden() -> bool:
 func _make_golden() -> void:
 	golden = true
 	_knockback = Vector2.ZERO       # nu mai alunecă din împinsul glonțului
-	if _flash_tween != null and _flash_tween.is_valid():
-		_flash_tween.kill()         # oprim orice sclipire în curs, ca aurul să rămână curat
+	_flash_time = 0.0               # oprim orice sclipire în curs, ca aurul să rămână curat
 	anim.pause()                    # îngheață EXACT cadrul curent (altfel frame-urile curg singure)
 	anim.modulate = GOLD_TINT
 	Audio.play("hit", 0.0)          # un „cling" mai tare, ca semnal că s-a aurit
 
 func _flash() -> void:
-	if _flash_tween != null and _flash_tween.is_valid():
-		_flash_tween.kill()
-	anim.modulate = Color(5, 5, 5)  # alb foarte strălucitor
-	_flash_tween = create_tween()
-	_flash_tween.tween_property(anim, "modulate", _slow_color(), 0.12)  # revine la tenta curentă (albastră dacă e înghețat)
+	_porneste_flash(Color(5, 5, 5), 0.12)  # alb foarte strălucitor, revine la tenta curentă în 0.12s
 
 # Chemată de Thunder God când inamicul e lovit de curent: o sclipire albastră electrică, ceva mai
 # lungă decât cea albă de lovitură, ca să se vadă că e „electrocutat". Revine la tenta curentă.
 func flash_electric() -> void:
 	if _dying or golden:   # aurit → nu-i stricăm filtrul auriu
 		return
-	if _flash_tween != null and _flash_tween.is_valid():
-		_flash_tween.kill()
-	anim.modulate = ELECTRIC_TINT
-	_flash_tween = create_tween()
-	_flash_tween.tween_property(anim, "modulate", _slow_color(), 0.28)
+	_porneste_flash(ELECTRIC_TINT, 0.28)
+
+# Pornește o sclipire: culoarea de start și cât durează stingerea spre tenta curentă.
+func _porneste_flash(culoare: Color, durata: float) -> void:
+	_flash_color = culoare
+	_flash_dur = durata
+	_flash_time = durata
+	anim.modulate = culoare
 
 func _die(xp_bonus: float = 1.0) -> void:
 	_dying = true

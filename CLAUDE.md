@@ -13,6 +13,33 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-21 (laghitul din Final Swarm — măsurat și reparat)
+
+**Reclamat de Răzvan:** „după ce se termină timer-ul și trec 2 minute începe să lagheze rău de tot".
+
+**Întâi măsurat, abia apoi reparat.** Am scris un harness temporar (`_perf.tscn` + `_perf.gd`, șters la final): instanțiază `main.tscn`, sare cu `Difficulty.time` direct în Final Swarm, face player-ul nemuritor cu build de final de rundă și loghează la fiecare 5s FPS + un **recensământ al nodurilor din lume grupate după scriptul lor**. Recensământul e cheia — a arătat vinovatul din prima, fără ghicit:
+
+```
+t= 600 fps=144 noduri=  677 inamici= 7 xp=   6
+t= 660 fps=144 noduri= 4039 inamici=39 xp=1076
+t= 720 fps= 68 noduri= 7860 inamici=54 xp=2327
+t= 780 fps=  4 noduri=17224 inamici=88 xp=5390   <-- gemele de XP
+```
+
+**Cauza 1 — gemele de XP nu dispăreau niciodată.** Inamicii și gloanțele stăteau constante; gemele creșteau liniar la nesfârșit. Plafon în `xp.gd`: `MAX_GEME = 200`, iar gema cea mai depărtată de player **se varsă** în cea nouă (valoarea se adună) și dispare. **Nu pierzi XP** — doar se strânge în mai puține globuri, alea de lângă tine. Rezultat: noduri constant ~1500, **144 FPS toată runda**.
+
+**Cauza 2 — Thunder God, într-o gloată.** Test separat cu player slab (inamicii se adună la plafonul de 300): **4400 de arcuri electrice vii** → 6 FPS. Un impact = un arc pentru FIECARE inamic din rază, iar arcurile au `_process` propriu. Plafoane în `player.gd`, **doar pe vizual — damage-ul îl încasează toți din rază ca înainte**: `THUNDER_MAX_ARCE = 10` arcuri desenate per descărcare, `THUNDER_MAX_ARCE_VII = 60` arcuri vii în total.
+
+**Cauza 3 — un Tween per sclipire de lovitură.** Cu 300 de inamici loviți de mai multe ori pe secundă, `_flash()` și `flash_electric()` creau mii de obiecte `Tween` pe secundă pentru un fade de 0.12s. Înlocuite cu un cronometru float scurs în `_physics_process` (`_flash_time`/`_flash_dur`/`_flash_color`) — comportament identic. Tot în `enemy.gd`: player-ul se ține minte în loc să fie căutat prin grup în fiecare cadru (×300), și `anim.play()` se cheamă doar când chiar se schimbă direcția.
+
+**Plus, preventiv:** plafoane în `fx.gd` (45 numere de damage / 25 nori de scântei / 35 fulgere vii deodată — o pulsație de aură peste 200 de inamici cerea 200 de `Label`-uri într-un cadru) și throttle pe `Audio.play()` (45ms per nume; sunetele de hit lipsesc acum din `SFX`, dar când le pui la loc ar fi cerute de sute de ori pe secundă).
+
+⚠️ **Capcana contoarelor din `fx.gd`:** tween-urile care le scad aparțin nodurilor din scena curentă și **mor odată cu ea** la restart. Fără resetul din `_world()` (la schimbarea scenei), contoarele ar rămâne blocate sus și după câteva runde n-ar mai apărea NICIUN efect. Același risc ar exista la orice viitor plafon bazat pe contor + tween.
+
+**Rezultat măsurat, cazul cel mai rău (300 de inamici + Thunder God): 6 FPS → 90-144 FPS.** Plafonul de 300 de inamici (`spawner.max_enemies`) **nu** era problema — 300 de inamici fără Thunder God mergeau la 118-144 FPS și înainte. Verificat vizual pe joc (screenshot): geme, inamici, arc electric, numere de damage, HUD — toate normale.
+
+---
+
 ## Session log — 2026-07-20 (iconiță nouă Stacked Armory + artă nouă xp2)
 
 **Cerut de Răzvan:** iconița Stacked Armory → `upgrade_46.png`; separat, a schimbat el arta gemei xp2 (`xp/xp2.png`, acum un orb albastru în spirală).

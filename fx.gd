@@ -12,6 +12,20 @@ var _glow_tex: GradientTexture2D    # un cerc moale alb→transparent, refolosit
 var _add_mat: CanvasItemMaterial    # material "additive" = luminile se adună → efect de strălucire
 var _boom_frames: SpriteFrames      # cadrele exploziei (Jean's Bomb), construite o singură dată
 
+# --- PLAFOANE ---
+# O aură sau un Thunder God care prinde 200 de inamici deodată ar cere 200 de numere de
+# damage și 200 de nori de scântei ÎN ACELAȘI CADRU — fiecare cu nodurile și tween-ul lui.
+# Peste un anumit prag oricum nu mai distingi nimic pe ecran, doar plătești. Ce trece de
+# plafon se sare pur și simplu; damage-ul e dat de cel care ne cheamă, nu de efect.
+const MAX_NUMERE := 45      # numere de damage vii deodată
+const MAX_SCANTEI := 25     # nori de scântei (CPUParticles2D) vii deodată
+const MAX_FLASH := 35       # fulgere de glow vii deodată
+
+var _numere := 0
+var _scantei := 0
+var _flashuri := 0
+var _last_scene: Node = null   # ca să știm când s-a schimbat scena (vezi `_world()`)
+
 const EXPLOSION_DIR := "res://Upgrades/explozie_animatie/"
 const EXPLOSION_FRAME_COUNT := 9
 const EXPLOSION_VISUAL_SCALE := 0.5   # cât de mare apare explozia pe ecran (1.0 = diametru 2×rază; mai mic = mai mică vizual)
@@ -34,14 +48,26 @@ func _ready() -> void:
 	_add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
 
 # unde adăugăm efectele: scena curentă (lumea). Dacă nu există, ieșim în siguranță.
+#
+# Aici resetăm și contoarele de plafon la schimbarea scenei (restart, ieșire în meniu):
+# tween-urile care ar fi trebuit să le scadă aparțin nodurilor din scena veche, deci mor
+# odată cu ea și callback-ul lor nu mai rulează. Fără resetul ăsta, contoarele ar rămâne
+# blocate sus de la o rundă la alta și, după câteva restarturi, n-ar mai apărea NICIUN efect.
 func _world() -> Node:
-	return get_tree().current_scene
+	var w := get_tree().current_scene
+	if w != _last_scene:
+		_last_scene = w
+		_numere = 0
+		_scantei = 0
+		_flashuri = 0
+	return w
 
 # --- fulger de glow care se umflă și se stinge (pentru muzzle/impact) ---
 func _flash(pos: Vector2, color: Color, size: float, dur: float) -> void:
 	var w := _world()
-	if w == null:
+	if w == null or _flashuri >= MAX_FLASH:
 		return
+	_flashuri += 1
 	var s := Sprite2D.new()
 	s.texture = _glow_tex
 	s.material = _add_mat
@@ -53,7 +79,9 @@ func _flash(pos: Vector2, color: Color, size: float, dur: float) -> void:
 	var t := s.create_tween()
 	t.tween_property(s, "scale", Vector2.ONE * size, dur).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.parallel().tween_property(s, "modulate:a", 0.0, dur)
-	t.tween_callback(s.queue_free)
+	t.tween_callback(func() -> void:
+		_flashuri = maxi(0, _flashuri - 1)
+		s.queue_free())
 
 # fulger cald la gura armei când tragi
 func muzzle(pos: Vector2) -> void:
@@ -63,8 +91,9 @@ func muzzle(pos: Vector2) -> void:
 func impact(pos: Vector2, color: Color = Color(0.6, 1.0, 1.0)) -> void:
 	_flash(pos, color, 0.7, 0.14)
 	var w := _world()
-	if w == null:
+	if w == null or _scantei >= MAX_SCANTEI:
 		return
+	_scantei += 1
 	var p := CPUParticles2D.new()
 	p.z_index = 60
 	w.add_child(p)
@@ -82,7 +111,10 @@ func impact(pos: Vector2, color: Color = Color(0.6, 1.0, 1.0)) -> void:
 	p.color = color
 	p.emitting = true
 	# îl ștergem după ce s-a stins
-	get_tree().create_timer(0.6).timeout.connect(p.queue_free)
+	get_tree().create_timer(0.6).timeout.connect(func() -> void:
+		_scantei = maxi(0, _scantei - 1)
+		if is_instance_valid(p):
+			p.queue_free())
 
 # --- explozie AOE (Jean's Bomb): animația de explozie la poziția dată, scalată pe rază ---
 func explosion(pos: Vector2, radius: float = 96.0) -> void:
@@ -114,8 +146,9 @@ func explosion(pos: Vector2, radius: float = 96.0) -> void:
 # --- număr de damage care sare în sus și se stinge ---
 func damage_number(pos: Vector2, amount: int, crit: bool = false) -> void:
 	var w := _world()
-	if w == null:
+	if w == null or _numere >= MAX_NUMERE:
 		return
+	_numere += 1
 	var holder := Node2D.new()
 	holder.z_index = 100
 	w.add_child(holder)
@@ -140,4 +173,6 @@ func damage_number(pos: Vector2, amount: int, crit: bool = false) -> void:
 	var t := holder.create_tween()
 	t.tween_property(holder, "position:y", holder.position.y - 45, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	t.parallel().tween_property(lbl, "modulate:a", 0.0, 0.7)
-	t.tween_callback(holder.queue_free)
+	t.tween_callback(func() -> void:
+		_numere = maxi(0, _numere - 1)
+		holder.queue_free())

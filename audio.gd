@@ -18,6 +18,8 @@ const MUSIC_MENU := "res://audio/main menu theme.ogg"
 const MUSIC_GAME := ""
 
 const POOL_SIZE := 12       # câte "boxe" (playere) avem pregătite
+const MIN_GAP_MS := 45      # pauza minimă între două redări ale ACELUIAȘI sunet (vezi `play`)
+var _ultima := {}           # nume -> momentul (ms) când s-a auzit ultima oară
 var _streams := {}          # nume -> AudioStream încărcat
 var _players: Array = []    # lista de AudioStreamPlayer
 var _next := 0              # ce boxă folosim data viitoare (rotativ)
@@ -48,6 +50,13 @@ func _ready() -> void:
 func play(name: String, volume_db: float = 0.0, pitch_rand: float = 0.08) -> void:
 	if not _streams.has(name):
 		return
+	# Același sunet nu se pornește mai des de MIN_GAP. În Final Swarm, „hit" și „enemy_die"
+	# se cer de sute de ori pe secundă (aură + Thunder God peste o gloată): boxele s-ar tăia
+	# una pe alta oricum, s-ar auzi ca un zid de zgomot, și ar costa degeaba.
+	var acum := Time.get_ticks_msec()
+	if acum - int(_ultima.get(name, -10000)) < MIN_GAP_MS:
+		return
+	_ultima[name] = acum
 	var p := _find_free_player()
 	p.stream = _streams[name]
 	p.volume_db = volume_db

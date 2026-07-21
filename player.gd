@@ -32,6 +32,9 @@ var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți
 # din rază (ca Jacob's Ladder din Binding of Isaac). Animația pornește din inamic, nu din player, și
 # NU se lanțuie mai departe. Inamicii loviți de curent capătă o tentă albastră (enemy.flash_electric).
 @export var thunder_range: float = 200.0      # raza maximă de legare între inamici (px)
+const THUNDER_MAX_ARCE := 10                  # câte arcuri se DESENEAZĂ dintr-o descărcare (damage-ul îl iau toți)
+const THUNDER_MAX_ARCE_VII := 60              # câte arcuri pot exista pe ecran în total, din toate descărcările
+var _arce_vii: int = 0                        # câte arcuri sunt vii acum (vezi `_spawn_electric_arc`)
 var thunder_stacks: int = 0                   # de câte ori ai luat itemul (0 = nu-l ai)
 var _electric_frames: SpriteFrames            # cadrele fulgerului (fx/electricity fx, 14 × 64×63)
 # Plugged In: versiune „ieftină" de Thunder God — ȘANSĂ să facă exact același lucru la impact.
@@ -611,13 +614,20 @@ func thunder_burst(origin: Vector2, exclude_id: int) -> void:
 	var src_node := instance_from_id(exclude_id) as Node2D
 	if src_node != null and not is_instance_valid(src_node):
 		src_node = null
+	# Câte arcuri DESENĂM din descărcarea asta. Damage-ul îl încasează toți din rază, ca înainte —
+	# doar vizualul e plafonat. Într-o gloată de 300 de inamici, un singur impact năștea zeci de
+	# arcuri, fiecare cu nodul și `_process`-ul lui; se ajungea la 4000 de arcuri vii deodată și
+	# jocul cădea la 6 FPS. Peste vreo 10 suprapuse nici nu mai distingi ceva pe ecran.
+	var arce_ramase := THUNDER_MAX_ARCE
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null or enemy.get_instance_id() == exclude_id:
 			continue
 		if origin.distance_to(enemy.global_position) > thunder_range:
 			continue
-		_spawn_electric_arc(origin, enemy.global_position, src_node, enemy)
+		if arce_ramase > 0:
+			_spawn_electric_arc(origin, enemy.global_position, src_node, enemy)
+			arce_ramase -= 1
 		if enemy.has_method("take_damage"):
 			enemy.take_damage(dmg)
 			if enemy.has_method("flash_electric"):
@@ -651,6 +661,8 @@ func _spawn_electric_arc(from: Vector2, to: Vector2, n_from: Node2D = null, n_to
 		return
 	if from.distance_to(to) < 1.0:
 		return
+	if _arce_vii >= THUNDER_MAX_ARCE_VII:
+		return   # plafon global: la gloată, arcurile se suprapun oricum într-o pată
 	var fh := float(_electric_frames.get_frame_texture("fx", 0).get_height())
 	var a := AnimatedSprite2D.new()
 	a.set_script(load("res://electric_arc.gd"))
@@ -661,7 +673,10 @@ func _spawn_electric_arc(from: Vector2, to: Vector2, n_from: Node2D = null, n_to
 	get_parent().add_child(a)
 	a.setup(from, to, n_from, n_to, fh)
 	a.play("fx")
-	a.animation_finished.connect(a.queue_free)
+	_arce_vii += 1
+	a.animation_finished.connect(func() -> void:
+		_arce_vii = maxi(0, _arce_vii - 1)
+		a.queue_free())
 
 # Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
 # frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
