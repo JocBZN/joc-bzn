@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-22 (item nou: Bloody Situation)
+
+**Cerut de Răzvan:** `upgrade_54` **Bloody Situation** (Common) — la fiecare critic te vindeci 2 HP, +2 pe fiecare luare.
+
+**Unde s-a legat:** `player.bloody_heal()` (`bloody_stacks × 2`, plafonat la `max_hp`) e chemat din cele **trei** locuri unde un critic chiar ATINGE un inamic: handler-ul de lovitură din `bullet.gd`, pulsul de aură (`_aura_pulse`) și trecerea de damage a sabiei (`_sword_damage_pass`).
+
+**⚠️ Decizia care contează: o vindecare per LOVITURĂ critică, nu per inamic atins.** Aura rostogolește UN critic pe puls și apoi lovește tot ce prinde; sabia, unul pe tăietură. Dacă vindecarea mergea per inamic, un singur puls critic în mijlocul gloatei te umplea de viață. La sabie am pus un flag separat în dicționarul tăieturii (`t["bloody"]`), nu am refolosit `t["shake"]`, fiindcă tăietura face mai multe treceri de damage cât ține animația.
+
+**Vindecarea e la IMPACT, nu la rostogolire:** un glonț critic care ratează nu dă nimic (de-aia apelul stă în `bullet.gd`, nu în `_spawn_one_bullet`, unde se rostogolește criticul). Un glonț cu străpungere (Drill) vindecă doar la primul inamic (`_hits == 0`).
+
+**Măsurat în joc** (20 de ținte lipite de player, crit 100%, 5s): pistol **9 lovituri → +18 HP**; Stingător **180 de inamici loviți → +18 HP** (adică 2 pe puls, nu 360); sabie **35 de lovituri → +10 HP** (2 pe tăietură); fără item **+0**; cu 3 stack-uri **6 HP pe lovitură**. Cardul a fost fotografiat în meniu: chenar Common, iconița `upgrade_54.png`.
+
+**Pool: 47 de iteme.** Codex actualizat + republicat.
+
+**⚠️ Capcană la splice-ul din codex (m-a prins azi):** `sed 'Nr fisier'` inserează **DUPĂ** linia N. Un card are 2–3 linii (`{ id: ...` / `eff:` / `warn:`), deci ca să inserezi ÎNAINTEA cardului de la linia N dai `(N-1)r`. Am dat `280r` peste `{ id: "iarba"` de pe linia 280 și am rupt cardul Wine în două — JS invalid, pagina ar fi ieșit goală. Verificările de ghilimele/acolade **nu prind** asta; verificarea bună e structurală: *fiecare linie `^  { id: "` trebuie urmată de o linie `^    eff:`*, cu awk. Rulează asta după fiecare splice.
+
+---
+
 ## Session log — 2026-07-22 (urmărirea gloanțelor devine item: Psychic Flip Flops)
 
 **Cerut de Răzvan:** „fă gloanțele cum erau înainte să îți zic eu să lovească inamicii" + itemul `upgrade_53` **Psychic Flip Flops** (Epic) care să dea exact efectul de aimbot care era pus pe toate gloanțele.

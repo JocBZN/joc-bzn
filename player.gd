@@ -76,6 +76,19 @@ var aimbot_stacks: int = 0
 func aimbot_turn() -> float:
 	return aimbot_stacks * AIMBOT_TURN_PER
 
+# Bloody Situation: fiecare lovitură CRITICĂ te vindecă. +2 HP pe luare.
+# Regula: o vindecare per lovitură critică, nu per inamic atins. Contează la Stingător și la
+# sabie, care lovesc zeci de inamici cu ACELAȘI critic (unul singur rostogolit pe puls/tăietură):
+# dacă ar vindeca de fiecare inamic, un puls critic în mijlocul gloatei te-ar umple instant de viață.
+const BLOODY_HEAL_PER := 2
+var bloody_stacks: int = 0
+
+# Chemată de glonț / puls de aură / tăietură de sabie când lovitura CRITICĂ a atins un inamic.
+func bloody_heal() -> void:
+	if bloody_stacks <= 0 or hp >= max_hp:
+		return
+	hp = min(max_hp, hp + bloody_stacks * BLOODY_HEAL_PER)
+
 # Borat's Mankini: la fiecare 5 secunde, șansă să-ți cadă geme de XP mici lângă tine, din senin.
 # Ca la Broken Watch, repetarea NU crește ȘANSA, ci CÂTE geme cad (2 pe luare).
 const MANKINI_GEM := preload("res://xp1.tscn")   # gema cea mai mică (valoare de bază 1)
@@ -791,6 +804,7 @@ func _aura_pulse() -> void:
 		Audio.play("shoot", -12.0)  # foșnet slab (placeholder până ai sunet de spumă)
 		if is_crit:
 			add_shake(0.35)  # zguduitură ca la gloanțele critice
+			bloody_heal()    # Bloody Situation: o vindecare per PULS critic, nu per inamic prins
 		# Thunder God / Plugged In și pe Stingător. UN SINGUR lanț pe puls, dintr-un inamic lovit la
 		# întâmplare — NU câte unul din fiecare. Aura lovește tot ce prinde deodată; un lanț de fiecare
 		# ar da N×N arcuri pe puls (10 inamici = 90 de arcuri, de câteva ori pe secundă) — și ilizibil,
@@ -852,7 +866,7 @@ func _sword_swing() -> void:
 	# Tăietura rămâne VIE cât ține animația (_update_slashes o rotește și o lasă să lovească).
 	# `loviti` = ID-urile inamicilor deja tăiați de ea, ca o tăietură să lovească pe fiecare
 	# o SINGURĂ dată oricât ar mătura — altfel ar da damage în fiecare cadru.
-	var t := {"nod": nod, "loviti": {}, "dmg": dmg, "crit": is_crit, "shake": false}
+	var t := {"nod": nod, "loviti": {}, "dmg": dmg, "crit": is_crit, "shake": false, "bloody": false}
 	_slashes.append(t)
 	_sword_damage_pass(t)  # o trecere imediată, ca lovitura să se simtă pe loc
 
@@ -896,6 +910,11 @@ func _sword_damage_pass(t: Dictionary) -> void:
 	if hit and is_crit and not t["shake"]:
 		t["shake"] = true  # o singură zguduitură per tăietură, nu una pe cadru
 		add_shake(0.35)
+	# Bloody Situation: la fel, o singură vindecare per TĂIETURĂ critică. Flag separat de `shake`,
+	# ca să nu se lege una de alta: tăietura face mai multe treceri de damage cât ține animația.
+	if hit and is_crit and not t["bloody"]:
+		t["bloody"] = true
+		bloody_heal()
 
 # Cât se joacă, fiecare tăietură se întoarce după privire și mai dă o trecere de damage.
 # Ăsta e „ca în Megabonk": sabia se mișcă odată cu tine, nu rămâne unde ai pornit-o.

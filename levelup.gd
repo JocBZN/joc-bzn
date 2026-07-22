@@ -71,6 +71,7 @@ var UPGRADES := [
 	{"id": "borat_mankini", "nume": "Borat's Mankini", "icon": "upgrade_51.png", "rar": "common", "desc": "50% chance for 2 XP gems every 5s"},
 	{"id": "horse_mask", "nume": "Horse Mask", "icon": "upgrade_52.png", "rar": "epic", "desc": "5% to charm an enemy (+5% / stack)"},
 	{"id": "psychic_flip_flops", "nume": "Psychic Flip Flops", "icon": "upgrade_53.png", "rar": "epic", "desc": "Aimbot: bullets steer into enemies"},
+	{"id": "bloody_situation", "nume": "Bloody Situation", "icon": "upgrade_54.png", "rar": "common", "desc": "Crits heal you 2 HP (+2 / stack)"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -734,6 +735,11 @@ func _apply(id: String, p) -> void:
 			# (2026-07-21 → 07-22); acum e efectul itemului ăstuia. Repetarea strânge virajul:
 			# 8 rad/s la prima luare (85% rată de lovire), 16 la a doua (89%) — vezi aimbot_turn().
 			p.aimbot_stacks += 1
+		"bloody_situation":
+			# situație sângeroasă: fiecare lovitură CRITICĂ te vindecă 2 HP, +2 pe fiecare luare.
+			# Vindecarea se face la IMPACT, nu la tragere (un glonț critic care ratează nu dă nimic),
+			# și o singură dată per lovitură — vezi player.bloody_heal().
+			p.bloody_stacks += 1
 		"plugged_in":
 			# băgat în priză: ȘANSĂ să facă exact ce face Thunder God la impact. +10% pe luare
 			# (prima = 10%), plafonat la 100%. Folosește același lanț (thunder_burst).

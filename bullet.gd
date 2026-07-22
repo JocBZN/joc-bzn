@@ -118,6 +118,12 @@ func _on_body_entered(body: Node) -> void:
 		# Jean's Bomb: explozie AOE la impact
 		if explosion_radius > 0.0:
 			_explode()
+		# Bloody Situation: un glonț CRITIC te vindecă atunci când chiar atinge un inamic — o
+		# singură dată, la primul lovit, ca străpungerea (Drill) să nu-ți dea vindecare per inamic.
+		if is_crit and _hits == 0:
+			var jucator := get_tree().get_first_node_in_group("player")
+			if jucator != null and jucator.has_method("bloody_heal"):
+				jucator.bloody_heal()
 		# străpungere: dispare doar după ce a lovit (pierce + 1) inamici
 		_hits += 1
 		if _hits > pierce:
