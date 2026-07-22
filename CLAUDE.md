@@ -30,7 +30,13 @@ Quick rules:
 
 **Verificat rulând jocul** (scenă de test ștearsă după): farmecul se declanșează, victima moare în 2.5s, vraja se rupe, iar player-ul lipit de un fermecat rămâne la **100/100 HP**, în timp ce unul normal în același loc îi ia **10**. Meniul de level-up a fost și el fotografiat: toate cele 3 iconițe se încarcă în chenarele de raritate corecte.
 
-**Pool: 45 de iteme.** Codexul de pe claude.ai NU e încă actualizat cu astea trei.
+**Pool: 45 de iteme.**
+
+**Codex actualizat** (același URL, 2026-07-22): cele 3 carduri noi + nota de sinergie **„Farmecul nu se propagă în lanț"** (charm_hit, fermecații se sar între ei, Duridama are prioritate pe lovitură) + nota „Cum se adună Norocul" rescrisă cu lista completă a șanselor pe care le atinge norocul: **crit, instakill, Broken Watch, Plugged In, Horse Mask, Borat's Mankini — dar NU Duridama** (`duridama_chance()` nu adună `luck_bonus()`, spre deosebire de `horse_mask_chance()`).
+
+**Metodă nouă de splice, fără PowerShell:** iconițele se encodează cu `base64 -w0` (coreutils există în Bash) în linii `ICONS["upgrade_NN.png"]="data:..."`, iar tot montajul se face **într-o singură trecere de `sed -i`** cu mai multe `-e 'Nr fisier'` (numerele de linie rămân cele din fișierul original în aceeași trecere). Textul românesc stă în fișiere scrise separat, deci **nu mai trece prin literale PowerShell** — dispare complet riscul de diacritice stricate. Inserțiile se dau în ordine crescătoare de linie; `-e '308r luck.txt' -e '309d'` înlocuiește o linie întreagă.
+
+**Sincronizare verificată: 45 = 45**, comparând `id|iconiță|raritate` din `levelup.gd` cu cele din `codex.html` — zero diferențe. Toate cele 45 de iconițe folosite au base64 în fișier. Verificarea vizuală în browser **nu s-a putut face** (fără extensia Chrome în sesiunea asta), doar verificări statice: ghilimele și acolade echilibrate în regiunea editată.
 
 ---
 
