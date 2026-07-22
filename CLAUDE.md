@@ -13,6 +13,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-22 (garda aruncă o bastonă care se învârte)
+
+**Cerut de Răzvan:** a șters cadrele vechi ale atacului gărzii din `boss/lightning_burst_003_large_violet/` și a pus în loc **un singur cadru**, `police baton.png`, orientat nord-est. Voia din el o animație de atac **ca un cerc complet**, iar fiecare cadru (inclusiv al lui) să aibă **contur mov de 2px, cu efect ușor de glow**.
+
+**Cum s-a făcut:** `tool_baton.gd` (rămâne în repo, e sursa animației) — încarcă PNG-ul, îl rotește în **16 cadre × 22.5°** și scrie înapoi `frame0000…frame0015.png`. Rulare: `godot --headless --path <proj> res://tool_baton.tscn`.
+
+**Două lucruri care contează în generator:**
+- **Rotirea se face în jurul centrului DESENULUI, nu al fișierului.** Bastona nu stă centrată în pânza ei de 128×128; rotită în jurul centrului imaginii, se învârtea excentric, ca o roată dezechilibrată. Tool-ul ia dreptunghiul pixelilor opaci și se rotește în jurul centrului lui, pe o pânză cât diagonala (160×160).
+- **Eșantionare cu vecinul cel mai apropiat**, nu bilinear: pixel art-ul se încețoșează, iar marginile pe jumătate transparente ar fi păcălit pasul de contur.
+
+**Conturul (2px):** inelul lipit de desen e mov plin (`#B747FF`), al doilea inel e același mov la **50% alfa** — asta face să pară strălucire, nu chenar tras cu creionul. În joc mai și înflorește, fiindcă glow-ul din `atmosphere.gd` prinde tot ce trece de 1.0, iar conturul e înmulțit cu `tint`-ul proiectilului.
+
+**⚠️ Două potriviri care nu se vedeau din cerință:**
+1. Cadrele vechi erau **96×96**, ale mele ies **160×160** → bastona ar fi apărut mult mai mare decât bila veche, cu hitbox-ul rămas la 30px. Am pus `scale = 0.6` pe `AnimatedSprite2D` în `lightning.tscn`, ca desenul să corespundă cu ce lovește.
+2. `tint` era `(1.9, 1.5, 2.4)` — făcut ca să lumineze o bilă violet. Pe o bastonă aproape neagră, doar o spăla în gri-mov. Coborât la `(1.25, 1.05, 1.4)`: corpul rămâne închis, conturul strălucește.
+
+`FRAME_COUNT` 10 → 16, `anim_fps` 8 → 24 (o rotire la 0.67s). **Cadrele noi trebuie importate** (`--headless --import`) înainte de o rulare separată, altfel jocul folosește cache-ul vechi.
+
+**Verificat cu poze**: planșa cu toate cele 16 cadre (rotirea e continuă, conturul e pe fiecare) și o poză în joc cu garda lângă bastoane, pentru mărime.
+
+---
+
 ## Session log — 2026-07-22 (item nou: Bloody Situation)
 
 **Cerut de Răzvan:** `upgrade_54` **Bloody Situation** (Common) — la fiecare critic te vindeci 2 HP, +2 pe fiecare luare.

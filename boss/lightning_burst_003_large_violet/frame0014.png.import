@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://csnvet2v6s4r5"
-path="res://.godot/imported/frame0001.png-4d118a3d2b2f0aa6a0d1e937fcf2b49f.ctex"
+uid="uid://dr2rwnekc872b"
+path="res://.godot/imported/frame0014.png-de5e36bc9dca26fb1cc3363ebaa1a48a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://boss/lightning_burst_003_large_violet/frame0001.png"
-dest_files=["res://.godot/imported/frame0001.png-4d118a3d2b2f0aa6a0d1e937fcf2b49f.ctex"]
+source_file="res://boss/lightning_burst_003_large_violet/frame0014.png"
+dest_files=["res://.godot/imported/frame0014.png-de5e36bc9dca26fb1cc3363ebaa1a48a.ctex"]
 
 [params]
 
