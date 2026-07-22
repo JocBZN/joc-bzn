@@ -54,6 +54,25 @@ var duridama_stacks: int = 0
 func duridama_chance() -> float:
 	return minf(1.0, duridama_stacks * DURIDAMA_PER)
 
+# Horse Mask: la fiecare lovitură, șansă să „farmeci" un inamic — se întoarce împotriva alor lui
+# și lovește alt inamic până îl omoară; cât e fermecat nu-ți mai face damage ție (dar îl poți
+# omorî tu). +5% pe luare. Toată logica e în enemy.gd (`_try_charm`); aici stă doar șansa.
+const HORSE_MASK_PER := 0.05
+var horse_mask_stacks: int = 0
+
+func horse_mask_chance() -> float:
+	if horse_mask_stacks <= 0:
+		return 0.0
+	return minf(1.0, horse_mask_stacks * HORSE_MASK_PER + luck_bonus())
+
+# Borat's Mankini: la fiecare 5 secunde, șansă să-ți cadă geme de XP mici lângă tine, din senin.
+# Ca la Broken Watch, repetarea NU crește ȘANSA, ci CÂTE geme cad (2 pe luare).
+const MANKINI_GEM := preload("res://xp1.tscn")   # gema cea mai mică (valoare de bază 1)
+const MANKINI_INTERVAL := 5.0
+const MANKINI_CHANCE := 0.5
+const MANKINI_GEME := 2        # câte geme pe luare
+var mankini_stacks: int = 0
+
 # Undying Spirit: prima moarte te trimite în Limbo în loc de Game Over (vezi limbo.gd).
 # Se consumă la prima folosire — a doua oară mori normal, chiar dacă ai luat itemul de mai multe ori.
 var has_undying: bool = false
@@ -285,6 +304,12 @@ func _ready() -> void:
 	trail_timer.timeout.connect(_drop_fire)
 	add_child(trail_timer)
 	trail_timer.start()
+	# timer pentru Borat's Mankini: merge tot timpul, dar nu face nimic până iei itemul
+	var mankini_timer := Timer.new()
+	mankini_timer.wait_time = MANKINI_INTERVAL
+	mankini_timer.timeout.connect(_mankini_drop)
+	add_child(mankini_timer)
+	mankini_timer.start()
 	# timer pentru dâra de gheață (Frostwalker): lasă gheață cât timp mergi
 	var ice_timer := Timer.new()
 	ice_timer.wait_time = 0.18
@@ -1085,6 +1110,10 @@ func _take_contact_damage() -> void:
 		var enemy := e as Node2D
 		if enemy == null:
 			continue
+		# Horse Mask: cât e fermecat luptă de partea ta, deci nu-ți mai face damage la contact
+		# (tu îl poți omorî în continuare — e tot inamic). Vezi enemy.charmed.
+		if "charmed" in enemy and enemy.charmed:
+			continue
 		if global_position.distance_to(enemy.global_position) < contact_range:
 			take_damage(dmg)
 			# Mike's Hedgehog: reflectă 100% din damage înapoi în inamic, cel mult o dată la 3s
@@ -1095,6 +1124,24 @@ func _take_contact_damage() -> void:
 func _regen() -> void:
 	if hp_regen > 0 and hp > 0:
 		hp = min(max_hp, hp + hp_regen)
+
+# Borat's Mankini: la fiecare 5s, 50% șansă să pice `MANKINI_GEME × stacks` geme mici lângă tine.
+# NU cad direct în buzunar, ci la câțiva pași, ca să le vezi cum vin (magnetul lor le aduce oricum).
+# Valoarea urmează dificultatea, exact ca gemele lăsate de inamici (vezi enemy._drop_xp) — altfel
+# la minutul 10 ar fi rămas niște firimituri.
+func _mankini_drop() -> void:
+	if mankini_stacks <= 0:
+		return
+	if randf() >= MANKINI_CHANCE + luck_bonus():
+		return
+	var parent := get_parent()
+	if parent == null:
+		return
+	for i in MANKINI_GEME * mankini_stacks:
+		var gem := MANKINI_GEM.instantiate()
+		gem.value = int(round(gem.value * Difficulty.xp_mult()))
+		parent.add_child(gem)
+		gem.global_position = global_position + Vector2(randf_range(50.0, 100.0), 0).rotated(randf() * TAU)
 
 # Firewalker: lasă o băltoacă de foc pe jos cât timp player-ul se mișcă.
 # Dacă are ȘI Frostwalker, nu lăsăm foc separat — combinația devine Godwalker (vezi _drop_ice).

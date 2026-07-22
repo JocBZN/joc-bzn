@@ -13,6 +13,27 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-22 (3 iteme noi: Hellas, Borat's Mankini, Horse Mask)
+
+**Cerut de Răzvan:** `upgrade_50` Hellas (uncommon, 15% move speed + 5% crit), `upgrade_51` Borat's Mankini (common, 50% șansă să pice 2 geme de XP mic la fiecare 5 secunde), `upgrade_52` Horse Mask (epic, 5% la lovitură să întorci inamicul împotriva alor lui, +5% pe luare).
+
+**1) Hellas** — `p.speed *= 1.15` (procent pe valoarea curentă, se compune) + `p.crit_chance += 0.05` (aditiv). Nimic nou în cod.
+
+**2) Borat's Mankini** — un Timer nou pe player (`MANKINI_INTERVAL = 5.0`), pornit din `_ready`, care nu face nimic până ai itemul. Ca la Broken Watch, repetarea crește NUMĂRUL de geme (2 pe luare), nu șansa. Două detalii:
+- gemele cad la **50–100px** de player, nu în buzunar — le vezi cum vin singure (au magnet propriu);
+- valoarea trece prin `Difficulty.xp_mult()`, exact ca dropul inamicilor. Fără asta, la minutul 10 ar fi fost firimituri.
+
+**3) Horse Mask** — starea stă în `enemy.gd` (`charmed`, `_charm_target`), player-ul expune doar `horse_mask_chance()` — aceeași împărțire ca la Duridama. Fermecatul devine roz (`CHARM_TINT`, are prioritate în `_tenta()`, redenumită din `_slow_color`), își ia drept victimă **cel mai apropiat alt inamic nefermecat** (rază 700px) și o lovește cu **10 × dificultate la fiecare 0.5s** până moare; atunci vraja se rupe și se întoarce la tine.
+- ⚠️ **Lovitura fermecatului NU are voie să farmece la rândul ei.** `take_damage` a primit `from_charm`, plus o ușă separată `charm_hit()`. Fără asta, un singur proc s-ar fi propagat în lanț prin toată gloata până nu mai lupta nimeni cu tine.
+- ⚠️ **`charm_hit()` există și dintr-un motiv mai prozaic:** `garda.gd` (boss-ul) e și el în grupul `"enemy"`, dar are `take_damage(amount)` cu UN argument — un apel cu două argumente ar fi crăpat lupta cu boss-ul. Așa, pe garda se cade pe `take_damage(dmg)` obișnuit.
+- cât e fermecat nu-ți mai face damage la contact (`player._take_contact_damage` îl sare), dar rămâne în grupul `"enemy"`, deci îl poți omorî normal — cum a cerut Răzvan.
+
+**Verificat rulând jocul** (scenă de test ștearsă după): farmecul se declanșează, victima moare în 2.5s, vraja se rupe, iar player-ul lipit de un fermecat rămâne la **100/100 HP**, în timp ce unul normal în același loc îi ia **10**. Meniul de level-up a fost și el fotografiat: toate cele 3 iconițe se încarcă în chenarele de raritate corecte.
+
+**Pool: 45 de iteme.** Codexul de pe claude.ai NU e încă actualizat cu astea trei.
+
+---
+
 ## Session log — 2026-07-21 (gloanțe cu urmărire + explozia lui Jean's Bomb nu mai suflă)
 
 **Cerut de Răzvan:** „la Jean's Bomb — bomba să nu-i mai miște pe inamici" + „fă tracking mai bun la proiectile, că atunci când ai mai multe proiectile trackingul e prost rău, trece prin inamici".

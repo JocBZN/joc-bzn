@@ -67,6 +67,9 @@ var UPGRADES := [
 	{"id": "royal_flush", "nume": "Royal Flush", "icon": "upgrade_42.png", "rar": "epic", "desc": "+10 Luck"},
 	{"id": "tome_knowledge", "nume": "Tome of Knowledge", "icon": "upgrade_44.png", "rar": "rare", "desc": "50% less XP to level up"},
 	{"id": "duridama", "nume": "Duridama", "icon": "upgrade_45.png", "rar": "legendary", "desc": "1% to gild an enemy - next hit instakills"},
+	{"id": "hellas", "nume": "Hellas", "icon": "upgrade_50.png", "rar": "uncommon", "desc": "+15% Move speed - +5% Crit chance"},
+	{"id": "borat_mankini", "nume": "Borat's Mankini", "icon": "upgrade_51.png", "rar": "common", "desc": "50% chance for 2 XP gems every 5s"},
+	{"id": "horse_mask", "nume": "Horse Mask", "icon": "upgrade_52.png", "rar": "epic", "desc": "5% to charm an enemy (+5% / stack)"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -709,6 +712,21 @@ func _apply(id: String, p) -> void:
 			# e un PROCENT din damage-ul playerului: 25% la prima luare, +25% la fiecare repetare
 			# (vezi player.thunder_damage_pct) — deci acum se stivuiește, nu doar se activează.
 			p.thunder_stacks += 1
+		"hellas":
+			# Hellas: viteză + puțin critic. Viteza e PROCENT pe valoarea curentă (ca Alex's
+			# Protection), deci se compune la fiecare luare; criticul se adună (ca Adrenaline).
+			# Fiind pe viteză, umflă indirect și Diesel Power / Megane's Katana.
+			p.speed *= 1.15
+			p.crit_chance += 0.05
+		"borat_mankini":
+			# mankini: la fiecare 5 secunde, 50% șansă să-ți pice 2 geme mici de XP lângă tine.
+			# Șansa rămâne 50% oricâte iei (ca la Broken Watch) — crește numărul de geme: 2, 4, 6...
+			p.mankini_stacks += 1
+		"horse_mask":
+			# masca de cal: 5% pe lovitură (+5% pe luare) să farmeci inamicul lovit — se întoarce
+			# împotriva alor lui și lovește alt inamic până îl omoară, iar cât e fermecat nu-ți mai
+			# face damage la contact. Rostogolirea și lupta sunt în enemy.gd (`_try_charm`).
+			p.horse_mask_stacks += 1
 		"plugged_in":
 			# băgat în priză: ȘANSĂ să facă exact ce face Thunder God la impact. +10% pe luare
 			# (prima = 10%), plafonat la 100%. Folosește același lanț (thunder_burst).

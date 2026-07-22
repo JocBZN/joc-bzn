@@ -35,6 +35,20 @@ const GOLD_TINT := Color(2.2, 1.6, 0.25)   # filtru auriu (modulate multiplică,
 var golden := false
 var _xp_bonus := 1.0          # cât XP lasă la moarte (2.0 la moartea aurită)
 
+# --- Horse Mask: inamic „fermecat" (upgrade_52) ---
+# La 5% (× stack) când îl lovești TU, inamicul se întoarce împotriva alor lui: își ia drept țintă
+# alt inamic, se ține după el și-l lovește până moare. Cât e fermecat NU-ți mai face damage la
+# contact (vezi player._take_contact_damage), dar tu îl poți omorî normal — e tot inamic.
+# Când victima moare, vraja se rupe și se întoarce la tine.
+const CHARM_TINT := Color(2.0, 0.6, 1.6)   # filtru roz-violet: se vede imediat cine e fermecat
+const CHARM_RANGE := 700.0                 # de la ce distanță își caută victima (px)
+const CHARM_HIT_RANGE := 70.0              # cât de aproape trebuie ca s-o lovească (px)
+const CHARM_INTERVAL := 0.5                # o lovitură la fiecare jumătate de secundă
+const CHARM_DAMAGE := 10                   # cât ia victima la o lovitură (× dificultate)
+var charmed := false          # citit de player.gd ca să nu-ți mai facă damage cât e fermecat
+var _charm_target: Node2D = null
+var _charm_next := 0.0        # momentul (sec) când poate lovi din nou
+
 # Scenele de XP (le încărcăm doar dacă există deja, ca să nu dea eroare)
 var _xp1: PackedScene
 var _xp2: PackedScene
@@ -55,14 +69,19 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _dying or golden:
 		return   # aurit = înghețat: nici mișcare, nici schimbare de animație/culoare
-	# Player-ul se ține minte, nu se caută prin arbore în fiecare cadru: la 300 de inamici
-	# asta însemna 300 de căutări pe cadru, degeaba (e mereu același nod).
-	if _player == null or not is_instance_valid(_player):
-		_player = get_tree().get_first_node_in_group("player") as Node2D
-	var player := _player
-	if player == null:
+	# Pe cine urmărește acum: victima, dacă e fermecat (Horse Mask), altfel player-ul.
+	var tinta: Node2D = _charm_tinta() if charmed else null
+	if tinta == null:
+		# Player-ul se ține minte, nu se caută prin arbore în fiecare cadru: la 300 de inamici
+		# asta însemna 300 de căutări pe cadru, degeaba (e mereu același nod).
+		if _player == null or not is_instance_valid(_player):
+			_player = get_tree().get_first_node_in_group("player") as Node2D
+		tinta = _player
+	if tinta == null:
 		return
-	var directie := (player.global_position - global_position).normalized()
+	if charmed:
+		_charm_attack(tinta)
+	var directie := (tinta.global_position - global_position).normalized()
 	velocity = directie * (speed * _current_slow_mult()) + _knockback  # mers (încetinit de gheață) + împins de gloanțe
 	move_and_slide()
 	_knockback = _knockback.move_toward(Vector2.ZERO, knockback_decay * delta)  # împinsul scade rapid la 0
@@ -72,9 +91,9 @@ func _physics_process(delta: float) -> void:
 	if _flash_time > 0.0:
 		# sclipirea se stinge lin spre tenta curentă (albă/albastră, după slow)
 		_flash_time = maxf(0.0, _flash_time - delta)
-		anim.modulate = _slow_color().lerp(_flash_color, _flash_time / _flash_dur)
+		anim.modulate = _tenta().lerp(_flash_color, _flash_time / _flash_dur)
 	else:
-		anim.modulate = _slow_color()
+		anim.modulate = _tenta()
 	# angle() = unghiul spre player (0 = est, crește în sensul acelor de ceas) → octant 0..7
 	var idx := wrapi(int(round(directie.angle() / (PI / 4.0))), 0, 8)
 	# doar când chiar se schimbă direcția (ca la player): play() în fiecare cadru costă degeaba
@@ -94,8 +113,12 @@ func _current_slow_mult() -> float:
 		return SLOW_MIN_MULT  # încă în faza de slow MAXIM (primele SLOW_HOLD secunde)
 	return lerpf(1.0, SLOW_MIN_MULT, _slow_time / SLOW_RECOVER)  # apoi revine lin la normal
 
-# Culoarea de modulate: alb când nu e înghețat, spre albastru cât e mai încetinit.
-func _slow_color() -> Color:
+# Culoarea de modulate în starea de acum: roz dacă e fermecat (are prioritate, ca să se vadă mereu
+# cine luptă de partea ta), altfel alb când nu e înghețat, spre albastru cât e mai încetinit.
+# Sclipirile de lovitură se sting spre culoarea asta (vezi _physics_process).
+func _tenta() -> Color:
+	if charmed:
+		return CHARM_TINT
 	var s := (1.0 - _current_slow_mult()) / (1.0 - SLOW_MIN_MULT)  # 0 = deloc, 1 = slow maxim
 	return Color(1, 1, 1).lerp(SLOW_TINT, s)
 
@@ -103,7 +126,7 @@ func _slow_color() -> Color:
 func apply_knockback(v: Vector2) -> void:
 	_knockback = v
 
-func take_damage(amount: int) -> void:
+func take_damage(amount: int, from_charm: bool = false) -> void:
 	if _dying:
 		return
 	# Duridama: dacă e deja aurit, ORICE lovitură îl ucide instant și lasă 2× XP.
@@ -113,6 +136,11 @@ func take_damage(amount: int) -> void:
 	# altfel, șansa de a-l auri (îngheață în cadrul ăsta, fără să-i scadă viața)
 	if _try_golden():
 		return
+	# Horse Mask: doar loviturile TALE farmecă. Dacă ar farmeca și loviturile inamicilor deja
+	# fermecați, un singur proc s-ar propaga în lanț prin toată gloata până n-ar mai lupta nimeni
+	# cu tine. (`from_charm` vine din `charm_hit`.)
+	if not from_charm:
+		_try_charm()
 	hp -= amount
 	if hp <= 0:
 		_die()
@@ -138,6 +166,74 @@ func _make_golden() -> void:
 	anim.pause()                    # îngheață EXACT cadrul curent (altfel frame-urile curg singure)
 	anim.modulate = GOLD_TINT
 	Audio.play("hit", 0.0)          # un „cling" mai tare, ca semnal că s-a aurit
+
+# Rulează rostogolirea Horse Mask (șansa vine de la player). Dacă iese, îl întoarce împotriva alor lui.
+func _try_charm() -> void:
+	if charmed:
+		return   # deja fermecat: nu-și schimbă victima în timpul vrăjii
+	var player := get_tree().get_first_node_in_group("player")
+	if player == null or not player.has_method("horse_mask_chance"):
+		return
+	var sansa: float = player.horse_mask_chance()
+	if sansa <= 0.0 or randf() >= sansa:
+		return
+	var victima := _victima_apropiata()
+	if victima == null:
+		return   # n-are pe cine ataca (e singur pe ecran) → nu irosim procul, se poate declanșa iar
+	charmed = true
+	_charm_target = victima
+	_charm_next = 0.0
+	anim.modulate = _tenta()
+
+# Victima de acum. Dacă a murit (iese din grupul „enemy" chiar când începe să se stingă) sau a
+# dispărut, vraja se rupe și inamicul se întoarce după player.
+func _charm_tinta() -> Node2D:
+	if _charm_target != null and is_instance_valid(_charm_target) and _charm_target.is_in_group("enemy"):
+		return _charm_target
+	charmed = false
+	_charm_target = null
+	if not _dying:
+		anim.modulate = _tenta()
+	return null
+
+# Lovește victima, o dată la CHARM_INTERVAL, dacă e destul de aproape. Damage-ul crește cu
+# dificultatea, ca și cel pe care ți-l dau ție inamicii.
+func _charm_attack(victima: Node2D) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now < _charm_next:
+		return
+	if global_position.distance_to(victima.global_position) > CHARM_HIT_RANGE:
+		return
+	_charm_next = now + CHARM_INTERVAL
+	var dmg := maxi(1, int(round(CHARM_DAMAGE * Difficulty.enemy_damage_mult())))
+	# garda.gd e și el în grupul „enemy", dar are `take_damage(amount)` cu UN singur argument →
+	# pe inamicii normali mergem prin `charm_hit`, ca să nu se rostogolească farmec din farmec.
+	if victima.has_method("charm_hit"):
+		victima.charm_hit(dmg)
+	elif victima.has_method("take_damage"):
+		victima.take_damage(dmg)
+	Fx.damage_number(victima.global_position, dmg, false)
+
+# Lovitura dată de un inamic FERMECAT: damage normal, dar fără rostogolirea de farmec (vezi take_damage).
+func charm_hit(amount: int) -> void:
+	take_damage(amount, true)
+
+# Cel mai apropiat ALT inamic, în raza de farmec. Sar peste cei deja fermecați, ca să nu ajungă doi
+# fermecați să se învârtă unul după celălalt în loc să dea în gloată.
+func _victima_apropiata() -> Node2D:
+	var best: Node2D = null
+	var best_d := CHARM_RANGE
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var alt := e as Node2D
+		if alt == null or alt == self:
+			continue
+		if "charmed" in alt and alt.charmed:
+			continue
+		var d := global_position.distance_to(alt.global_position)
+		if d < best_d:
+			best_d = d
+			best = alt
+	return best
 
 func _flash() -> void:
 	_porneste_flash(Color(5, 5, 5), 0.12)  # alb foarte strălucitor, revine la tenta curentă în 0.12s
