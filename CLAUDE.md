@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-22 (urmărirea gloanțelor devine item: Psychic Flip Flops)
+
+**Cerut de Răzvan:** „fă gloanțele cum erau înainte să îți zic eu să lovească inamicii" + itemul `upgrade_53` **Psychic Flip Flops** (Epic) care să dea exact efectul de aimbot care era pus pe toate gloanțele.
+
+**Cum s-a făcut, în două linii:** `bullet.gd` — `homing_turn` are acum **default 0.0** (deci tot blocul de urmărire din `_physics_process` e sărit, gloanțele zboară drept ca înainte de 07-21); `player.gd` — `aimbot_stacks` + `aimbot_turn()` (`stacks × 8.0 rad/s`), scris pe **fiecare glonț la tragere** în `_spawn_one_bullet`. Mecanica din `bullet.gd` (țintește UNDE VA FI, renunță când ținta a rămas în spate) **n-a fost atinsă** — s-a schimbat doar cine o pornește.
+
+**Ce am păstrat intenționat** din pasul de pe 07-21: proiectilele bonus își caută ținte doar în **600px** (`ARMORY_RANGE_SQ`). Aia e *alegerea* țintei la tragere, nu urmărire în zbor — n-are legătură cu itemul.
+
+**⚠️ Capcana măsurătorii (două teste greșite la rând, ambele ziceau „100% și fără item"):**
+1. Cu un **inel** de ținte care se rotesc, un glonț care ratează ținta lui o lovește pe **vecina** — și eu numărăm loviturile pe toate țintele. Rata iese perfectă orice ai face. Corect: **o singură țintă**.
+2. Mai perfid: ținta de test se **teleporta** în fiecare cadru (`global_position = ...`) și, fiind `CharacterBody2D`, **târa player-ul după ea** prin depenetrarea din `move_and_slide()` — player-ul ajungea lipit de țintă (25px), deci orice glonț lovea. Se vedea în log: gloanțele zburau *tangențial*, nu radial. Corect: **`player.set_physics_process(false)`** în test (tragerea merge pe Timer, deci ține).
+
+**Măsurat corect** (țintă care traversează linia de foc, 400px, 250px/s, 55 de gloanțe): **0% fără item → 90.9% cu itemul**. Verificat și cablajul: fără item `homing_turn` ajunge 0.0 pe glonț, cu itemul 8.0, la două luări 16.0. Meniul de level up a fost fotografiat: cardul apare cu chenar Epic și iconița `upgrade_53.png`.
+
+**Pool: 46 de iteme.** **Codex actualizat + republicat**: cardul nou și — important — nota veche „Gloanțele se corectează în zbor" a fost **rescrisă** („Urmărirea NU mai e din oficiu"), fiindcă devenise pur și simplu falsă. Sincronizare verificată: 46 = 46.
+
+---
+
 ## Session log — 2026-07-22 (3 iteme noi: Hellas, Borat's Mankini, Horse Mask)
 
 **Cerut de Răzvan:** `upgrade_50` Hellas (uncommon, 15% move speed + 5% crit), `upgrade_51` Borat's Mankini (common, 50% șansă să pice 2 geme de XP mic la fiecare 5 secunde), `upgrade_52` Horse Mask (epic, 5% la lovitură să întorci inamicul împotriva alor lui, +5% pe luare).

@@ -20,12 +20,14 @@ var direction: Vector2 = Vector2.RIGHT
 var time_left: float
 var _hits: int = 0         # câți inamici a lovit deja
 
-# --- URMARIRE (homing) ---
-# Inainte, glontul pleca in linie dreapta spre unde ERA inamicul in clipa tragerii. Cu multe
-# proiectile bonus (Gunslinger / Twin Comets / Broken Watch), fiecare pleaca spre alt inamic
-# aflat departe, care intre timp se misca -> majoritatea treceau pe langa. Acum se corecteaza
-# in zbor spre tinta, cu o viteza de rotire limitata (nu e teleghidat perfect).
-@export var homing_turn: float = 8.0   # rad/s; 0 = zboara drept, ca inainte. 8 = 85% rata de lovire (masurat)
+# --- URMARIRE (homing) = itemul Psychic Flip Flops ---
+# IMPLICIT E OPRIT (0.0): glontul pleaca in linie dreapta spre unde ERA inamicul in clipa
+# tragerii, exact ca inainte de 2026-07-21. Din 2026-07-22 urmarirea nu mai e gratuita pentru
+# toata lumea, ci e efectul itemului `psychic_flip_flops` (Epic) — player.gd pune aici
+# `aimbot_turn()` la fiecare glont tras, deci fara item valoarea ramane 0 si tot codul de mai
+# jos e sarit. Cu urmarire, glontul se corecteaza in zbor spre tinta, cu viteza de rotire
+# limitata (nu e teleghidat perfect).
+@export var homing_turn: float = 0.0   # rad/s; 0 = zboara drept (fara item). 8 = 85% rata de lovire (masurat)
 var target: Node2D = null              # pus de player la tragere
 var _retarget_in: float = 0.0
 const RETARGET_EVERY := 0.2            # cat de rar cauta o tinta noua, daca a ramas fara

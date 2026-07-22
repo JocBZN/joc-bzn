@@ -70,6 +70,7 @@ var UPGRADES := [
 	{"id": "hellas", "nume": "Hellas", "icon": "upgrade_50.png", "rar": "uncommon", "desc": "+15% Move speed - +5% Crit chance"},
 	{"id": "borat_mankini", "nume": "Borat's Mankini", "icon": "upgrade_51.png", "rar": "common", "desc": "50% chance for 2 XP gems every 5s"},
 	{"id": "horse_mask", "nume": "Horse Mask", "icon": "upgrade_52.png", "rar": "epic", "desc": "5% to charm an enemy (+5% / stack)"},
+	{"id": "psychic_flip_flops", "nume": "Psychic Flip Flops", "icon": "upgrade_53.png", "rar": "epic", "desc": "Aimbot: bullets steer into enemies"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -727,6 +728,12 @@ func _apply(id: String, p) -> void:
 			# împotriva alor lui și lovește alt inamic până îl omoară, iar cât e fermecat nu-ți mai
 			# face damage la contact. Rostogolirea și lupta sunt în enemy.gd (`_try_charm`).
 			p.horse_mask_stacks += 1
+		"psychic_flip_flops":
+			# șlapii psihici = AIMBOT. Gloanțele se corectează în zbor spre ținta lor și țintesc
+			# UNDE VA FI, nu unde e. Urmărirea a fost din oficiu la toate gloanțele o zi
+			# (2026-07-21 → 07-22); acum e efectul itemului ăstuia. Repetarea strânge virajul:
+			# 8 rad/s la prima luare (85% rată de lovire), 16 la a doua (89%) — vezi aimbot_turn().
+			p.aimbot_stacks += 1
 		"plugged_in":
 			# băgat în priză: ȘANSĂ să facă exact ce face Thunder God la impact. +10% pe luare
 			# (prima = 10%), plafonat la 100%. Folosește același lanț (thunder_burst).

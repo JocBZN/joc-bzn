@@ -65,6 +65,17 @@ func horse_mask_chance() -> float:
 		return 0.0
 	return minf(1.0, horse_mask_stacks * HORSE_MASK_PER + luck_bonus())
 
+# Psychic Flip Flops („aimbot"): gloanțele se corectează în zbor spre ținta lor și țintesc UNDE
+# VA FI, nu unde e. Urmărirea a fost o vreme (2026-07-21 → 07-22) pornită din oficiu la toate
+# gloanțele; acum e efectul ACESTUI item — fără el gloanțele zboară drept, ca la început.
+# Toată mecanica stă în `bullet.gd` (`homing_turn`); aici e doar cât de strâns virează.
+const AIMBOT_TURN_PER := 8.0   # rad/s pe luare: 8 = 85% rată de lovire, 16 = 89% (măsurat)
+var aimbot_stacks: int = 0
+
+# Viteza de viraj pentru gloanțele trase ACUM. 0 = fără item → bullet.gd sare tot codul de urmărire.
+func aimbot_turn() -> float:
+	return aimbot_stacks * AIMBOT_TURN_PER
+
 # Borat's Mankini: la fiecare 5 secunde, șansă să-ți cadă geme de XP mici lângă tine, din senin.
 # Ca la Broken Watch, repetarea NU crește ȘANSA, ci CÂTE geme cad (2 pe luare).
 const MANKINI_GEM := preload("res://xp1.tscn")   # gema cea mai mică (valoare de bază 1)
@@ -621,7 +632,10 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.explosion_radius = ex_radius
 	bullet.explosion_damage = ex_damage
 	bullet.thunder = thunder_stacks > 0 or plugged_in_stacks > 0  # Thunder God / Plugged In: curent la impact
-	bullet.target = tinta   # glontul se corecteaza in zbor spre ea (vezi homing-ul din bullet.gd)
+	# Ținta + cât de strâns virează spre ea. Fără Psychic Flip Flops, `aimbot_turn()` e 0 și
+	# glonțul ignoră ținta complet — zboară drept, ca înainte de urmărire.
+	bullet.target = tinta
+	bullet.homing_turn = aimbot_turn()
 	if weapon_type == "mage":
 		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
 		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
