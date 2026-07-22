@@ -31,6 +31,12 @@ const SPEED_PER_MIN := 0.035
 const SPAWN_PER_MIN := 0.28
 const XP_PER_MIN := 0.30
 
+# --- Dublarea de la minutul 2 (cerută pe 2026-07-22) ---
+# De la 2:00 încolo apar de două ori mai mulți inamici decât ar fi apărut. Restul scalării
+# (viață, viteză, XP) rămâne neatins — se îngroașă doar ploaia.
+const SPAWN_DOUBLE_AFTER := 120.0   # 2:00
+const SPAWN_DOUBLE_MULT := 2.0
+
 # --- FAZA 1, PARTEA COMPUSĂ: după 1:30, fiecare minut ÎNMULȚEȘTE (nu adună) ---
 # Liniarul urca prea încet: la minutul 10 inamicii aveau doar 6.5× viață, în timp ce
 # build-ul tău se înmulțește (damage × crit × proiectile × AOE). Acum urcă și ei
@@ -129,6 +135,12 @@ func enemy_speed_mult() -> float:
 
 func spawn_mult() -> float:
 	var m := 1.0 + SPAWN_PER_MIN * _phase1_minutes()
+	# Cerut de Răzvan pe 2026-07-22: după minutul 2 curg de DOUĂ ori mai mulți inamici.
+	# E un salt brusc, nu o rampă — exact asta a cerut („după minutul 2, 2× mai mulți decât
+	# acum"). Se înmulțește peste creșterea normală, deci se păstrează și restul scalării.
+	# Trece prin `_mult_time()`, ca să respecte înghețarea din Limbo ca toate celelalte.
+	if _mult_time() >= SPAWN_DOUBLE_AFTER:
+		m *= SPAWN_DOUBLE_MULT
 	if _mult_is_fs():
 		m *= FS_SPAWN_JUMP * _fs_factor(FS_SPAWN_DOUBLE_EVERY)
 	return m

@@ -1000,11 +1000,16 @@ func _sword_rect_hit(dir: Vector2, rect: Rect2, punct: Vector2) -> bool:
 	var local := (punct - global_position).rotated(-dir.angle())
 	return rect.has_point(local)
 
-# Direcția în care taie acum (aceeași pentru artă, hitbox și desenul de debug).
-func _sword_dir() -> Vector2:
+# Direcția în care se uită player-ul ACUM (ultima direcție reală de mers; când stă pe loc rămâne
+# cea de dinainte). Publică, fiindcă o citește și spawner-ul: inamicii apar doar din față.
+func facing_dir() -> Vector2:
 	if _facing == Vector2.ZERO:
 		return Vector2.DOWN
 	return _facing.normalized()
+
+# Direcția în care taie acum (aceeași pentru artă, hitbox și desenul de debug).
+func _sword_dir() -> Vector2:
+	return facing_dir()
 
 # Vizualul tăieturii: animația de slash, COPIL al player-ului → se mișcă odată cu el.
 # Aici o așezăm doar la pornire; `_update_slashes` o ține întoarsă după privire în fiecare cadru

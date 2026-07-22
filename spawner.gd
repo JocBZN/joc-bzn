@@ -15,6 +15,9 @@ const ENEMY := preload("res://enemy.tscn")
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
 @export var spawn_distance: float = 700.0
+# Cât de larg e conul din fața player-ului din care apar inamicii (grade, în fiecare parte).
+# 45 = un sfert de cerc în față. 180 ar însemna „de peste tot", ca înainte.
+@export var spawn_cone_deg: float = 45.0
 @export var max_enemies: int = 300        # plafon de siguranță, ca să nu moară framerate-ul
 @export var max_batch: int = 12           # câți inamici pot apărea deodată într-un lot
 
@@ -94,7 +97,14 @@ func _spawn_enemy() -> void:
 	if player == null:
 		return
 	var enemy := ENEMY.instantiate()
-	var unghi := randf() * TAU
+	# Inamicii apar DOAR din direcția în care se uită player-ul (cerut pe 2026-07-22): un con
+	# de ±`spawn_cone_deg` în jurul privirii, nu tot cercul. Când stai pe loc, privirea rămâne
+	# ultima direcție de mers, deci continuă să vină de acolo.
+	var privire := Vector2.DOWN
+	if player.has_method("facing_dir"):
+		privire = player.facing_dir()
+	var con := deg_to_rad(spawn_cone_deg)
+	var unghi := privire.angle() + randf_range(-con, con)
 	var offset := Vector2(cos(unghi), sin(unghi)) * spawn_distance
 	# în World (Y-sortat), la fel ca player-ul, ca să fie acoperit corect de copaci
 	player.get_parent().add_child(enemy)

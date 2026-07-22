@@ -13,6 +13,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-22 (inamicii vin din față + dublu spawn după 2:00)
+
+**Cerut de Răzvan:** „vreau inamicii să se spawneze doar din direcția unde se uită player-ul" + „după minutul 2 vreau să se spawneze 2× mai mulți decât acum".
+
+**1) Conul din față** — `spawner._spawn_enemy()` nu mai trage un unghi la întâmplare pe tot cercul: pleacă de la `player.facing_dir()` și adaugă ±`spawn_cone_deg` (**45°**, `@export`, deci 180 aduce înapoi comportamentul vechi). `facing_dir()` e forma publică a ceea ce folosea deja `_sword_dir()` (`_facing` = ultima direcție reală de mers), iar `_sword_dir()` o cheamă acum pe ea — așa sabia și spawner-ul nu pot ajunge să creadă lucruri diferite despre „în față". Când stai pe loc, privirea rămâne ultima direcție de mers, deci inamicii continuă să vină de acolo.
+
+**2) Dublarea de la 2:00** — `SPAWN_DOUBLE_AFTER = 120.0` / `SPAWN_DOUBLE_MULT = 2.0` în `difficulty.gd`, aplicate în `spawn_mult()` peste creșterea normală. Citite prin `_mult_time()`, nu prin `time`, ca **înghețarea din Limbo să se aplice și aici**, ca la toți ceilalți multiplicatori. E un salt brusc la 2:00, nu o rampă — exact cum a cerut.
+
+**Măsurat în joc** (player întors spre est, `mult_time_override` folosit ca să fixez momentul): secunda 100 → `spawn_mult` **1.47**, 1.2 inamici/s; secunda 140 → **3.31**, 2.2/s. Toți inamicii au apărut între **−42° și +44°** față de privire, în ambele rulări.
+
+**Ce am lăsat intenționat neatins:** Limbo (`limbo.gd`) aruncă în continuare inamici pe tot cercul — acolo ideea e că ești încercuit — iar statuia ridică boss-ul la baza ei. Doar spawner-ul normal s-a schimbat.
+
+---
+
 ## Session log — 2026-07-22 (garda aruncă o bastonă care se învârte)
 
 **Cerut de Răzvan:** a șters cadrele vechi ale atacului gărzii din `boss/lightning_burst_003_large_violet/` și a pus în loc **un singur cadru**, `police baton.png`, orientat nord-est. Voia din el o animație de atac **ca un cerc complet**, iar fiecare cadru (inclusiv al lui) să aibă **contur mov de 2px, cu efect ușor de glow**.
