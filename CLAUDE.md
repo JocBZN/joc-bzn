@@ -48,6 +48,12 @@ Quick rules:
 - **Capcană:** prima versiune de curățare sărea pixelii cu `lum > 0.0001` (gardă anti-împărțire-la-zero) — exact negrul pur rămânea. De-aia trebuie ramura separată pentru lum ≈ 0.
 - Reglaj nou: `dark_floor` pe nodul `Paths`.
 
+**Ajustare 4 — copaci pe potecă + poteci suprapuse (feedback cu poză adnotată: albastru = vreau și pe cealaltă parte, roșu = nu vreau umflătura în lateral, + „niciodată copaci pe path/blend"):**
+- **Copaci pe potecă:** copacii (`props.gd`) și potecile se generau independent → un copac creștea fix pe potecă. Am refactorat `pathways.gd`: tile-urile unei poteci se calculează acum într-o funcție deterministă `_raw_path(key)` (cache-uită, fără noduri), iar nodul se pune în grupul `"paths"`. Am expus `is_on_path(world_pos, margin)` care recompune determinist potecile din chunk-urile din rază (`_reach`) și zice dacă un punct e pe potecă. În `props.gd`, înainte de a planta un copac, verific `_paths.is_on_path(me["pos"], path_clearance)` (marjă `path_clearance = 2` tile-uri) → niciun copac pe potecă sau pe blend-ul/coroana de lângă ea.
+- **Umflăturile în lateral (roșu):** erau două poteci din chunk-uri diferite care se suprapuneau parțial → una ieșea în afara celeilalte. Acum fiecare potecă „cedează" (nu se desenează) dacă se apropie la ≤ `path_gap` (3 tile-uri) de o potecă dintr-un chunk vecin cu cheia MAI MICĂ (`_yields_to_neighbor`, departajare deterministă ca la spacing-ul copacilor). Rezultat: fiecare potecă e o bandă dreaptă, fără bucăți în lateral — asta rezolvă și albastrul (simetrie) și roșul (umflătura).
+- `_reach` = câte chunk-uri poate acoperi o potecă (din `max_len`), folosit la ambele verificări. `is_on_path` folosește potecile BRUTE (inclusiv cele care au cedat) → copacii evită conservator; nesemnificativ.
+- Reglaje noi: `path_gap` pe `Paths`, `path_clearance` pe `Props`.
+
 ---
 
 ## Session log — 2026-07-23 (copaci: 1.2× mai mari + hitbox uniform)

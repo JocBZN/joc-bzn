@@ -63,12 +63,17 @@ const LEAF_ZONE_BOTTOM := 1.11  # unde se termină (>1 = puțin sub rădăcină)
 # Măsurătorile de contur/trunchi, cache-ul lor și textura de umbră stau acum în `ground_shadow.gd`
 # (le folosesc și cactușii). Constantele SHADOW_TEX_SIZE / TRUNK_BAND sunt tot acolo.
 
+@export var path_clearance: int = 2  # câte tile-uri de potecă (64px) ținem liber în jur — niciun copac pe potecă/blend
+
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul cu copacii lui)
+var _paths: Node = null  # nodul Paths (pathways.gd) — ca să nu punem copaci pe poteci
 
 func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
+	if _paths == null:
+		_paths = get_tree().get_first_node_in_group("paths")
 	var pc := _chunk_of(player.global_position)
 	# încarcă pătratele din jur care încă nu sunt generate
 	for cx in range(pc.x - load_radius, pc.x + load_radius + 1):
@@ -127,6 +132,9 @@ func _build_chunk(key: Vector2i) -> Node2D:
 		if _too_close(my_trees[i], i, my_trees, neighbors):
 			continue  # prea aproape de alt copac → nu-l plantăm
 		var me: Dictionary = my_trees[i]
+		# niciun copac pe potecă sau pe blend-ul ei (+ marjă, ca nici coroana să nu treacă peste)
+		if _paths != null and _paths.is_on_path(me["pos"], path_clearance):
+			continue
 		var tree := _make_tree(me["tex"])
 		tree.position = me["pos"]
 		tree.position.y -= tree.get_meta("sort_shift")  # compensăm ca imaginea să rămână „plantată"

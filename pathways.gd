@@ -29,8 +29,15 @@ const PATH_SHADER := preload("res://path_blend.gdshader")
 @export_range(0.05, 0.5) var edge_fade: float = 0.4  # cât de lat e blend-ul spre iarbă (fracție din tile)
 
 @export_range(0.0, 0.6) var dark_floor: float = 0.32  # ridică pixelii sub pragul ăsta de luminozitate
+@export var path_gap: int = 3           # distanța minimă (tile-uri) între două poteci; sub ea, una cedează
 
-var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul potecii lui, sau gol dacă n-are)
+# Cât de departe (chunk-uri) poate ajunge o potecă de la chunk-ul ei de origine. Folosit la verificarea
+# suprapunerii dintre poteci ȘI la `is_on_path` (copacii). O potecă de max_len tile-uri se întinde pe
+# ceil(max_len / tile-uri_per_chunk) chunk-uri; punem cu marjă.
+var _reach := 4
+
+var _loaded := {}    # Vector2i (chunk) -> Node2D (containerul potecii lui, sau gol dacă n-are)
+var _raw_cache := {} # Vector2i -> Array[Vector2i] (tile-urile BRUTE ale potecii, înainte de rezolvarea suprapunerii)
 var _mat: ShaderMaterial
 var _tex: Texture2D  # `pathblock normal` curățat de pixelii negri (vezi _clean_texture)
 
@@ -39,6 +46,8 @@ func _ready() -> void:
 	_mat.shader = PATH_SHADER
 	_mat.set_shader_parameter("fade_w", edge_fade)
 	_tex = _clean_texture()
+	_reach = int(ceil(float(max_len) / float(maxi(1, chunk_size / tile_px)))) + 1
+	add_to_group("paths")  # ca props.gd (copacii) să ne găsească și să evite potecile
 
 # Textura de pământ are pixeli aproape negri care, estompați peste iarbă, ies ca puncte negre pe
 # margine. Îi ridicăm la un prag de luminozitate (`dark_floor`), păstrând nuanța (scalăm RGB) →
@@ -81,6 +90,8 @@ func _process(_delta: float) -> void:
 		if absi(key.x - pc.x) > load_radius or absi(key.y - pc.y) > load_radius:
 			_loaded[key].queue_free()
 			_loaded.erase(key)
+	if _raw_cache.size() > 4000:  # se recalculează la nevoie, deci putem goli fără griji
+		_raw_cache.clear()
 
 func _chunk_of(pos: Vector2) -> Vector2i:
 	return Vector2i(floori(pos.x / float(chunk_size)), floori(pos.y / float(chunk_size)))
@@ -93,34 +104,85 @@ func _tile_center(tx: int, ty: int) -> Vector2:
 func _is_forest(tx: int, ty: int) -> bool:
 	return BiomeMap.desertness_at_chunk(_tile_center(tx, ty) / float(chunk_size)) <= 0.0
 
+# Tile-urile BRUTE ale potecii unui chunk (dreptunghi 3×length, toate `pathblock normal`), calculate
+# DETERMINIST din cheia chunk-ului, FĂRĂ a crea noduri și FĂRĂ rezolvarea suprapunerii cu vecinii.
+# Întoarce [] dacă chunk-ul n-are potecă sau dacă ar atinge deșert/gradient. Cache-uit (se cere des:
+# la construire, la vecini pentru suprapunere, și de copaci prin is_on_path).
+func _raw_path(key: Vector2i) -> Array:
+	if _raw_cache.has(key):
+		return _raw_cache[key]
+	var out: Array = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(key) ^ 0x9E3779B9  # salt propriu, ca poteca să nu se coreleze cu copacii
+	if rng.randf() < spawn_chance:
+		var vertical := rng.randf() < 0.5
+		var length := rng.randi_range(min_len, max_len)
+		var per_chunk := maxi(1, chunk_size / tile_px)  # câte tile-uri intră pe latura unui chunk
+		var stx := key.x * per_chunk + rng.randi_range(0, per_chunk - 1)
+		var sty := key.y * per_chunk + rng.randi_range(0, per_chunk - 1)
+		var ok := true
+		var tiles: Array = []
+		for i in length:
+			for k in [-1, 0, 1]:
+				# vertical: potecă pe Y, cele 3 tile-uri pe X (stx-1..stx+1); orizontal: invers
+				var pos := Vector2i(stx + k, sty + i) if vertical else Vector2i(stx + i, sty + k)
+				if not _is_forest(pos.x, pos.y):
+					ok = false
+					break
+				tiles.append(pos)
+			if not ok:
+				break
+		if ok:
+			out = tiles
+	_raw_cache[key] = out
+	return out
+
+# Departajare deterministă între poteci care s-ar apropia prea mult: cheia „mai mică" câștigă.
+func _key_smaller(a: Vector2i, b: Vector2i) -> bool:
+	return a.x < b.x or (a.x == b.x and a.y < b.y)
+
+# Poteca lui `key` cedează (nu se desenează) dacă vreun tile de-al ei e la ≤ `path_gap` de o potecă
+# dintr-un chunk vecin cu cheia MAI MICĂ → două poteci nu ajung niciodată lipite/suprapuse (fără
+# umflături în lateral). Doar față de cheile mai mici, ca decizia să nu depindă de ordinea generării.
+func _yields_to_neighbor(key: Vector2i, my_set: Dictionary) -> bool:
+	for dy in range(-_reach, _reach + 1):
+		for dx in range(-_reach, _reach + 1):
+			if dx == 0 and dy == 0:
+				continue
+			var nk := Vector2i(key.x + dx, key.y + dy)
+			if not _key_smaller(nk, key):
+				continue
+			var nt := _raw_path(nk)
+			for t in nt:
+				for oy in range(-path_gap, path_gap + 1):
+					for ox in range(-path_gap, path_gap + 1):
+						if my_set.has(t + Vector2i(ox, oy)):
+							return true
+	return false
+
+# E poziția de lume `world_pos` pe o potecă (sau la ≤ `margin` tile-uri de ea)? Folosit de copaci
+# (props.gd) ca să NU crească pe potecă / pe blend-ul ei. Determinist, nu depinde de ce e încărcat.
+func is_on_path(world_pos: Vector2, margin: int = 0) -> bool:
+	var t := Vector2i(floori(world_pos.x / tile_px), floori(world_pos.y / tile_px))
+	var c0 := _chunk_of(world_pos)
+	for dy in range(-_reach, _reach + 1):
+		for dx in range(-_reach, _reach + 1):
+			for pt in _raw_path(Vector2i(c0.x + dx, c0.y + dy)):
+				if absi(pt.x - t.x) <= margin and absi(pt.y - t.y) <= margin:
+					return true
+	return false
+
 func _build_chunk(key: Vector2i) -> Node2D:
 	var container := Node2D.new()
 	add_child(container)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(key) ^ 0x9E3779B9  # salt propriu, ca poteca să nu se coreleze cu copacii
-	if rng.randf() >= spawn_chance:
+	var tiles := _raw_path(key)
+	if tiles.is_empty():
 		return container  # chunk-ul ăsta n-are potecă
-	var vertical := rng.randf() < 0.5
-	var length := rng.randi_range(min_len, max_len)
-	# tile-ul de start, undeva în chunk (indici de tile GLOBALI)
-	var per_chunk := maxi(1, chunk_size / tile_px)  # câte tile-uri intră pe latura unui chunk
-	var stx := key.x * per_chunk + rng.randi_range(0, per_chunk - 1)
-	var sty := key.y * per_chunk + rng.randi_range(0, per_chunk - 1)
-
-	# Poteca = un dreptunghi de tile-uri, 3 late × `length` lung (toate `pathblock normal`).
-	# Strângem întâi toate coordonatele (și un set pentru căutarea vecinilor) și verificăm că TOT e
-	# pădure; dacă vreun tile atinge deșert/gradient, renunțăm la potecă în întregime.
-	var tiles := []      # Array[Vector2i]
-	var tset := {}       # Vector2i -> true (apartenență, pentru estomparea marginilor)
-	for i in length:
-		for k in [-1, 0, 1]:
-			# vertical: potecă pe Y, cele 3 tile-uri se întind pe X (stx-1..stx+1)
-			# orizontal: potecă pe X, cele 3 tile-uri se întind pe Y (sty-1..sty+1)
-			var pos := Vector2i(stx + k, sty + i) if vertical else Vector2i(stx + i, sty + k)
-			if not _is_forest(pos.x, pos.y):
-				return container  # atinge deșert/gradient → fără potecă
-			tiles.append(pos)
-			tset[pos] = true
+	var tset := {}  # Vector2i -> true (apartenență, pentru estomparea marginilor)
+	for pos in tiles:
+		tset[pos] = true
+	if _yields_to_neighbor(key, tset):
+		return container  # prea aproape de altă potecă → cedăm, ca să nu iasă umflături în lateral
 
 	for pos in tiles:
 		var s := Sprite2D.new()
