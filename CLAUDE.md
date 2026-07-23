@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-23 (Stolen Halo: scos efectul vizual + sprite-ul)
+
+**Cerut de Răzvan:** „scoate efectul de după ce iei Stolen Halo să ți-l puna și sprite, poți să ștergi și fișierele de animație."
+
+**Ce am făcut:**
+- `levelup.gd` (ramura `"stolen_halo"`): am șters apelul `p.show_halo()`. Itemul rămâne **exact la fel ca stat** — `+15 Damage / +5 Max HP`, stivuibil — doar că nu mai apare nimic vizual.
+- `player.gd`: am șters funcția `show_halo()` întreagă și toate reglajele legate de ea (`HALO_FRAME_W`, `halo_size`, `halo_side`, `halo_height`, `_halo`). `_load_fx_frames` a rămas neatins — e folosit și de sabie/alte fx.
+- Am șters folderul de artă `fx/halo fx/` (Halo.png + cele 10 cadre `frame_0..9.png` + fișierele `.import`). Nimic altceva nu mai referea calea `res://fx/halo fx`.
+
+**Verificat:** `player.gd` și `levelup.gd` se încarcă fără erori de parse; jocul real pornește curat (fără erori de script, fără avertismentul de cadre lipsă). Erorile „Identifier not found: Fx/Audio/GameSettings" de la testul de load izolat sunt autoload-uri, false positive, apar mereu.
+
+**Codex:** nu necesită update — efectul, raritatea și statul rămân aceleași; codexul nu arăta oricum aureola.
+
+---
+
 ## Session log — 2026-07-22 (inamicii vin din față + dublu spawn după 2:00)
 
 **Cerut de Răzvan:** „vreau inamicii să se spawneze doar din direcția unde se uită player-ul" + „după minutul 2 vreau să se spawneze 2× mai mulți decât acum".

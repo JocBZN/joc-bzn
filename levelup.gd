@@ -633,10 +633,8 @@ func _apply(id: String, p) -> void:
 				p._doctor_taken = true
 		"stolen_halo":
 			# furat din rai: damage + viață, la fel la fiecare luare (stivuiește).
-			# Aureola rămâne deasupra capului tot restul rundei; show_halo() o pune o singură dată.
 			p.bullet_damage += 15
 			p.upgrade_max_hp(5)
-			p.show_halo()
 		"alex_protection":
 			# cască de protecție: mai multă viață și te miști mai repede.
 			# Procentele se aplică pe valoarea CURENTĂ, deci se compun la fiecare luare
