@@ -54,6 +54,11 @@ Quick rules:
 - `_reach` = câte chunk-uri poate acoperi o potecă (din `max_len`), folosit la ambele verificări. `is_on_path` folosește potecile BRUTE (inclusiv cele care au cedat) → copacii evită conservator; nesemnificativ.
 - Reglaje noi: `path_gap` pe `Paths`, `path_clearance` pe `Props`.
 
+**Ajustare 5 — blend-ul se estompa doar în sud/vest (feedback cu poză: „blendul e perfect doar în sud, vreau la fel în nord/est/vest"):**
+- **Cauza (măsurată, nu ghicită):** masca de laturi o trimiteam prin `self_modulate = Color(R=stânga, G=sus, B=dreapta, A=jos)`, dar Godot livrează la shaderul 2D **fiabil doar canalele R și A** ale culorii vertexului — G și B se pierdeau. Deci se estompau doar stânga (R) și jos (A); sus (G) și dreapta (B) rămâneau tăiate brusc. Confirmat cu un test pe fundal magenta: mask individual pe fiecare canal → doar R și A funcționau.
+- **Fix:** am scos `self_modulate`. Acum shaderul are `uniform vec4 fade` NORMAL, iar `pathways.gd` ține **câte un ShaderMaterial partajat per combinație de laturi** (`_mat_for(mask)`, mască pe biți 1/2/4/8). Sunt doar ~9 combinații → ~9 materiale, se grupează bine la desenat, fără limita de instanțe. Verificat: mask=15 (toate laturile) → toate 4 marginile se estompează (0.00), mijloc opac (0.75). Toate direcțiile arată acum la fel.
+- `fade_w` (din `edge_fade`) se actualizează live pe toate materialele în `_process`.
+
 ---
 
 ## Session log — 2026-07-23 (copaci: 1.2× mai mari + hitbox uniform)

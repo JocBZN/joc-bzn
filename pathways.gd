@@ -38,16 +38,28 @@ var _reach := 4
 
 var _loaded := {}    # Vector2i (chunk) -> Node2D (containerul potecii lui, sau gol dacă n-are)
 var _raw_cache := {} # Vector2i -> Array[Vector2i] (tile-urile BRUTE ale potecii, înainte de rezolvarea suprapunerii)
-var _mat: ShaderMaterial
+var _mats := {}      # int (masca 0..15) -> ShaderMaterial partajat, cu `fade` setat pe combinația aia
 var _tex: Texture2D  # `pathblock normal` curățat de pixelii negri (vezi _clean_texture)
 
 func _ready() -> void:
-	_mat = ShaderMaterial.new()
-	_mat.shader = PATH_SHADER
-	_mat.set_shader_parameter("fade_w", edge_fade)
 	_tex = _clean_texture()
 	_reach = int(ceil(float(max_len) / float(maxi(1, chunk_size / tile_px)))) + 1
 	add_to_group("paths")  # ca props.gd (copacii) să ne găsească și să evite potecile
+
+# Material partajat pentru o combinație de laturi de estompat (mască pe biți: 1=stânga, 2=sus,
+# 4=dreapta, 8=jos). Le refolosim → doar ~9 materiale în total, se grupează bine la desenat.
+func _mat_for(mask: int) -> ShaderMaterial:
+	if not _mats.has(mask):
+		var m := ShaderMaterial.new()
+		m.shader = PATH_SHADER
+		m.set_shader_parameter("fade", Vector4(
+			1.0 if (mask & 1) else 0.0,
+			1.0 if (mask & 2) else 0.0,
+			1.0 if (mask & 4) else 0.0,
+			1.0 if (mask & 8) else 0.0))
+		m.set_shader_parameter("fade_w", edge_fade)
+		_mats[mask] = m
+	return _mats[mask]
 
 # Textura de pământ are pixeli aproape negri care, estompați peste iarbă, ies ca puncte negre pe
 # margine. Îi ridicăm la un prag de luminozitate (`dark_floor`), păstrând nuanța (scalăm RGB) →
@@ -78,8 +90,8 @@ func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
-	if _mat != null:
-		_mat.set_shader_parameter("fade_w", edge_fade)  # ca să poți regla din Inspector în timp real
+	for m in _mats.values():
+		m.set_shader_parameter("fade_w", edge_fade)  # ca să poți regla din Inspector în timp real
 	var pc := _chunk_of(player.global_position)
 	for cx in range(pc.x - load_radius, pc.x + load_radius + 1):
 		for cy in range(pc.y - load_radius, pc.y + load_radius + 1):
@@ -188,17 +200,17 @@ func _build_chunk(key: Vector2i) -> Node2D:
 		var s := Sprite2D.new()
 		s.texture = _tex
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		s.material = _mat
 		s.z_index = path_z
 		s.z_as_relative = false  # z absolut → mereu peste iarbă, indiferent de părinte
 		s.scale = Vector2.ONE * (float(tile_px) / float(_tex.get_width()))
 		s.position = _tile_center(pos.x, pos.y)
-		# Estompăm DOAR laturile expuse (fără vecin-potecă). Codificate în self_modulate,
-		# citite de shader ca R=stânga, G=sus, B=dreapta, A=jos (1 = estompează).
-		s.self_modulate = Color(
-			0.0 if tset.has(pos + Vector2i(-1, 0)) else 1.0,
-			0.0 if tset.has(pos + Vector2i(0, -1)) else 1.0,
-			0.0 if tset.has(pos + Vector2i(1, 0)) else 1.0,
-			0.0 if tset.has(pos + Vector2i(0, 1)) else 1.0)
+		# Estompăm DOAR laturile expuse (fără vecin-potecă): 1=stânga, 2=sus, 4=dreapta, 8=jos.
+		# Materialul e ales/partajat după mască (_mat_for).
+		var mask := 0
+		if not tset.has(pos + Vector2i(-1, 0)): mask |= 1
+		if not tset.has(pos + Vector2i(0, -1)): mask |= 2
+		if not tset.has(pos + Vector2i(1, 0)): mask |= 4
+		if not tset.has(pos + Vector2i(0, 1)): mask |= 8
+		s.material = _mat_for(mask)
 		container.add_child(s)
 	return container
