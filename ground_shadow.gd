@@ -9,10 +9,15 @@ extends RefCounted
 # scanat de pixeli care s-ar putea desincroniza.
 #
 # Tot ce e aici e STATIC și cache-uit per textură: scanarea pixelilor (`get_used_rect`, banda de
-# trunchi) e scumpă, iar aceleași 7 texturi de copac / 1 de cactus se refolosesc la nesfârșit.
+# trunchi) e scumpă, iar aceleași 6 texturi de copac / 1 de cactus se refolosesc la nesfârșit.
 
 const SHADOW_TEX_SIZE := 128
-const TRUNK_BAND := 0.18    # ce fracție din înălțimea vizibilă, măsurată de jos, e „trunchi"
+# Ce fracție din înălțimea vizibilă, măsurată de jos, e „trunchi".
+# 0.08 (nu 0.18): la copacii noi (2026-07-23) frunzișul de jos al unora (stejarul, tufele)
+# cobora în banda de 18% → detectorul credea că trunchiul e lat cât coroana și ieșea un
+# hitbox uriaș. Banda subțire prinde doar baza reală care atinge solul, unde frunzișul nu
+# mai ajunge → lățimi realiste și consistente (trunchi gros la stejar, subțire la mesteacăn).
+const TRUNK_BAND := 0.08
 
 static var _trunk_cache := {}      # textură -> conturul trunchiului (Rect2i, pixeli de textură)
 static var _used_cache := {}       # textură -> conturul opac

@@ -13,6 +13,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-23 (copaci noi: import, hitbox, y-sort)
+
+**Context:** Răzvan a înlocuit `harta/trees/Tree Variant 1..6.png` cu o serie nouă de copaci (nu-i plăceau cei vechi), a **șters Variant 7** complet și a șters toate fișierele `.import`. Cererea: „vezi ce poți face cu hitbox-ul, iar ca sprite să fie la fel ca ceilalți copaci de erau înainte" + reminder „player-ul în spatele copacilor când e la nord".
+
+**Ce am făcut:**
+1. **Crash evitat:** `props.gd` încă avea `preload("res://harta/trees/Tree Variant 7.png")` — l-am scos din array-ul `TREES` (acum 6). Fără asta, jocul crăpa la pornire.
+2. **Reimport:** PNG-urile noi veniseră fără `.import` → `--headless --import` le-a regenerat (altfel `load()` la rulare directă dă „No loader found").
+3. **Sprite = ca înainte:** măsurat, copacii noi sunt 128×128 cu ~112–121px înălțime vizibilă, **la fel ca seria precedentă** → `tree_scale` rămâne **1.85** (~215px pe ecran). N-a trebuit schimbat nimic la mărime.
+4. **Hitbox reparat (miezul cererii):** detectorul de trunchi (`ground_shadow.gd`, `trunk_rect`) scana banda de jos **18%** din înălțimea vizibilă. La arta nouă, unii copaci (stejarul V2, tufele V5/V6) au frunziș care coboară în banda aia → detecta toată coroana drept „trunchi" și ieșea un hitbox **uriaș** (cutia stejarului acoperea toată jumătatea de jos). Am **micșorat banda la 8%** (`TRUNK_BAND` 0.18 → 0.08) — prinde doar baza reală care atinge solul. Lățimile de trunchi au trecut de la `10–75px` haotic la `10–37px` realist (trunchi gros la stejar, subțire la mesteacăn). Verificat cu screenshot-uri cu hitbox-ul desenat peste toți 6.
+5. **Y-sort (player la nord) — verificat, neatins.** Lanțul `World→Props→container` toate `y_sort_enabled`, linia de sortare la 35.5% din trunchi, e independent de artă. Test în joc cu player + copac reali: player la nord de copac → complet acoperit de coroană; la sud → în față. `TRUNK_BAND` afectează DOAR hitbox-ul/umbra, nu sortarea.
+
+**Neatins intenționat:** cactușii (`desert_structures.gd`) își fac hitbox-ul din lățimea canvasului (nu din banda de trunchi), deci reducerea benzii nu-i afectează — doar poziția umbrei se mișcă neglijabil. Verificat în cod.
+
+**Capcană de reținut:** când Răzvan bagă/schimbă PNG-uri, ele vin fără `.import` → **întotdeauna** rulează `--headless --import` înainte de orice test, altfel rularea directă a jocului nu le poate încărca (vezi [[joc-bzn-run-verify]]).
+
+---
+
 ## Session log — 2026-07-23 (Stolen Halo: scos efectul vizual + sprite-ul)
 
 **Cerut de Răzvan:** „scoate efectul de după ce iei Stolen Halo să ți-l puna și sprite, poți să ștergi și fișierele de animație."

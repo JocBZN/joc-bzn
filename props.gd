@@ -12,7 +12,6 @@ const TREES := [
 	preload("res://harta/trees/Tree Variant 4.png"),
 	preload("res://harta/trees/Tree Variant 5.png"),
 	preload("res://harta/trees/Tree Variant 6.png"),
-	preload("res://harta/trees/Tree Variant 7.png"),
 ]
 
 @export var chunk_size: int = 512       # mărimea unui pătrat de lume (px)
@@ -22,7 +21,9 @@ const TREES := [
 # `tree_scale` e singura valoare încă legată de dimensiunea texturii, deci SINGURA care
 # trebuie recalculată dacă mai schimbi arta. Vechii copaci (64x64) mergeau la 4.5; nu se
 # împarte pur și simplu la raportul canvasului, fiindcă contează cât din canvas ocupă
-# desenul: vechii aveau ~40x49px vizibili din 64, noii ~97x120px din 128 → raport ~1.85.
+# desenul: vechii aveau ~40x49px vizibili din 64. Seria curentă (2026-07-23, 6 copaci
+# 128x128) are ~84-121px lățime × ~112-121px înălțime vizibilă → la 1.85 ies ~215px pe
+# ecran, aceeași dimensiune ca seriile de dinainte. Dacă bagi copaci de altă mărime, ajustează aici.
 #
 # Hitbox-ul și umbra NU mai depind de canvas: se măsoară din trunchiul desenat (`_trunk`),
 # deci se potrivesc singure la orice artă nouă.
