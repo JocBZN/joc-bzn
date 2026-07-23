@@ -25,7 +25,7 @@ const PATH_SOUTH := preload("res://harta/pathblocks/pathblock x grassblock south
 @export var tile_px: int = 64           # cât ocupă un tile de potecă pe ecran (64 = exact grila de iarbă)
 @export var load_radius: int = 4        # câte chunk-uri în jur ținem încărcate (mai mult ca la copaci:
                                         # o potecă de 20 tile-uri se întinde pe ~2.5 chunk-uri)
-@export var spawn_chance: float = 0.2   # șansa ca un chunk să pornească o potecă (0.2 = ~1 la 5 chunk-uri)
+@export var spawn_chance: float = 0.1   # șansa ca un chunk să pornească o potecă (0.1 = ~1 la 10 chunk-uri)
 @export var min_len: int = 4            # lungimea minimă, în tile-uri
 @export var max_len: int = 20           # lungimea maximă, în tile-uri
 @export var path_z: int = -5            # peste iarbă (Ground e la z=-10), sub umbre (z=-1) și copaci
@@ -72,32 +72,39 @@ func _build_chunk(key: Vector2i) -> Node2D:
 	var stx := key.x * per_chunk + rng.randi_range(0, per_chunk - 1)
 	var sty := key.y * per_chunk + rng.randi_range(0, per_chunk - 1)
 
-	# Construim lista de tile-uri (centru + 2 margini pe fiecare pas) și, în paralel, verificăm
-	# că TOATE sunt în pădure. Dacă vreunul atinge deșert/gradient, renunțăm la potecă în întregime
-	# (rămâne container gol) → poteca apare mereu doar cât e pădure curată, la lungimea cerută.
+	# Fiecare pas al potecii e o „felie" de 3 tile-uri, pusă de-a latul. Verificăm în paralel că
+	# TOATE sunt în pădure; dacă vreunul atinge deșert/gradient, renunțăm la potecă în întregime.
+	#
+	# Blend pe TOATE cele 4 laturi (n-avem tile de colț, deci facem cel mai curat lucru posibil):
+	#  - feliile din mijloc au marginile laterale blenduite (E/W la verticală, S/N la orizontală);
+	#  - prima și ultima felie sunt CAPETE: TOT rândul devine tile-ul de capăt, ca marginea de la
+	#    capăt să iasă dreaptă și curată (dacă blenduiam doar centrul, lateralele rămâneau maro și
+	#    ieșea o crenelură). Colțurile rămân ușor pătrate — inevitabil fără un tile de colț.
+	# Așa se folosesc toate 4 direcțiile.
 	var placements := []  # { "tx", "ty", "tex" }
 	for i in length:
-		var cx_t: int
-		var cy_t: int
-		var lx: int
-		var ly: int
-		var l_tex: Texture2D
-		var rx: int
-		var ry: int
-		var r_tex: Texture2D
+		var is_first := i == 0
+		var is_last := i == length - 1
+		# cele 3 poziții de-a latul feliei + textura fiecăreia
+		var slice := []  # [ {tx, ty}, {tx, ty}, {tx, ty} ] în ordinea: margine1, centru, margine2
+		var texs := []
 		if vertical:
-			cx_t = stx;      cy_t = sty + i
-			lx = stx - 1;    ly = cy_t;  l_tex = PATH_EAST    # stânga (vest): path pe E, iarbă pe V
-			rx = stx + 1;    ry = cy_t;  r_tex = PATH_WEST    # dreapta (est): path pe V, iarbă pe E
+			var yy := sty + i
+			slice = [{"tx": stx - 1, "ty": yy}, {"tx": stx, "ty": yy}, {"tx": stx + 1, "ty": yy}]
+			if is_first:     texs = [PATH_SOUTH, PATH_SOUTH, PATH_SOUTH]   # capul de SUS: iarbă la nord
+			elif is_last:    texs = [PATH_NORTH, PATH_NORTH, PATH_NORTH]   # capul de JOS: iarbă la sud
+			else:            texs = [PATH_EAST, PATH_NORMAL, PATH_WEST]    # stânga=iarbă V, dreapta=iarbă E
 		else:
-			cx_t = stx + i;  cy_t = sty
-			lx = cx_t;       ly = sty - 1;  l_tex = PATH_SOUTH  # sus (nord): path pe S, iarbă pe N
-			rx = cx_t;       ry = sty + 1;  r_tex = PATH_NORTH  # jos (sud): path pe N, iarbă pe S
-		if not (_is_forest(cx_t, cy_t) and _is_forest(lx, ly) and _is_forest(rx, ry)):
-			return container  # atinge deșert/gradient → fără potecă
-		placements.append({"tx": cx_t, "ty": cy_t, "tex": PATH_NORMAL})
-		placements.append({"tx": lx, "ty": ly, "tex": l_tex})
-		placements.append({"tx": rx, "ty": ry, "tex": r_tex})
+			var xx := stx + i
+			slice = [{"tx": xx, "ty": sty - 1}, {"tx": xx, "ty": sty}, {"tx": xx, "ty": sty + 1}]
+			if is_first:     texs = [PATH_EAST, PATH_EAST, PATH_EAST]      # capul de VEST: iarbă la vest
+			elif is_last:    texs = [PATH_WEST, PATH_WEST, PATH_WEST]      # capul de EST: iarbă la est
+			else:            texs = [PATH_SOUTH, PATH_NORMAL, PATH_NORTH]  # sus=iarbă N, jos=iarbă S
+		for t in slice:
+			if not _is_forest(t["tx"], t["ty"]):
+				return container  # atinge deșert/gradient → fără potecă
+		for j in 3:
+			placements.append({"tx": slice[j]["tx"], "ty": slice[j]["ty"], "tex": texs[j]})
 
 	for p in placements:
 		var s := Sprite2D.new()

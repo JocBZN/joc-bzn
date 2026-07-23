@@ -33,6 +33,10 @@ Quick rules:
 
 **De reglat din Inspector** (nodul `Paths`): `spawn_chance`, `min_len`/`max_len`, `tile_px` (mărește dacă vrea poteca mai lată), `load_radius`.
 
+**Ajustare (tot 2026-07-23, după feedback):**
+- „*Nu ai folosit toate direcțiile pentru blend*" — la v1 blenduiam doar lateralele (2 din 4 tile-uri); **capetele** erau tăiate brusc. Acum prima și ultima felie a potecii sunt CAPETE: tot rândul devine tile-ul de capăt (`south`/`north` la verticală, `east`/`west` la orizontală) → se folosesc toate 4 direcțiile și capătul iese drept. Am încercat întâi să blenduiesc doar centrul capătului → ieșea o **crenelură** (dinți maro cu adâncitură verde), fiindcă lateralele rămâneau maro; soluția e rândul întreg. Rămâne un mic efect de „capete evazate" (dog-bone), fiindcă lateralele corpului au iarbă mușcată din margini iar rândul-capăt e maro pe toată lățimea — **inevitabil fără un tile de COLȚ** (grass pe 2 laturi simultan). Dacă Răzvan vrea colțuri perfecte, trebuie 4 tile-uri de colț noi.
+- „*Se spawnează prea des*" — `spawn_chance` **0.2 → 0.1** (~1 la 10 chunk-uri).
+
 ---
 
 ## Session log — 2026-07-23 (copaci: 1.2× mai mari + hitbox uniform)
