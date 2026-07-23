@@ -7,19 +7,16 @@ extends Node2D
 # Reguli cerute de Răzvan (2026-07-23):
 #  - potecă DOAR în pădure: nu în deșert și nici pe gradientul unde deșertul se îmbină cu pădurea
 #    (verificăm `BiomeMap.desertness_at_chunk` == 0 pe FIECARE tile — 0 = iarbă pură);
-#  - lățime mereu de 1 pathblock normal, cu câte un tile de margine în stânga și în dreapta,
-#    ales dintre cele care se îmbină cu iarba (poate fi verticală SAU orizontală);
-#  - lungime aleatoare între 4 și 20 de tile-uri;
-#  - cam 1 potecă la 5 chunk-uri.
+#  - lățime mereu de 1 pathblock normal, cu câte un tile pe fiecare parte (poate fi verticală SAU
+#    orizontală); lungime aleatoare 4..20 tile-uri; cam 1 potecă la 10 chunk-uri.
+#
+# BLEND făcut în Godot, nu cu tile-uri prefabricate (cerut pe 2026-07-23): folosim DOAR
+# `pathblock normal` peste tot, iar `path_blend.gdshader` estompează spre iarbă doar laturile
+# EXPUSE ale fiecărui tile (cele fără vecin-potecă). Așa marginile și capetele se estompează lin,
+# colțurile ies rotunjite (min pe două laturi), fără crenelură și fără „capete" ieșite în afară.
 
-# Tile-ul de centru + cele 4 de margine. NUMELE = latura pe care e PATH-ul (iarba e pe opusul):
-#   ...east  → path pe Est,  iarbă pe Vest      ...west  → path pe Vest, iarbă pe Est
-#   ...north → path pe Nord, iarbă pe Sud       ...south → path pe Sud,  iarbă pe Nord
 const PATH_NORMAL := preload("res://harta/pathblocks/pathblock normal.png")
-const PATH_EAST := preload("res://harta/pathblocks/pathblock x grassblock east.png")
-const PATH_WEST := preload("res://harta/pathblocks/pathblock x grassblock west.png")
-const PATH_NORTH := preload("res://harta/pathblocks/pathblock x grassblock north.png")
-const PATH_SOUTH := preload("res://harta/pathblocks/pathblock x grassblock south.png")
+const PATH_SHADER := preload("res://path_blend.gdshader")
 
 @export var chunk_size: int = 512       # mărimea unui chunk (px) — CA în props.gd/rocks.gd/ground.gd
 @export var tile_px: int = 64           # cât ocupă un tile de potecă pe ecran (64 = exact grila de iarbă)
@@ -29,13 +26,22 @@ const PATH_SOUTH := preload("res://harta/pathblocks/pathblock x grassblock south
 @export var min_len: int = 4            # lungimea minimă, în tile-uri
 @export var max_len: int = 20           # lungimea maximă, în tile-uri
 @export var path_z: int = -5            # peste iarbă (Ground e la z=-10), sub umbre (z=-1) și copaci
+@export_range(0.05, 0.5) var edge_fade: float = 0.4  # cât de lat e blend-ul spre iarbă (fracție din tile)
 
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul potecii lui, sau gol dacă n-are)
+var _mat: ShaderMaterial
+
+func _ready() -> void:
+	_mat = ShaderMaterial.new()
+	_mat.shader = PATH_SHADER
+	_mat.set_shader_parameter("fade_w", edge_fade)
 
 func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
+	if _mat != null:
+		_mat.set_shader_parameter("fade_w", edge_fade)  # ca să poți regla din Inspector în timp real
 	var pc := _chunk_of(player.global_position)
 	for cx in range(pc.x - load_radius, pc.x + load_radius + 1):
 		for cy in range(pc.y - load_radius, pc.y + load_radius + 1):
@@ -72,47 +78,36 @@ func _build_chunk(key: Vector2i) -> Node2D:
 	var stx := key.x * per_chunk + rng.randi_range(0, per_chunk - 1)
 	var sty := key.y * per_chunk + rng.randi_range(0, per_chunk - 1)
 
-	# Fiecare pas al potecii e o „felie" de 3 tile-uri, pusă de-a latul. Verificăm în paralel că
-	# TOATE sunt în pădure; dacă vreunul atinge deșert/gradient, renunțăm la potecă în întregime.
-	#
-	# Blend pe TOATE cele 4 laturi (n-avem tile de colț, deci facem cel mai curat lucru posibil):
-	#  - feliile din mijloc au marginile laterale blenduite (E/W la verticală, S/N la orizontală);
-	#  - prima și ultima felie sunt CAPETE: TOT rândul devine tile-ul de capăt, ca marginea de la
-	#    capăt să iasă dreaptă și curată (dacă blenduiam doar centrul, lateralele rămâneau maro și
-	#    ieșea o crenelură). Colțurile rămân ușor pătrate — inevitabil fără un tile de colț.
-	# Așa se folosesc toate 4 direcțiile.
-	var placements := []  # { "tx", "ty", "tex" }
+	# Poteca = un dreptunghi de tile-uri, 3 late × `length` lung (toate `pathblock normal`).
+	# Strângem întâi toate coordonatele (și un set pentru căutarea vecinilor) și verificăm că TOT e
+	# pădure; dacă vreun tile atinge deșert/gradient, renunțăm la potecă în întregime.
+	var tiles := []      # Array[Vector2i]
+	var tset := {}       # Vector2i -> true (apartenență, pentru estomparea marginilor)
 	for i in length:
-		var is_first := i == 0
-		var is_last := i == length - 1
-		# cele 3 poziții de-a latul feliei + textura fiecăreia
-		var slice := []  # [ {tx, ty}, {tx, ty}, {tx, ty} ] în ordinea: margine1, centru, margine2
-		var texs := []
-		if vertical:
-			var yy := sty + i
-			slice = [{"tx": stx - 1, "ty": yy}, {"tx": stx, "ty": yy}, {"tx": stx + 1, "ty": yy}]
-			if is_first:     texs = [PATH_SOUTH, PATH_SOUTH, PATH_SOUTH]   # capul de SUS: iarbă la nord
-			elif is_last:    texs = [PATH_NORTH, PATH_NORTH, PATH_NORTH]   # capul de JOS: iarbă la sud
-			else:            texs = [PATH_EAST, PATH_NORMAL, PATH_WEST]    # stânga=iarbă V, dreapta=iarbă E
-		else:
-			var xx := stx + i
-			slice = [{"tx": xx, "ty": sty - 1}, {"tx": xx, "ty": sty}, {"tx": xx, "ty": sty + 1}]
-			if is_first:     texs = [PATH_EAST, PATH_EAST, PATH_EAST]      # capul de VEST: iarbă la vest
-			elif is_last:    texs = [PATH_WEST, PATH_WEST, PATH_WEST]      # capul de EST: iarbă la est
-			else:            texs = [PATH_SOUTH, PATH_NORMAL, PATH_NORTH]  # sus=iarbă N, jos=iarbă S
-		for t in slice:
-			if not _is_forest(t["tx"], t["ty"]):
+		for k in [-1, 0, 1]:
+			# vertical: potecă pe Y, cele 3 tile-uri se întind pe X (stx-1..stx+1)
+			# orizontal: potecă pe X, cele 3 tile-uri se întind pe Y (sty-1..sty+1)
+			var pos := Vector2i(stx + k, sty + i) if vertical else Vector2i(stx + i, sty + k)
+			if not _is_forest(pos.x, pos.y):
 				return container  # atinge deșert/gradient → fără potecă
-		for j in 3:
-			placements.append({"tx": slice[j]["tx"], "ty": slice[j]["ty"], "tex": texs[j]})
+			tiles.append(pos)
+			tset[pos] = true
 
-	for p in placements:
+	for pos in tiles:
 		var s := Sprite2D.new()
-		s.texture = p["tex"]
+		s.texture = PATH_NORMAL
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		s.material = _mat
 		s.z_index = path_z
 		s.z_as_relative = false  # z absolut → mereu peste iarbă, indiferent de părinte
-		s.scale = Vector2.ONE * (float(tile_px) / float(p["tex"].get_width()))
-		s.position = _tile_center(p["tx"], p["ty"])
+		s.scale = Vector2.ONE * (float(tile_px) / float(PATH_NORMAL.get_width()))
+		s.position = _tile_center(pos.x, pos.y)
+		# Estompăm DOAR laturile expuse (fără vecin-potecă). Codificate în self_modulate,
+		# citite de shader ca R=stânga, G=sus, B=dreapta, A=jos (1 = estompează).
+		s.self_modulate = Color(
+			0.0 if tset.has(pos + Vector2i(-1, 0)) else 1.0,
+			0.0 if tset.has(pos + Vector2i(0, -1)) else 1.0,
+			0.0 if tset.has(pos + Vector2i(1, 0)) else 1.0,
+			0.0 if tset.has(pos + Vector2i(0, 1)) else 1.0)
 		container.add_child(s)
 	return container

@@ -33,9 +33,14 @@ Quick rules:
 
 **De reglat din Inspector** (nodul `Paths`): `spawn_chance`, `min_len`/`max_len`, `tile_px` (mărește dacă vrea poteca mai lată), `load_radius`.
 
-**Ajustare (tot 2026-07-23, după feedback):**
-- „*Nu ai folosit toate direcțiile pentru blend*" — la v1 blenduiam doar lateralele (2 din 4 tile-uri); **capetele** erau tăiate brusc. Acum prima și ultima felie a potecii sunt CAPETE: tot rândul devine tile-ul de capăt (`south`/`north` la verticală, `east`/`west` la orizontală) → se folosesc toate 4 direcțiile și capătul iese drept. Am încercat întâi să blenduiesc doar centrul capătului → ieșea o **crenelură** (dinți maro cu adâncitură verde), fiindcă lateralele rămâneau maro; soluția e rândul întreg. Rămâne un mic efect de „capete evazate" (dog-bone), fiindcă lateralele corpului au iarbă mușcată din margini iar rândul-capăt e maro pe toată lățimea — **inevitabil fără un tile de COLȚ** (grass pe 2 laturi simultan). Dacă Răzvan vrea colțuri perfecte, trebuie 4 tile-uri de colț noi.
+**Ajustare 1 (tot 2026-07-23, după feedback):**
+- „*Nu ai folosit toate direcțiile pentru blend*" — la v1 blenduiam doar lateralele; capetele erau tăiate brusc. Am pus capete cu tile-urile prefabricate, dar ieșea crenelură / capete evazate (dog-bone) fiindcă n-avem tile de colț.
 - „*Se spawnează prea des*" — `spawn_chance` **0.2 → 0.1** (~1 la 10 chunk-uri).
+
+**Ajustare 2 — blend rescris în Godot (cerut: „folosește doar `pathblock normal` și blenduiește tu din Godot; taie capetele ieșite"):**
+- Acum poteca folosește **DOAR `pathblock normal`** peste tot (dreptunghi 3×`length`, toate la fel). Blend-ul îl face `path_blend.gdshader`: estompează alpha spre iarbă DOAR pe laturile EXPUSE ale fiecărui tile (cele fără vecin-potecă — decis din `tset`). Rezultat: se topește lin în iarbă pe toate 4 laturile ȘI la capete, **colțurile ies rotunjite** din `min`-ul celor două căderi de alpha — fără crenelură, fără capete ieșite, fără nevoie de tile de colț. Tile-urile prefabricate `pathblock x grassblock *` nu se mai folosesc (rămân în `harta/pathblocks/`, nefolosite).
+- **Capcană rezolvată:** întâi trimiteam masca de laturi cu `set_instance_shader_parameter("fade", ...)`. La densitate mare crăpa cu „*Too many instances using shader instance variables. Increase buffer size...*" (limita de instance uniforms). **Fix:** codific masca în `self_modulate` (R=stânga, G=sus, B=dreapta, A=jos) și shaderul o citește din `COLOR` (culoarea vertexului n-are limită de instanțe). Verificat la densitate extremă (`spawn_chance=1`, `load_radius=8`): 0 erori.
+- Reglaj nou: `edge_fade` (0..0.5) pe nodul `Paths` = cât de lat e blend-ul.
 
 ---
 
