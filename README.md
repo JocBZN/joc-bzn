@@ -121,6 +121,10 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 - ℹ️ **The reroll is guaranteed to be different.** `_show_choices` / `_trage_iteme` take an optional `exclude` list; the three items you just rerolled are passed in, so none of them can come back — and since Lucky Die is one of them, it can't reappear either, which rules out an endless reroll chain from a single level-up.
 - ⚠️ **A dropped-in PNG needs `--headless --import`** before the game can `load()` it. `upgrade_48.png` arrived without its `.import` file, which would have left the row blank. (`upgrade_47.png` is in the repo too, currently unused.)
 
+## Current state (2026-07-23, copaci mai mari + hitbox uniform)
+- ✅ **Trees are 1.2× bigger.** `tree_scale` 1.85 → **2.22** in `props.gd` (≈258px on screen instead of ~215).
+- ✅ **All trees share one identical hitbox.** The box used to be measured from each tree's own trunk, so a fat oak got a big box and a thin birch a tiny one. Now `_hitbox_w()` ignores the texture and returns a **fixed** size from `hitbox_trunk_px` (20px of texture-trunk × `tree_scale` × `hitbox_factor`) — same width and height on every tree. Only the **position** is still per-tree: each box is centred on that tree's trunk and sits on its roots (`trunk_center_x` / `base_y`). Same value also drives the min-spacing between trees, so gaps are uniform too. Verified with a real-collision-shape overlay on all 6. To resize the shared box, change `hitbox_trunk_px`.
+
 ## Current state (2026-07-23, copaci noi)
 - ✅ **New tree art (6 variants).** Răzvan swapped `Tree Variant 1..6.png` (`harta/trees/`) for a new set he liked better and **deleted Variant 7** — `props.gd`'s `TREES` array dropped to 6 (the 7th `preload` would have crashed the game). The new PNGs shipped without `.import` files, so they were reimported (`--headless --import`).
 - ✅ **Sprite size unchanged.** New trees are 128×128 with ~112–121px visible height — the same as the previous batch — so `tree_scale` stays **1.85** (≈215px on screen), matching the old trees. No change needed.

@@ -22,13 +22,18 @@ const TREES := [
 # trebuie recalculată dacă mai schimbi arta. Vechii copaci (64x64) mergeau la 4.5; nu se
 # împarte pur și simplu la raportul canvasului, fiindcă contează cât din canvas ocupă
 # desenul: vechii aveau ~40x49px vizibili din 64. Seria curentă (2026-07-23, 6 copaci
-# 128x128) are ~84-121px lățime × ~112-121px înălțime vizibilă → la 1.85 ies ~215px pe
-# ecran, aceeași dimensiune ca seriile de dinainte. Dacă bagi copaci de altă mărime, ajustează aici.
+# 128x128) are ~84-121px lățime × ~112-121px înălțime vizibilă. La 1.85 ieșeau ~215px pe
+# ecran; **2.22 = cu 1.2× mai mari** (cerut de Răzvan pe 2026-07-23) → ~258px. Dacă bagi
+# copaci de altă mărime, ajustează aici.
 #
-# Hitbox-ul și umbra NU mai depind de canvas: se măsoară din trunchiul desenat (`_trunk`),
-# deci se potrivesc singure la orice artă nouă.
-@export var tree_scale: float = 1.85    # cât de mari sunt copacii
-@export var hitbox_factor: float = 0.85   # lățimea hitbox-ului, ca fracție din TRUNCHI (1.0 = exact trunchiul)
+# Umbra se măsoară în continuare din trunchiul desenat (`_trunk`). Hitbox-ul, în schimb, e
+# ACUM ACELAȘI la toți (vezi `hitbox_trunk_px`) — nu se mai măsoară per copac.
+@export var tree_scale: float = 2.22    # cât de mari sunt copacii
+# Hitbox uniform (cerut pe 2026-07-23): în loc să măsurăm trunchiul fiecărui copac (dădea
+# cutii de mărimi diferite), pornim de la o lățime FIXĂ de trunchi, egală pentru toți.
+# Poziția cutiei rămâne per-copac: centrată pe trunchiul lui, așezată pe rădăcină.
+@export var hitbox_trunk_px: float = 20.0  # lățimea „de trunchi", în px de textură, folosită la TOȚI
+@export var hitbox_factor: float = 0.85   # multiplicator global peste lățimea de mai sus (1.0 = exact ea)
 @export var hitbox_vertical: float = 0.55 # înălțimea hitbox-ului față de lățime: 1.0 = pătrat, mai mic = mai scund
 @export var hitbox_shift_y: float = 0.0   # urcă/coboară cutia față de rădăcină (negativ = mai sus)
 # Cele 4 laturi — fiecare mișcă DOAR marginea ei (pozitiv = extinde afară, negativ = trage înăuntru):
@@ -212,10 +217,11 @@ func _used(tex: Texture2D) -> Rect2i:
 func _trunk(tex: Texture2D) -> Rect2i:
 	return GroundShadow.trunk_rect(tex)
 
-# Lățimea hitbox-ului în pixeli de lume. Un singur loc care o calculează, ca verificarea
-# de distanță dintre copaci și cutia de coliziune să nu poată ajunge să nu fie de acord.
-func _hitbox_w(tex: Texture2D) -> float:
-	return float(_trunk(tex).size.x) * tree_scale * hitbox_factor
+# Lățimea hitbox-ului în pixeli de lume. UNIFORMĂ: aceeași pentru toți copacii (nu mai depinde
+# de `tex`), pornind de la `hitbox_trunk_px`. Un singur loc care o calculează, ca verificarea
+# de distanță dintre copaci și cutia de coliziune să folosească aceeași valoare.
+func _hitbox_w(_tex: Texture2D) -> float:
+	return hitbox_trunk_px * tree_scale * hitbox_factor
 
 # Umbra de la baza copacului: elipsă turtită, așezată pe rădăcină. Vezi `ground_shadow.gd`.
 func _make_shadow(tex: Texture2D, sprite: Sprite2D) -> Sprite2D:

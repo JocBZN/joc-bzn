@@ -13,6 +13,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-23 (copaci: 1.2× mai mari + hitbox uniform)
+
+**Cerut de Răzvan:** „fă copacii cu 1.2× mai mari și vreau să aibă toți același hitbox."
+
+**Ce am făcut în `props.gd`:**
+1. **1.2× mai mari:** `tree_scale` **1.85 → 2.22** (1.85 × 1.2). ~258px pe ecran în loc de ~215.
+2. **Hitbox identic la toți:** înainte `_hitbox_w(tex)` măsura trunchiul FIECĂRUI copac (`_trunk(tex).size.x`) → cutii de mărimi diferite (stejar gros vs mesteacăn subțire). Acum ignoră textura și pornește de la o valoare FIXĂ, `hitbox_trunk_px = 20.0` (px de textură) × `tree_scale` × `hitbox_factor` → aceeași lățime ȘI înălțime la toți. **Poziția rămâne per-copac** (`trunk_center_x` / `base_y`), deci fiecare cutie stă centrată pe trunchiul lui și pe rădăcină. Aceeași valoare intră și în `_min_dist` → spațierea dintre copaci devine uniformă.
+
+**De reglat mai târziu:** dacă vrea cutia mai mare/mică, se schimbă un singur knob: `hitbox_trunk_px`. Restul knob-urilor (`hitbox_north/south/east/west`, `hitbox_vertical`, `hitbox_factor`) merg în continuare.
+
+**Verificat:** randat toți 6 copacii la noua mărime desenând `CollisionShape2D`-ul REAL peste ei — cutiile ies identice ca mărime, fiecare pe baza trunchiului. Jocul pornește curat. `_trunk`/`TRUNK_BAND` rămân folosite doar pentru umbră și pentru centrarea cutiei, nu pentru mărimea ei.
+
+---
+
 ## Session log — 2026-07-23 (copaci noi: import, hitbox, y-sort)
 
 **Context:** Răzvan a înlocuit `harta/trees/Tree Variant 1..6.png` cu o serie nouă de copaci (nu-i plăceau cei vechi), a **șters Variant 7** complet și a șters toate fișierele `.import`. Cererea: „vezi ce poți face cu hitbox-ul, iar ca sprite să fie la fel ca ceilalți copaci de erau înainte" + reminder „player-ul în spatele copacilor când e la nord".
