@@ -13,6 +13,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-23 (feature nou: poteci în pădure)
+
+**Cerut de Răzvan:** o potecă care apare DOAR în pădure (nu în deșert, nici pe gradientul unde deșertul se îmbină cu pădurea), mereu lată de 1 pathblock normal (verticală SAU orizontală), cu câte un tile de margine în stânga/dreapta ales dintre cele care se îmbină cu iarba, lungime random 4–20 tile-uri, ~1 la 5 chunk-uri. Arta pusă de el în `harta/pathblocks/` (5 tile-uri de 64×64).
+
+**Cum funcționează numele tile-urilor (NEEVIDENT — verificat pe pixeli, nu pe nume):** `pathblock x grassblock <DIR>` = tile-ul care are jumătatea de PATH pe latura `<DIR>` (iarba pe opusul). Deci:
+- vertical: coloana din STÂNGA (vest) = `east` (path pe E, iarbă pe V); DREAPTA (est) = `west`.
+- orizontal: rândul de SUS (nord) = `south` (path pe S, iarbă pe N); JOS (sud) = `north`.
+- `pathblock normal` = tot maro (centrul). Le-am dedus măsurând culorile colțurilor/marginilor cu un script; numele singur induce în eroare (pare invers).
+
+**Implementare (`pathways.gd`, nod `Paths` sub `Main` în main.tscn):**
+- Chunk-generat determinist, exact ca `props.gd` (load/unload în jurul player-ului). `rng.seed = hash(key) ^ 0x9E3779B9` (salt ca să nu se coreleze cu copacii).
+- `spawn_chance = 0.2` (~1 la 5 chunk-uri), `min_len/max_len = 4/20`, orientare 50/50, `tile_px = 64` (= o celulă de iarbă, aliniat pe grila lumii).
+- **Filtrul de pădure:** pentru FIECARE tile (centru + cele 2 margini × toată lungimea) verific `BiomeMap.desertness_at_chunk(centru_tile / chunk_size) <= 0.0`. Dacă vreunul atinge deșert SAU gradient (d > 0), renunț la toată poteca. Așa apare mereu doar în pădure curată, la lungimea cerută. `desertness` întoarce exact 0.0 pe iarbă pură (bucla nu-l atinge dacă nu-i deșert în rază), deci `<= 0.0` e sigur.
+- **Strat:** tile-uri `Sprite2D` cu `z_index = -5`, `z_as_relative = false` → peste iarbă (Ground e la z=-10), sub umbrele copacilor (z=-1) și sub trunchiuri. NU e y-sortat (e podea plată), de-aia stă sub `Main` direct, nu în `World`.
+- `load_radius = 4` (mai mare ca la copaci, fiindcă o potecă de 20 tile-uri se întinde pe ~2.5 chunk-uri de la origine → altfel dispărea la capăt).
+
+**Verificat vizual (screenshot-uri):** poteci pe iarba reală (ambele orientări, marginile se îmbină cu iarba), player-ul pentru scară (~3 tile-uri lățime desenată vs player); și la **granița cu deșertul** — potecile se opresc cu o zonă-tampon curată înainte de nisip, ZERO poteci pe deșert/gradient. Jocul pornește curat.
+
+**De reglat din Inspector** (nodul `Paths`): `spawn_chance`, `min_len`/`max_len`, `tile_px` (mărește dacă vrea poteca mai lată), `load_radius`.
+
+---
+
 ## Session log — 2026-07-23 (copaci: 1.2× mai mari + hitbox uniform)
 
 **Cerut de Răzvan:** „fă copacii cu 1.2× mai mari și vreau să aibă toți același hitbox."

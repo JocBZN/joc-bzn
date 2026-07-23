@@ -13,7 +13,8 @@
 [ext_resource type="Script" uid="uid://cipslm7dumpgc" path="res://statues.gd" id="12_statues"]
 [ext_resource type="Script" uid="uid://db54v5w8totxb" path="res://desert_structures.gd" id="13_desert"]
 [ext_resource type="Script" uid="uid://di3mvgfhw7dac" path="res://interact_ui.gd" id="14_interact"]
-[ext_resource type="Script" path="res://limbo.gd" id="15_limbo"]
+[ext_resource type="Script" uid="uid://duywgyk0aubho" path="res://limbo.gd" id="15_limbo"]
+[ext_resource type="Script" path="res://pathways.gd" id="16_paths"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -26,13 +27,19 @@ region_enabled = true
 region_rect = Rect2(0, 0, 8192, 8192)
 script = ExtResource("5_ground")
 
+[node name="Paths" type="Node2D" parent="." unique_id=1618503152]
+script = ExtResource("16_paths")
+
 [node name="World" type="Node2D" parent="." unique_id=533536178]
 y_sort_enabled = true
 
 [node name="Props" type="Node2D" parent="World" unique_id=1885660433]
 y_sort_enabled = true
 script = ExtResource("6_props")
-hitbox_south = -0.2
+hitbox_north = 1.4
+hitbox_south = -0.9
+hitbox_east = 2.4
+hitbox_west = 2.4
 sort_anchor = 0.355
 
 [node name="Rocks" type="Node2D" parent="World" unique_id=771294055]
@@ -72,5 +79,5 @@ script = ExtResource("9_gameover")
 [node name="Atmosphere" type="Node" parent="." unique_id=494741935]
 script = ExtResource("10_atmo")
 
-[node name="Limbo" type="CanvasLayer" parent="."]
+[node name="Limbo" type="CanvasLayer" parent="." unique_id=1141763660]
 script = ExtResource("15_limbo")
