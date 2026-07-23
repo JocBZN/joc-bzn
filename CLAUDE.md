@@ -42,6 +42,12 @@ Quick rules:
 - **Capcană rezolvată:** întâi trimiteam masca de laturi cu `set_instance_shader_parameter("fade", ...)`. La densitate mare crăpa cu „*Too many instances using shader instance variables. Increase buffer size...*" (limita de instance uniforms). **Fix:** codific masca în `self_modulate` (R=stânga, G=sus, B=dreapta, A=jos) și shaderul o citește din `COLOR` (culoarea vertexului n-are limită de instanțe). Verificat la densitate extremă (`spawn_chance=1`, `load_radius=8`): 0 erori.
 - Reglaj nou: `edge_fade` (0..0.5) pe nodul `Paths` = cât de lat e blend-ul.
 
+**Ajustare 3 — pixeli negri pe margine + capăt (feedback: „la final de pathblock nu e blend-uit și la margini nu vreau să văd pixelii ăia negri"):**
+- `pathblock normal.png` are pixeli aproape negri împrăștiați (parte din textura de pământ: top 8 / bot 5 / left 7 / right 5 din 64). La alpha parțial peste iarbă ieșeau ca **puncte negre** pe margine — și făceau capătul să pară netăiat/neblenduit. (Capătul era de fapt blenduit — confirmat la zoom mare; problema erau punctele negre de acolo.)
+- **Fix:** curăț textura O DATĂ la pornire (`_clean_texture` în pathways.gd): pixelii sub `dark_floor` (0.32 luminozitate) sunt ridicați păstrând nuanța (scalare RGB); **negrul PUR** (lum ≤ 0.04, unde n-ai ce nuanță scala) e înlocuit cu un maro-închis de pământ `(0.34,0.20,0.15)`. Rezultat: 0 pixeli negri, marginile se estompează cu maro de pământ, nu cu negru. Interiorul rămâne ok (se pierd doar cei mai negri stropi — subtil). Am scos și `darkcut`-ul din shader (nu mai e nevoie).
+- **Capcană:** prima versiune de curățare sărea pixelii cu `lum > 0.0001` (gardă anti-împărțire-la-zero) — exact negrul pur rămânea. De-aia trebuie ramura separată pentru lum ≈ 0.
+- Reglaj nou: `dark_floor` pe nodul `Paths`.
+
 ---
 
 ## Session log — 2026-07-23 (copaci: 1.2× mai mari + hitbox uniform)

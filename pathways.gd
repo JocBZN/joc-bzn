@@ -28,13 +28,42 @@ const PATH_SHADER := preload("res://path_blend.gdshader")
 @export var path_z: int = -5            # peste iarbă (Ground e la z=-10), sub umbre (z=-1) și copaci
 @export_range(0.05, 0.5) var edge_fade: float = 0.4  # cât de lat e blend-ul spre iarbă (fracție din tile)
 
+@export_range(0.0, 0.6) var dark_floor: float = 0.32  # ridică pixelii sub pragul ăsta de luminozitate
+
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul potecii lui, sau gol dacă n-are)
 var _mat: ShaderMaterial
+var _tex: Texture2D  # `pathblock normal` curățat de pixelii negri (vezi _clean_texture)
 
 func _ready() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = PATH_SHADER
 	_mat.set_shader_parameter("fade_w", edge_fade)
+	_tex = _clean_texture()
+
+# Textura de pământ are pixeli aproape negri care, estompați peste iarbă, ies ca puncte negre pe
+# margine. Îi ridicăm la un prag de luminozitate (`dark_floor`), păstrând nuanța (scalăm RGB) →
+# cel mai întunecat pământ devine un maro-închis, nu negru. O facem O SINGURĂ DATĂ, la pornire.
+func _clean_texture() -> Texture2D:
+	var img := PATH_NORMAL.get_image().duplicate() as Image
+	if img.is_compressed():
+		img.decompress()
+	var w := img.get_width()
+	var h := img.get_height()
+	var dirt_dark := Color(0.34, 0.20, 0.15)  # cu ce înlocuim negrul PUR (n-are nuanță de scalat)
+	for y in h:
+		for x in w:
+			var c := img.get_pixel(x, y)
+			if c.a < 0.01:
+				continue
+			var lum: float = max(c.r, max(c.g, c.b))
+			if lum >= dark_floor:
+				continue
+			if lum > 0.04:
+				var f: float = dark_floor / lum  # scalăm în sus, păstrând nuanța
+				img.set_pixel(x, y, Color(minf(c.r * f, 1.0), minf(c.g * f, 1.0), minf(c.b * f, 1.0), c.a))
+			else:
+				img.set_pixel(x, y, Color(dirt_dark.r, dirt_dark.g, dirt_dark.b, c.a))  # negru pur → pământ închis
+	return ImageTexture.create_from_image(img)
 
 func _process(_delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
@@ -95,12 +124,12 @@ func _build_chunk(key: Vector2i) -> Node2D:
 
 	for pos in tiles:
 		var s := Sprite2D.new()
-		s.texture = PATH_NORMAL
+		s.texture = _tex
 		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		s.material = _mat
 		s.z_index = path_z
 		s.z_as_relative = false  # z absolut → mereu peste iarbă, indiferent de părinte
-		s.scale = Vector2.ONE * (float(tile_px) / float(PATH_NORMAL.get_width()))
+		s.scale = Vector2.ONE * (float(tile_px) / float(_tex.get_width()))
 		s.position = _tile_center(pos.x, pos.y)
 		# Estompăm DOAR laturile expuse (fără vecin-potecă). Codificate în self_modulate,
 		# citite de shader ca R=stânga, G=sus, B=dreapta, A=jos (1 = estompează).

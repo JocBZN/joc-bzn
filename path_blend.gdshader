@@ -15,6 +15,8 @@ void fragment() {
 	if (mask.g > 0.5) { a = min(a, smoothstep(0.0, fade_w, UV.y)); }
 	if (mask.b > 0.5) { a = min(a, smoothstep(0.0, fade_w, 1.0 - UV.x)); }
 	if (mask.a > 0.5) { a = min(a, smoothstep(0.0, fade_w, 1.0 - UV.y)); }
+	// Pixelii negri de pe margine sunt scoși din textură la încărcare (pathways.gd `_clean_texture`),
+	// deci aici doar estompăm curat.
 	c.a *= a;
 	COLOR = c;
 }
