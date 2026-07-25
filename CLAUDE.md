@@ -52,6 +52,8 @@ Quick rules:
 
 **De reținut:** sunetele „hot" (peak = 1.0: levelup, hurt, extinguisher, sword, garda) se pot DOAR atenua, nu mări. Cele înregistrate încet (game_start/over, ambient) au avut nevoie de boost mare. `shoot`/`hit`/`enemy_die`/`xp` rămân nemapate (fără fișier) = tăcere. Verificat: parse OK, zero clipping.
 
+**Ajustare (cerut de Răzvan, tot 2026-07-25):** ambient, footsteps și game_start cu 0.5x (-6dB): `AMBIENT_DB 20→14`, footsteps `grass -1→-7` / `sand -3→-9`, `game_start 12→6`. Plus: ambientul se **pune pe pauză cât alegi un power up** și continuă de unde era — `Audio.pause_forest_ambient()` / `resume_forest_ambient()` (folosesc `stream_paused`, nu stop → păstrează poziția), chemate din `levelup.gd` (`_show_choices` la deschidere / `_on_choice` la închiderea finală). `play_forest_ambient` resetează `stream_paused=false` ca siguranță. Verificat: la pauză poziția îngheață (~11ms scurgere = un buffer), la reluare continuă.
+
 ## Session log — 2026-07-25 (audio ambiental + pași pe biom)
 
 **Cerut de Răzvan:** ambient de pădure care se aude mereu în pădure și se estompează lin la intrarea/ieșirea din deșert; pași separați pe nisip (`Footsteps_Sand_Run_01`) și pe iarbă (`Footsteps_Grass_Run_01`, înlocuiește vechiul `Footsteps.wav`).

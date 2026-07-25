@@ -131,7 +131,7 @@ func refresh_music_volume() -> void:
 # Volumul urmărește „cât de pădure" e locul (1 - desertness la poziția player-ului), cu un fade
 # ușor (lerp), deci trecerea pădure↔deșert nu e bruscă. Pornit la începutul rundei (spawner),
 # oprit în meniu. Merge pe reglajul „SOUND FX" (ca pașii), nu pe muzică.
-const AMBIENT_DB := 20.0     # volumul la pădure plină (fișierul e înregistrat foarte încet, RMS ~-54dBFS)
+const AMBIENT_DB := 14.0     # volumul la pădure plină (fișierul e la ~-54dBFS; 14 = jumătate față de 20)
 const AMBIENT_FADE := 1.5    # cât de repede urmărește ținta (mai mic = fade mai lent)
 var _ambient: AudioStreamPlayer
 var _ambient_level := 0.0    # 0..1, nivelul curent (urcă/coboară lin spre forestness)
@@ -154,12 +154,23 @@ func play_forest_ambient() -> void:
 		add_child(_ambient)
 	_ambient_level = 0.0          # pornește din tăcere → fade-in lin până la nivelul locului
 	_ambient.volume_db = -80.0
+	_ambient.stream_paused = false  # siguranță: să nu rămână blocat pe pauză de la o rundă anterioară
 	if not _ambient.playing:
 		_ambient.play()
 
 func stop_forest_ambient() -> void:
 	if _ambient != null:
 		_ambient.stop()
+
+# Pune ambientul pe pauză păstrând poziția (ex. cât alegi un power up), apoi îl reia de unde era.
+# stream_paused (nu stop) = când revii, continuă din același loc, nu de la început.
+func pause_forest_ambient() -> void:
+	if _ambient != null:
+		_ambient.stream_paused = true
+
+func resume_forest_ambient() -> void:
+	if _ambient != null:
+		_ambient.stream_paused = false
 
 func _process(delta: float) -> void:
 	if _ambient == null or not _ambient.playing:

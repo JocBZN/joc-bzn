@@ -439,9 +439,9 @@ func _physics_process(delta: float) -> void:
 			# volume balansat: cele două fișiere au loudness diferit (sand mai tare) → offset diferit,
 			# ca pașii să sune la fel de tare pe ambele terenuri (subtili, mult sub combat)
 			if in_desert:
-				Audio.play("footsteps_sand", -3.0)
+				Audio.play("footsteps_sand", -9.0)
 			else:
-				Audio.play("footsteps_grass", -1.0)
+				Audio.play("footsteps_grass", -7.0)
 	else:
 		_step_t = 0.0   # oprit: următorul pas sună imediat când pornești din nou
 		var idle_nume := "idle_" + ultima_directie  # stă pe loc: poza statică pe ultima direcție

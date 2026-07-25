@@ -476,6 +476,7 @@ func _show_choices(exclude: Array = []) -> void:
 	_refresh_stats()
 	visible = true
 	get_tree().paused = true
+	Audio.pause_forest_ambient()   # ambientul se oprește cât alegi; se reia de unde era la închidere
 
 func _on_choice(index: int) -> void:
 	var p = get_tree().get_first_node_in_group("player")
@@ -497,6 +498,7 @@ func _on_choice(index: int) -> void:
 	else:
 		visible = false
 		get_tree().paused = false
+		Audio.resume_forest_ambient()   # gata alegerea → ambientul continuă de unde a rămas
 
 # Efectele reale, tematice pe substanță. Modifică numerele cum vrei.
 func _apply(id: String, p) -> void:
