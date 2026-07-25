@@ -43,7 +43,7 @@ var UPGRADES := [
 	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "epic", "desc": "+35% Damage - -35% Attack speed"},
 	{"id": "rusty_hacksaw", "nume": "Rusty Hacksaw", "icon": "upgrade_24.png", "rar": "uncommon", "desc": "1% instakill (+0.5% / stack)"},
 	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
-	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_29.png", "rar": "rare", "desc": "+15 Damage - +5 Max HP"},
+	{"id": "stolen_halo", "nume": "Stolen Halo", "icon": "upgrade_29.png", "rar": "rare", "desc": "+10 Damage - +5 Max HP"},
 	{"id": "alex_protection", "nume": "Alex's Protection", "icon": "upgrade_28.png", "rar": "rare", "desc": "+25% Max HP - +15% Move speed"},
 	{"id": "theo_wrath", "nume": "Theo's Wrath", "icon": "upgrade_30.png", "rar": "uncommon", "desc": "+15% Damage under 20% HP"},
 	{"id": "cigarette_pack", "nume": "Cigarette Pack", "icon": "upgrade_31.png", "rar": "common", "desc": "+5% Damage"},
@@ -637,7 +637,7 @@ func _apply(id: String, p) -> void:
 				p._doctor_taken = true
 		"stolen_halo":
 			# furat din rai: damage + viață, la fel la fiecare luare (stivuiește).
-			p.bullet_damage += 15
+			p.bullet_damage += 10
 			p.upgrade_max_hp(5)
 		"alex_protection":
 			# cască de protecție: mai multă viață și te miști mai repede.

@@ -36,6 +36,10 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
+## Session log — 2026-07-25 (balans: Stolen Halo)
+
+Răzvan a cerut Stolen Halo la **10 damage** (era 15). Schimbat în `levelup.gd`: efectul (`p.bullet_damage += 10`) + descrierea (`+10 Damage - +5 Max HP`). Sincronizat și `codex.html` (`eff:` → `+10 damage`) — doar text, structura codex-ului neatinsă. **Artifactul codex de pe claude.ai NU a fost republicat** (publicare = acțiune spre exterior, o fac doar când Răzvan zice explicit).
+
 ## Session log — 2026-07-25 (partea 3: font global + tot textul în engleză)
 
 **Cerut de Răzvan:** „ți-am pus în folderul menu un font; vreau ca tot textul din joc să fie în ENGLEZĂ și cu fontul ăla."
