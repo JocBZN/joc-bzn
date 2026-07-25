@@ -83,6 +83,7 @@ func _ready() -> void:
 	_build_shop()
 	_build_settings()
 	_show("main")
+	Audio.stop_forest_ambient()   # ambientul de pădure e doar în joc, nu în meniu
 	Audio.play_menu_music()
 	# după ce tot UI-ul e construit, punem sunetul de click pe TOATE butoanele deodată
 	# (inclusiv cele de armă și de cumpărat) — nu trebuie să-l adaugi manual la fiecare.

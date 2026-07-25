@@ -434,7 +434,9 @@ func _physics_process(delta: float) -> void:
 		_step_t -= delta
 		if _step_t <= 0.0:
 			_step_t = STEP_GAP
-			Audio.play("footsteps", -8.0)   # pitch-ul variază singur (default), să nu sune identic
+			# pas de nisip în deșert, de iarbă în pădure (pitch-ul variază singur, să nu sune identic)
+			var in_desert := BiomeMap.desertness_at_chunk(global_position / 512.0) >= 0.5
+			Audio.play("footsteps_sand" if in_desert else "footsteps_grass", -8.0)
 	else:
 		_step_t = 0.0   # oprit: următorul pas sună imediat când pornești din nou
 		var idle_nume := "idle_" + ultima_directie  # stă pe loc: poza statică pe ultima direcție

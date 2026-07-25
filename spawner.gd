@@ -39,8 +39,9 @@ func _ready() -> void:
 	Difficulty.time = 0.0     # joc nou → resetăm cronometrul
 	GameSettings.reset_run()  # resetăm monedele și kill-urile strânse în rundă
 	_muta_player_aleator()
-	Audio.play("game_start")  # jingle de început de rundă
-	Audio.play_music()        # pornim muzica de fundal
+	Audio.play("game_start")     # jingle de început de rundă
+	Audio.play_music()           # pornim muzica de fundal
+	Audio.play_forest_ambient()  # ambientul de pădure (se estompează singur în deșert)
 	timer = Timer.new()
 	timer.wait_time = spawn_interval
 	timer.timeout.connect(_spawn_tick)

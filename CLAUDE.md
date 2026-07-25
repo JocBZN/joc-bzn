@@ -36,6 +36,21 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
+## Session log — 2026-07-25 (audio ambiental + pași pe biom)
+
+**Cerut de Răzvan:** ambient de pădure care se aude mereu în pădure și se estompează lin la intrarea/ieșirea din deșert; pași separați pe nisip (`Footsteps_Sand_Run_01`) și pe iarbă (`Footsteps_Grass_Run_01`, înlocuiește vechiul `Footsteps.wav`).
+
+**Făcut (`audio.gd`):**
+- SFX: scos `footsteps` (fișierul `Footsteps.wav` a fost șters de Răzvan), adăugat `footsteps_grass`, `footsteps_sand`, `forest_ambient`.
+- **Ambient de pădure:** un `AudioStreamPlayer` în buclă (`play_forest_ambient` / `stop_forest_ambient`). În `_process`, volumul urmărește **lin** (lerp, `AMBIENT_FADE`) „cât de pădure" e locul de sub player: `target = 1 - clamp(BiomeMap.desertness_at_chunk(pos/512))`. Deci în pădure e la `AMBIENT_DB` (-6), în deșert se stinge spre tăcere; trecerea prin gradient dă fade-ul. Merge pe `sfx_volume` (ca pașii). Pornit în `spawner._ready`, oprit în `menu._ready`.
+- **Capcană WAV loop (m-a prins):** setasem `loop_mode=LOOP_FORWARD` + `loop_begin=0` dar NU `loop_end` → el rămâne 0, loop-ul `[0,0]` e gol și playback-ul se blochează pe loc (pornea și se oprea în <0.3s). Fix: `loop_end = int(get_length() * mix_rate)` (în CADRE). `Forest Ambient.wav` e 24-bit → Godot îl importă ca **QOA** (format=3), dar merge la fel.
+
+**Pași pe biom (`player.gd`):** la fiecare pas, `BiomeMap.desertness_at_chunk(global_position/512) >= 0.5` → `footsteps_sand`, altfel `footsteps_grass`.
+
+**Verificat (runtime):** ambient playing; în pădure (d=0) `ambient_level≈0.98` (volum -14dB, pas grass), în deșert (d=1) `≈0.02` (volum -47dB, pas sand). Fade lin între ele.
+
+**De știut:** ambientul e pe slider-ul **SOUND FX** (nu Muzică) — ușor de mutat dacă vrea altfel.
+
 ## Session log — 2026-07-25 (Mike's Hedgehog: feedback vizual + unic + cooldown 6s)
 
 **Cerut de Răzvan:** la block-ul lui Mike's Hedgehog să apară un efect (overlay alb pe player + text „Blocked"); itemul să fie unic (nu mai apară restul run-ului după ce-l iei); cooldown-ul de block 3s → 6s.

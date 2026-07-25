@@ -18,8 +18,12 @@ const SFX := {
 	"garda_attack":   "res://audio/Garda Attack.wav",                   # boss-ul Garda aruncă bastonul
 	"game_start":     "res://audio/Game Start.wav",                     # începutul unei runde
 	"game_over":      "res://audio/Game Over.wav",                      # ecranul de Game Over
-	"footsteps":      "res://audio/Footsteps.wav",                      # un pas (redat pe cadență la mers)
+	"footsteps_grass": "res://audio/Footsteps_Grass_Run_01.wav",       # un pas pe iarbă/pădure
+	"footsteps_sand":  "res://audio/Footsteps_Sand_Run_01.wav",        # un pas pe nisip/deșert
+	"forest_ambient":  "res://audio/Forest Ambient.wav",               # ambient de pădure (buclă, vezi mai jos)
 }
+
+const CHUNK_PX := 512.0     # mărimea unui chunk (ca în props/ground/pathways) — pentru desertness
 
 # Muzica de fundal, pe ecrane. Gol = n-avem încă fișier (nu se aude nimic, fără erori).
 const MUSIC_MENU := "res://audio/main menu theme.ogg"
@@ -121,6 +125,53 @@ func _play_track(path: String, volume_db: float) -> void:
 func refresh_music_volume() -> void:
 	if _music != null:
 		_music.volume_db = _music_base_db + _lin_to_db(GameSettings.music_volume)
+
+# --- Ambient de pădure ---
+# O buclă care se aude cât ești în pădure și se estompează lin când intri în deșert (și invers).
+# Volumul urmărește „cât de pădure" e locul (1 - desertness la poziția player-ului), cu un fade
+# ușor (lerp), deci trecerea pădure↔deșert nu e bruscă. Pornit la începutul rundei (spawner),
+# oprit în meniu. Merge pe reglajul „SOUND FX" (ca pașii), nu pe muzică.
+const AMBIENT_DB := -6.0     # volumul la pădure plină
+const AMBIENT_FADE := 1.5    # cât de repede urmărește ținta (mai mic = fade mai lent)
+var _ambient: AudioStreamPlayer
+var _ambient_level := 0.0    # 0..1, nivelul curent (urcă/coboară lin spre forestness)
+
+func play_forest_ambient() -> void:
+	if not _streams.has("forest_ambient"):
+		return
+	if _ambient == null:
+		_ambient = AudioStreamPlayer.new()
+		_ambient.bus = "Master"
+		_ambient.process_mode = Node.PROCESS_MODE_ALWAYS
+		var s = _streams["forest_ambient"]
+		if s is AudioStreamWAV:
+			s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			s.loop_begin = 0
+			# ATENȚIE: fără loop_end explicit, el rămâne 0 → loop-ul [0,0] e gol și playback-ul
+			# se blochează pe loc. loop_end e în CADRE = durata × rata de eșantionare.
+			s.loop_end = int(s.get_length() * s.mix_rate)
+		_ambient.stream = s
+		add_child(_ambient)
+	_ambient_level = 0.0          # pornește din tăcere → fade-in lin până la nivelul locului
+	_ambient.volume_db = -80.0
+	if not _ambient.playing:
+		_ambient.play()
+
+func stop_forest_ambient() -> void:
+	if _ambient != null:
+		_ambient.stop()
+
+func _process(delta: float) -> void:
+	if _ambient == null or not _ambient.playing:
+		return
+	# ținta = cât de pădure e locul de sub player (1 = pădure pură, 0 = deșert). Fără player → tăcere.
+	var target := 0.0
+	var p = get_tree().get_first_node_in_group("player")
+	if p != null and is_instance_valid(p):
+		var d: float = clampf(BiomeMap.desertness_at_chunk(p.global_position / CHUNK_PX), 0.0, 1.0)
+		target = 1.0 - d
+	_ambient_level = lerpf(_ambient_level, target, clampf(delta * AMBIENT_FADE, 0.0, 1.0))
+	_ambient.volume_db = AMBIENT_DB + _lin_to_db(_ambient_level * GameSettings.sfx_volume)
 
 # Găsește o boxă care nu cântă; dacă toate cântă, o refolosește pe următoarea (rotativ).
 func _find_free_player() -> AudioStreamPlayer:
