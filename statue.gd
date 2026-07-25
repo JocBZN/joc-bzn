@@ -59,6 +59,8 @@ func _ready() -> void:
 	# `interact_ui.gd` (un singur buton mare, în stânga ecranului) o găsește pe cea mai
 	# apropiată. Motiv: pe telefon un butonaș deasupra statuii e greu de nimerit.
 	add_to_group("statue")
+	# „interactable" = tot ce poate afișa textul „Press E to interact" (statui, portaluri…).
+	add_to_group("interactable")
 
 # Mai poate fi invocată? (o singură dată per statuie)
 func poate_invoca() -> bool:

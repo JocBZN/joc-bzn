@@ -1,6 +1,8 @@
 extends CanvasLayer
 
-# Text de INTERACȚIUNE deasupra statuii celei mai apropiate care mai poate fi invocată.
+# Text de INTERACȚIUNE deasupra celui mai apropiat obiect cu care poți interacționa
+# (statuie, portal…). Orice obiect care se pune în grupul „interactable" și are
+# `interact_range`, `poate_invoca()` și `invoca()` e găsit automat de aici.
 #
 # Înainte era un buton mare „SUMMON" fix pe ecran (gândit pentru telefon). Acum, pe PC:
 # deasupra statuii scrie „Press E to interact" (gri, cu fontul jocului), iar apeși tasta
@@ -32,7 +34,7 @@ func _ready() -> void:
 	add_child(_label)
 
 func _process(_delta: float) -> void:
-	_tinta = _statuia_cea_mai_apropiata()
+	_tinta = _tinta_cea_mai_apropiata()
 	_label.visible = _tinta != null
 	if _tinta == null:
 		return
@@ -41,7 +43,8 @@ func _process(_delta: float) -> void:
 	var screen: Vector2 = get_viewport().get_canvas_transform() * (_tinta.global_position + Vector2(0, world_offset_y))
 	_label.position = screen - Vector2(LABEL_W * 0.5, 0)
 
-# apasă tasta de interacțiune → invoacă statuia țintă
+# apasă tasta de interacțiune → cheamă `invoca()` pe ținta curentă
+# (la statuie pornește invocarea; la portal deocamdată nu face nimic)
 func _unhandled_input(event: InputEvent) -> void:
 	if not event.is_action_pressed("interact"):
 		return
@@ -50,14 +53,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		Audio.play("button", -3.0, 0.0)
 		_tinta.invoca()
 
-# Cea mai apropiată statuie care e în raza ei de interacțiune și n-a fost încă invocată.
-func _statuia_cea_mai_apropiata() -> Node2D:
+# Cel mai apropiat obiect interactibil care e în raza lui și mai poate fi folosit.
+func _tinta_cea_mai_apropiata() -> Node2D:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return null
 	var best: Node2D = null
 	var best_d := INF
-	for s in get_tree().get_nodes_in_group("statue"):
+	for s in get_tree().get_nodes_in_group("interactable"):
 		if not is_instance_valid(s) or not s.poate_invoca():
 			continue
 		var d: float = player.global_position.distance_to(s.global_position)

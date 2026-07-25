@@ -15,6 +15,7 @@
 [ext_resource type="Script" uid="uid://di3mvgfhw7dac" path="res://interact_ui.gd" id="14_interact"]
 [ext_resource type="Script" uid="uid://duywgyk0aubho" path="res://limbo.gd" id="15_limbo"]
 [ext_resource type="Script" path="res://pathways.gd" id="16_paths"]
+[ext_resource type="Script" path="res://portals.gd" id="18_portals"]
 [ext_resource type="Script" path="res://pause.gd" id="17_pause"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
@@ -58,6 +59,10 @@ script = ExtResource("13_desert")
 [node name="Statues" type="Node2D" parent="World" unique_id=86867322]
 y_sort_enabled = true
 script = ExtResource("12_statues")
+
+[node name="Portals" type="Node2D" parent="World" unique_id=86867323]
+y_sort_enabled = true
+script = ExtResource("18_portals")
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)

@@ -13,6 +13,27 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (structură nouă: Portal 1 — rar, interactibil, momentan fără efect)
+
+**Cerut de Răzvan:** „ți-am băgat o structură nouă în folderul harta, Portal 1. Să se spawneze mai rar ca statuia și să fie tot interactibil la fel ca statuia, dar momentan nu face nimic." A ales: **1.5%** raritate și **zid ca statuia**.
+
+**Ce am făcut:**
+- **Import:** `harta/Portal 1.png` (128×128, artă folosită 104×113) n-avea `.import` — rulat `--headless --import`, altfel `load()` crapă la rulare directă (editorul importă la deschidere, jocul nu).
+- **`portal.tscn` + `portal.gd`** (`StaticBody2D`) — copiat tiparul statuii: hitbox `RectangleShape2D` 230×40 la `y=0.4` (statuia are 130×40; portalul e mult mai lat — arta lui face 249px pe ecran la scale 2.4), `ACOPERIRE_JOS = 74` cu `_aseaza_pe_origine()` calculat din `get_used_rect()` la rulare, ca să acopere player-ul complet la y-sort. `invoca()` e **gol intenționat**.
+- **`portals.gd`** — geamăn cu `statues.gd`: chunk-uri de 512, `load_radius 3`, sămânță proprie `SEED_SALT = 0x9C4E` (altfel ar cădea peste statui, fiind aceeași `hash(key)`). `portal_chance = 0.015`. Pe lângă copaci și pietre se ferește și de **statui** (`min_dist_statue = 260`) — poate întreba `Statues.chunk_statue_pos()` chiar și pentru chunk-uri neîncărcate, fiindcă e determinist, fără noduri.
+- **Grup nou `"interactable"`** — `interact_ui.gd` itera grupul `"statue"`; acum iterează `"interactable"`, iar statuia intră în ambele (grupul `"statue"` nu-l mai folosește nimeni altcineva, dar l-am lăsat). Orice obiect viitor cu `interact_range` + `poate_invoca()` + `invoca()` primește textul „Press E to interact" gratis.
+- **`main.tscn`:** nod `World/Portals` (y_sort) lângă `World/Statues`.
+
+**Verificat (runtime + capturi):**
+- Portal lângă statuie pe aceeași linie de sol: ambele au baza artei la exact 74px sub linia de sortare. ✅
+- Rată pe 10.000 de chunk-uri: **116 portaluri vs 294 statui** → ~1.16% vs ~2.94%, deci de **~2.5× mai rar**. (1.16 < 1.5 fiindcă filtrele de distanță resping ~23% din chunk-urile alese — la fel se întâmplă și la statui.)
+- În lumea reală: portalul apare, scrie **„PRESS E TO INTERACT"** deasupra lui, apăsarea nu face nimic (corect).
+- Coliziune: `move_and_collide` spre nord → **`BLOCAT de: Portal`**. ✅
+
+**Ce reglezi ușor:** `portal_chance` pe nodul `Portals` (raritate), `interact_range` în `portal.gd` (de la ce distanță apare textul), `size` la `CollisionShape2D` din `portal.tscn` (zidul). Când vrei să facă ceva, scrii în `invoca()` din `portal.gd`.
+
+---
+
 ## Session log — 2026-07-25 (pentru Windows: pagină Settings — sunet + taste remapabile)
 
 **Cerut de Răzvan:** „hai să-l facem pe sistem de Windows; adaugă la meniu o pagină de settings unde poți schimba sunetul și butoanele."
