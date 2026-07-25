@@ -36,7 +36,22 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
-## Session log — 2026-07-23 (feature nou: poteci în pădure)
+## Session log — 2026-07-25 (partea 2: meniu de pauză pe ESC + refactor Settings)
+
+**Cerut de Răzvan:** „vreau să pot da ESC într-un run și acolo să scrie — Main Menu, Restart Run, Settings, Quit Game."
+
+**Refactor întâi (ca să nu dublez Settings):** am scos blocul de setări (slidere volum + remapare taste) din `menu.gd` într-un component refolosibil **`settings_ui.gd`** (`class_name SettingsUI`, un `VBoxContainer` care-și prinde singur tasta în `_input` și expune `cancel_remap()`). `menu.gd` acum doar îl instanțiază în panoul „settings" (titlu + `SettingsUI` + BACK); am șters din `menu.gd` funcțiile `_volume_row/_key_row/_on_music_volume/_on_sfx_volume/_begin_remap/_cancel_remap` și blocul de remap din `_input`. Cel care pune componentul deasupra adaugă singur titlul + BACK.
+
+**Meniul de pauză — `pause.gd`** (nod `Pause`, `CanvasLayer`, adăugat în `main.tscn`):
+- `process_mode = ALWAYS`, `layer = 15` (peste HUD, sub Game Over 20). `_unhandled_input` prinde `ui_cancel` (ESC).
+- Două pagini: **lista** (`PAUSED` + Main Menu / Restart Run / Settings / Quit Game, în ordinea cerută) și **Settings** (același `SettingsUI` + Back).
+- ESC: închis→deschide (`paused=true`); pe Settings→urcă la listă; pe listă→reia jocul (`paused=false`). Nu se deschide peste Level Up / Game Over (`_blocked()` verifică grupurile `levelup_menu` / `gameover_screen`).
+- Acțiuni: Main Menu = `change_scene_to_file("res://menu.tscn")`, Restart = `reload_current_scene()`, Quit = `get_tree().quit()` — toate cu `paused=false` întâi (ca în `gameover.gd`).
+- **Nu am pus buton „Resume"** (Răzvan a cerut exact cele 4) — se reia cu ESC.
+
+**Verificat (screenshot + runtime):** lista de pauză și pagina Settings din pauză se randează corect (peste jocul întunecat); meniul principal neschimbat după refactor; ESC testat cu evenimente reale (`Input.parse_input_event`): deschide+pauză → din Settings urcă la listă (rămâne pe pauză) → din listă reia jocul. Zero erori de script. Test-scenele temporare șterse.
+
+## Session log — 2026-07-25 (pentru Windows: pagină Settings — sunet + taste remapabile)
 
 **Cerut de Răzvan:** o potecă care apare DOAR în pădure (nu în deșert, nici pe gradientul unde deșertul se îmbină cu pădurea), mereu lată de 1 pathblock normal (verticală SAU orizontală), cu câte un tile de margine în stânga/dreapta ales dintre cele care se îmbină cu iarba, lungime random 4–20 tile-uri, ~1 la 5 chunk-uri. Arta pusă de el în `harta/pathblocks/` (5 tile-uri de 64×64).
 
