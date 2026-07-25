@@ -67,6 +67,9 @@ var _title_mover: Control       # titlul propriu-zis, mutat liber în interiorul
 var _intro_running := false     # cât e true, o apăsare pe ecran sare peste intro
 var _intro_tweens: Array[Tween] = []   # tween-urile intro-ului, ca să le pot opri la skip
 var _main_buttons: VBoxContainer
+var _settings_btn: Button           # roata dințată din colțul dreapta-sus (deschide Settings)
+var _remap_action := ""             # ce direcție așteaptă o tastă nouă (gol = nu remapăm acum)
+var _remap_buttons := {}            # action -> butonul din Settings care arată tasta
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -79,6 +82,7 @@ func _ready() -> void:
 	_build_character()
 	_build_leaderboard()
 	_build_shop()
+	_build_settings()
 	_show("main")
 	Audio.play_menu_music()
 	# după ce tot UI-ul e construit, punem sunetul de click pe TOATE butoanele deodată
@@ -209,6 +213,7 @@ func _play_intro() -> void:
 	_vig.modulate.a = 0.0
 	_title_group.modulate.a = 0.0
 	_main_buttons.modulate.a = 0.0
+	_settings_btn.modulate.a = 0.0
 	_set_buttons_enabled(false)   # invizibile, dar tot ocupă loc — deci nu se poate da click
 
 	# layout-ul se calculează abia după un cadru; până atunci pozițiile sunt încă zero
@@ -241,6 +246,8 @@ func _play_intro() -> void:
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	t2.tween_property(_main_buttons, "modulate:a", 1.0, INTRO_BUTTONS) \
 		.set_delay(INTRO_RISE * 0.5)
+	t2.tween_property(_settings_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
+		.set_delay(INTRO_RISE * 0.5)
 	await t2.finished
 	if not _intro_running: return
 
@@ -250,6 +257,16 @@ func _play_intro() -> void:
 
 # Orice apăsare pe ecran (sau tastă) în timpul intro-ului sare direct la meniul gata.
 func _input(event: InputEvent) -> void:
+	# suntem în Settings și așteptăm o tastă nouă pentru o direcție
+	if _remap_action != "":
+		if event is InputEventKey and event.pressed and not event.echo:
+			get_viewport().set_input_as_handled()
+			var kc: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+			if kc != KEY_ESCAPE:   # Escape = renunț, păstrez tasta veche
+				GameSettings.rebind(_remap_action, kc)
+			_remap_buttons[_remap_action].text = GameSettings.key_name(_remap_action)
+			_remap_action = ""
+		return
 	if not _intro_running:
 		return
 	var pressed: bool = (event is InputEventScreenTouch and event.pressed) \
@@ -273,6 +290,7 @@ func _skip_intro() -> void:
 	_vig.modulate.a = 1.0
 	_title_group.modulate.a = 1.0
 	_main_buttons.modulate.a = 1.0
+	_settings_btn.modulate.a = 1.0
 	_title_mover.position.y = 0.0
 
 	# butoanele se activează abia din cadrul următor, ca apăsarea care a dat skip să nu
@@ -291,6 +309,8 @@ func _set_buttons_enabled(on: bool) -> void:
 	for b in _main_buttons.get_children():
 		if b is BaseButton:
 			b.disabled = not on
+	if _settings_btn != null:
+		_settings_btn.disabled = not on
 
 # fundal cu gradient vertical (mov-navy închis → aproape negru) — rezervă, dacă lipsește video-ul
 func _gradient_bg() -> void:
@@ -368,6 +388,25 @@ func _build_main() -> void:
 	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
 	_main_buttons.add_child(_menu_button("UPGRADES", _on_shop))
 	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
+	# Butonul de Settings NU stă în lista verticală (ar înghesui-o și ar ieși din ecran).
+	# E o rotiță mică ancorată în colțul dreapta-sus, peste tot meniul principal.
+	_settings_btn = Button.new()
+	_settings_btn.text = "⚙"
+	_settings_btn.add_theme_font_size_override("font_size", 26)
+	_settings_btn.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+	_settings_btn.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
+	_settings_btn.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
+	_settings_btn.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+	_settings_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	# ancorat de colțul dreapta-sus: 52x52, la 16px de fiecare margine
+	_settings_btn.anchor_left = 1.0
+	_settings_btn.anchor_right = 1.0
+	_settings_btn.offset_left = -(52 + 16)
+	_settings_btn.offset_right = -16
+	_settings_btn.offset_top = 16
+	_settings_btn.offset_bottom = 16 + 52
+	_settings_btn.pressed.connect(_show.bind("settings"))
+	_panels["main"].add_child(_settings_btn)
 
 # Logo-ul animat, în locul vechiului titlu scris cu text.
 # Dacă lipsesc cadrele, ne întoarcem la titlul-text, ca meniul să nu rămână gol.
@@ -549,6 +588,91 @@ func _refresh_shop() -> void:
 		buy.add_theme_stylebox_override("disabled", _sb(Color(0.08, 0.08, 0.10, 0.6), Color(0.3, 0.3, 0.35, 0.4)))
 		buy.add_theme_color_override("font_color", Color(0.85, 1.0, 0.9))
 		buy.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.55))
+
+# ---------- SETTINGS ----------
+func _build_settings() -> void:
+	var box := _make_panel("settings")
+	box.add_child(_header("SETTINGS"))
+	box.add_child(_spacer(8))
+	# volum: două slidere (0 = mut, dreapta = tare)
+	box.add_child(_volume_row("MUZICĂ", GameSettings.music_volume, _on_music_volume))
+	box.add_child(_volume_row("EFECTE", GameSettings.sfx_volume, _on_sfx_volume))
+	box.add_child(_spacer(18))
+	box.add_child(_center_label("TASTE", 26))
+	box.add_child(_spacer(6))
+	# câte un rând pentru fiecare direcție; apeși butonul și apoi tasta nouă
+	for action in GameSettings.MOVE_ACTIONS:
+		box.add_child(_key_row(action))
+	box.add_child(_spacer(22))
+	box.add_child(_menu_button("BACK", _on_settings_back))
+
+# un rând „Etichetă  [====slider====]"
+func _volume_row(text: String, value: float, cb: Callable) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var l := Label.new()
+	l.text = text
+	l.custom_minimum_size = Vector2(160, 0)
+	l.add_theme_font_size_override("font_size", 22)
+	row.add_child(l)
+	var s := HSlider.new()
+	s.custom_minimum_size = Vector2(260, 0)
+	s.min_value = 0.0
+	s.max_value = 1.0
+	s.step = 0.05
+	s.value = value
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	s.value_changed.connect(cb)
+	row.add_child(s)
+	return row
+
+# un rând „Direcție  [ TASTA ]" — butonul intră în modul „așteaptă o tastă" la click
+func _key_row(action: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var l := Label.new()
+	l.text = GameSettings.MOVE_ACTIONS[action]["label"]
+	l.custom_minimum_size = Vector2(160, 0)
+	l.add_theme_font_size_override("font_size", 22)
+	row.add_child(l)
+	var b := Button.new()
+	b.text = GameSettings.key_name(action)
+	b.custom_minimum_size = Vector2(180, 44)
+	b.add_theme_font_size_override("font_size", 20)
+	b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
+	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
+	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.pressed.connect(_begin_remap.bind(action))
+	_remap_buttons[action] = b
+	row.add_child(b)
+	return row
+
+func _on_music_volume(v: float) -> void:
+	GameSettings.set_music_volume(v)
+
+func _on_sfx_volume(v: float) -> void:
+	GameSettings.set_sfx_volume(v)
+	Audio.play("button", CLICK_DB, 0.0)   # un clic scurt ca să auzi noul nivel (throttled în audio.gd)
+
+# intră în modul remapare pentru o direcție: următoarea tastă apăsată devine noua comandă
+func _begin_remap(action: String) -> void:
+	if _remap_action != "" and _remap_buttons.has(_remap_action):
+		_remap_buttons[_remap_action].text = GameSettings.key_name(_remap_action)  # lasă cealaltă cum era
+	_remap_action = action
+	_remap_buttons[action].text = "apasă o tastă…"
+
+func _cancel_remap() -> void:
+	if _remap_action != "" and _remap_buttons.has(_remap_action):
+		_remap_buttons[_remap_action].text = GameSettings.key_name(_remap_action)
+	_remap_action = ""
+
+func _on_settings_back() -> void:
+	_cancel_remap()
+	_show("main")
 
 # ---------- helpers ----------
 func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:

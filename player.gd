@@ -400,7 +400,7 @@ func _process(delta: float) -> void:
 		_cam.offset = Vector2.ZERO  # gata tremuratul: readucem camera o dată, apoi n-o mai atingem
 
 func _physics_process(delta: float) -> void:
-	var directie := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var directie := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = directie * speed
 	move_and_slide()
 	if directie != Vector2.ZERO:

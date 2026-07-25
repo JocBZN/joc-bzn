@@ -25,6 +25,11 @@ var _players: Array = []    # lista de AudioStreamPlayer
 var _next := 0              # ce boxă folosim data viitoare (rotativ)
 var _music: AudioStreamPlayer  # boxă separată doar pentru muzica de fundal (în buclă)
 var _music_path := ""       # ce melodie cântă acum (ca să n-o repornim degeaba)
+var _music_base_db := 0.0   # volumul „de bază" al melodiei; peste el se adaugă reglajul din Settings
+
+# Transformă volumul-slider (0..1) în decibeli. 0 = tăcere completă (nu -inf, care ar da erori).
+func _lin_to_db(v: float) -> float:
+	return -80.0 if v <= 0.001 else linear_to_db(v)
 
 func _ready() -> void:
 	# rulează chiar și când jocul e pe pauză (ex. la level up)
@@ -59,7 +64,7 @@ func play(name: String, volume_db: float = 0.0, pitch_rand: float = 0.08) -> voi
 	_ultima[name] = acum
 	var p := _find_free_player()
 	p.stream = _streams[name]
-	p.volume_db = volume_db
+	p.volume_db = volume_db + _lin_to_db(GameSettings.sfx_volume)   # reglajul „Efecte" din Settings
 	p.pitch_scale = 1.0 + randf_range(-pitch_rand, pitch_rand)
 	p.play()
 
@@ -99,9 +104,15 @@ func _play_track(path: String, volume_db: float) -> void:
 		s.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		s.loop_begin = 0
 	_music_path = path
+	_music_base_db = volume_db
 	_music.stream = s
-	_music.volume_db = volume_db
+	_music.volume_db = volume_db + _lin_to_db(GameSettings.music_volume)   # reglajul „Muzică" din Settings
 	_music.play()
+
+# Recalculează volumul muzicii care cântă acum (chemat din Settings când miști slider-ul).
+func refresh_music_volume() -> void:
+	if _music != null:
+		_music.volume_db = _music_base_db + _lin_to_db(GameSettings.music_volume)
 
 # Găsește o boxă care nu cântă; dacă toate cântă, o refolosește pe următoarea (rotativ).
 func _find_free_player() -> AudioStreamPlayer:

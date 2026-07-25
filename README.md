@@ -12,7 +12,7 @@ A mobile **survivors-like** (bullet-heaven) game — think *Vampire Survivors* /
 - **Roguelike core (planned):** dead enemies drop **XP** → XP bar fills → **level up** → choose **1 of 3 items/upgrades**. Difficulty ramps over time (enemies faster/tougher, drop more XP).
 
 ## Tech & conventions
-- **Engine:** Godot 4.7 stable · 2D · "Mobile" renderer. Stretch mode `canvas_items`, aspect `expand` (scales to any phone screen).
+- **Engine:** Godot 4.7 stable · 2D · "Mobile" renderer (the name is just a rendering method — it runs fine on **Windows/desktop** too, keyboard-controlled; `export_presets.cfg` has a Windows Desktop preset). Stretch mode `canvas_items`, aspect `expand` (scales to any screen).
 - **Language:** GDScript.
 - **Indentation: TABS.** Godot rejects mixed tabs/spaces — this is *the* most common error when pasting code. After any paste use **Edit → Convert Indent to Tabs**.
 - **Groups** are used to find nodes across the tree: the player is in group `"player"`, enemies in group `"enemy"`. Look up with `get_tree().get_first_node_in_group("player")` and `get_nodes_in_group("enemy")`.
@@ -21,6 +21,7 @@ A mobile **survivors-like** (bullet-heaven) game — think *Vampire Survivors* /
 ## Project structure
 All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 
+- **`menu.tscn`** (`Control` + `menu.gd`) — the main menu (main scene): animated background, weapon/character pick, Upgrades shop, Leaderboard, and a **⚙ Settings** page (top-right gear) with **Music/SFX volume sliders** and **key rebinding** for the four move directions. All built in code.
 - **`main.tscn`** — the game world (root `Node2D` "Main"):
   - `Ground` (Sprite2D + `ground.gd`) — the infinite repeating grass that follows the player.
   - `World` (Node2D, `y_sort_enabled`) — depth-sorted container holding `Props` (trees), `Rocks` (stones), `Player`, and (added at runtime) the enemies, so they overlap correctly by depth.
@@ -29,7 +30,7 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
   - `HUD` (CanvasLayer + `hud.gd`) — screen-fixed UI: health bar + XP bar + level, all built in code.
   - `LevelUp` (CanvasLayer + `levelup.gd`) — the level-up choice screen (3 of **47** upgrades, **weighted by rarity**), styled like *Megabonk*: an ornate `Menu.png` panel with each choice framed by a **rarity border** (Common→Legendary) + matching colored text; pauses the game.
     - ⚠️ **Rarity is a real drop rate, not just a colour** — `RARITY_CHANCE` at the top of `levelup.gd`: Common 30 · Uncommon 30 · Rare 20 · Epic 15 · Legendary 5. The roll picks the **rarity first**, then an item within it, so **how many items a tier holds no longer changes how often that tier appears** — adding a Legendary keeps Legendary at 5% and simply splits it further. (Before this, selection was uniform over the whole list, which made Legendary show up in 11.4% of rows.) Each entry is one dict in `UPGRADES` (id / name / icon / rarity / description) and its real effect is a `match` arm in `_apply()` — **the description text is not the source of truth, `_apply()` is.**
-- **`player.tscn`** (`CharacterBody2D` + `player.gd`) — has an **AnimatedSprite2D** (8-directional run + idle poses, `player_frames.tres`), CollisionShape2D, Camera2D. Handles arrow-key movement, auto-fire at nearest enemy (Timer), HP + a contact-damage tick, the fire trail (Firewalker), and death (opens the Game Over screen).
+- **`player.tscn`** (`CharacterBody2D` + `player.gd`) — has an **AnimatedSprite2D** (8-directional run + idle poses, `player_frames.tres`), CollisionShape2D, Camera2D. Handles keyboard movement (**WASD + arrow keys, remappable** in the Settings screen — reads the `move_up/down/left/right` actions defined at runtime in `game_settings.gd`), auto-fire at nearest enemy (Timer), HP + a contact-damage tick, the fire trail (Firewalker), and death (opens the Game Over screen).
 - **`enemy.tscn`** (`CharacterBody2D` + `enemy.gd`) — chases the player, has HP, `take_damage()`, dies via `queue_free()`. Uses an **AnimatedSprite2D** with **8-directional walk animations** (`enemy_frames.tres`, 6 frames each, picked by angle in `enemy.gd`'s `DIRECTII`); the art lives in `homeless directii/frames/`.
 - **`bullet.tscn`** (`Area2D` + `bullet.gd`) — flies in a direction, on `body_entered` damages bodies in group `"enemy"`, self-destructs after `lifetime`. Supports **pierce**, **knockback**, **crit**, and **explosive AOE** (Jean's Bomb).
 - **`firetrail.gd`** (script-only, instanced from `player.gd`) — a fire patch dropped at the player's feet while moving (**Firewalker** upgrade): plays the fire animation, burns enemies in range on a tick, rotates to the movement direction, renders **under** the actors (`z_index`), and fades after a per-stack duration.
