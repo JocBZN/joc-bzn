@@ -73,6 +73,7 @@ func _build_main_page() -> void:
 	var box := _page_box(_main_page)
 	box.add_child(_title("PAUSED"))
 	box.add_child(_spacer(18))
+	box.add_child(_button("Resume", _on_resume))
 	box.add_child(_button("Main Menu", _on_main_menu))
 	box.add_child(_button("Restart Run", _on_restart))
 	box.add_child(_button("Settings", _on_settings))
@@ -94,6 +95,9 @@ func _show_page(which: String) -> void:
 	_settings_page.visible = (which == "settings")
 
 # ---------- callback-uri ----------
+func _on_resume() -> void:
+	_close_menu()   # reia jocul (la fel ca ESC din listă)
+
 func _on_main_menu() -> void:
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://menu.tscn")

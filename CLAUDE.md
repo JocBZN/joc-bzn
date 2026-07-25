@@ -170,7 +170,7 @@ Anunțurile de val, HUD, Level Up, Game Over, Limbo erau deja engleză (comentar
 - Două pagini: **lista** (`PAUSED` + Main Menu / Restart Run / Settings / Quit Game, în ordinea cerută) și **Settings** (același `SettingsUI` + Back).
 - ESC: închis→deschide (`paused=true`); pe Settings→urcă la listă; pe listă→reia jocul (`paused=false`). Nu se deschide peste Level Up / Game Over (`_blocked()` verifică grupurile `levelup_menu` / `gameover_screen`).
 - Acțiuni: Main Menu = `change_scene_to_file("res://menu.tscn")`, Restart = `reload_current_scene()`, Quit = `get_tree().quit()` — toate cu `paused=false` întâi (ca în `gameover.gd`).
-- **Nu am pus buton „Resume"** (Răzvan a cerut exact cele 4) — se reia cu ESC.
+- ~~Nu am pus buton „Resume"~~ **(adăugat pe 2026-07-25 la cererea lui Răzvan):** buton `Resume` sus în listă (`_on_resume` → `_close_menu`). Se reia și cu ESC în continuare.
 
 **Verificat (screenshot + runtime):** lista de pauză și pagina Settings din pauză se randează corect (peste jocul întunecat); meniul principal neschimbat după refactor; ESC testat cu evenimente reale (`Input.parse_input_event`): deschide+pauză → din Settings urcă la listă (rămâne pe pauză) → din listă reia jocul. Zero erori de script. Test-scenele temporare șterse.
 
