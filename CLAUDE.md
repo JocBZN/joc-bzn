@@ -36,6 +36,21 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
+## Session log — 2026-07-25 (proiectile pe Sabie & Stingător — burst stil Megabonk)
+
+**Cerut de Răzvan:** proiectilele multiple să meargă și cu stingătorul și sabia; la sabie să atace „ca în Megabonk, un atac rapid după altul, și cu cât ai mai multe proiectile cu atât le dă mai repede"; la stingător la fel.
+
+**Context:** proiectilele extra (`stacked_armory_stacks` de la Gunslinger/Twin Comets + Broken Watch pe șansă) făceau salve bonus DOAR în `_fire_bullets` (pistol/mage). Sabia (`_sword_swing`) și stingătorul (`_aura_pulse`) le ignorau.
+
+**Soluție (`player.gd`):** un mic „burst runner" cu contor în `_physics_process` (`_tick_burst`), NU await (ca la Garda — dacă mori/schimbi scena la mijloc, nu rămâne un await agățat). `_fire()` pentru sword/extinguisher face primul atac imediat, apoi `_start_burst(kind)`:
+- `_extra_attacks()` = aceeași socoteală ca la gloanțe (`stacked_armory_stacks` + Broken Watch pe șansă).
+- `_burst_left = extra`; `_burst_gap = clampf(BURST_GAP0/extra, BURST_MIN, BURST_GAP0)` cu `BURST_GAP0=0.16`, `BURST_MIN=0.045` → **mai multe proiectile = pauză mai mică = atacuri mai rapide**.
+- `_tick_burst` scade timpul și mai lansează câte un `_sword_swing()` / `_aura_pulse()` (funcțiile de UN atac, care NU repornesc burst-ul).
+
+Gloanțele (pistol/mage) rămân neschimbate — trag salve paralele spre inamici diferiți, nu burst.
+
+**Verificat (test runtime):** gap-ul scade cu numărul de proiectile (extra 1→0.160, 2→0.080, 4→0.045); burst-ul de sabie ȘI cel de stingător se scurg la 0 fără erori (toate atacurile extra se execută). Sincronizat și nota din `codex.html` (SYN „Ce nu ajunge la Stingător" → „Proiectilele merg acum pe Sabie & Stingător") — **artifactul NU a fost republicat** (publicare = acțiune spre exterior, doar la cererea lui Răzvan).
+
 ## Session log — 2026-07-25 (sound FX noi legate în joc)
 
 Răzvan a pus 8 WAV-uri noi în `audio/`. Le-am înregistrat în `SFX` din `audio.gd` și legat la evenimente:

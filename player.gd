@@ -404,7 +404,20 @@ func _process(delta: float) -> void:
 const STEP_GAP := 0.3
 var _step_t := 0.0
 
+# Burst de atacuri pentru SABIE și STINGĂTOR: fiecare proiectil EXTRA (Gunslinger / Twin Comets /
+# Broken Watch) = încă o tăietură/pulsare rapidă DUPĂ prima, ca în Megabonk. Cu cât ai mai multe
+# proiectile, cu atât pauza dintre ele e mai mică (le dă mai repede). Gloanțele NU folosesc asta —
+# ele trag salve paralele spre inamici diferiți. Rulăm burst-ul cu un contor în _physics_process
+# (nu cu await), ca la Garda: dacă player-ul moare/schimbă scena la mijloc, nu rămâne un await agățat.
+const BURST_GAP0 := 0.16    # pauza între atacuri la 1 proiectil extra
+const BURST_MIN := 0.045    # pauza minimă (cât de rapid poate deveni la multe proiectile)
+var _burst_left := 0        # câte atacuri mai are burst-ul curent
+var _burst_gap := 0.0       # pauza dintre ele (calculată la pornire)
+var _burst_t := 0.0         # countdown până la următorul atac din burst
+var _burst_kind := ""       # "sword" sau "extinguisher"
+
 func _physics_process(delta: float) -> void:
+	_tick_burst(delta)
 	var directie := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = directie * speed
 	move_and_slide()
@@ -568,14 +581,50 @@ func _raza_ecran() -> float:
 		zoom = _cam.zoom
 	return (vp / zoom).length() * 0.5 + 64.0
 
+# Câte atacuri EXTRA (peste primul) primește un burst de sabie/stingător, din upgrade-urile de
+# proiectile. Aceeași socoteală ca la gloanțe (`_fire_bullets`): Gunslinger/Twin Comets garantate
+# (`stacked_armory_stacks`) + Broken Watch pe șansă.
+func _extra_attacks() -> int:
+	var extra := stacked_armory_stacks
+	if broken_watch_stacks > 0 and randf() < broken_watch_chance + luck_bonus():
+		extra += broken_watch_stacks
+	return extra
+
+# Pornește burst-ul: `extra` atacuri rapide după primul. Pauza dintre ele scade cu numărul de
+# proiectile (mai multe = mai repede), limitată la BURST_MIN.
+func _start_burst(kind: String) -> void:
+	var extra := _extra_attacks()
+	if extra <= 0:
+		_burst_left = 0
+		return
+	_burst_kind = kind
+	_burst_left = extra
+	_burst_gap = clampf(BURST_GAP0 / float(extra), BURST_MIN, BURST_GAP0)
+	_burst_t = _burst_gap
+
+# Scurge burst-ul în timp: la fiecare `_burst_gap`, mai face o tăietură/pulsare.
+func _tick_burst(delta: float) -> void:
+	if _burst_left <= 0:
+		return
+	_burst_t -= delta
+	while _burst_t <= 0.0 and _burst_left > 0:
+		_burst_left -= 1
+		_burst_t += _burst_gap
+		if _burst_kind == "sword":
+			_sword_swing()
+		elif _burst_kind == "extinguisher":
+			_aura_pulse()
+
 # dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:
 	if weapon_type == "extinguisher":
-		_aura_pulse()      # stingătorul nu trage gloanțe, ci pulsează o aură
+		_aura_pulse()               # prima pulsare acum
+		_start_burst("extinguisher")  # proiectilele extra = pulsări rapide după ea
 	elif weapon_type == "sword":
-		_sword_swing()     # sabia taie în conul din fața player-ului
+		_sword_swing()              # prima tăietură acum
+		_start_burst("sword")         # proiectilele extra = tăieturi rapide după ea
 	else:
-		_fire_bullets()    # pistol / mage
+		_fire_bullets()    # pistol / mage (trag salve paralele, nu burst)
 
 # Pistol (simplu) și Mage Staff (AOE) trag gloanțe spre cel mai apropiat inamic.
 func _fire_bullets() -> void:
