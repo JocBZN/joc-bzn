@@ -36,6 +36,20 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
+## Session log — 2026-07-25 (sound FX noi legate în joc)
+
+Răzvan a pus 8 WAV-uri noi în `audio/`. Le-am înregistrat în `SFX` din `audio.gd` și legat la evenimente:
+- `Choose Item Menu Open - Close.wav` → `"levelup"` (deja se cerea la level up, doar mapat).
+- `When enemy hits player.wav` → `"hurt"` (deja se cerea când primești damage).
+- `Extinguisher.wav` → `"extinguisher"`: în `player._aura_pulse` (înlocuit placeholder-ul `shoot -12`).
+- `Cursed Sword.wav` → `"sword"`: în `player._sword_swing` (înlocuit placeholder-ul `shoot -10`).
+- `Garda Attack.wav` → `"garda_attack"`: în `garda._fire_lightning`.
+- `Game Start.wav` → `"game_start"`: în `spawner._ready` (start de rundă).
+- `Game Over.wav` → `"game_over"`: în `gameover.show_gameover`.
+- `Footsteps.wav` → `"footsteps"`: `Footsteps.wav` e UN pas (~0.35s), deci în `player._physics_process` îl redau pe cadență (`STEP_GAP = 0.3s`) cât timp te miști, nu în buclă (fără bătăi de cap cu pauza/scene change; one-shot-urile respectă singure pauza și `sfx_volume`).
+
+**Neacoperit:** pistol/mage n-au sunet propriu (Răzvan n-a dat unul) — rămân pe `"shoot"`, care nu e mapat = tăcere. „hit"/„enemy_die"/„xp" la fel (fără fișiere). Verificat: toate cele 9 sunete se încarcă (`_streams`), zero warning-uri „lipsește", zero erori. **WAV + `.otf/.import` commituite** (necesare la rulare standalone).
+
 ## Session log — 2026-07-25 (balans: Stolen Halo)
 
 Răzvan a cerut Stolen Halo la **10 damage** (era 15). Schimbat în `levelup.gd`: efectul (`p.bullet_damage += 10`) + descrierea (`+10 Damage - +5 Max HP`). Sincronizat și `codex.html` (`eff:` → `+10 damage`) — doar text, structura codex-ului neatinsă. **Artifactul codex de pe claude.ai NU a fost republicat** (publicare = acțiune spre exterior, o fac doar când Răzvan zice explicit).

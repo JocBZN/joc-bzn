@@ -399,6 +399,11 @@ func _process(delta: float) -> void:
 		_shaking = false
 		_cam.offset = Vector2.ZERO  # gata tremuratul: readucem camera o dată, apoi n-o mai atingem
 
+# Pași: redăm sunetul de pas la fiecare STEP_GAP secunde cât timp ne mișcăm.
+# Footsteps.wav e UN singur pas (~0.35s), deci îl repetăm pe cadență (nu în buclă).
+const STEP_GAP := 0.3
+var _step_t := 0.0
+
 func _physics_process(delta: float) -> void:
 	var directie := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = directie * speed
@@ -406,7 +411,12 @@ func _physics_process(delta: float) -> void:
 	if directie != Vector2.ZERO:
 		_facing = directie.normalized()  # reținem direcția reală de privire (pt. tăietura sabiei)
 		_update_anim(directie)
+		_step_t -= delta
+		if _step_t <= 0.0:
+			_step_t = STEP_GAP
+			Audio.play("footsteps", -8.0)   # pitch-ul variază singur (default), să nu sune identic
 	else:
+		_step_t = 0.0   # oprit: următorul pas sună imediat când pornești din nou
 		var idle_nume := "idle_" + ultima_directie  # stă pe loc: poza statică pe ultima direcție
 		if anim.animation != idle_nume:
 			anim.play(idle_nume)
@@ -792,7 +802,7 @@ func _aura_pulse() -> void:
 			loviti.append(enemy)
 			hit = true
 	if hit:
-		Audio.play("shoot", -12.0)  # foșnet slab (placeholder până ai sunet de spumă)
+		Audio.play("extinguisher", -4.0)  # spuma stingătorului
 		if is_crit:
 			add_shake(0.35)  # zguduitură ca la gloanțele critice
 			bloody_heal()    # Bloody Situation: o vindecare per PULS critic, nu per inamic prins
@@ -850,7 +860,7 @@ func _sword_swing() -> void:
 	var is_crit: bool = cr["tiers"] > 0
 	if is_crit:
 		dmg = int(round(dmg * cr["mult"]))
-	Audio.play("shoot", -10.0)  # foșnet de tăiere (placeholder)
+	Audio.play("sword", -2.0)  # tăietura săbiei
 	var nod := _spawn_sword_slash(_sword_dir())
 	if nod == null:
 		return

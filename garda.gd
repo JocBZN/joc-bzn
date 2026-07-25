@@ -130,6 +130,7 @@ func _fire_lightning(player: Node2D) -> void:
 	if parent == null:
 		return
 	var dir := (player.global_position - global_position).normalized()
+	Audio.play("garda_attack")
 	var proj := LIGHTNING.instantiate()
 	parent.add_child(proj)
 	proj.global_position = global_position + dir * 80.0  # pornește puțin în fața gărzii

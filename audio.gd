@@ -10,7 +10,15 @@ extends Node
 # încă există, dar `play()` nu face nimic dacă numele nu e aici. Când ai fișierul nou,
 # îl pui în audio/ și adaugi o linie mai jos; restul jocului începe să-l folosească singur.
 const SFX := {
-	"button": "res://audio/button.wav",
+	"button":         "res://audio/button.wav",
+	"levelup":        "res://audio/Choose Item Menu Open - Close.wav",  # ecranul de Level Up
+	"hurt":           "res://audio/When enemy hits player.wav",         # player-ul primește damage
+	"extinguisher":   "res://audio/Extinguisher.wav",                   # pulsul stingătorului
+	"sword":          "res://audio/Cursed Sword.wav",                   # tăietura săbiei
+	"garda_attack":   "res://audio/Garda Attack.wav",                   # boss-ul Garda aruncă bastonul
+	"game_start":     "res://audio/Game Start.wav",                     # începutul unei runde
+	"game_over":      "res://audio/Game Over.wav",                      # ecranul de Game Over
+	"footsteps":      "res://audio/Footsteps.wav",                      # un pas (redat pe cadență la mers)
 }
 
 # Muzica de fundal, pe ecrane. Gol = n-avem încă fișier (nu se aude nimic, fără erori).
