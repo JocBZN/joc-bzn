@@ -176,3 +176,30 @@ func damage_number(pos: Vector2, amount: int, crit: bool = false) -> void:
 	t.tween_callback(func() -> void:
 		_numere = maxi(0, _numere - 1)
 		holder.queue_free())
+
+# Text plutitor generic (ex. „Blocked" la Mike's Hedgehog): urcă și se stinge, ca damage_number,
+# dar cu text liber. Nu folosește contorul _numere (evenimentele astea sunt rare).
+func text_popup(pos: Vector2, text: String, color: Color = Color(1, 1, 1), size: int = 22) -> void:
+	var w := _world()
+	if w == null:
+		return
+	var holder := Node2D.new()
+	holder.z_index = 100
+	w.add_child(holder)
+	holder.global_position = pos
+
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(-60, -20)
+	lbl.custom_minimum_size = Vector2(120, 0)
+	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	lbl.add_theme_constant_override("outline_size", 5)
+	holder.add_child(lbl)
+
+	var t := holder.create_tween()
+	t.tween_property(holder, "position:y", holder.position.y - 45, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	t.parallel().tween_property(lbl, "modulate:a", 0.0, 0.7)
+	t.tween_callback(holder.queue_free)

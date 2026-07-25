@@ -36,6 +36,20 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
+## Session log — 2026-07-25 (Mike's Hedgehog: feedback vizual + unic + cooldown 6s)
+
+**Cerut de Răzvan:** la block-ul lui Mike's Hedgehog să apară un efect (overlay alb pe player + text „Blocked"); itemul să fie unic (nu mai apară restul run-ului după ce-l iei); cooldown-ul de block 3s → 6s.
+
+**Făcut:**
+- **Cooldown:** `HEDGEHOG_CD = 6.0` în `player.gd` (era hardcodat 3.0 în bucla de contact-damage).
+- **Unic:** adăugat `"unic": true` la intrarea hedgehog din `UPGRADES` (levelup.gd) + desc `once/3s`→`once/6s`. Mecanismul „unic" exista deja (`_e_disponibil`/`_luate_unic` din levelup.gd, ca Undying Spirit) — hedgehog e boolean, oricum nu se stack-uia.
+- **Feedback vizual (`_show_block()` în player.gd, chemat pe block):**
+  - Flash alb pe sprite: shader nou `white_flash.gdshader` (uniform `flash` amestecă spre alb, păstrează alpha), pus pe `anim.material` în `_ready` cu `flash=0`; pe block `flash` sare la 1 și se tween-uiește la 0 în 0.35s. Player-ul n-avea material (limbo aplică shader pe un overlay separat, nu pe player), deci fără conflict.
+  - Text „Blocked" plutitor: metodă nouă `Fx.text_popup(pos, text, color, size)` (ca `damage_number`, dar text liber; fără contorul `_numere`).
+- **Codex:** actualizat `eff` hedgehog (6s + „fulgeră alb + Blocked" + „Unic"). **Neapublicat** (doar la cererea lui Răzvan).
+
+**Verificat (screenshot + runtime):** pe block, sprite-ul se albeşte (flash 1→0) și apare „BLOCKED" deasupra capului; shaderul se încarcă fără erori. `white_flash.gdshader` se încarcă prin cale (fără `.uid`).
+
 ## Session log — 2026-07-25 (proiectile pe Sabie & Stingător — burst stil Megabonk)
 
 **Cerut de Răzvan:** proiectilele multiple să meargă și cu stingătorul și sabia; la sabie să atace „ca în Megabonk, un atac rapid după altul, și cu cât ai mai multe proiectile cu atât le dă mai repede"; la stingător la fel.

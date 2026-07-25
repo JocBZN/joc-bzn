@@ -39,7 +39,7 @@ var UPGRADES := [
 	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+10 Weapon size"},
 	{"id": "burger", "nume": "Rat's Burger", "icon": "upgrade_18.png", "rar": "rare", "desc": "+30% Weapon size"},
 	{"id": "rabbit_foot", "nume": "Rabbit's Foot", "icon": "upgrade_20.png", "rar": "uncommon", "desc": "-5 Damage - +25% Move speed"},
-	{"id": "hedgehog", "nume": "Mike's Hedgehog", "icon": "upgrade_21.png", "rar": "epic", "desc": "Reflect 100% damage (once/3s)"},
+	{"id": "hedgehog", "nume": "Mike's Hedgehog", "icon": "upgrade_21.png", "rar": "epic", "desc": "Reflect 100% damage (once/6s)", "unic": true},
 	{"id": "nightclub", "nume": "The Nightclub", "icon": "upgrade_25.png", "rar": "epic", "desc": "+35% Damage - -35% Attack speed"},
 	{"id": "rusty_hacksaw", "nume": "Rusty Hacksaw", "icon": "upgrade_24.png", "rar": "uncommon", "desc": "1% instakill (+0.5% / stack)"},
 	{"id": "doctor_hacksaw", "nume": "Doctor's Hacksaw", "icon": "upgrade_23.png", "rar": "legendary", "desc": "5% instakill (+2% / stack)"},
@@ -606,7 +606,8 @@ func _apply(id: String, p) -> void:
 			p.bullet_damage = max(1, p.bullet_damage - 5)
 			p.speed *= 1.25
 		"hedgehog":
-			# Mike's Hedgehog: când iei damage, îl reflecți 100% în inamic — o dată la 3s
+			# Mike's Hedgehog: când iei damage, îl reflecți 100% în inamic — o dată la 6s (HEDGEHOG_CD).
+			# Unic: după ce-l iei o dată, nu mai apare în runda asta (nu se stack-uiește oricum).
 			p.hedgehog = true
 		"nightclub":
 			# The Nightclub: +35% damage, dar -35% attack speed (tragi mai rar)

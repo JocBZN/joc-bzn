@@ -225,7 +225,9 @@ var _speed_base: float = 300.0               # viteza la începutul rundei (dup�
 @export var contact_damage: int = 5
 @export var damage_interval: float = 0.5
 @export var hedgehog: bool = false         # Mike's Hedgehog: reflectă damage-ul primit înapoi în inamic
-var _hedgehog_next: float = 0.0            # momentul (sec) când reflectul redevine disponibil (cooldown 3s)
+var _hedgehog_next: float = 0.0            # momentul (sec) când reflectul redevine disponibil (cooldown 6s)
+const HEDGEHOG_CD := 6.0                    # secunde între două block-uri Mike's Hedgehog
+var _flash_mat: ShaderMaterial             # material de flash alb pe sprite (block-ul Hedgehog)
 @export var hp_regen: int = 0              # HP regenerat pe secundă (crește la level up)
 var hp: int
 
@@ -297,6 +299,11 @@ func _ready() -> void:
 		"contact_damage": float(contact_damage),
 	}
 	anim.play("idle_south")  # pornim stând pe loc, uitându-ne în jos
+	# material de flash alb pentru block-ul lui Mike's Hedgehog (vezi _show_block); flash=0 = normal
+	_flash_mat = ShaderMaterial.new()
+	_flash_mat.shader = load("res://white_flash.gdshader")
+	_flash_mat.set_shader_parameter("flash", 0.0)
+	anim.material = _flash_mat
 	fire_timer = Timer.new()
 	fire_timer.wait_time = fire_interval
 	fire_timer.timeout.connect(_fire)
@@ -1204,10 +1211,20 @@ func _take_contact_damage() -> void:
 			continue
 		if global_position.distance_to(enemy.global_position) < contact_range:
 			take_damage(dmg)
-			# Mike's Hedgehog: reflectă 100% din damage înapoi în inamic, cel mult o dată la 3s
+			# Mike's Hedgehog: reflectă 100% din damage înapoi în inamic, cel mult o dată la HEDGEHOG_CD
 			if hedgehog and now >= _hedgehog_next and enemy.has_method("take_damage"):
 				enemy.take_damage(dmg)
-				_hedgehog_next = now + 3.0
+				_hedgehog_next = now + HEDGEHOG_CD
+				_show_block()   # flash alb pe player + text „Blocked"
+
+# Feedback la block-ul lui Mike's Hedgehog: sprite-ul player-ului fulgeră alb (flash 1→0)
+# și apare un „Blocked" plutitor deasupra capului.
+func _show_block() -> void:
+	if _flash_mat != null:
+		_flash_mat.set_shader_parameter("flash", 1.0)
+		var t := create_tween()
+		t.tween_property(_flash_mat, "shader_parameter/flash", 0.0, 0.35)
+	Fx.text_popup(global_position + Vector2(0, -40), "Blocked", Color(1, 1, 1), 22)
 
 func _regen() -> void:
 	if hp_regen > 0 and hp > 0:
