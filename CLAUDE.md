@@ -36,6 +36,24 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
+## Session log — 2026-07-25 (partea 3: font global + tot textul în engleză)
+
+**Cerut de Răzvan:** „ți-am pus în folderul menu un font; vreau ca tot textul din joc să fie în ENGLEZĂ și cu fontul ăla."
+
+**Fontul:** `menu/HomeVideo-Regular.otf` (font pixel — Godot dezactivează singur hinting/subpixel la import). L-am setat ca **font implicit al întregului UI** prin `project.godot`:
+```
+[gui]
+theme/custom_font="res://menu/HomeVideo-Regular.otf"
+```
+Merge global fiindcă tot codul de UI suprascrie doar *mărimea* și *culoarea* fontului (`add_theme_font_size_override` / `font_color`), niciodată *familia* — deci fontul implicit se aplică peste tot (meniu, arme, Settings, pauză, HUD, Level Up + panoul STATS, Game Over, Limbo). Verificat pe screenshot: la Level Up cele 13 rânduri de STATS tot încap, descrierile stau pe un rând (fontul pixel e mai lat, dar layout-urile rezistă). **Fontul + `.otf.import` trebuie commituite** (fără `.import`, o rulare standalone dă „No loader found for resource" — declanșează importul cu `--headless --import`).
+
+**Textul în engleză:** aproape tot era deja engleză. Singurele texte ROMÂNEȘTI de pe ecran (nu comentariile — alea rămân) erau:
+- `settings_ui.gd`: MUZICĂ→**MUSIC**, EFECTE→**SOUND FX**, TASTE→**CONTROLS**, „apasă o tastă…"→**"press a key…"**
+- `game_settings.gd` (etichetele din `MOVE_ACTIONS`): Sus/Jos/Stânga/Dreapta → **Up/Down/Left/Right**
+- `menu.gd`: numele armei STINGĂTOR → **EXTINGUISHER**
+
+Anunțurile de val, HUD, Level Up, Game Over, Limbo erau deja engleză (comentariul vechi din `hud.gd` cu „VALUL 3"/„BOSS!" e doar un exemplu învechit, nu cod). Mesajele de debug din consolă (`push_warning`/`print`) au rămas în română — nu se văd în joc.
+
 ## Session log — 2026-07-25 (partea 2: meniu de pauză pe ESC + refactor Settings)
 
 **Cerut de Răzvan:** „vreau să pot da ESC într-un run și acolo să scrie — Main Menu, Restart Run, Settings, Quit Game."

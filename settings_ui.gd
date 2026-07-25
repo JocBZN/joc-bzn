@@ -19,10 +19,10 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 12)
 	alignment = BoxContainer.ALIGNMENT_CENTER
 	# volum: două slidere (0 = mut, dreapta = tare)
-	add_child(_volume_row("MUZICĂ", GameSettings.music_volume, _on_music_volume))
-	add_child(_volume_row("EFECTE", GameSettings.sfx_volume, _on_sfx_volume))
+	add_child(_volume_row("MUSIC", GameSettings.music_volume, _on_music_volume))
+	add_child(_volume_row("SOUND FX", GameSettings.sfx_volume, _on_sfx_volume))
 	add_child(_spacer(12))
-	add_child(_center_label("TASTE", 26))
+	add_child(_center_label("CONTROLS", 26))
 	add_child(_spacer(4))
 	# câte un rând pentru fiecare direcție; apeși butonul și apoi tasta nouă
 	for action in GameSettings.MOVE_ACTIONS:
@@ -104,7 +104,7 @@ func _begin_remap(action: String) -> void:
 	if _remap_action != "" and _remap_buttons.has(_remap_action):
 		_remap_buttons[_remap_action].text = GameSettings.key_name(_remap_action)  # lasă cealaltă cum era
 	_remap_action = action
-	_remap_buttons[action].text = "apasă o tastă…"
+	_remap_buttons[action].text = "press a key…"
 
 # ---------- helpers ----------
 func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:

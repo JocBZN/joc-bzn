@@ -13,7 +13,8 @@ A mobile **survivors-like** (bullet-heaven) game — think *Vampire Survivors* /
 
 ## Tech & conventions
 - **Engine:** Godot 4.7 stable · 2D · "Mobile" renderer (the name is just a rendering method — it runs fine on **Windows/desktop** too, keyboard-controlled; `export_presets.cfg` has a Windows Desktop preset). Stretch mode `canvas_items`, aspect `expand` (scales to any screen).
-- **Language:** GDScript.
+- **Language:** GDScript. **All on-screen text is English.**
+- **UI font:** the whole UI uses a single global font, `menu/HomeVideo-Regular.otf` (a pixel font), set via `project.godot` → `[gui] theme/custom_font`. UI code only ever overrides font *size*/*color*, never the family, so this default font applies everywhere. Its `.otf.import` must be committed (a standalone run can't load an un-imported font — run `--headless --import` after adding fonts).
 - **Indentation: TABS.** Godot rejects mixed tabs/spaces — this is *the* most common error when pasting code. After any paste use **Edit → Convert Indent to Tabs**.
 - **Groups** are used to find nodes across the tree: the player is in group `"player"`, enemies in group `"enemy"`. Look up with `get_tree().get_first_node_in_group("player")` and `get_nodes_in_group("enemy")`.
 - `get_*_in_group` returns a generic `Node`, so **cast with `as Node2D`** before touching `global_position` (otherwise "cannot infer type" errors). Dynamic property access on such nodes yields harmless **yellow** warnings (yellow = warning/OK, red = error/must fix).

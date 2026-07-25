@@ -15,7 +15,7 @@ const BTN_SECOND := Color("594232")   # secundara: conturul
 var WEAPONS := [
 	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png"},
 	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png"},
-	{"id": "extinguisher", "name": "STINGĂTOR",    "icon": "res://weapons_icons/stingator.png"},
+	{"id": "extinguisher", "name": "EXTINGUISHER", "icon": "res://weapons_icons/stingator.png"},
 	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png"},
 ]
 

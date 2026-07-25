@@ -24,10 +24,10 @@ var sfx_volume: float = 1.0
 # schimba din meniu. Fiecare are taste implicite (WASD + săgeți); dacă jucătorul alege alta,
 # o reținem în `keybinds` și înlocuiește tot. `player.gd` citește exact aceste acțiuni.
 const MOVE_ACTIONS := {
-	"move_up":    {"label": "Sus",     "keys": [KEY_W, KEY_UP]},
-	"move_down":  {"label": "Jos",     "keys": [KEY_S, KEY_DOWN]},
-	"move_left":  {"label": "Stânga",  "keys": [KEY_A, KEY_LEFT]},
-	"move_right": {"label": "Dreapta", "keys": [KEY_D, KEY_RIGHT]},
+	"move_up":    {"label": "Up",    "keys": [KEY_W, KEY_UP]},
+	"move_down":  {"label": "Down",  "keys": [KEY_S, KEY_DOWN]},
+	"move_left":  {"label": "Left",  "keys": [KEY_A, KEY_LEFT]},
+	"move_right": {"label": "Right", "keys": [KEY_D, KEY_RIGHT]},
 }
 var keybinds: Dictionary = {}   # action -> physical_keycode ales de jucător (doar cele schimbate)
 
