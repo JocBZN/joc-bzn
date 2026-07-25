@@ -56,7 +56,7 @@ Gloanțele (pistol/mage) rămân neschimbate — trag salve paralele spre inamic
 Răzvan a pus 8 WAV-uri noi în `audio/`. Le-am înregistrat în `SFX` din `audio.gd` și legat la evenimente:
 - `Choose Item Menu Open - Close.wav` → `"levelup"` (deja se cerea la level up, doar mapat).
 - `When enemy hits player.wav` → `"hurt"` (deja se cerea când primești damage).
-- `Extinguisher.wav` → `"extinguisher"`: în `player._aura_pulse` (înlocuit placeholder-ul `shoot -12`).
+- `Extinguisher.wav` → `"extinguisher"`: în `player._aura_pulse` (înlocuit placeholder-ul `shoot -12`). **(Ajustare ulterioară:** mutat la ÎNCEPUTUL lui `_aura_pulse`, ca să sune la FIECARE pulsare, nu doar când prinde un inamic — cerut de Răzvan.)
 - `Cursed Sword.wav` → `"sword"`: în `player._sword_swing` (înlocuit placeholder-ul `shoot -10`).
 - `Garda Attack.wav` → `"garda_attack"`: în `garda._fire_lightning`.
 - `Game Start.wav` → `"game_start"`: în `spawner._ready` (start de rundă).

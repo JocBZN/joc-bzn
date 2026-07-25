@@ -829,6 +829,7 @@ func _spawn_electric_arc(from: Vector2, to: Vector2, n_from: Node2D = null, n_to
 # Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
 # frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
 func _aura_pulse() -> void:
+	Audio.play("extinguisher", -4.0)  # spuma sună la FIECARE pulsare, nu doar când prinde un inamic
 	# raza aurei e și vizualul, și zona care lovește → aceeași valoare pentru amândouă (hitbox = sprite mereu)
 	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult * foam_scale
 	# aura scalează și cu upgrade-urile de damage, plus procentele de acum (Theo's / Cigarette / Diesel)
@@ -851,7 +852,6 @@ func _aura_pulse() -> void:
 			loviti.append(enemy)
 			hit = true
 	if hit:
-		Audio.play("extinguisher", -4.0)  # spuma stingătorului
 		if is_crit:
 			add_shake(0.35)  # zguduitură ca la gloanțele critice
 			bloody_heal()    # Bloody Situation: o vindecare per PULS critic, nu per inamic prins
