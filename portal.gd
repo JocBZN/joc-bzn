@@ -14,13 +14,19 @@ extends StaticBody2D
 
 @export var interact_range: float = 200.0   # cât de aproape trebuie să fii ca să apară textul
 
-# Cât coboară arta SUB linia de sortare (pixeli de ecran). Trebuie să fie mai mare decât
-# jumătatea sprite-ului player-ului (~64px), altfel îi rămân picioarele afară când trece
-# prin spatele portalului. 74 = cât au copacii și statuia.
-const ACOPERIRE_JOS := 74.0
+# ⚠️ HITBOX-ul și poziția artei se reglează MANUAL în editor, în `portal.tscn`.
+# Scriptul NU le mai atinge la rulare, deci CE VEZI ÎN EDITOR = CE IESE ÎN JOC.
+#
+# Două lucruri de ținut minte când tragi de ele:
+# 1. `Sprite2D.offset.y = -25.17` e calculat ca baza artei să cadă 74px SUB originea
+#    nodului. Cifra 74 nu e la întâmplare: sprite-ul player-ului e CENTRAT pe punctul lui
+#    de sortare, deci se întinde ~64px sub el. Dacă arta portalului urcă prea sus, când
+#    player-ul trece prin spate îi rămân picioarele afară, sub portal. Copacii și statuia
+#    folosesc tot 74. Deci: poți să cobori arta, dar nu s-o urci sub ~64.
+# 2. Dacă muți Sprite2D pe verticală, mută `CollisionShape2D` cu ACEEAȘI valoare, altfel
+#    hitbox-ul rămâne în urmă și te lovești de aer.
 
 func _ready() -> void:
-	_aseaza_pe_origine($Sprite2D as Sprite2D)
 	# Se anunță în grupul pe care îl citește `interact_ui.gd`. Statuia e în același grup.
 	add_to_group("interactable")
 
@@ -32,13 +38,3 @@ func poate_invoca() -> bool:
 # Apăsarea tastei de interacțiune ajunge aici. GOL INTENȚIONAT — portalul încă nu face nimic.
 func invoca() -> void:
 	pass
-
-# Așază arta astfel încât baza ei desenată să cadă cu ACOPERIRE_JOS sub originea nodului.
-# Se calculează la rulare (nu cu un `offset` fix din scenă) fiindcă imaginea are gol
-# transparent în jur — `get_used_rect()` ne dă exact zona desenată. Copiat din `statue.gd`.
-func _aseaza_pe_origine(sprite: Sprite2D) -> void:
-	if sprite == null or sprite.texture == null or sprite.scale.y == 0.0:
-		return
-	var used := sprite.texture.get_image().get_used_rect()
-	var jos := float(used.position.y + used.size.y)   # marginea de jos a artei, în pixeli de textură
-	sprite.offset.y = ACOPERIRE_JOS / sprite.scale.y - (jos - float(sprite.texture.get_height()) * 0.5)

@@ -30,7 +30,9 @@ Quick rules:
 - În lumea reală: portalul apare, scrie **„PRESS E TO INTERACT"** deasupra lui, apăsarea nu face nimic (corect).
 - Coliziune: `move_and_collide` spre nord → **`BLOCAT de: Portal`**. ✅
 
-**Ce reglezi ușor:** `portal_chance` pe nodul `Portals` (raritate), `interact_range` în `portal.gd` (de la ce distanță apare textul), `size` la `CollisionShape2D` din `portal.tscn` (zidul). Când vrei să facă ceva, scrii în `invoca()` din `portal.gd`.
+**Ce reglezi ușor:** `portal_chance` pe nodul `Portals` (raritate), `interact_range` în `portal.gd` (de la ce distanță apare textul), `CollisionShape2D` din `portal.tscn` (zidul). Când vrei să facă ceva, scrii în `invoca()` din `portal.gd`.
+
+**Corectură în aceeași sesiune — „lasă-mă să fac hitbox-ul manual":** Răzvan vrea să regleze hitbox-ul VIZUAL în editor. Cu `_aseaza_pe_origine()` rulând în `_ready()`, arta se muta la rulare față de cum o vedea în editor → hitbox-ul potrivit vizual s-ar fi dezlipit, iar orice ajustare a lui `Sprite2D.offset` ar fi fost suprascrisă tăcut de script. **Fix:** offset-ul (`-25.166667`) e acum **copt în `portal.tscn`**, iar `_aseaza_pe_origine()` a fost **ștearsă** din `portal.gd`. Scena e singurul adevăr: ce vezi în editor = ce iese în joc. Statuia își **păstrează** funcția — ea are 3 variante care se termină la pixeli diferiți, deci chiar are nevoie de calcul la rulare; portalul are o singură textură. **Verificat:** `offset.y = -25.1667` la rulare și baza artei la **74.0px** sub linia de sortare (identic cu înainte, captura la fel).
 
 ---
 
