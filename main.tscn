@@ -41,7 +41,7 @@ hitbox_north = 1.4
 hitbox_south = -0.9
 hitbox_east = 2.4
 hitbox_west = 2.4
-sort_anchor = 0.355
+sort_anchor = 0.15
 
 [node name="Rocks" type="Node2D" parent="World" unique_id=771294055]
 y_sort_enabled = true

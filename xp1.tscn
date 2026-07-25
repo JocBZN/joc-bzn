@@ -7,6 +7,7 @@
 radius = 36.0
 
 [node name="XP1" type="Area2D"]
+collision_mask = 2
 script = ExtResource("1_xp")
 value = 1
 tier = 1
