@@ -81,13 +81,13 @@ const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior
 # Legendary ieșea la fel de des ca un Common — ba chiar mai des pe categorie, fiindcă acolo
 # sunt mai puține iteme. Acum se trage întâi RARITATEA, după procentele de mai jos, și abia
 # apoi un item din raritatea aia. Deci câte iteme are o categorie nu-i mai schimbă șansa:
-# adaugi un Legendary nou → Legendary rămâne tot 5%, doar se împarte între mai multe.
+# adaugi un Legendary nou → Legendary rămâne tot 2.5%, doar se împarte între mai multe.
 const RARITY_CHANCE := {
-	"common": 30.0,
-	"uncommon": 30.0,
-	"rare": 20.0,
-	"epic": 15.0,
-	"legendary": 5.0,
+	"common": 40.0,
+	"uncommon": 35.0,
+	"rare": 15.0,
+	"epic": 7.5,
+	"legendary": 2.5,
 }
 const RARITY_TRIES := 12   # câte încercări până cădem pe plasa de siguranță (vezi _trage_unul)
 

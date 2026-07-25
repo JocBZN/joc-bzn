@@ -131,6 +131,10 @@ Răzvan a pus 8 WAV-uri noi în `audio/`. Le-am înregistrat în `SFX` din `audi
 
 **Neacoperit (rezolvat pe 2026-07-25):** pistol/mage acum au sunet — `Bullet.mp3` mapat pe `"shoot"` în `audio.gd`, redat la -9dB în `player._fire_bullets` (se trage des → moderat, reglabil). MP3-ul e 1.34s; nu i-am putut măsura RMS ca la WAV-uri (comprimat) nici auzi — volumul e o estimare de reglat după ureche. „hit"/„enemy_die"/„xp" la fel (fără fișiere). Verificat: toate cele 9 sunete se încarcă (`_streams`), zero warning-uri „lipsește", zero erori. **WAV + `.otf/.import` commituite** (necesare la rulare standalone).
 
+## Session log — 2026-07-25 (balans: șanse de raritate)
+
+Răzvan a cerut `RARITY_CHANCE` din `levelup.gd` la **Common 40 · Uncommon 35 · Rare 15 · Epic 7.5 · Legendary 2.5** (era 30/30/20/15/5) — iteme bune mai rare. Sincronizat și `codex.html` (nota SYN „Raritatea chiar contează" + exemplul de noroc recalculat pe noua bază: 17.5 noroc → C 31.25 · U 26.25 · R 22 · E 14.5 · L 6). **Artifactul codex NErepublicat** (doar la cererea lui).
+
 ## Session log — 2026-07-25 (balans: Stolen Halo)
 
 Răzvan a cerut Stolen Halo la **10 damage** (era 15). Schimbat în `levelup.gd`: efectul (`p.bullet_damage += 10`) + descrierea (`+10 Damage - +5 Max HP`). Sincronizat și `codex.html` (`eff:` → `+10 damage`) — doar text, structura codex-ului neatinsă. **Artifactul codex de pe claude.ai NU a fost republicat** (publicare = acțiune spre exterior, o fac doar când Răzvan zice explicit).
