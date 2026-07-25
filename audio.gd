@@ -11,6 +11,7 @@ extends Node
 # îl pui în audio/ și adaugi o linie mai jos; restul jocului începe să-l folosească singur.
 const SFX := {
 	"button":         "res://audio/button.wav",
+	"shoot":          "res://audio/Bullet.mp3",                         # glonțul de pistol / mage
 	"levelup":        "res://audio/Choose Item Menu Open - Close.wav",  # ecranul de Level Up
 	"hurt":           "res://audio/When enemy hits player.wav",         # player-ul primește damage
 	"extinguisher":   "res://audio/Extinguisher.wav",                   # pulsul stingătorului

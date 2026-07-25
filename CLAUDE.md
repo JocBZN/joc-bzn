@@ -118,7 +118,7 @@ Răzvan a pus 8 WAV-uri noi în `audio/`. Le-am înregistrat în `SFX` din `audi
 - `Game Over.wav` → `"game_over"`: în `gameover.show_gameover`.
 - `Footsteps.wav` → `"footsteps"`: `Footsteps.wav` e UN pas (~0.35s), deci în `player._physics_process` îl redau pe cadență (`STEP_GAP = 0.3s`) cât timp te miști, nu în buclă (fără bătăi de cap cu pauza/scene change; one-shot-urile respectă singure pauza și `sfx_volume`).
 
-**Neacoperit:** pistol/mage n-au sunet propriu (Răzvan n-a dat unul) — rămân pe `"shoot"`, care nu e mapat = tăcere. „hit"/„enemy_die"/„xp" la fel (fără fișiere). Verificat: toate cele 9 sunete se încarcă (`_streams`), zero warning-uri „lipsește", zero erori. **WAV + `.otf/.import` commituite** (necesare la rulare standalone).
+**Neacoperit (rezolvat pe 2026-07-25):** pistol/mage acum au sunet — `Bullet.mp3` mapat pe `"shoot"` în `audio.gd`, redat la -9dB în `player._fire_bullets` (se trage des → moderat, reglabil). MP3-ul e 1.34s; nu i-am putut măsura RMS ca la WAV-uri (comprimat) nici auzi — volumul e o estimare de reglat după ureche. „hit"/„enemy_die"/„xp" la fel (fără fișiere). Verificat: toate cele 9 sunete se încarcă (`_streams`), zero warning-uri „lipsește", zero erori. **WAV + `.otf/.import` commituite** (necesare la rulare standalone).
 
 ## Session log — 2026-07-25 (balans: Stolen Halo)
 
