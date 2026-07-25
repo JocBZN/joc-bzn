@@ -54,6 +54,8 @@ Merge global fiindcă tot codul de UI suprascrie doar *mărimea* și *culoarea* 
 
 Anunțurile de val, HUD, Level Up, Game Over, Limbo erau deja engleză (comentariul vechi din `hud.gd` cu „VALUL 3"/„BOSS!" e doar un exemplu învechit, nu cod). Mesajele de debug din consolă (`push_warning`/`print`) au rămas în română — nu se văd în joc.
 
+**Ajustare (același font):** la HomeVideo, titlul „LEVEL UP! Choose:" din `levelup.gd` intra în rama de sus. Fix: `margin_top` al panoului din stânga 44→**66** (ca la panoul STATS), plus spațierea listei 12→**8** ca al treilea rând să nu ajungă în rama de jos. Verificat pe screenshot: titlul e sub chenar, cele 3 rânduri încap.
+
 ## Session log — 2026-07-25 (partea 2: meniu de pauză pe ESC + refactor Settings)
 
 **Cerut de Răzvan:** „vreau să pot da ESC într-un run și acolo să scrie — Main Menu, Restart Run, Settings, Quit Game."

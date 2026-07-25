@@ -155,7 +155,9 @@ func _ready() -> void:
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	margin.add_theme_constant_override("margin_left", 46)
 	margin.add_theme_constant_override("margin_right", 46)
-	margin.add_theme_constant_override("margin_top", 44)
+	# top mai mare (ca la panoul STATS): la fontul HomeVideo, 44 lăsa titlul „LEVEL UP! Choose:"
+	# să intre în rama de sus. 66 îl coboară sub chenar. Bottom rămâne 44 (peste grosimea ramei).
+	margin.add_theme_constant_override("margin_top", 66)
 	margin.add_theme_constant_override("margin_bottom", 44)
 	panel.add_child(margin)
 
@@ -179,7 +181,9 @@ func _ready() -> void:
 
 	# lista verticală de sloturi (fiecare = border+iconiță | raritate + nume + stat)
 	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 12)
+	# spațiere puțin mai mică (era 12): compensează cei ~22px luați de marginea de sus mărită,
+	# ca al treilea rând să nu ajungă în rama de jos.
+	list.add_theme_constant_override("separation", 8)
 	list_margin.add_child(list)
 
 	for i in 3:
