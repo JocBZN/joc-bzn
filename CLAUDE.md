@@ -54,6 +54,17 @@ Quick rules:
 
 **Ajustare (cerut de Răzvan, tot 2026-07-25):** ambient, footsteps și game_start cu 0.5x (-6dB): `AMBIENT_DB 20→14`, footsteps `grass -1→-7` / `sand -3→-9`, `game_start 12→6`. Plus: ambientul se **pune pe pauză cât alegi un power up** și continuă de unde era — `Audio.pause_forest_ambient()` / `resume_forest_ambient()` (folosesc `stream_paused`, nu stop → păstrează poziția), chemate din `levelup.gd` (`_show_choices` la deschidere / `_on_choice` la închiderea finală). `play_forest_ambient` resetează `stream_paused=false` ca siguranță. Verificat: la pauză poziția îngheață (~11ms scurgere = un buffer), la reluare continuă.
 
+## Session log — 2026-07-25 (interacțiune: text „Press E" în loc de buton SUMMON + tastă remapabilă)
+
+**Cerut de Răzvan:** scoate butonul SUMMON de pe ecran; deasupra statuii să scrie „Press E to interact" (font-ul jocului, gri); și adaugă tasta asta în Settings.
+
+**Făcut:**
+- **`game_settings.gd`:** `MOVE_ACTIONS` redenumit **`KEY_ACTIONS`** (nu mai e doar mișcare) + adăugat acțiunea `interact` (implicit **E**). E remapabilă la fel ca mișcarea (creată în `_setup_actions`, salvată în `keybinds`). `settings_ui.gd` iterează `KEY_ACTIONS` → apare automat rândul „INTERACT" în Settings (verificat: încape).
+- **`interact_ui.gd` rescris:** scos butonul `SUMMON`. Acum un `Label` gri („Press %s to interact" cu tasta reală — se schimbă dacă o remapezi) deasupra statuii celei mai apropiate care `poate_invoca()`. E în CanvasLayer, dar poziționat convertind poziția statuii lume→ecran (`get_viewport().get_canvas_transform()`), ca să stea fix deasupra și să nu intre în y-sort. Apeși `interact` (`_unhandled_input`) → `invoca()`. Fontul global (HomeVideo) se aplică singur → textul iese cu majuscule, ca restul jocului.
+- `world_offset_y = -175` (cât de sus deasupra statuii), reglabil din Inspector pe nodul InteractUI.
+
+**Verificat (runtime + screenshot):** acțiunea `interact` există cu E; textul „PRESS E TO INTERACT" apare gri deasupra statuii; apăsarea E o invoacă (`poate_invoca()`→false); pagina Settings arată rândul INTERACT și încape (5 rânduri + BACK).
+
 ## Session log — 2026-07-25 (fix: inamici lipiți/teleportare + inamici prin copaci)
 
 **Cerut de Răzvan:** (1) inamicilor li se vede modelul prin copaci când sunt la nord; (2) inamicii rămân lipiți de player sau player-ul e teleportat la ei.

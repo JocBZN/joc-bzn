@@ -1,52 +1,54 @@
 extends CanvasLayer
 
-# Butonul mare de INTERACȚIUNE, fix în stânga ecranului — gândit pentru telefon.
+# Text de INTERACȚIUNE deasupra statuii celei mai apropiate care mai poate fi invocată.
 #
-# Înainte fiecare statuie își desena un butonaș „Summon" deasupra capului, în lume:
-# mic, se mișca odată cu camera și era greu de nimerit cu degetul. Acum e UN SINGUR
-# buton, mare, într-un loc fix pe ecran (stânga, unde ajunge degetul mare), iar el
-# caută singur statuia cea mai apropiată care mai poate fi invocată.
+# Înainte era un buton mare „SUMMON" fix pe ecran (gândit pentru telefon). Acum, pe PC:
+# deasupra statuii scrie „Press E to interact" (gri, cu fontul jocului), iar apeși tasta
+# `interact` (implicit E, remapabilă în Settings) ca s-o invoci. Textul arată tasta reală —
+# dacă o schimbi din Settings, se schimbă și aici.
+#
+# Eticheta stă în CanvasLayer (nu în lume), dar o poziționăm convertind poziția statuii din
+# lume în pixeli de ecran (get_canvas_transform), ca să apară fix deasupra ei și să nu intre
+# în y-sort-ul lumii (rămâne mereu deasupra).
 
-@export var latime: float = 240.0      # cât de mare e butonul (px)
-@export var inaltime: float = 150.0
-@export var margine: float = 44.0      # cât de departe stă de marginea din stânga
-@export var deplasare_jos: float = 64.0  # câți px sub mijlocul ecranului (0 = fix la mijloc)
+const LABEL_COLOR := Color(0.62, 0.62, 0.66)   # gri
+@export var world_offset_y: float = -175.0     # cât de sus deasupra statuii (px de lume; negativ = sus)
+const LABEL_W := 360.0
 
-const ACCENT := Color(0.2, 0.9, 1.0)   # cyan, ca în meniu
-
-var _buton: Button
-var _tinta: Node2D = null              # statuia pe care o invocăm dacă apeși
+var _label: Label
+var _tinta: Node2D = null
 
 func _ready() -> void:
 	layer = 5  # peste lume și vignette (3), sub level up (10) și game over (20)
-	_buton = Button.new()
-	_buton.text = "SUMMON"
-	_buton.visible = false
-	_buton.custom_minimum_size = Vector2(latime, inaltime)
-	_buton.size = Vector2(latime, inaltime)
-	# ancorat pe marginea din STÂNGA, la mijlocul înălțimii (+ `jos` dacă vrei mai jos)
-	_buton.anchor_left = 0.0
-	_buton.anchor_right = 0.0
-	_buton.anchor_top = 0.5
-	_buton.anchor_bottom = 0.5
-	_buton.offset_left = margine
-	_buton.offset_right = margine + latime
-	_buton.offset_top = -inaltime * 0.5 + deplasare_jos
-	_buton.offset_bottom = inaltime * 0.5 + deplasare_jos
-	_buton.add_theme_font_size_override("font_size", 34)
-	_buton.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0))
-	_buton.add_theme_color_override("font_hover_color", ACCENT)
-	_buton.add_theme_color_override("font_pressed_color", Color.WHITE)
-	_buton.add_theme_stylebox_override("normal", _sb(Color(0.06, 0.08, 0.16, 0.88), Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.65)))
-	_buton.add_theme_stylebox_override("hover", _sb(Color(0.10, 0.16, 0.28, 0.95), ACCENT))
-	_buton.add_theme_stylebox_override("pressed", _sb(Color(0.15, 0.35, 0.5, 0.95), ACCENT))
-	_buton.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	_buton.pressed.connect(_pe_apasare)
-	add_child(_buton)
+	_label = Label.new()
+	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label.custom_minimum_size = Vector2(LABEL_W, 0)
+	_label.add_theme_font_size_override("font_size", 28)
+	_label.add_theme_color_override("font_color", LABEL_COLOR)
+	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	_label.add_theme_constant_override("outline_size", 6)
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_label.visible = false
+	add_child(_label)
 
 func _process(_delta: float) -> void:
 	_tinta = _statuia_cea_mai_apropiata()
-	_buton.visible = _tinta != null
+	_label.visible = _tinta != null
+	if _tinta == null:
+		return
+	_label.text = "Press %s to interact" % GameSettings.key_name("interact")
+	# poziția statuii din lume → pixeli de ecran, apoi centrăm eticheta pe orizontală
+	var screen: Vector2 = get_viewport().get_canvas_transform() * (_tinta.global_position + Vector2(0, world_offset_y))
+	_label.position = screen - Vector2(LABEL_W * 0.5, 0)
+
+# apasă tasta de interacțiune → invoacă statuia țintă
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("interact"):
+		return
+	if _tinta != null and is_instance_valid(_tinta) and _tinta.poate_invoca():
+		get_viewport().set_input_as_handled()
+		Audio.play("button", -3.0, 0.0)
+		_tinta.invoca()
 
 # Cea mai apropiată statuie care e în raza ei de interacțiune și n-a fost încă invocată.
 func _statuia_cea_mai_apropiata() -> Node2D:
@@ -63,17 +65,3 @@ func _statuia_cea_mai_apropiata() -> Node2D:
 			best_d = d
 			best = s
 	return best
-
-func _pe_apasare() -> void:
-	Audio.play("button", -3.0, 0.0)
-	if _tinta != null and is_instance_valid(_tinta) and _tinta.poate_invoca():
-		_tinta.invoca()
-	_buton.visible = false
-
-func _sb(bg: Color, border: Color) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(18)
-	return sb

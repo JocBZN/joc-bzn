@@ -25,7 +25,7 @@ func _ready() -> void:
 	add_child(_center_label("CONTROLS", 26))
 	add_child(_spacer(4))
 	# câte un rând pentru fiecare direcție; apeși butonul și apoi tasta nouă
-	for action in GameSettings.MOVE_ACTIONS:
+	for action in GameSettings.KEY_ACTIONS:
 		add_child(_key_row(action))
 
 # Cât timp remapăm, următoarea tastă apăsată devine noua comandă (Escape = renunț).
@@ -74,7 +74,7 @@ func _key_row(action: String) -> HBoxContainer:
 	row.add_theme_constant_override("separation", 16)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	var l := Label.new()
-	l.text = GameSettings.MOVE_ACTIONS[action]["label"]
+	l.text = GameSettings.KEY_ACTIONS[action]["label"]
 	l.custom_minimum_size = Vector2(160, 0)
 	l.add_theme_font_size_override("font_size", 22)
 	row.add_child(l)

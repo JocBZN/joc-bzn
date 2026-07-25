@@ -20,14 +20,15 @@ var music_volume: float = 0.7
 var sfx_volume: float = 1.0
 
 # --- taste (remapabile din Settings) ---
-# Acțiunile de mișcare le creăm NOI, din cod (nu în project.godot), tocmai ca să le putem
-# schimba din meniu. Fiecare are taste implicite (WASD + săgeți); dacă jucătorul alege alta,
-# o reținem în `keybinds` și înlocuiește tot. `player.gd` citește exact aceste acțiuni.
-const MOVE_ACTIONS := {
-	"move_up":    {"label": "Up",    "keys": [KEY_W, KEY_UP]},
-	"move_down":  {"label": "Down",  "keys": [KEY_S, KEY_DOWN]},
-	"move_left":  {"label": "Left",  "keys": [KEY_A, KEY_LEFT]},
-	"move_right": {"label": "Right", "keys": [KEY_D, KEY_RIGHT]},
+# Acțiunile astea le creăm NOI, din cod (nu în project.godot), tocmai ca să le putem schimba din
+# meniu. Fiecare are taste implicite; dacă jucătorul alege alta, o reținem în `keybinds` și
+# înlocuiește tot. `player.gd` citește move_*; `interact` e citit de interact_ui.gd (invocă statuia).
+const KEY_ACTIONS := {
+	"move_up":    {"label": "Up",       "keys": [KEY_W, KEY_UP]},
+	"move_down":  {"label": "Down",     "keys": [KEY_S, KEY_DOWN]},
+	"move_left":  {"label": "Left",     "keys": [KEY_A, KEY_LEFT]},
+	"move_right": {"label": "Right",    "keys": [KEY_D, KEY_RIGHT]},
+	"interact":   {"label": "Interact", "keys": [KEY_E]},
 }
 var keybinds: Dictionary = {}   # action -> physical_keycode ales de jucător (doar cele schimbate)
 
@@ -48,13 +49,13 @@ func _ready() -> void:
 # --- taste ---
 # Creează acțiunile de mișcare în InputMap și le pune tastele (cele salvate sau cele implicite).
 func _setup_actions() -> void:
-	for action in MOVE_ACTIONS:
+	for action in KEY_ACTIONS:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action)
 		if keybinds.has(action):
 			_bind(action, [int(keybinds[action])])   # tasta aleasă de jucător
 		else:
-			_bind(action, MOVE_ACTIONS[action]["keys"])   # implicit (WASD + săgeată)
+			_bind(action, KEY_ACTIONS[action]["keys"])   # implicit (WASD + săgeată)
 
 # Pune pe o acțiune exact tastele date (șterge ce era înainte).
 func _bind(action: String, keycodes: Array) -> void:
@@ -72,7 +73,7 @@ func rebind(action: String, keycode: int) -> void:
 
 # Numele tastei curente pentru o acțiune (ex. "W", "Left"), pentru afișare în meniu.
 func key_name(action: String) -> String:
-	var kc: int = int(keybinds[action]) if keybinds.has(action) else MOVE_ACTIONS[action]["keys"][0]
+	var kc: int = int(keybinds[action]) if keybinds.has(action) else KEY_ACTIONS[action]["keys"][0]
 	return OS.get_keycode_string(kc)
 
 # --- sunet ---
