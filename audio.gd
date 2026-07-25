@@ -131,7 +131,7 @@ func refresh_music_volume() -> void:
 # Volumul urmărește „cât de pădure" e locul (1 - desertness la poziția player-ului), cu un fade
 # ușor (lerp), deci trecerea pădure↔deșert nu e bruscă. Pornit la începutul rundei (spawner),
 # oprit în meniu. Merge pe reglajul „SOUND FX" (ca pașii), nu pe muzică.
-const AMBIENT_DB := -6.0     # volumul la pădure plină
+const AMBIENT_DB := 20.0     # volumul la pădure plină (fișierul e înregistrat foarte încet, RMS ~-54dBFS)
 const AMBIENT_FADE := 1.5    # cât de repede urmărește ținta (mai mic = fade mai lent)
 var _ambient: AudioStreamPlayer
 var _ambient_level := 0.0    # 0..1, nivelul curent (urcă/coboară lin spre forestness)

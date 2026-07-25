@@ -107,7 +107,7 @@ func enter(player: Node2D) -> void:
 		_spawn_one()
 
 	_announce("LIMBO", "Survive 1:00 and you go back")
-	Audio.play("levelup")
+	Audio.play("levelup", -2.0)
 
 # ---------- IEȘIRE ----------
 func _exit_limbo() -> void:
@@ -126,7 +126,7 @@ func _exit_limbo() -> void:
 	t.tween_property(_mat, "shader_parameter/amount", 0.0, FADE)
 	t.tween_callback(func(): _overlay.visible = false)
 	_announce("YOU MADE IT", "The spirit sends you back")
-	Audio.play("levelup")
+	Audio.play("levelup", -2.0)
 
 # Ai murit în Limbo: eliberăm starea globală, dar NU te mutăm și NU stingem alb-negrul —
 # mori acolo, cu tot cu atmosferă.

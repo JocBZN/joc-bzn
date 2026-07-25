@@ -436,7 +436,12 @@ func _physics_process(delta: float) -> void:
 			_step_t = STEP_GAP
 			# pas de nisip în deșert, de iarbă în pădure (pitch-ul variază singur, să nu sune identic)
 			var in_desert := BiomeMap.desertness_at_chunk(global_position / 512.0) >= 0.5
-			Audio.play("footsteps_sand" if in_desert else "footsteps_grass", -8.0)
+			# volume balansat: cele două fișiere au loudness diferit (sand mai tare) → offset diferit,
+			# ca pașii să sune la fel de tare pe ambele terenuri (subtili, mult sub combat)
+			if in_desert:
+				Audio.play("footsteps_sand", -3.0)
+			else:
+				Audio.play("footsteps_grass", -1.0)
 	else:
 		_step_t = 0.0   # oprit: următorul pas sună imediat când pornești din nou
 		var idle_nume := "idle_" + ultima_directie  # stă pe loc: poza statică pe ultima direcție
@@ -571,7 +576,7 @@ func _stat_row(label: String, cur: float, base: float, lower_better: bool, disp:
 # încasează. Ce e MAI DEPARTE de atât nu mai încasează, spre deosebire de varianta veche care lovea
 # toată harta, inclusiv inamici pe care nici nu-i vedeai.
 func panic_button(dmg: int) -> void:
-	Audio.play("hurt", -2.0)  # bubuitura (placeholder)
+	Audio.play("hurt", -4.5)  # bubuitura (placeholder)
 	start_quake(0.9, 0.85)    # cutremurul ține cât mătură unda, plus puțin
 	var w := Node2D.new()
 	w.set_script(SHOCKWAVE)
@@ -838,7 +843,7 @@ func _spawn_electric_arc(from: Vector2, to: Vector2, n_from: Node2D = null, n_to
 # Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
 # frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
 func _aura_pulse() -> void:
-	Audio.play("extinguisher", -4.0)  # spuma sună la FIECARE pulsare, nu doar când prinde un inamic
+	Audio.play("extinguisher", -10.0)  # spuma sună la FIECARE pulsare, nu doar când prinde un inamic
 	# raza aurei e și vizualul, și zona care lovește → aceeași valoare pentru amândouă (hitbox = sprite mereu)
 	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult * foam_scale
 	# aura scalează și cu upgrade-urile de damage, plus procentele de acum (Theo's / Cigarette / Diesel)
@@ -918,7 +923,7 @@ func _sword_swing() -> void:
 	var is_crit: bool = cr["tiers"] > 0
 	if is_crit:
 		dmg = int(round(dmg * cr["mult"]))
-	Audio.play("sword", -2.0)  # tăietura săbiei
+	Audio.play("sword", -4.0)  # tăietura săbiei
 	var nod := _spawn_sword_slash(_sword_dir())
 	if nod == null:
 		return
@@ -1294,7 +1299,7 @@ func _drop_god() -> void:
 
 func take_damage(amount: int) -> void:
 	hp -= amount
-	Audio.play("hurt", -3.0)  # player lovit
+	Audio.play("hurt", -4.5)  # player lovit
 	if hp <= 0:
 		hp = 0
 		die()
@@ -1327,7 +1332,7 @@ func gain_xp(amount: int) -> void:
 
 func _level_up() -> void:
 	level += 1
-	Audio.play("levelup")  # jingle de nivel nou
+	Audio.play("levelup", -2.0)  # jingle de nivel nou
 	xp_to_next = int(xp_to_next * 1.2)  # pragul crește cu 20% la fiecare nivel
 	var menu := get_tree().get_first_node_in_group("levelup_menu")
 	if menu != null:

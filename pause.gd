@@ -151,7 +151,7 @@ func _button(text: String, cb: Callable) -> Button:
 	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
 	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	b.pressed.connect(func(): Audio.play("button", 0.0, 0.0))
+	b.pressed.connect(func(): Audio.play("button", -3.0, 0.0))
 	b.pressed.connect(cb)
 	return b
 

@@ -84,7 +84,7 @@ func show_gameover(secunde: float, nivel: int) -> void:
 		time_label.text += "   (Final Swarm: +%d:%02d)" % [o / 60, o % 60]
 	level_label.text = "Level reached: %d" % nivel
 	kills_label.text = "Kills: %d" % kills
-	Audio.play("game_over")
+	Audio.play("game_over", 16.0)  # fișier înregistrat foarte încet → +16dB ca să fie un stinger prezent
 	visible = true
 	get_tree().paused = true
 

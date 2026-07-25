@@ -97,7 +97,7 @@ func _on_music_volume(v: float) -> void:
 
 func _on_sfx_volume(v: float) -> void:
 	GameSettings.set_sfx_volume(v)
-	Audio.play("button", 0.0, 0.0)   # un clic scurt ca să auzi noul nivel (throttled în audio.gd)
+	Audio.play("button", -3.0, 0.0)   # un clic scurt ca să auzi noul nivel (throttled în audio.gd)
 
 # intră în modul remapare pentru o direcție: următoarea tastă apăsată devine noua comandă
 func _begin_remap(action: String) -> void:

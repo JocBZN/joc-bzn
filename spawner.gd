@@ -39,7 +39,7 @@ func _ready() -> void:
 	Difficulty.time = 0.0     # joc nou → resetăm cronometrul
 	GameSettings.reset_run()  # resetăm monedele și kill-urile strânse în rundă
 	_muta_player_aleator()
-	Audio.play("game_start")     # jingle de început de rundă
+	Audio.play("game_start", 12.0)  # jingle de început de rundă (fișier înregistrat încet → +12dB)
 	Audio.play_music()           # pornim muzica de fundal
 	Audio.play_forest_ambient()  # ambientul de pădure (se estompează singur în deșert)
 	timer = Timer.new()
@@ -74,7 +74,7 @@ func _process(_delta: float) -> void:
 	if not _final_swarm_announced and Difficulty.is_final_swarm():
 		_final_swarm_announced = true
 		_announce("FINAL SWARM", "They just keep coming. Survive as long as you can.")
-		Audio.play("levelup")
+		Audio.play("levelup", -2.0)
 
 # La fiecare tick calculăm din nou cât de deasă e ploaia de inamici.
 func _spawn_tick() -> void:

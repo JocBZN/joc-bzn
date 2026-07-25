@@ -36,6 +36,22 @@ Quick rules:
 
 **Export `.exe` — BLOCAT:** folderul `AppData\Roaming\Godot\export_templates\` e **gol** (niciun template instalat). Fără el, `--export-release "Windows Desktop"` nu poate construi `.exe`-ul. Jocul rulează deja pe Windows din editor/executabil; pentru un `.exe` dublu-click trebuie descărcate template-urile 4.7 (din editor: *Editor → Manage Export Templates → Download*, ~1 GB), apoi export. De confirmat cu Răzvan înainte de descărcare.
 
+## Session log — 2026-07-25 (balans audio pe tot jocul)
+
+**Cerut de Răzvan:** analizează tot audio-ul și fă-l balansat; stingătorul cu 0.5x mai scăzut.
+
+**Metodă (nu din ureche):** am măsurat **loudness-ul real (RMS dBFS + peak)** al fiecărui fișier citind PCM-ul din WAV-urile ORIGINALE (`od`+`awk`; stream-urile importate sunt QOA, necitibile direct). Apoi offset = `target_efectiv - RMS_fișier`, plafonat ca `peak × gain < 1.0` (fără clipping). RMS măsurate: hurt -13.6, sword/extinguisher -15.1, levelup -16.3, button -19.4, garda -20.0, game_start -30.3, game_over -33.1, footsteps ~-35, forest_ambient **-53.6** (înregistrat extrem de încet).
+
+**Mix nou (efectiv = RMS + offset):**
+- Cluster acțiune/evenimente ~-18: `levelup -2`, `hurt -4.5`, `sword -4`, `game_start +12`, `game_over +16` (ultimele două erau la -30/-33 = aproape nimic; boostate, dar peak rămâne <1.0: 0.98 / 0.88).
+- `garda_attack 0` (peak fișier deja 1.0 → nu se poate mări, rămâne ~-20).
+- `button -3` (UI, ~-22) — la meniu prin constanta `CLICK_DB`.
+- **`extinguisher -10`** (era -4): ~-25, adică 0.5x mai încet (cerut) + e continuu.
+- `footsteps_grass -1` / `footsteps_sand -3` (egalizați între ei, ~-37, subtili) — înainte ambii -8.
+- `AMBIENT_DB 20` (era -6): fișierul e la -54dBFS, deci +20 îl aduce la ~-34 efectiv (bed prezent dar discret; peak 0.27).
+
+**De reținut:** sunetele „hot" (peak = 1.0: levelup, hurt, extinguisher, sword, garda) se pot DOAR atenua, nu mări. Cele înregistrate încet (game_start/over, ambient) au avut nevoie de boost mare. `shoot`/`hit`/`enemy_die`/`xp` rămân nemapate (fără fișier) = tăcere. Verificat: parse OK, zero clipping.
+
 ## Session log — 2026-07-25 (audio ambiental + pași pe biom)
 
 **Cerut de Răzvan:** ambient de pădure care se aude mereu în pădure și se estompează lin la intrarea/ieșirea din deșert; pași separați pe nisip (`Footsteps_Sand_Run_01`) și pe iarbă (`Footsteps_Grass_Run_01`, înlocuiește vechiul `Footsteps.wav`).

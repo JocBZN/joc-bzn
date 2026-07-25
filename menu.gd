@@ -99,7 +99,7 @@ func _hook_button_sounds(n: Node) -> void:
 		_hook_button_sounds(c)
 
 # CLICK_DB = cât de tare e click-ul (0 = normal, -6 mai încet, +6 mai tare)
-const CLICK_DB := 0.0
+const CLICK_DB := -3.0
 
 func _click_sfx() -> void:
 	Audio.play("button", CLICK_DB, 0.0)   # 0.0 = fără variație de ton, sună identic mereu

@@ -65,7 +65,7 @@ func _statuia_cea_mai_apropiata() -> Node2D:
 	return best
 
 func _pe_apasare() -> void:
-	Audio.play("button", 0.0, 0.0)
+	Audio.play("button", -3.0, 0.0)
 	if _tinta != null and is_instance_valid(_tinta) and _tinta.poate_invoca():
 		_tinta.invoca()
 	_buton.visible = false
