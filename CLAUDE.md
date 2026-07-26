@@ -13,6 +13,17 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (Enemy Hit, încă de 1.5× mai încet)
+
+**Cerut de Răzvan:** „fa-l cu 1.5x mai incet" (despre sunetul de la sesiunea de mai jos).
+
+**Ce s-a făcut:** `bullet.gd` — `Audio.play("enemy_hit", -8.0)` → `-11.5`. Din nou: decibelii se SCAD, nu se împart. −20·log10(1.5) = 3.5 dB, deci −8 − 3.5 = −11.5.
+
+**Unde ajunge în mix:** fișierul are RMS −20.0 dBFS, deci acum iese la **~−31.5 dBFS efectiv** — între stingător (−25) și pași (−37). Vârful fișierului e 1.0, deci atenuarea e sigură (nu poate face clipping).
+
+**N-am refăcut testul de rulare.** Cablajul (fișier importat, cheie în `SFX`, apel la impact, 10 porniri în 5s) a fost verificat la sesiunea precedentă și nu s-a schimbat; aici s-a mutat doar o constantă. Dacă ajunge prea încet, e o singură cifră de urcat.
+---
+
 ## Session log — 2026-07-26 (sunet când un proiectil rănește un inamic)
 
 **Cerut de Răzvan:** „ti-am adaugat un sunet se numeste - Enemy Hit - vreau de fiecare data cand un inamic e ranit de un proiectil sa se auda usor sunetul ala".

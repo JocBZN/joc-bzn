@@ -106,11 +106,13 @@ func _on_body_entered(body: Node) -> void:
 		body.take_damage(dealt)
 		# Sunetul de lovitură: un proiectil a rănit un inamic. Ținut ÎNCET, fiindcă se aude foarte
 		# des. Nivelul e ales pe RMS măsurat, ca restul sunetelor (vezi log-ul de balans):
-		# fișierul are RMS −20.0 dBFS, deci la −8 iese ~−28 dBFS efectiv — cam 3 dB sub stingător
-		# (celălalt sunet care pulsează încontinuu) și ~9 dB sub sabie. Prezent, dar nu obositor.
+		# fișierul are RMS −20.0 dBFS, deci la −11.5 iese ~−31.5 dBFS efectiv — între stingător
+		# (−25, celălalt sunet care pulsează încontinuu) și pași (−37).
+		# −11.5 = −8 − 3.5, adică de 1.5 ori mai încet: decibelii se SCAD, nu se împart
+		# („de N ori mai încet" = −20·log10(N) dB; pentru 1.5 asta face −3.5).
 		# La mai multe gloanțe deodată, `Audio.play` are oricum o pauză minimă de 45 ms între două
 		# porniri ale aceluiași sunet, ca să nu iasă un zid de zgomot.
-		Audio.play("enemy_hit", -8.0)
+		Audio.play("enemy_hit", -11.5)
 		# efecte la lovitură: scântei + număr de damage (crit = galben mare; instakill = roșu mare)
 		var col := Color(1.0, 0.2, 0.2) if kill else (Color(1.0, 0.85, 0.2) if is_crit else Color(0.6, 1.0, 1.0))
 		Fx.impact(global_position, col)
