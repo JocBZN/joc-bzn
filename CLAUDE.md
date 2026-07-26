@@ -13,6 +13,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (meniul arată ca jocul: ramă ornată, titluri aurii, ierarhie)
+
+**Cerut de Răzvan:** „Cum pot sa fac meniul sa arate mai aesthetic?" → i-am dat diagnosticul, a ales „toate cinci".
+
+**Diagnosticul (partea utilă, nu sfaturi generice):** meniul avea **două limbaje vizuale care se băteau cap în cap** — lemn cald (logo + butoane) versus titluri **cyan neon cu glow magenta** și sloturi de armă bleumarin cu bordură cyan, rămășițe din tema cyberpunk de dinainte de logo. Chiar comentariul din `menu.gd` spunea asta: subtitlul „CYBER SURVIVOR" fusese scos fiindcă „textul cyan se bătea cu stilul de lemn" — dar titlurile de pagină rămăseseră. În plus, sub-paginile n-aveau niciun recipient (text plutind peste fundalul blurat), deși **rama ornată perfectă exista deja în proiect și nu era folosită în meniu**: `Upgrades/Menu UI/Menu.png`, cea din ecranul de level up.
+
+**Ce s-a făcut (toate în `menu.gd`, fără artă nouă):** titluri aurii în loc de cyan+magenta · rama `Menu.png` pe toate sub-paginile · armele în chenarele de raritate (`Border Rare/Common.png`) · START mai mare și mai luminos decât restul · butoanele cresc la hover și se înfundă la apăsare. Plus titlul din `pause.gd`, tot pe auriu.
+
+**🔑 PanelContainer + StyleBoxTexture, NU NinePatchRect.** În `levelup.gd` NinePatch-ul merge fiindcă panoul are mărime FIXĂ. Aici paginile au înălțimi diferite (LEADERBOARD crește cu scorurile, SETTINGS e cea mai înaltă), iar un `NinePatchRect` **nu se strânge pe copii**. `PanelContainer` face exact asta.
+
+**🔑 Marginile nine-patch de 46 (cele din `levelup.gd`) sunt GREȘITE — măsurate, nu ghicite.** Am scanat `Menu.png` (400×328) după unde începe umplutura interioară: ornamentul ține **61px stânga, 60 dreapta, 50 sus, 48 jos**. Cu margine 46, vreo 15px de ornament cad în zona ÎNTINSĂ — pe panoul mare și fix din level up nu se vede, dar pe panourile mici care se strâng pe conținut colțurile ieșeau vizibil trase. Acum 62/52/50, cu padding-ul de conținut puțin peste.
+
+**🔑 Titlul paginii se desenează DEASUPRA ramei, nu în ea.** Două motive: ornamentul de sus e mai gros decât marginea, deci titlul dinăuntru se lipea de el; și scoate ~66px din interior, de care pagina SETTINGS chiar avea nevoie ca să încapă în cei 648px ai ecranului de referință.
+
+**🔑 Hover-ul animează `scale`, NICIODATĂ `position`.** Butoanele stau în `VBoxContainer`, iar containerul își rescrie copiii la fiecare layout — o poziție animată e ștearsă imediat. `scale` nu e atins de containere. Iar `pivot_offset` trebuie re-centrat la fiecare `resized`, altfel butonul crește spre dreapta-jos.
+
+**Bugetul de înălțime — pagina SETTINGS dictează tot.** 648px ecran − titlu (62) − padding ramă (114) ≈ 456px pentru conținut, iar blocul de setări cerea ~474. Am subțiat rândurile de taste/comutatoare (40→32) și separația paginii (8→6). Blocul e comun cu meniul de pauză, unde e loc berechet, deci acolo nu s-a pierdut nimic. **Dacă mai adaugi un rând de setări, verifică pe poză că rama nu iese din ecran.**
+
+**Verificat pe poze, iterativ** (trei runde): prima a arătat butonul BACK întins până în ornament (lipsea `SIZE_SHRINK_CENTER` — VBox-ul din ramă întinde copiii) și pagina SETTINGS ieșită din ecran; a doua, titlul suprapus peste ornament și colțurile trase; a treia e curată. Plus meniul de pauză, ca să văd că rândurile mai scurte nu strică nimic acolo.
+
+**Curățenie:** un test de-al meu lăsase iar un scor în leaderboard (1:17, level 7, 82 kills) — șters. E a treia oară azi; orice test care lasă player-ul să moară scrie în `user://scores.save`.
+---
+
 ## Session log — 2026-07-27 (Grasu: 3 direcții de alergare făcute prin oglindire)
 
 **Cerut de Răzvan:** „la grasu vreau sa facem mirroring la niste animatii - ti-am sters running west, north-west, si south-west. Iei tu counterparts de la directiile astea, le faci mirroring".

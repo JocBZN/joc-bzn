@@ -4,13 +4,39 @@ extends Control
 # fundal cu gradient + vignette, titlu cu glow neon, butoane cu borduri cyan.
 
 const GAME_SCENE := "res://main.tscn"
-const ACCENT := Color(0.2, 0.9, 1.0)    # cyan
-const ACCENT2 := Color(1.0, 0.2, 0.6)   # magenta (glow-ul titlului)
+const ACCENT := Color(0.2, 0.9, 1.0)    # cyan — a mai rămas doar pentru fallback-ul de titlu
+const ACCENT2 := Color(1.0, 0.2, 0.6)   # magenta
 
 # Culorile butoanelor de meniu (lemn, ca logo-ul). Schimbă-le doar aici — toate butoanele
 # mari (START, BACK etc.) își iau culoarea din ele, în `_menu_button()`.
 const BTN_MAIN := Color("9e603f")     # principala: umplutura butonului
 const BTN_SECOND := Color("594232")   # secundara: conturul
+
+# Auriul ramei ornate (`Menu.png`), folosit la titlurile de pagină. Înainte titlurile erau
+# cyan cu glow magenta — rămășiță din tema cyberpunk de dinainte de logo, care se bătea cap
+# în cap cu lemnul (același motiv pentru care a fost scos subtitlul „CYBER SURVIVOR").
+const TITLU := Color(0.95, 0.85, 0.55)
+
+# Arta de UI din joc, refolosită aici ca meniul și ecranul de level up să arate din același
+# joc: rama ornată pe sub-pagini, chenarele de raritate în jurul armelor.
+const UI_DIR := "res://Upgrades/Menu UI/"
+const RAMA := UI_DIR + "Menu.png"
+# Cât ține ornamentul ramei, în pixeli de textură — adică ce NU trebuie întins de nine-patch.
+# MĂSURAT pe `Menu.png` (400x328), nu ghicit: umplutura interioară începe la 61px din stânga,
+# 60 din dreapta, 50 de sus și 48 de jos. `levelup.gd` folosește 46 peste tot, ceea ce lasă
+# ~15px de ornament în zona întinsă — la panoul lui, care e mare și fix, nu se vede; aici,
+# pe panouri mici care se strâng pe conținut, colțurile ieșeau vizibil trase.
+const RAMA_MARG_LAT := 62
+const RAMA_MARG_SUS := 52
+const RAMA_MARG_JOS := 50
+# Spațiul dintre ramă și conținut: ornamentul + câțiva pixeli, ca textul să nu se lipească.
+const RAMA_PAD_LAT := 72
+const RAMA_PAD_SUS := 58
+const RAMA_PAD_JOS := 56
+const BORDER_SEL := UI_DIR + "Border Rare.png"      # verde = ales (ca verdele de selecție de până acum)
+const BORDER_NESEL := UI_DIR + "Border Common.png"  # albastru-gri = neales
+const CELULA := 132.0    # latura unei celule de armă (chenar + iconiță)
+const ICON_PAD := 16     # cât intră iconița în interiorul chenarului, ca să nu calce ornamentul
 
 var WEAPONS := [
 	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png"},
@@ -349,7 +375,14 @@ func _vignette() -> void:
 	add_child(tr)
 	_vig = tr
 
-func _make_panel(key: String) -> VBoxContainer:
+# `titlu` = numele paginii, desenat DEASUPRA ramei, nu în ea. Două motive: ornamentul de sus
+# al ramei e mai gros decât marginea nine-patch, deci un titlu pus înăuntru se lipea de el; și
+# scoate ~66px din interior, de care pagina SETTINGS chiar avea nevoie ca să încapă în ecran.
+#
+# `cu_rama` = pagina primește chenarul ornat din joc (`Menu.png`). Meniul principal NU-l
+# vrea — acolo logo-ul stă peste fundalul animat și o ramă în jur ar sufoca imaginea; toate
+# sub-paginile îl primesc, ca să fie clar că sunt „ferestre" și ca să semene cu level up-ul.
+func _make_panel(key: String, titlu: String = "", cu_rama: bool = true) -> VBoxContainer:
 	var panel := Control.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -361,12 +394,47 @@ func _make_panel(key: String) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(box)
+	if cu_rama:
+		var afara := VBoxContainer.new()   # titlul + rama, unul sub altul
+		afara.add_theme_constant_override("separation", 10)
+		afara.alignment = BoxContainer.ALIGNMENT_CENTER
+		if titlu != "":
+			afara.add_child(_header(titlu))
+		afara.add_child(_rama_container(box))
+		center.add_child(afara)
+	else:
+		center.add_child(box)
 	return box
+
+# Rama ornată care se strânge exact pe conținut.
+#
+# De ce PanelContainer + StyleBoxTexture și nu un NinePatchRect ca în `levelup.gd`: acolo
+# panoul are mărime FIXĂ, deci NinePatch-ul e potrivit. Aici paginile au înălțimi diferite
+# (LEADERBOARD crește cu scorurile, SETTINGS e cea mai înaltă), iar un NinePatchRect nu se
+# strânge singur pe copii. PanelContainer face exact asta: își ia mărimea din conținut și
+# desenează stilul în spate.
+func _rama_container(continut: Control) -> PanelContainer:
+	var p := PanelContainer.new()
+	var sb := StyleBoxTexture.new()
+	sb.texture = load(RAMA)
+	# cât din textură e „colț/margine" și nu se întinde
+	sb.texture_margin_left = RAMA_MARG_LAT
+	sb.texture_margin_right = RAMA_MARG_LAT
+	sb.texture_margin_top = RAMA_MARG_SUS
+	sb.texture_margin_bottom = RAMA_MARG_JOS
+	# spațiul dintre ramă și text; trebuie clar peste ornament, altfel textul se lipește de el
+	sb.content_margin_left = RAMA_PAD_LAT
+	sb.content_margin_right = RAMA_PAD_LAT
+	sb.content_margin_top = RAMA_PAD_SUS
+	sb.content_margin_bottom = RAMA_PAD_JOS
+	p.add_theme_stylebox_override("panel", sb)
+	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # pixel art: fără înmuiere
+	p.add_child(continut)
+	return p
 
 # ---------- MAIN ----------
 func _build_main() -> void:
-	var box := _make_panel("main")
+	var box := _make_panel("main", "", false)   # fără ramă: logo peste fundalul animat
 	# Titlul stă într-un slot de mărime fixă, NU direct în VBox. Motivul: un container își
 	# rescrie copiii la fiecare layout, deci nu i-aș putea anima poziția — iar slotul ține
 	# locul ocupat, așa că restul meniului nu se mișcă atunci când titlul urcă la intro.
@@ -386,7 +454,7 @@ func _build_main() -> void:
 	_main_buttons.add_theme_constant_override("separation", 14)
 	_main_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_main_buttons)
-	_main_buttons.add_child(_menu_button("START", _on_start))
+	_main_buttons.add_child(_menu_button("START", _on_start, true))
 	_main_buttons.add_child(_menu_button("CHOOSE CHARACTER", _show.bind("character")))
 	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
 	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
@@ -479,8 +547,7 @@ func _on_start() -> void:
 
 # ---------- CHOOSE WEAPON ----------
 func _build_weapon() -> void:
-	var box := _make_panel("weapon")
-	box.add_child(_header("CHOOSE WEAPON"))
+	var box := _make_panel("weapon", "CHOOSE WEAPON")
 	box.add_child(_spacer(10))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 28)
@@ -493,15 +560,43 @@ func _build_weapon() -> void:
 		slot.alignment = BoxContainer.ALIGNMENT_CENTER
 		slot.add_theme_constant_override("separation", 8)
 		row.add_child(slot)
+		# Butonul e doar zona de click (transparentă); ce se vede sunt chenarul de raritate
+		# și iconița din el — aceeași construcție ca rândurile din `levelup.gd`, ca alegerea
+		# armei să arate din același joc ca ecranul de level up.
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(150, 150)
-		if ResourceLoader.exists(w["icon"]):
-			b.icon = load(w["icon"])
-		b.expand_icon = true
+		b.custom_minimum_size = Vector2(CELULA, CELULA)
+		b.flat = true
+		b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		b.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+		b.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
 		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		b.pressed.connect(_on_weapon_chosen.bind(String(w["id"])))
 		slot.add_child(b)
-		_weapon_buttons.append(b)
+
+		var chenar := TextureRect.new()
+		chenar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		chenar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		chenar.stretch_mode = TextureRect.STRETCH_SCALE
+		chenar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		chenar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(chenar)
+
+		var poza := TextureRect.new()
+		if ResourceLoader.exists(w["icon"]):
+			poza.texture = load(w["icon"])
+		# iconița stă ÎN interiorul chenarului, nu peste el
+		poza.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		poza.offset_left = ICON_PAD
+		poza.offset_top = ICON_PAD
+		poza.offset_right = -ICON_PAD
+		poza.offset_bottom = -ICON_PAD
+		poza.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		poza.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		poza.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(poza)
+
+		_weapon_buttons.append({"buton": b, "chenar": chenar})
+		_viata(b)
 		slot.add_child(_center_label(w["name"], 18))
 	_refresh_weapon_selection()
 	box.add_child(_spacer(22))
@@ -511,28 +606,26 @@ func _on_weapon_chosen(id: String) -> void:
 	GameSettings.weapon_type = id
 	_refresh_weapon_selection()
 
+# Arma aleasă primește chenarul verde (Rare), restul pe cel albastru-gri (Common), plus o
+# ușoară întunecare — se vede dintr-o privire care e alegerea curentă.
 func _refresh_weapon_selection() -> void:
 	for i in _weapon_buttons.size():
 		var sel: bool = WEAPONS[i]["id"] == GameSettings.weapon_type
-		var b: Button = _weapon_buttons[i]
-		var border := Color(0.4, 1.0, 0.5) if sel else Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.5)
-		var bg := Color(0.10, 0.24, 0.16, 0.95) if sel else Color(0.06, 0.08, 0.16, 0.85)
-		b.add_theme_stylebox_override("normal", _sb(bg, border, 3 if sel else 2))
-		b.add_theme_stylebox_override("hover", _sb(bg.lightened(0.08), border, 3))
-		b.add_theme_stylebox_override("pressed", _sb(bg.lightened(0.15), border, 3))
+		var chenar: TextureRect = _weapon_buttons[i]["chenar"]
+		chenar.texture = load(BORDER_SEL if sel else BORDER_NESEL)
+		var b: Button = _weapon_buttons[i]["buton"]
+		b.modulate = Color(1, 1, 1) if sel else Color(0.72, 0.72, 0.76)
 
 # ---------- CHOOSE CHARACTER (placeholder) ----------
 func _build_character() -> void:
-	var box := _make_panel("character")
-	box.add_child(_header("CHOOSE CHARACTER"))
+	var box := _make_panel("character", "CHOOSE CHARACTER")
 	box.add_child(_center_label("Only one character for now: \"Grasu\".\nMore coming soon!", 20))
 	box.add_child(_spacer(24))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
 
 # ---------- LEADERBOARD ----------
 func _build_leaderboard() -> void:
-	var box := _make_panel("leaderboard")
-	box.add_child(_header("LEADERBOARD"))
+	var box := _make_panel("leaderboard", "LEADERBOARD")
 	_lb_list = VBoxContainer.new()
 	_lb_list.add_theme_constant_override("separation", 6)
 	_lb_list.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -572,8 +665,7 @@ func _on_leaderboard() -> void:
 const LANG_CELL := Vector2(132, 74)   # mărimea butonului cu steag (numele stă sub el)
 
 func _build_language() -> void:
-	var box := _make_panel("language")
-	box.add_child(_header("LANGUAGE"))
+	var box := _make_panel("language", "LANGUAGE")
 	box.add_child(_spacer(10))
 	var grid := GridContainer.new()
 	grid.columns = 3
@@ -627,13 +719,14 @@ func _refresh_lang_button() -> void:
 # ---------- SETTINGS ----------
 # Conținutul (volume + remapare taste) vine din componentul refolosibil SettingsUI, folosit și
 # de meniul de pauză din joc (pause.gd). Aici doar îl încadrăm cu titlu + BACK.
+# ⚠️ Pagina asta e cea mai ÎNALTĂ din meniu (2 slidere + 5 taste) și abia încape în cele
+# 648px ale ecranului de referință, împreună cu rama. De aia n-are spațiatoare între blocuri,
+# spre deosebire de celelalte pagini. Dacă mai adaugi un rând de setări, verifică pe o poză
+# că rama nu iese din ecran — nu te avertizează nimic.
 func _build_settings() -> void:
-	var box := _make_panel("settings")
-	box.add_child(_header("SETTINGS"))
-	box.add_child(_spacer(8))
+	var box := _make_panel("settings", "SETTINGS")
 	_settings_ui = SettingsUI.new()
 	box.add_child(_settings_ui)
-	box.add_child(_spacer(22))
 	box.add_child(_menu_button("BACK", _on_settings_back))
 
 func _on_settings_back() -> void:
@@ -653,28 +746,64 @@ func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:
 	sb.content_margin_bottom = 8
 	return sb
 
-func _menu_button(text: String, cb: Callable) -> Button:
+# `principal` = butonul cel mai important al paginii (START). E mai mare, mai luminos și cu
+# text mai gras, ca ochiul să aibă de ce se agăța — înainte toate cele 4 butoane erau
+# identice, deci nimic nu spunea „de aici începi".
+func _menu_button(text: String, cb: Callable, principal: bool = false) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(360, 58)
-	b.add_theme_font_size_override("font_size", 24)
-	b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))       # crem, nu alb rece
-	b.add_theme_color_override("font_hover_color", Color(1.0, 0.98, 0.94))
+	b.custom_minimum_size = Vector2(380, 68) if principal else Vector2(340, 54)
+	# fără asta, VBox-ul din interiorul ramei întinde butonul până în ornament
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.add_theme_font_size_override("font_size", 30 if principal else 22)
+	b.add_theme_color_override("font_color", Color(1.0, 0.97, 0.92) if principal else Color(0.94, 0.89, 0.82))
+	b.add_theme_color_override("font_hover_color", Color(1.0, 0.99, 0.96))
 	b.add_theme_color_override("font_pressed_color", Color.WHITE)
 	# Opace, NU transparente ca stilul vechi: cu transparență, butoanele de sus ieșeau
 	# vizibil mai deschise decât cele de jos (transpărea cerul din fundalul blurat).
 	# hover\pressed sunt aceleași culori, doar deschise treptat — nu culori noi de întreținut
-	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
-	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
-	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+	var baza := BTN_MAIN.lightened(0.10) if principal else BTN_MAIN
+	var contur := BTN_SECOND.lightened(0.10) if principal else BTN_SECOND
+	b.add_theme_stylebox_override("normal", _sb(baza, contur, 3))
+	b.add_theme_stylebox_override("hover", _sb(baza.lightened(0.10), contur.lightened(0.10), 3))
+	b.add_theme_stylebox_override("pressed", _sb(baza.lightened(0.20), contur.lightened(0.20), 3))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.pressed.connect(cb)
+	_viata(b)
 	return b
+
+# Butonul crește puțin la hover și se „înfundă" la apăsare. Doar culoarea (cum era înainte)
+# nu se simte — mișcarea, da.
+#
+# ⚠️ Se animează DOAR `scale`, niciodată `position`: butoanele stau în VBoxContainer-e, iar
+# containerul își rescrie copiii la fiecare layout, deci o poziție animată ar fi ștearsă
+# imediat (sau s-ar bate cu containerul). `scale` nu e atins de containere.
+const HOVER_SCALE := 1.04
+const PRESS_SCALE := 0.97
+const HOVER_TIMP := 0.09
+
+func _viata(b: Control) -> void:
+	# pivotul trebuie să fie centrul, altfel butonul crește spre dreapta-jos; mărimea e
+	# știută abia după primul layout, de aia îl punem la fiecare redimensionare
+	b.resized.connect(func(): b.pivot_offset = b.size * 0.5)
+	b.mouse_entered.connect(_scaleaza.bind(b, HOVER_SCALE))
+	b.mouse_exited.connect(_scaleaza.bind(b, 1.0))
+	if b is BaseButton:
+		b.button_down.connect(_scaleaza.bind(b, PRESS_SCALE))
+		# la ridicarea degetului: dacă mouse-ul e încă pe buton rămânem în hover
+		b.button_up.connect(func(): _scaleaza(b, HOVER_SCALE if b.is_hovered() else 1.0))
+
+func _scaleaza(b: Control, la: float) -> void:
+	if not is_instance_valid(b):
+		return
+	b.pivot_offset = b.size * 0.5
+	var t := b.create_tween()
+	t.tween_property(b, "scale", Vector2(la, la), HOVER_TIMP).set_trans(Tween.TRANS_QUAD)
 
 func _header(text: String) -> Label:
 	var l := _center_label(text, 42)
-	l.add_theme_color_override("font_color", ACCENT)
-	l.add_theme_color_override("font_outline_color", Color(ACCENT2.r, ACCENT2.g, ACCENT2.b, 0.8))
+	l.add_theme_color_override("font_color", TITLU)
+	l.add_theme_color_override("font_outline_color", Color(0.12, 0.07, 0.04, 0.9))
 	l.add_theme_constant_override("outline_size", 6)
 	return l
 

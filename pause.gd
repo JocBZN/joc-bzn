@@ -7,7 +7,9 @@ extends CanvasLayer
 
 const BTN_MAIN := Color("9e603f")     # umplutura butonului (lemn, ca în meniu)
 const BTN_SECOND := Color("594232")   # conturul
-const ACCENT := Color(0.2, 0.9, 1.0)  # cyan (titluri), ca în menu.gd
+# Auriul ramei ornate, la fel ca titlurile din meniul principal (2026-07-27). Înainte era
+# cyan neon, rămășiță din tema cyberpunk — se bătea cap în cap cu lemnul butoanelor.
+const ACCENT := Color(0.95, 0.85, 0.55)
 
 var _open := false
 var _page := "main"           # "main" (lista) sau "settings"

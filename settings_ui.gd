@@ -1,4 +1,4 @@
-extends VBoxContainer
+﻿extends VBoxContainer
 class_name SettingsUI
 
 # Bloc de setări REFOLOSIBIL, cu DOUĂ pagini:
@@ -40,7 +40,6 @@ func _pagina_keybinds() -> VBoxContainer:
 	v.add_child(_volume_row("SOUND FX", GameSettings.sfx_volume, _on_sfx_volume))
 	v.add_child(_spacer(6))
 	v.add_child(_center_label("CONTROLS", 26))
-	v.add_child(_spacer(4))
 	# câte un rând pentru fiecare direcție; apeși butonul și apoi tasta nouă
 	for action in GameSettings.KEY_ACTIONS:
 		v.add_child(_key_row(action))
@@ -62,11 +61,13 @@ func _pagina_graphics() -> VBoxContainer:
 	v.add_child(nota)
 	return v
 
-# Separația e 8, nu 12 ca înainte: bara de taburi a mai luat din înălțime, iar pagina de
-# KEYBINDS (2 slidere + 5 taste) împingea butonul BACK în afara ecranului.
+# Separația e 6, nu 12 ca la început: bara de taburi a luat din înălțime, iar din 2026-07-27
+# blocul stă și într-o ramă ornată în meniul principal, care mai ia ~114px pe verticală.
+# Pagina KEYBINDS (2 slidere + 5 taste) e cea care dictează — dacă mai adaugi un rând acolo,
+# verifică pe o poză că rama nu iese din ecranul de 648px.
 func _pagina_goala() -> VBoxContainer:
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 6)
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	return v
 
@@ -143,7 +144,10 @@ func _key_row(action: String) -> HBoxContainer:
 	l.custom_minimum_size = Vector2(160, 0)
 	l.add_theme_font_size_override("font_size", 22)
 	row.add_child(l)
-	var b := _buton(GameSettings.key_name(action), 20, Vector2(180, 40))
+	# 32, nu 40 ca la început: în meniul principal blocul ăsta stă acum într-o ramă ornată, iar
+	# cele 5 rânduri de taste erau exact cât să împingă rama afară din ecran. În pauză, unde e
+	# loc berechet, diferența nu se simte.
+	var b := _buton(GameSettings.key_name(action), 20, Vector2(180, 32))
 	b.pressed.connect(_begin_remap.bind(action))
 	_remap_buttons[action] = b
 	row.add_child(b)
@@ -159,7 +163,7 @@ func _toggle_row(text: String, value: bool, cb: Callable) -> HBoxContainer:
 	l.custom_minimum_size = Vector2(160, 0)
 	l.add_theme_font_size_override("font_size", 22)
 	row.add_child(l)
-	var b := _buton("ON" if value else "OFF", 20, Vector2(180, 40))
+	var b := _buton("ON" if value else "OFF", 20, Vector2(180, 32))
 	b.pressed.connect(_on_toggle.bind(b, cb))
 	b.set_meta("valoare", value)
 	row.add_child(b)
