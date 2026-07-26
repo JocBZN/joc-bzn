@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (Saratalin: 10k viață, bară Dark Souls, cinematică la jumătate)
+
+**Cerut de Răzvan:** 10.000 HP, bară de viață cu nume ca în Dark Souls, iar la jumătate (5k) un filmuleț: îngheață jocul, zoom pe Saratalin, glow mov de două ori, cutremur cu efect mov, apoi înapoi la normal și atacă de 3 ori mai repede.
+
+**Viața e FIXĂ, fără `Difficulty.enemy_hp_mult()`.** Toți ceilalți inamici (inclusiv Garda) își înmulțesc viața cu dificultatea, dar aici pragul de fază trebuie să însemne același lucru de fiecare dată — altfel „jumătate" ar cădea aiurea față de build-ul tău. Damage-ul și viteza lui urmează în continuare ceasul rundei.
+
+**`boss_bar.gd` (nou)** — CanvasLayer generic (`arata(nume, hp_max)` / `set_hp` / `ascunde`), deci merge și pentru alt boss. Două `ProgressBar`-uri suprapuse: dedesubt „urma" roz care coboară cu întârziere, deasupra viața reală. **Bara de deasupra are `StyleBoxEmpty` ca fundal** — cu fundalul normal, dreptunghiul ei opac acoperea exact urma pe care voiam s-o vedem (prima variantă arăta un gri mort în loc de roz). Bara se ascunde din `saratalin._exit_tree()`, ceea ce prinde și moartea, și ștergerea la ieșirea din Nether.
+
+**Cinematica rulează cu jocul pe pauză.** Cheia: un tween e legat de nodul care l-a creat și stă dacă acel nod e pe pauză. Deci pe durata filmulețului boss-ul își pune `process_mode = ALWAYS` (și `_cinematic` ține `_physics_process` mut), la fel și `BossBar`. **Netezirea camerei se OPREȘTE pe durata cinematicii** — ea se face în procesarea internă a camerei, care nu rulează pe pauză; lăsată pornită, camera ar fi rămas blocată pe loc.
+
+**Cutremurul din cinematică nu poate folosi `_zguduie_camera()`** (cel de la aterizare): ăla creează tween-ul pe cameră, care e copil al player-ului, deci pe pauză. Filmulețul își face al lui, pe boss. Tot de aia tween-ul de întoarcere readuce `offset`-ul la zero — curăță și reziduul de zguduire.
+
+**`pause.gd._blocked()`** refuză ESC cât rulează filmulețul: altfel meniul de pauză și cinematica s-ar fi certat pe `get_tree().paused`.
+
+**Verificat prin rulare, cu capturi la fiecare pas:** viață 10000 fixă ✅; bara cu numele deasupra, umplere 0.69 cu urma rămasă la 0.92 după o lovitură ✅; la 5000 → `paused=true`, zoom 0.7 → 1.19 (×1.7), offset mutat pe boss (0, −182) ✅; pulsul mov (modulate 1.79/0.93/2.09) ✅; spălarea mov peste tot ecranul + zguduire ✅; la final `paused=false`, zoom și offset EXACT înapoi la (0.7, 0.7) și (0, 0) ✅; atacul 1.8 → 0.6 și cercul 8.0 → 2.67 ✅; bara dispare la moarte ✅.
+
+---
+
 ## Session log — 2026-07-26 (fade de 3s la muzică + liniște pe ecranul de moarte)
 
 **Cerut de Răzvan:** „fade in și fade out de 3 secunde la toate melodiile" + „muzica și ambientul să nu se mai audă în death screen".

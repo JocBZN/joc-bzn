@@ -45,13 +45,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		_close_menu()
 	get_viewport().set_input_as_handled()
 
-# Nu deschide meniul de pauză cât e deja alt ecran modal deschis (level up / game over).
+# Nu deschide meniul de pauză cât e deja alt ecran modal deschis (level up / game over)
+# sau cât rulează filmulețul de fază 2 al lui Saratalin — el pune SINGUR jocul pe pauză și
+# și-o ia înapoi la final; dacă intra meniul peste, cele două s-ar certa pe `paused`.
 func _blocked() -> bool:
 	var lu = get_tree().get_first_node_in_group("levelup_menu")
 	if lu != null and lu.visible:
 		return true
 	var go = get_tree().get_first_node_in_group("gameover_screen")
 	if go != null and go.visible:
+		return true
+	var boss = get_tree().get_first_node_in_group("saratalin")
+	if boss != null and boss.has_method("in_cinematic") and boss.in_cinematic():
 		return true
 	return false
 

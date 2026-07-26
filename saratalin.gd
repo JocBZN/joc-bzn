@@ -23,7 +23,11 @@ const FRAMES := 15     # câte cadre are foaia
 const LIGHTNING := preload("res://lightning.tscn")
 
 @export var speed: float = 62.0        # plutește greoi, ca un boss
-@export var max_hp: int = 700          # mai rezistent decât Garda (300)
+# Viață FIXĂ, nu scalată cu dificultatea ca la ceilalți inamici: e o luptă de boss cu bară pe
+# ecran și cu o fază care începe exact la jumătate, deci trebuie să fie același prag de fiecare
+# dată. Damage-ul și viteza lui cresc în continuare cu runda — doar viața stă pe loc.
+@export var max_hp: int = 10000
+@export var nume: String = "SARATALIN"   # ce scrie deasupra barei
 @export var anim_fps: float = 10.0     # 15 cadre la 10 fps = o plutire completă la 1.5s
 @export var xp_value: int = 100        # cât XP lasă când moare (se înmulțește cu bonusul din Nether)
 
@@ -51,9 +55,22 @@ const BOLT_FRAMES := "res://harta/nether/Nether Boss/attack_frames/"
 @export var ring_interval: float = 8.0   # o dată la câte secunde
 @export var ring_count: int = 14         # câte proiectile are cercul
 
+# --- FAZA 2: la jumătatea vieții ---
+# Când ajunge la 50% viață, jocul îngheață, camera intră pe el, pulsează mov de două ori,
+# urmează un cutremur mov — și de acolo încolo atacă de FURIE_ATAC ori mai des.
+@export var furie_atac: float = 3.0      # de câte ori mai repede atacă în faza 2
+@export var cin_zoom: float = 1.7        # cât de aproape intră camera (1 = neschimbat)
+@export var cin_intrare: float = 0.55    # cât durează apropierea camerei
+@export var cin_puls: float = 0.42       # cât ține UN puls mov
+@export var cin_cutremur: float = 1.0    # cât ține cutremurul mov
+@export var cin_iesire: float = 0.45     # cât durează întoarcerea camerei
+const CULOARE_PULS := Color(3.2, 0.8, 4.0)   # peste 1 = strălucește (prinde glow-ul din atmosphere.gd)
+
 var hp: int
 var _dying := false
 var _coboara := false     # cât timp coboară din tavan nu atacă și nu se mișcă singur
+var _faza2 := false       # a trecut de jumătatea vieții (cinematica s-a jucat o dată)
+var _cinematic := false   # rulează cinematica ACUM (nu se mișcă, nu atacă)
 var _atk_cooldown := 0.0
 var _ring_cooldown := 0.0
 var _flash_tween: Tween
@@ -66,11 +83,14 @@ func _ready() -> void:
 	# se întărește cu dificultatea, exact ca Garda și ca inamicii normali. În Nether,
 	# `Difficulty.mult_time_override` e scris de `nether.gd`, deci un Saratalin chemat
 	# după Nether Swarm e mult mai tare decât unul chemat în primul minut.
-	max_hp = int(max_hp * Difficulty.enemy_hp_mult())
+	# viața rămâne fixă (vezi `max_hp`); doar viteza urmează dificultatea rundei
 	speed = speed * Difficulty.enemy_speed_mult()
 	hp = max_hp
 	add_to_group("enemy")   # ca gloanțele să-l lovească și să facă damage la contact
 	add_to_group("saratalin")
+	var bara := _bara()
+	if bara != null:
+		bara.arata(nume, max_hp)
 	_ring_cooldown = ring_interval * 0.5   # nu deschide cu cercul fix în clipa aterizării
 	_build_frames()
 	anim.play("float")
@@ -145,10 +165,105 @@ func _shake(amount: float, cam: Camera2D) -> void:
 func _shake_stop(cam: Camera2D) -> void:
 	cam.offset = Vector2.ZERO
 
+# ---------- cinematica de la jumătatea vieții ----------
+# ÎNGHEAȚĂ jocul, camera intră pe el, pulsează mov de două ori, urmează un cutremur mov,
+# apoi totul revine la normal — dar de acum atacă de `furie_atac` ori mai des.
+#
+# Ca să meargă cu jocul pe pauză ne punem NOI pe `PROCESS_MODE_ALWAYS`: un tween e legat de
+# nodul care l-a creat și se oprește dacă acel nod e pe pauză. `_cinematic` ține
+# `_physics_process` mut cât ține treaba, ca să nu ne mișcăm și să nu tragem între timp.
+func _cinematica_faza2() -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player == null:
+		_infurie()
+		return
+	var cam := player.get_node_or_null("Camera2D") as Camera2D
+	_cinematic = true
+	var mod_vechi := process_mode
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().paused = true
+
+	# 1) camera intră pe el: mutăm privirea de la player spre boss și strângem zoom-ul
+	var zoom_vechi := Vector2.ONE
+	var offset_vechi := Vector2.ZERO
+	var neted_vechi := false
+	var tinta := Vector2.ZERO
+	if cam != null:
+		zoom_vechi = cam.zoom
+		offset_vechi = cam.offset
+		neted_vechi = cam.position_smoothing_enabled
+		# netezirea camerei se face în procesarea ei internă, care NU rulează pe pauză;
+		# lăsată pornită, camera ar rămâne blocată pe loc tot filmulețul
+		cam.position_smoothing_enabled = false
+		tinta = global_position - player.global_position
+		var t := create_tween().set_parallel()
+		t.tween_property(cam, "offset", tinta, cin_intrare)
+		t.tween_property(cam, "zoom", zoom_vechi * cin_zoom, cin_intrare)
+		await t.finished
+
+	# 2) două pulsuri mov pe el
+	for i in 2:
+		var p := create_tween()
+		p.tween_property(anim, "modulate", CULOARE_PULS, cin_puls * 0.4)
+		p.tween_property(anim, "modulate", Color(1, 1, 1), cin_puls * 0.6)
+		await p.finished
+
+	# 3) cutremur + spălare mov peste tot ecranul
+	var bara := _bara()
+	if bara != null:
+		bara.flash_mov(0.5, cin_cutremur)
+	Audio.play("levelup", -2.0)
+	await _cutremur(cam, tinta).finished
+
+	# 4) camera înapoi la player (readuce și offset-ul la zero după zguduire)
+	if cam != null:
+		var t2 := create_tween().set_parallel()
+		t2.tween_property(cam, "offset", offset_vechi, cin_iesire)
+		t2.tween_property(cam, "zoom", zoom_vechi, cin_iesire)
+		await t2.finished
+		cam.position_smoothing_enabled = neted_vechi
+
+	get_tree().paused = false
+	process_mode = mod_vechi
+	_cinematic = false
+	_infurie()
+
+# Cutremurul din cinematică: zgâlțâie offset-ul camerei în jurul poziției pe care o privim.
+# Tween-ul e creat pe NOI (suntem ALWAYS), fiindcă unul creat pe cameră ar sta pe pauză.
+func _cutremur(cam: Camera2D, baza: Vector2) -> Tween:
+	var t := create_tween()
+	if cam == null:
+		t.tween_interval(cin_cutremur)
+		return t
+	t.tween_method(func(amount: float):
+		cam.offset = baza + Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * land_shake * 1.6 * amount,
+		1.0, 0.0, cin_cutremur)
+	return t
+
+# De aici încolo atacă de `furie_atac` ori mai des.
+func _infurie() -> void:
+	attack_interval = maxf(attack_interval / furie_atac, 0.05)
+	ring_interval = maxf(ring_interval / furie_atac, 0.5)
+	_atk_cooldown = 0.0
+	_ring_cooldown = ring_interval
+
+# Adevărat cât rulează filmulețul — `pause.gd` întreabă, ca ESC să nu-l întrerupă.
+func in_cinematic() -> bool:
+	return _cinematic
+
+func _bara() -> Node:
+	return get_tree().get_first_node_in_group("boss_bar")
+
+# Bara dispare odată cu el: și când moare, și când e șters (ex. ieși din Nether).
+func _exit_tree() -> void:
+	var bara := _bara()
+	if bara != null and bara.has_method("ascunde"):
+		bara.ascunde()
+
 # ---------- luptă ----------
 func _physics_process(delta: float) -> void:
-	if _dying or _coboara:
-		return   # cât coboară nu se mișcă singur (de mutat îl mută tween-ul) și nu atacă
+	if _dying or _coboara or _cinematic:
+		return   # cât coboară / cât ține cinematica nu se mișcă singur și nu atacă
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
@@ -203,10 +318,17 @@ func take_damage(amount: int) -> void:
 	if _dying:
 		return
 	hp -= amount
+	var bara := _bara()
+	if bara != null:
+		bara.set_hp(hp)
 	if hp <= 0:
 		_die()
-	else:
-		_flash()   # sclipire albă scurtă la fiecare lovitură
+		return
+	_flash()   # sclipire albă scurtă la fiecare lovitură
+	# a scăzut sub jumătate → o singură dată, cinematica de fază 2
+	if not _faza2 and hp <= max_hp / 2:
+		_faza2 = true
+		_cinematica_faza2()
 
 func _flash() -> void:
 	if _flash_tween != null and _flash_tween.is_valid():
