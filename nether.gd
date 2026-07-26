@@ -32,10 +32,11 @@ const CLOCK_WARN := Color(1.0, 0.82, 0.20)        # galben — ultimul minut
 const CLOCK_SWARM := Color(1.0, 0.10, 0.10)       # roșu — Nether Swarm
 const COMPASS_MARGIN := 96.0    # cât de departe de marginea ecranului stă săgeata spre portal
 const TELEPORT_DB := -4.0       # cât de tare e whoosh-ul de teleportare (E pe portal)
-# Unde punem structura de invocare a lui Saratalin, față de portalul de întoarcere.
-# Suficient de aproape cât s-o vezi când aterizezi, suficient de departe cât să n-o
-# apeși din greșeală în loc de portal.
-const SUMMON_OFFSET := Vector2(520.0, 40.0)
+# Unde punem structura de invocare a lui Saratalin: într-un INEL în jurul portalului de
+# intrare — direcție la întâmplare, distanță între MIN și MAX. Deci n-o găsești în același
+# loc de fiecare dată, dar nici nu-ți cade în brațe lângă portal.
+const SUMMON_MIN_DIST := 600.0
+const SUMMON_MAX_DIST := 1000.0
 
 # Nodurile care fac decorul. Sunt oprite cât ești în Nether → „lume fără nimic".
 # `Portals` e în listă ca să dispară portalurile lumii normale; al nostru de întoarcere
@@ -55,6 +56,7 @@ var _summon_portal: Node2D = null   # structura lui Saratalin (dispare când o f
 var _elapsed := 0.0          # de câte secunde ești în Nether
 var _entry_diff_time := 0.0  # în ce secundă a rundei ai intrat (de acolo pleacă dificultatea)
 var _swarm_announced := false
+var _boss_invins := false    # cât e `false`, portalul de întoarcere nu te lasă să pleci
 
 func _ready() -> void:
 	add_to_group("nether")
@@ -130,6 +132,7 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	_elapsed = 0.0
 	_entry_diff_time = Difficulty.time
 	_swarm_announced = false
+	_boss_invins = false
 
 	_clear_enemies()          # inamicii lumii normale nu vin cu tine
 	_set_world_enabled(false)
@@ -157,12 +160,21 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	for i in BURST:
 		_spawn_one()
 
-	_announce("THE NETHER", "Press E at the portal to go back")
+	_announce("THE NETHER", "Kill Saratalin to leave")
 
 # ---------- IEȘIRE ----------
-# `anunt = false` când ieși pentru că ai murit — atunci nu are ce sărbători.
+# `anunt = true`  → ieșire VOLUNTARĂ, apăsând E pe portalul de întoarcere.
+# `anunt = false` → ieșire FORȚATĂ: ai murit, sau player-ul nu mai există (plasa de
+#                   siguranță din `_process`). Aia trece mereu, orice s-ar întâmpla —
+#                   altfel ai rămâne blocat mort într-o dimensiune fără decor.
 func exit_nether(anunt: bool = true) -> void:
 	if not active:
+		return
+	# Nu pleci până nu cade Saratalin. Structura care îl cheamă e undeva în inelul din jurul
+	# portalului; busola te duce la ea (vezi `_tinta_busola`).
+	if anunt and not _boss_invins:
+		_announce("SARATALIN LIVES", "The portal will not open until he falls")
+		Audio.play("levelup", -6.0)
 		return
 	active = false
 	_clear_enemies()          # ce era pe tine în Nether nu vine cu tine
@@ -200,6 +212,14 @@ func _process(delta: float) -> void:
 		_announce("NETHER SWARM", "The portal still works. For now.")
 		Audio.play("levelup", -2.0)
 
+# Chemată de `saratalin.gd` când boss-ul moare: de aici încolo portalul te lasă să pleci.
+func boss_invins() -> void:
+	if not active or _boss_invins:
+		return
+	_boss_invins = true
+	_announce("THE WAY IS OPEN", "Press E at the portal to go back")
+	Audio.play("levelup", -2.0)
+
 # ---------- dificultate ----------
 # Timpul din care se calculează cât de tari sunt inamicii cât ești aici.
 # Două drepte, luăm maximul (deci nu scade niciodată brusc):
@@ -226,15 +246,30 @@ func _update_clock() -> void:
 	_clock.text = _mmss(ramas)
 	_clock.add_theme_color_override("font_color", CLOCK_WARN if ramas <= 60.0 else CLOCK_COLOR)
 
-# Săgeata spre portalul de întoarcere, lipită de marginea ecranului cât timp portalul
-# nu se vede. Poziția lui din lume → pixeli de ecran (ca în `interact_ui.gd`).
+# Spre ce arată busola: OBIECTIVUL tău de acum. De când ieșirea cere să-l bați pe Saratalin,
+# n-are sens să te trimită la un portal care oricum nu se deschide.
+#   1. structura de invocare, cât timp n-ai chemat boss-ul (e la 600–1000px, trebuie găsită);
+#   2. Saratalin însuși, cât timp trăiește;
+#   3. portalul de întoarcere, după ce l-ai bătut.
+func _tinta_busola() -> Node2D:
+	if not _boss_invins:
+		if _summon_portal != null and is_instance_valid(_summon_portal):
+			return _summon_portal
+		var boss := get_tree().get_first_node_in_group("saratalin") as Node2D
+		if boss != null:
+			return boss
+	return _return_portal
+
+# Săgeata spre țintă, lipită de marginea ecranului cât timp ținta nu se vede.
+# Poziția ei din lume → pixeli de ecran (ca în `interact_ui.gd`).
 func _update_compass() -> void:
-	if _return_portal == null or not is_instance_valid(_return_portal) or _player == null:
+	var tinta := _tinta_busola()
+	if tinta == null or not is_instance_valid(tinta) or _player == null:
 		_arrow.visible = false
 		_dist.visible = false
 		return
 	var vp := get_viewport().get_visible_rect().size
-	var screen: Vector2 = get_viewport().get_canvas_transform() * _return_portal.global_position
+	var screen: Vector2 = get_viewport().get_canvas_transform() * tinta.global_position
 	var m := COMPASS_MARGIN
 	var pe_ecran := screen.x > m and screen.x < vp.x - m and screen.y > m and screen.y < vp.y - m
 	_arrow.visible = not pe_ecran
@@ -257,7 +292,7 @@ func _update_compass() -> void:
 	_arrow.position = poz - Vector2(28, 28)
 	_arrow.rotation = dir.angle() + PI * 0.5   # „▲" arată în sus la rotație 0
 	_dist.position = poz - Vector2(80, -34)
-	_dist.text = "%d" % int(_player.global_position.distance_to(_return_portal.global_position))
+	_dist.text = "%d" % int(_player.global_position.distance_to(tinta.global_position))
 
 func _flash_screen() -> void:
 	_flash.visible = true
@@ -282,10 +317,14 @@ func _spawn_return_portal(portal_pos: Vector2) -> void:
 	_return_portal.retur = true          # apăsând E pe el IEȘI, nu intri iar
 	world.add_child(_return_portal)
 	_return_portal.global_position = poz
-	# lângă el, structura care îl cheamă pe Saratalin — una nouă la fiecare intrare în Nether
+	# structura care îl cheamă pe Saratalin — una nouă la fiecare intrare în Nether, pusă
+	# undeva în inelul din jurul portalului. `sqrt` ca punctele să fie împrăștiate uniform
+	# pe SUPRAFAȚĂ: cu o distanță pur aleatoare s-ar înghesui spre marginea interioară.
+	var unghi := randf() * TAU
+	var d := sqrt(lerpf(SUMMON_MIN_DIST * SUMMON_MIN_DIST, SUMMON_MAX_DIST * SUMMON_MAX_DIST, randf()))
 	_summon_portal = SUMMON.instantiate()
 	world.add_child(_summon_portal)
-	_summon_portal.global_position = poz + SUMMON_OFFSET
+	_summon_portal.global_position = poz + Vector2(cos(unghi), sin(unghi)) * d
 
 func _free_return_portal() -> void:
 	if _return_portal != null and is_instance_valid(_return_portal):

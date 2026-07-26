@@ -214,6 +214,11 @@ func _die() -> void:
 	_dying = true
 	GameSettings.add_kill()
 	remove_from_group("enemy")
+	remove_from_group("saratalin")
+	# ieșirea din Nether e închisă până cade el — anunțăm dimensiunea că a căzut
+	var nether := get_tree().get_first_node_in_group("nether")
+	if nether != null:
+		nether.boss_invins()
 	_drop_xp.call_deferred()   # vezi enemy.gd: un Area2D nou nu se poate adăuga în timpul fizicii
 	_zguduie_camera()
 	var t := create_tween()

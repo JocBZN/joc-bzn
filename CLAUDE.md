@@ -13,6 +13,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (Nether-ul devine o luptă cu boss: nu ieși până nu-l bați)
+
+**Cerut de Răzvan:** „ca să poți să ieși din Nether trebuie să-l bați pe Saratalin, să scrii asta ca text pe ecran (înlocuit cu ce era înainte când intrai). Statuia de summon a lui Saratalin vreau să fie random într-un cerc cu apotemă de 1000px față de portalul de intrare și la minim 600px de el."
+
+**Ce s-a schimbat:**
+- Textul de la intrare: „Press E at the portal to go back" → **„Kill Saratalin to leave"**.
+- `exit_nether()` refuză ieșirea cât `_boss_invins` e fals și anunță **„SARATALIN LIVES / The portal will not open until he falls"**. `saratalin._die()` cheamă `nether.boss_invins()`, care anunță **„THE WAY IS OPEN"**.
+- Structura de invocare: în loc de offset fix, cade pe un **inel 600–1000px** în jurul portalului de intrare, la unghi aleator. Raza se ia ca `sqrt(lerp(min², max², randf()))` — cu o distanță pur aleatoare punctele s-ar înghesui spre marginea interioară a inelului, fiindcă inelul are mai multă suprafață în exterior.
+
+**Capcana de proiectare, rezolvată tot aici:** `exit_nether(anunt=false)` e drumul pe care îl folosesc **moartea player-ului** (`player.die()`) și plasa de siguranță din `_process`. Dacă blocam ieșirea necondiționat, un player mort ar fi rămas agățat într-o dimensiune fără decor, cu `Difficulty.frozen` pe true. De aia poarta se aplică **doar** când `anunt == true` (adică „ieșire voluntară, pe portal"); parametrul are acum și înțelesul ăsta, scris explicit în comentariu.
+
+**Busola urmărește acum obiectivul, nu portalul** (`_tinta_busola()`): structura de invocare → Saratalin → portalul de întoarcere. Altfel săgeata te-ar fi trimis insistent spre o ușă încuiată, iar structura, mutată la 600–1000px, e acum ceva ce chiar trebuie găsit pe o câmpie identică peste tot.
+
+**Verificat prin rulare:** 10 intrări la rând → distanțe 650…954px, unghiuri împrăștiate pe tot cercul, toate în interval ✅; E pe portal fără boss → rămâi în Nether, cu mesajul pe ecran (captură) ✅; busola: `SummoningPortal` → `Saratalin` → `Portal` ✅; după ce cade → E pe portal → ieși ✅; capturi cu toate cele trei texte.
+
+---
+
 ## Session log — 2026-07-26 (SARATALIN, boss-ul Nether-ului + structura care îl cheamă)
 
 **Cerut de Răzvan:** „ți-am băgat o structură nouă și un boss nou în `harta/nether/Nether Boss`. Saratalin e bossul — îl faci tu frumos pe frame-uri că trebuie tăiat. Summoning Portal e structura care îl sumonează. Vreau la fel, cu un cutremur să se sumoneze și statuia să se ducă în pământ ca cealaltă. Dar bossul Saratalin vreau să coboare din tavan (coboară de unde nu vede player-ul)."
