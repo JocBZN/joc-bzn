@@ -37,6 +37,9 @@ const TELEPORT_DB := -4.0       # cât de tare e whoosh-ul de teleportare (E pe 
 # loc de fiecare dată, dar nici nu-ți cade în brațe lângă portal.
 const SUMMON_MIN_DIST := 600.0
 const SUMMON_MAX_DIST := 1000.0
+# Cutremurul de la închiderea portalurilor (aceleași cifre ca la statuie, să se simtă la fel)
+const SHAKE_STRENGTH := 24.0
+const SHAKE_TIME := 0.9
 
 # Nodurile care fac decorul. Sunt oprite cât ești în Nether → „lume fără nimic".
 # `Portals` e în listă ca să dispară portalurile lumii normale; al nostru de întoarcere
@@ -193,7 +196,8 @@ func exit_nether(anunt: bool = true) -> void:
 	if anunt:
 		Audio.play("teleport", TELEPORT_DB, 0.0)   # doar când ieși pe portal; dacă ai murit, nu
 		_flash_screen()
-		_announce("BACK", "The world is where you left it")
+		_announce("BACK", "The portals are closing")
+		_inchide_portalurile()
 
 func _process(delta: float) -> void:
 	if not active:
@@ -211,6 +215,66 @@ func _process(delta: float) -> void:
 		_swarm_announced = true
 		_announce("NETHER SWARM", "The portal still works. For now.")
 		Audio.play("levelup", -2.0)
+
+# L-ai bătut pe Saratalin și te-ai întors în lume → PORTALURILE SE ÎNCHID PE RESTUL RUNDEI.
+# Cel prin care tocmai ai ieșit intră în pământ cu cutremur (ca statuia după invocare),
+# restul dispar pe loc, iar generatorul nu mai naște altele. Un Nether pe rundă.
+#
+# Se cheamă doar de pe drumul VOLUNTAR de ieșire, care există numai după ce boss-ul a căzut.
+func _inchide_portalurile() -> void:
+	# generatorul tocmai a fost repornit (`_set_world_enabled(true)`); îi lăsăm două cadre
+	# ca să pună portalurile la loc, altfel n-avem ce scufunda
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if _player == null or not is_instance_valid(_player):
+		return
+	var world := _player.get_parent()
+
+	# Cel mai apropiat portal = exact ăla prin care ai ieșit (stăteai lângă el când ai apăsat E).
+	var al_nostru: Node2D = null
+	var d_min := INF
+	for p in get_tree().get_nodes_in_group("interactable"):
+		if not p.has_method("intra_in_pamant"):
+			continue   # statuile sunt în același grup, dar ele nu se închid
+		var d: float = _player.global_position.distance_to(p.global_position)
+		if d < d_min:
+			d_min = d
+			al_nostru = p
+	# îl scoatem din generator ÎNAINTE de `opreste()`, altfel ar fi șters odată cu ceilalți
+	# și n-ai mai vedea scufundarea
+	if al_nostru != null and world != null:
+		al_nostru.reparent(world)
+
+	var portals := _generator("Portals")
+	if portals != null and portals.has_method("opreste"):
+		portals.opreste()
+
+	if al_nostru != null:
+		_zguduie_camera()
+		al_nostru.intra_in_pamant()
+
+# Nodul unui generator de decor din `World` (Props, Rocks, Portals...).
+func _generator(nume: String) -> Node:
+	if _player == null or not is_instance_valid(_player):
+		return null
+	var world := _player.get_parent()
+	return world.get_node_or_null(nume) if world != null else null
+
+func _zguduie_camera() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var cam := _player.get_node_or_null("Camera2D") as Camera2D
+	if cam == null:
+		return
+	var tw := cam.create_tween()
+	tw.tween_method(_shake.bind(cam), 1.0, 0.0, SHAKE_TIME)
+	tw.tween_callback(_shake_stop.bind(cam))
+
+func _shake(amount: float, cam: Camera2D) -> void:
+	cam.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * SHAKE_STRENGTH * amount
+
+func _shake_stop(cam: Camera2D) -> void:
+	cam.offset = Vector2.ZERO
 
 # Chemată de `saratalin.gd` când boss-ul moare: de aici încolo portalul te lasă să pleci.
 func boss_invins() -> void:

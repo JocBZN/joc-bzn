@@ -13,6 +13,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (un singur Nether pe rundă: portalurile se închid după victorie)
+
+**Cerut de Răzvan:** „când ai ieșit din Nether după ce l-ai bătut pe Saratalin să fie cutremur și să intre portalul în pământ — să nu mai poți să intri tot run-ul ăla. Dacă sunt mai multe pe hartă în momentul ăla, să fie șterse și alea."
+
+**Cum e făcut** — `nether._inchide_portalurile()`, chemat doar de pe drumul VOLUNTAR de ieșire (care există numai după ce boss-ul a căzut):
+1. așteaptă **două cadre** — `_set_world_enabled(true)` tocmai a repornit generatorul, iar portalurile se nasc la următorul `_process`; fără așteptare n-ar avea ce scufunda;
+2. ia portalul cel mai apropiat de player (ăla prin care tocmai ai ieșit — stăteai lângă el când ai apăsat E) și îl **`reparent()`-ează în `World`**;
+3. `portals.opreste()` → șterge toate chunk-urile încărcate și ridică steagul `oprit`, pe care `_process` îl verifică primul;
+4. cutremur + `portal.intra_in_pamant()` (coboară + se stinge, ca statuia, apoi `queue_free`).
+
+**De ce pasul 2 e obligatoriu:** portalurile stau în containere pe chunk, în interiorul generatorului. Dacă îl lăsam acolo, `opreste()` l-ar fi eliberat odată cu containerul lui și scufundarea nu s-ar fi văzut niciodată — ar fi dispărut instant, ca ceilalți.
+
+**Filtrul din grupul „interactable":** statuile sunt în același grup, deci căutarea merge pe `has_method("intra_in_pamant")`, nu pe grup. Altfel ar fi putut nimeri o statuie mai apropiată.
+
+**Subtitlul de la întoarcere** s-a schimbat din „The world is where you left it" în **„The portals are closing"** — acum chiar asta se întâmplă pe ecran.
+
+**Consecință acceptată, nu bug:** dacă îl bați pe Saratalin dar mori în Nether înainte să ieși, ieșirea e forțată (`anunt = false`), deci portalurile RĂMÂN deschise. N-ai ieșit pe picioarele tale, deci n-ai încasat închiderea. Dacă Răzvan vrea altfel, se mută verificarea pe `_boss_invins` singur.
+
+**Verificat prin rulare** (cu `portal_chance` urcat la 100% în test, ca să existe portaluri reale generate): 43 portaluri pe hartă înainte → intrare pe unul real → boss chemat și omorât → ieșire pe portal → `oprit=true`, rămâne **1** (cel care se scufundă, cu părintele `World`, prins la jumătatea scufundării: y=30.6, alpha=0.66) ✅; după scufundare **0** ✅; după ~6000px de plimbare prin lume nouă tot **0**, cu 0 chunk-uri în generator ✅; captură cu portalul intrând în pământ sub textul „BACK / THE PORTALS ARE CLOSING" ✅.
+
+---
+
 ## Session log — 2026-07-26 (Nether-ul devine o luptă cu boss: nu ieși până nu-l bați)
 
 **Cerut de Răzvan:** „ca să poți să ieși din Nether trebuie să-l bați pe Saratalin, să scrii asta ca text pe ecran (înlocuit cu ce era înainte când intrai). Statuia de summon a lui Saratalin vreau să fie random într-un cerc cu apotemă de 1000px față de portalul de intrare și la minim 600px de el."

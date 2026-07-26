@@ -22,6 +22,10 @@ const SEED_SALT := 0x9C4E  # sămânță proprie, ca să nu iasă la fel ca la s
 @export var tries: int = 12                 # câte poziții încearcă până renunță la fereală
 
 var _loaded := {}
+# Portalurile se închid DEFINITIV pentru runda asta după ce l-ai bătut pe Saratalin și ai
+# ieșit din Nether (vezi `nether.gd`). Cât e `true` nu mai generăm niciunul — nici în
+# chunk-urile în care ai fi ajuns abia peste zece minute.
+var oprit := false
 var _props: Node2D = null     # nodul Props (copacii)
 var _rocks: Node2D = null     # nodul Rocks (pietrele)
 var _statues: Node2D = null   # nodul Statues (ca să nu punem portalul peste o statuie)
@@ -35,6 +39,8 @@ func _ready() -> void:
 		_statues = p.get_node_or_null("Statues") as Node2D
 
 func _process(_delta: float) -> void:
+	if oprit:
+		return
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
@@ -102,6 +108,16 @@ func _langa_statuie(pos: Vector2, key: Vector2i) -> bool:
 			if s != Vector2.INF and pos.distance_to(s) < min_dist_statue:
 				return true
 	return false
+
+# Gata cu portalurile în runda asta: nu mai generăm și ștergem tot ce e deja pe hartă.
+# Portalul prin care tocmai ai ieșit NU e printre ele — `nether.gd` îl scoate din generator
+# înainte să ne cheme, ca să apuce să intre frumos în pământ.
+func opreste() -> void:
+	oprit = true
+	for key in _loaded.keys():
+		if is_instance_valid(_loaded[key]):
+			_loaded[key].queue_free()
+	_loaded.clear()
 
 func _build_chunk(key: Vector2i) -> Node2D:
 	var container := Node2D.new()

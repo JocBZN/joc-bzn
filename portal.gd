@@ -26,6 +26,27 @@ extends "res://hitbox_reglabil.gd"
 
 @export var retur: bool = false   # true doar pe portalul de întoarcere din Nether
 
+# --- Închiderea definitivă (după ce l-ai bătut pe Saratalin) ---
+@export var sink_duration: float = 1.0   # cât durează scufundarea
+@export var sink_depth: float = 90.0     # cât de adânc coboară (se stinge oricum în paralel)
+
+# Portalul intră în pământ și dispare, ca statuia după invocare. Chemat din `nether.gd`
+# când te întorci învingător: din clipa aia nu mai există portaluri în runda asta.
+func intra_in_pamant() -> void:
+	var col := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if col != null:
+		col.set_deferred("disabled", true)   # nu mai e zid cât coboară
+	remove_from_group("interactable")        # și nu mai poți apăsa E pe el
+	var sprite := get_node_or_null("Sprite2D") as Sprite2D
+	if sprite == null:
+		queue_free()
+		return
+	var t := sprite.create_tween()
+	t.set_ease(Tween.EASE_IN)
+	t.tween_property(sprite, "position:y", sprite.position.y + sink_depth, sink_duration)
+	t.parallel().tween_property(sprite, "modulate:a", 0.0, sink_duration)
+	t.tween_callback(queue_free)
+
 # Portalul nu se consumă — intri și ieși de câte ori vrei.
 func poate_invoca() -> bool:
 	return true
