@@ -159,8 +159,11 @@ func _update_timer() -> void:
 	# În Limbo cronometrul rundei e înghețat, deci n-are ce să arate. Numărătoarea de
 	# acolo o desenează `limbo.gd`, nu HUD-ul — trebuie să stea DEASUPRA filtrului
 	# alb-negru, altfel roșul ei iese gri (filtrul acoperă și HUD-ul).
+	# La fel în Nether: cronometrul rundei e înghețat acolo, iar cel de 7:00 și-l desenează
+	# `nether.gd` singur (tot într-un CanvasLayer al lui).
 	var limbo := get_tree().get_first_node_in_group("limbo")
-	timer_label.visible = not (limbo != null and limbo.active)
+	var nether := get_tree().get_first_node_in_group("nether")
+	timer_label.visible = not ((limbo != null and limbo.active) or (nether != null and nether.active))
 	if not timer_label.visible:
 		return
 	if Difficulty.is_final_swarm():

@@ -1307,6 +1307,12 @@ func take_damage(amount: int) -> void:
 func die() -> void:
 	if dead:
 		return
+	# Ai murit în Nether → ieși ÎNTÂI din dimensiune (lumea, podeaua și dificultatea se pun la
+	# loc), abia apoi urmează drumul normal de mai jos. Altfel Limbo ar reporni decorul peste
+	# podeaua de cărămidă, iar cele două s-ar călca reciproc pe `mult_time_override`.
+	var nether := get_tree().get_first_node_in_group("nether")
+	if nether != null and nether.active:
+		nether.exit_nether(false)
 	# Undying Spirit: prima moarte nu e finală. Te duce în Limbo (lumea alb-negru) și,
 	# dacă reziști minutul, te întoarce aici. O SINGURĂ dată pe rundă — a doua oară
 	# `undying_used` e deja true și cazi pe Game Over-ul normal de mai jos.

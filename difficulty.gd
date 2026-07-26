@@ -69,9 +69,25 @@ var time: float = 0.0
 var frozen := false
 var mult_time_override := -1.0
 
+# --- NETHER (a doua dimensiune, vezi nether.gd) ---
+# Cât XP lasă inamicii, față de normal. 1.0 în lumea obișnuită; `nether.gd` îl urcă cât ești
+# acolo (risc mai mare → răsplată mai mare) și îl pune la loc la ieșire. Nether-ul folosește
+# tot `frozen` + `mult_time_override` ca Limbo, doar că timpul lui pleacă de la intrare și,
+# după cele 7 minute, sare pe curba de Final Swarm.
+var xp_bonus := 1.0
+
 func _process(delta: float) -> void:
 	if not frozen:
 		time += delta
+
+# Rundă nouă → curățăm TOT, nu doar cronometrul. `Difficulty` e autoload: dacă ieși în meniu
+# din Limbo sau din Nether (meniul de pauză → Main Menu), rămâneai cu `frozen = true` și cu
+# override-urile agățate, iar runda următoare pornea cu cronometrul blocat și cu XP dublu.
+func reset_run() -> void:
+	time = 0.0
+	frozen = false
+	mult_time_override = -1.0
+	xp_bonus = 1.0
 
 # Timpul din care se calculează CÂT DE TARI sunt inamicii (≠ timpul afișat).
 func _mult_time() -> float:
@@ -153,7 +169,8 @@ func xp_mult() -> float:
 	# ar fi ieșit „imposibil", nu „greu". În Final Swarm merge la fel ca viața lor.
 	return 2.0 * (1.0 + XP_PER_MIN * _lin_minutes()) \
 		* pow(HP_GROWTH_PER_MIN, _ramp_minutes()) \
-		* _fs_factor(FS_HP_DOUBLE_EVERY)
+		* _fs_factor(FS_HP_DOUBLE_EVERY) \
+		* xp_bonus
 
 # XP2 (rar) e deblocat după primele 2 minute
 func xp2_unlocked() -> bool:

@@ -13,6 +13,41 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (dimensiune nouă: NETHER — intri pe Portal cu E)
+
+**Cerut de Răzvan:** „vreau să fac o nouă dimensiune (într-un fel ca Limbo) — când apeși E pe Portal 1 să te teleporteze într-o dimensiune nouă; ai un folder Nether în Harta, acolo e tileset-ul pentru floor." A ales apoi: **întoarcerea DOAR prin portal** (stai cât vrei), **cronometru propriu de 7:00**, la **0:00 începe Nether Swarm**, înăuntru sunt **inamici + XP dublu**, iar **cronometrul rundei stă înghețat** cât ești acolo.
+
+**`harta/nether/Brick32.png`** e o textură de 128×128 care se repetă fără cusătură (cărămidă roșu-închis) — nu un atlas de tileset, deci merge direct ca podea infinită.
+
+**Ce am făcut — `nether.gd`** (nod `Nether`, CanvasLayer în `main.tscn`, grup „nether"), copiind tiparul din `limbo.gd`: NU se încarcă altă scenă, rămâi la aceleași coordonate, dar:
+- **podeaua** trece pe cărămidă. Truc: `biome.gdshader` amestecă `grass_tex` cu `desert_tex` după harta de biomuri — dacă îi dai ACEEAȘI textură pe amândouă, iese cărămidă peste tot, fără să scoți materialul și fără să atingi harta de biomuri. Butonul de mărime e `nether_tile_size` (96; fișierul e 128, iarba e 64). Vezi `ground.set_nether()`; nodul `Ground` intră acum în grupul „ground".
+- **decorul e oprit și golit**: `Props`, `Rocks`, `DesertStructures`, `Statues`, `Portals` (din `World`) + `Paths` (frate cu `World`). Ca la Limbo, nu e destul să le ascunzi — le golim de copii ȘI le resetăm `_loaded`, altfel la întoarcere ar crede că bucățile există deja și lumea ar rămâne goală.
+- **cronometrul rundei îngheață** (`Difficulty.frozen`), iar tăria inamicilor o dictează `_diff_time()`: maximul dintre `intrare + cât stai` și, după 0:00, `RUN_LENGTH + cât a trecut de la 0:00`. Două drepte, luăm maximul → nu scade niciodată brusc, și după 0:00 intri automat pe curba exponențială de Final Swarm.
+- **XP dublu**: `Difficulty.xp_bonus` (nou), înmulțit în `xp_mult()`; `nether.gd` îl pune pe 2.0 la intrare și 1.0 la ieșire.
+- **portalul de întoarcere** e tot `portal.tscn`, cu `retur = true`, pus **exact pe locul portalului prin care ai intrat** — nu peste player. (Prima variantă îl punea pe player și zidul portalului îl împingea afară: la test ajunsese la 40px de unde trebuia.) Stă direct în `World`, nu în `Portals`, ca golirea generatorului să nu-l șteargă.
+- **busolă**: cât portalul nu se vede pe ecran, o săgeată portocalie lipită de marginea ecranului arată încotro e, cu distanța sub ea. Fără ea te pierzi — Nether-ul e o câmpie infinită identică peste tot, cu o singură ieșire.
+- **inamicii** vin din spawner-ul normal (deja reglat), plus un val de `BURST` la intrare. Ambientul de pădure se oprește cât ești acolo.
+
+**`portal.gd`** joacă acum ambele roluri, după steagul `retur`: fals (portalurile din lume) → intri; adevărat (cel pus de `nether.gd`) → ieși. `invoca()` nu mai e gol.
+
+**Bug real găsit și reparat pe drum:** `Difficulty` e autoload, deci dacă ieșeai în meniu din Nether (sau **din Limbo — bug care exista deja**), rămâneai cu `frozen = true` și override-urile agățate, iar **runda următoare pornea cu cronometrul blocat**. Am adăugat `Difficulty.reset_run()` (curăță time + frozen + override + xp_bonus), chemat din `spawner._ready()` în locul lui `Difficulty.time = 0.0`.
+
+**Moartea în Nether:** `player.die()` scoate ÎNTÂI din dimensiune (`exit_nether(false)`, fără anunț), abia apoi merge pe drumul normal. Altfel Limbo (Undying Spirit) ar reporni decorul peste podeaua de cărămidă și cele două s-ar călca reciproc pe `mult_time_override`. `nether.enter()` refuză și el să pornească peste un Limbo activ.
+
+**Folder redenumit `harta/Nether` → `harta/nether`:** Godot dădea „Case mismatch… stored as res://harta/nether/…", ceea ce ar fi crăpat la exportul pe Android (sistem case-sensitive). Restul folderelor din `harta/` sunt oricum lowercase.
+
+**Verificat (rulare reală, 3 teste, capturi):**
+- Intrare/ieșire cu **tasta E apăsată pe bune** (`InputEventKey` prin `Input.parse_input_event`): nether activ true→false, cronometrul rundei se ascunde și reapare. ✅
+- Generatoare: `Props/Rocks/DesertStructures/Statues/Portals = 49 → 0 → 49`, `Paths = 81 → 0 → 81`; podeaua `grass → Brick32 → grass`. ✅
+- Cronometrul rundei chiar stă (1.50 → 1.50 după o secundă), cel de Nether curge (418.8 → 417.8). ✅
+- La 0:00: `mult_time_override` sare la 601, viața inamicilor **1.04× → 32.4×**, iar în 2 secunde mai urcă la 33.2× (exponențial); cronometrul devine roșu și scrie `+0:02`. ✅
+- Ieșire în meniu din Nether → rundă nouă: `frozen=false`, `override=-1`, `xp_bonus=1`, cronometrul curge, podeaua e iarbă. ✅
+- Un fals-pozitiv de test: la un moment dat E nu mai funcționa — cauza era ecranul de **Level Up deschis** (XP-ul de 102× îl urcase la nivel 5) care pune jocul pe pauză. Comportament corect, nu bug.
+
+**Ce reglezi ușor (toate în capul lui `nether.gd`):** `NETHER_TIME` (7:00), `XP_BONUS` (2.0), `BURST`/`BURST_RADIUS` (valul de la intrare), `COMPASS_MARGIN`, culorile cronometrului. Mărimea dalelor de cărămidă: `nether_tile_size` pe nodul `Ground`.
+
+---
+
 ## Session log — 2026-07-26 (ESC pune pe pauză TOT sunetul)
 
 **Cerut de Răzvan:** „vreau să se pună pauză la tot sunetul atunci când dau ESC."

@@ -36,7 +36,7 @@ var _final_swarm_announced := false
 
 func _ready() -> void:
 	add_to_group("spawner")   # ca Limbo să ne poată opri cât ești acolo
-	Difficulty.time = 0.0     # joc nou → resetăm cronometrul
+	Difficulty.reset_run()    # joc nou → cronometru de la 0, fără înghețări/override-uri rămase
 	GameSettings.reset_run()  # resetăm monedele și kill-urile strânse în rundă
 	_muta_player_aleator()
 	Audio.play("game_start", 6.0)  # jingle de început de rundă (fișier încet; 6 = jumătate față de 12)

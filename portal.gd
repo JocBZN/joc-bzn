@@ -5,14 +5,17 @@ extends StaticBody2D
 #
 # Când player-ul se apropie apare deasupra lui textul „Press E to interact",
 # exact ca la statuie (îl afișează `interact_ui.gd`, care se uită la grupul
-# „interactable"). ATENȚIE: deocamdată apăsarea tastei NU FACE NIMIC — e doar
-# schela. Când vrei să facă ceva (teleportare, deschis o zonă etc.), scrii în
-# `invoca()` de mai jos; restul (raza, textul, tasta) e deja pus la punct.
+# „interactable"). Apăsând E te duce în NETHER — a doua dimensiune (vezi `nether.gd`).
+#
+# ACELAȘI script joacă ambele roluri, după steagul `retur`:
+#   • `retur = false` (portalurile din lume, puse de `portals.gd`) → INTRI în Nether;
+#   • `retur = true`  (portalul pe care îl pune `nether.gd` unde ai aterizat) → IEȘI.
 #
 # Poziția nodului Portal = BAZA portalului (talpa) → și linia de la care te
 # acoperă (Y-sort), la fel ca la statuie.
 
 @export var interact_range: float = 200.0   # cât de aproape trebuie să fii ca să apară textul
+@export var retur: bool = false             # true doar pe portalul de întoarcere din Nether
 
 # ⚠️ HITBOX-ul și poziția artei se reglează MANUAL în editor, în `portal.tscn`.
 # Scriptul NU le mai atinge la rulare, deci CE VEZI ÎN EDITOR = CE IESE ÎN JOC.
@@ -31,10 +34,18 @@ func _ready() -> void:
 	add_to_group("interactable")
 
 # Mai poate fi folosit? `interact_ui.gd` întreabă asta înainte să arate textul.
-# Portalul n-are (încă) o stare de „consumat", deci mereu `true`.
+# Portalul nu se consumă — intri și ieși de câte ori vrei.
 func poate_invoca() -> bool:
 	return true
 
-# Apăsarea tastei de interacțiune ajunge aici. GOL INTENȚIONAT — portalul încă nu face nimic.
+# Apăsarea tastei de interacțiune ajunge aici: te duce în Nether sau te aduce înapoi.
 func invoca() -> void:
-	pass
+	var nether := get_tree().get_first_node_in_group("nether")
+	if nether == null:
+		return
+	if retur:
+		nether.exit_nether()
+	else:
+		var player := get_tree().get_first_node_in_group("player") as Node2D
+		# îi dăm și locul nostru: portalul de întoarcere din Nether se pune exact aici
+		nether.enter(player, global_position)
