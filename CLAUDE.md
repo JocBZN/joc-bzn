@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (Settings pe două pagini: KEYBINDS + GRAPHICS)
+
+**Cerut de Răzvan:** „add a separate window in the settings tab that is named Graphics — the main one should be named keybinds."
+
+**`settings_ui.gd`** are acum o bară cu două butoane sus și două pagini (`_pagini`, un dicționar nume → VBox; se vede una, restul ascunse). Tab-ul deschis stă aprins, ca să se vadă unde ești.
+- **KEYBINDS** = exact ce era înainte (slidere de volum + remaparea tastelor), doar redenumit. N-am mutat sliderele de sunet într-o pagină separată: n-a cerut-o, iar o a treia pagină pentru două slidere ar fi fost în plus.
+- **GRAPHICS** = `FULLSCREEN`, `V-SYNC`, `VIGNETTE`, `GLOW`, ca butoane ON/OFF (`_toggle_row`, care ține valoarea în `set_meta("valoare")` pe buton).
+
+**Ce e în spate:** patru câmpuri noi în `game_settings.gd`, salvate în `scores.save` alături de restul, plus `aplica_grafica()` (fereastră + vsync) chemat la pornire și la fiecare schimbare. `vignette`/`glow` le desenează `atmosphere.gd`, care e doar în joc → `_refresh_atmosfera()` caută grupul „atmosphere" și, dacă nu-l găsește (adică ești în meniul principal), pur și simplu nu face nimic; setarea se aplică la începutul rundei. Pagina scrie asta sub butoane: „effects apply in-game".
+
+**Fullscreen-ul NU pornește de la `false`:** în `_ready()` citim întâi modul real al ferestrei și abia apoi `_load()`. Altfel, la prima rulare fără fișier de salvare, am fi forțat fereastra în „windowed" chiar dacă proiectul pornește altfel.
+
+**O regresie prinsă de captură, nu de cod:** bara de taburi a împins conținutul cu ~60px, iar butonul BACK ieșea sub marginea ecranului pe pagina KEYBINDS (2 slidere + 5 taste + titlu). Reparat strângând spațierea: separația paginilor 12→8, butoanele 44→40px, spacer-ul de după bara de taburi scos. Verificat în AMBELE locuri unde apare blocul — meniul principal ȘI meniul de pauză, care are alt fundal și altă înălțime de titlu.
+
+**Verificat:** ambele pagini comută corect (vizibilitatea și tab-ul aprins); apăsarea comutatoarelor schimbă `GameSettings` ȘI starea reală — `window_get_vsync_mode()` a trecut pe 0 la V-SYNC OFF ✅; valorile puse înapoi la loc după test, ca să nu-i stric setările; capturi din meniul principal și din meniul de pauză, cu BACK întreg pe ecran ✅.
+
+---
+
 ## Session log — 2026-07-26 (înapoi la hitbox „ca la statuie": butoanele au fost o greșeală)
 
 **Reclamat de Răzvan, a doua oară:** „ba tot nu pot să schimb hitbox-ul la portal, poți să-i faci hitbox-ul ca la statuia lu' Garda?"

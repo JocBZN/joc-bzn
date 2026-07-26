@@ -19,6 +19,16 @@ var run_spawn: Vector2 = Vector2.ZERO  # unde a început runda (lumea e infinit�
 var music_volume: float = 0.7
 var sfx_volume: float = 1.0
 
+# --- grafică (pagina GRAPHICS din Settings) ---
+# Toate patru se salvează și se aplică la pornire (`aplica_grafica`).
+# `vignette` și `glow` le desenează `atmosphere.gd`, care e doar ÎN JOC — de aia, când le
+# schimbi din meniul principal, se aplică abia când începi runda. Din meniul de pauză se
+# văd imediat, fiindcă atunci nodul Atmosphere există.
+var fullscreen: bool = false
+var vsync: bool = true
+var vignette: bool = true   # marginile întunecate care duc ochiul spre centru
+var glow: bool = true       # bloom-ul subtil de pe zonele luminoase
+
 # --- taste (remapabile din Settings) ---
 # Acțiunile astea le creăm NOI, din cod (nu în project.godot), tocmai ca să le putem schimba din
 # meniu. Fiecare are taste implicite; dacă jucătorul alege alta, o reținem în `keybinds` și
@@ -43,8 +53,14 @@ const META := [
 ]
 
 func _ready() -> void:
+	# implicit pentru fullscreen = cum pornește proiectul; `_load()` îl suprascrie dacă
+	# jucătorul a ales altceva. Așa nu forțăm fereastra dacă nu s-a atins nimeni de setare.
+	var mod := DisplayServer.window_get_mode()
+	fullscreen = mod == DisplayServer.WINDOW_MODE_FULLSCREEN \
+		or mod == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
 	_load()
 	_setup_actions()   # după _load, ca să folosim tastele salvate dacă există
+	aplica_grafica()
 
 # --- taste ---
 # Creează acțiunile de mișcare în InputMap și le pune tastele (cele salvate sau cele implicite).
@@ -85,6 +101,45 @@ func set_music_volume(v: float) -> void:
 func set_sfx_volume(v: float) -> void:
 	sfx_volume = clampf(v, 0.0, 1.0)
 	_save()   # se aplică la următorul efect redat
+
+# --- grafică ---
+func set_fullscreen(on: bool) -> void:
+	fullscreen = on
+	aplica_grafica()
+	_save()
+
+func set_vsync(on: bool) -> void:
+	vsync = on
+	aplica_grafica()
+	_save()
+
+func set_vignette(on: bool) -> void:
+	vignette = on
+	_refresh_atmosfera()
+	_save()
+
+func set_glow(on: bool) -> void:
+	glow = on
+	_refresh_atmosfera()
+	_save()
+
+# Pune fereastra și vsync-ul pe ce zic setările. Nu atingem fereastra dacă e deja cum trebuie
+# (`window_set_mode` cu aceeași valoare tot clipește pe unele drivere).
+func aplica_grafica() -> void:
+	var mod := DisplayServer.window_get_mode()
+	var e_fullscreen := mod == DisplayServer.WINDOW_MODE_FULLSCREEN \
+		or mod == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	if fullscreen != e_fullscreen:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen \
+			else DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if vsync \
+		else DisplayServer.VSYNC_DISABLED)
+
+# Nodul Atmosphere există doar în joc; în meniu pur și simplu nu e nimic de anunțat.
+func _refresh_atmosfera() -> void:
+	var a := get_tree().get_first_node_in_group("atmosphere")
+	if a != null and a.has_method("apply_settings"):
+		a.apply_settings()
 
 # --- meta-progresie ---
 func level_of(id: String) -> int:
@@ -144,6 +199,7 @@ func _save() -> void:
 		f.store_var({
 			"scores": scores, "coins": coins, "upgrades": upgrades,
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "keybinds": keybinds,
+			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
 		})
 
 func _load() -> void:
@@ -160,5 +216,10 @@ func _load() -> void:
 		music_volume = float(data.get("music_volume", music_volume))
 		sfx_volume = float(data.get("sfx_volume", sfx_volume))
 		keybinds = data.get("keybinds", {})
+		# `fullscreen` are ca implicit ce-a citit `_ready()` din fereastra reală, nu `false`
+		fullscreen = bool(data.get("fullscreen", fullscreen))
+		vsync = bool(data.get("vsync", vsync))
+		vignette = bool(data.get("vignette", vignette))
+		glow = bool(data.get("glow", glow))
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil

@@ -18,14 +18,26 @@ extends Node
 
 var _light: PointLight2D
 var _player: Node2D
+var _vignette: TextureRect    # stratul de margini întunecate (se poate stinge din Settings → GRAPHICS)
+var _env: Environment         # mediul care ține glow-ul (idem)
 
 func _ready() -> void:
+	add_to_group("atmosphere")   # ca `game_settings.gd` să ne găsească la schimbarea setărilor
 	# „Lumină normală": am scos NOAPTEA (CanvasModulate întuneca tot) și LUMINA de pe player (PointLight2D).
 	# Lumea rămâne luminată normal. (Dacă vrei înapoi noaptea cyberpunk, decomentează cele două linii.)
 	#_setup_night()
 	#_setup_light()
 	_setup_vignette()
 	_setup_glow()
+	apply_settings()
+
+# Aprinde/stinge vignette-ul și glow-ul după pagina GRAPHICS. Chemată la pornire și de fiecare
+# dată când jucătorul bifează ceva acolo (din meniul de pauză se vede pe loc).
+func apply_settings() -> void:
+	if _vignette != null:
+		_vignette.visible = GameSettings.vignette
+	if _env != null:
+		_env.glow_enabled = GameSettings.glow
 
 func _process(_delta: float) -> void:
 	# lumina urmărește player-ul
@@ -57,6 +69,7 @@ func _setup_vignette() -> void:
 	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.stretch_mode = TextureRect.STRETCH_SCALE
 	layer.add_child(tr)
+	_vignette = tr
 
 func _setup_glow() -> void:
 	var env := Environment.new()
@@ -69,6 +82,7 @@ func _setup_glow() -> void:
 	var we := WorldEnvironment.new()
 	we.environment = env
 	add_child(we)
+	_env = env
 
 # Textură rotundă cu gradient radial, generată din cod (fără imagine externă).
 #   invers=false → centru plin, margini transparente (pentru lumină)

@@ -1,10 +1,14 @@
 extends VBoxContainer
 class_name SettingsUI
 
-# Bloc de setări REFOLOSIBIL: slidere de volum (Muzică / Efecte) + remaparea tastelor de mers.
+# Bloc de setări REFOLOSIBIL, cu DOUĂ pagini:
+#   • KEYBINDS — slidere de volum (Muzică / Efecte) + remaparea tastelor de mers;
+#   • GRAPHICS — fullscreen, v-sync, vignette, glow.
+# Sus e o bară cu două butoane care comută între ele; pagina deschisă are butonul mai luminos.
+#
 # Se folosește în DOUĂ locuri — meniul principal (menu.gd) și meniul de pauză din joc (pause.gd) —
-# ca să nu ținem două copii ale logicii de remapare. Cel care-l pune deasupra adaugă singur
-# titlul „SETTINGS" și butonul BACK; aici e doar conținutul (rândurile).
+# ca să nu ținem două copii ale logicii. Cel care-l pune deasupra adaugă singur titlul
+# „SETTINGS" și butonul BACK; aici e doar conținutul.
 #
 # Își prinde singur tasta apăsată în _input când e în modul remapare. Nu are nevoie de altceva
 # din exterior; citește/scrie totul prin autoload-ul GameSettings.
@@ -15,18 +19,79 @@ const BTN_SECOND := Color("594232")   # conturul
 var _remap_action := ""     # ce direcție așteaptă o tastă nouă (gol = nu remapăm acum)
 var _remap_buttons := {}    # action -> butonul care arată tasta
 
+var _pagini := {}           # nume pagină -> VBoxContainer
+var _taburi := {}           # nume pagină -> butonul din bara de sus
+
 func _ready() -> void:
 	add_theme_constant_override("separation", 12)
 	alignment = BoxContainer.ALIGNMENT_CENTER
+	add_child(_bara_taburi())
+	_pagini["keybinds"] = _pagina_keybinds()
+	_pagini["graphics"] = _pagina_graphics()
+	for nume in _pagini:
+		add_child(_pagini[nume])
+	arata_pagina("keybinds")
+
+# ---------- paginile ----------
+func _pagina_keybinds() -> VBoxContainer:
+	var v := _pagina_goala()
 	# volum: două slidere (0 = mut, dreapta = tare)
-	add_child(_volume_row("MUSIC", GameSettings.music_volume, _on_music_volume))
-	add_child(_volume_row("SOUND FX", GameSettings.sfx_volume, _on_sfx_volume))
-	add_child(_spacer(12))
-	add_child(_center_label("CONTROLS", 26))
-	add_child(_spacer(4))
+	v.add_child(_volume_row("MUSIC", GameSettings.music_volume, _on_music_volume))
+	v.add_child(_volume_row("SOUND FX", GameSettings.sfx_volume, _on_sfx_volume))
+	v.add_child(_spacer(6))
+	v.add_child(_center_label("CONTROLS", 26))
+	v.add_child(_spacer(4))
 	# câte un rând pentru fiecare direcție; apeși butonul și apoi tasta nouă
 	for action in GameSettings.KEY_ACTIONS:
-		add_child(_key_row(action))
+		v.add_child(_key_row(action))
+	return v
+
+func _pagina_graphics() -> VBoxContainer:
+	var v := _pagina_goala()
+	v.add_child(_toggle_row("FULLSCREEN", GameSettings.fullscreen, GameSettings.set_fullscreen))
+	v.add_child(_toggle_row("V-SYNC", GameSettings.vsync, GameSettings.set_vsync))
+	v.add_child(_spacer(6))
+	v.add_child(_center_label("EFFECTS", 26))
+	v.add_child(_spacer(4))
+	v.add_child(_toggle_row("VIGNETTE", GameSettings.vignette, GameSettings.set_vignette))
+	v.add_child(_toggle_row("GLOW", GameSettings.glow, GameSettings.set_glow))
+	v.add_child(_spacer(8))
+	# vignette/glow le desenează `atmosphere.gd`, care există doar în joc
+	var nota := _center_label("effects apply in-game", 16)
+	nota.modulate = Color(1, 1, 1, 0.55)
+	v.add_child(nota)
+	return v
+
+# Separația e 8, nu 12 ca înainte: bara de taburi a mai luat din înălțime, iar pagina de
+# KEYBINDS (2 slidere + 5 taste) împingea butonul BACK în afara ecranului.
+func _pagina_goala() -> VBoxContainer:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	return v
+
+# Bara de sus: „KEYBINDS | GRAPHICS"
+func _bara_taburi() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	for nume in ["keybinds", "graphics"]:
+		var b := _buton(nume.to_upper(), 20, Vector2(200, 40))
+		b.pressed.connect(arata_pagina.bind(nume))
+		_taburi[nume] = b
+		row.add_child(b)
+	return row
+
+# Arată o pagină și o ascunde pe cealaltă. Dacă eram în mijlocul unei remapări, o anulăm —
+# altfel prima tastă apăsată pe pagina de grafică ar fi înghițită de remaparea rămasă în aer.
+func arata_pagina(nume: String) -> void:
+	if not _pagini.has(nume):
+		return
+	cancel_remap()
+	for n in _pagini:
+		_pagini[n].visible = n == nume
+	for n in _taburi:
+		_stil_tab(_taburi[n], n == nume)
 
 # Cât timp remapăm, următoarea tastă apăsată devine noua comandă (Escape = renunț).
 func _input(event: InputEvent) -> void:
@@ -78,19 +143,34 @@ func _key_row(action: String) -> HBoxContainer:
 	l.custom_minimum_size = Vector2(160, 0)
 	l.add_theme_font_size_override("font_size", 22)
 	row.add_child(l)
-	var b := Button.new()
-	b.text = GameSettings.key_name(action)
-	b.custom_minimum_size = Vector2(180, 44)
-	b.add_theme_font_size_override("font_size", 20)
-	b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
-	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
-	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
-	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
-	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var b := _buton(GameSettings.key_name(action), 20, Vector2(180, 40))
 	b.pressed.connect(_begin_remap.bind(action))
 	_remap_buttons[action] = b
 	row.add_child(b)
 	return row
+
+# „Setare  [ ON ]" — butonul comută între ON și OFF și anunță GameSettings.
+func _toggle_row(text: String, value: bool, cb: Callable) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var l := Label.new()
+	l.text = text
+	l.custom_minimum_size = Vector2(160, 0)
+	l.add_theme_font_size_override("font_size", 22)
+	row.add_child(l)
+	var b := _buton("ON" if value else "OFF", 20, Vector2(180, 40))
+	b.pressed.connect(_on_toggle.bind(b, cb))
+	b.set_meta("valoare", value)
+	row.add_child(b)
+	return row
+
+func _on_toggle(b: Button, cb: Callable) -> void:
+	var noua: bool = not bool(b.get_meta("valoare"))
+	b.set_meta("valoare", noua)
+	b.text = "ON" if noua else "OFF"
+	Audio.play("button", -3.0, 0.0)
+	cb.call(noua)
 
 func _on_music_volume(v: float) -> void:
 	GameSettings.set_music_volume(v)
@@ -107,6 +187,27 @@ func _begin_remap(action: String) -> void:
 	_remap_buttons[action].text = "press a key…"
 
 # ---------- helpers ----------
+# Butonul de lemn folosit peste tot aici (taste, comutatoare, taburi).
+func _buton(text: String, font_size: int, min_size: Vector2) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = min_size
+	b.add_theme_font_size_override("font_size", font_size)
+	b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
+	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
+	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	return b
+
+# Tab-ul paginii deschise stă aprins (culoarea de „apăsat"), ca să se vadă unde ești.
+func _stil_tab(b: Button, activ: bool) -> void:
+	var bg := BTN_MAIN.lightened(0.22) if activ else BTN_MAIN.darkened(0.18)
+	var bd := BTN_SECOND.lightened(0.22) if activ else BTN_SECOND
+	b.add_theme_stylebox_override("normal", _sb(bg, bd, 3))
+	b.add_theme_stylebox_override("hover", _sb(bg.lightened(0.10), bd.lightened(0.10), 3))
+	b.add_theme_color_override("font_color", Color(1, 0.97, 0.9) if activ else Color(0.8, 0.75, 0.7))
+
 func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg

@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://u6x75iwkbjkx" path="res://harta/Portal 1.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_portal"]
-size = Vector2(320, 100)
+size = Vector2(273, 90)
 
 [node name="Portal" type="StaticBody2D" unique_id=1936592460]
 script = ExtResource("1_script")
