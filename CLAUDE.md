@@ -13,6 +13,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (meniul pornește muzica fără fade-in)
+
+**Cerut de Răzvan:** „muzica de la meniu sa fie fara fade in".
+
+**Ce s-a făcut:** `_play_track()` a primit un parametru nou, `fade_in: float = FADE`. `play_menu_music()` îi dă `0.0` → boxa pornește direct la volumul ei, fără tween. Restul (joc, Nether, revenire din Nether) rămâne pe `FADE = 3.0`, nemodificat.
+
+**Ce NU s-a atins:** stingerea. Fade-out-ul de 3 s al meniului rămâne, deci când pleci în rundă cele două melodii tot se încrucișează. Cererea era doar despre intrare.
+
+**Verificat** cu o scenă de test peste `menu.tscn`, citind `Audio._music.volume_db` față de `_volum_muzica()`:
+```
+MENIU: [   2 ms] -20.94 dB (țintă -20.94)   ← deja la volum din primul cadru
+MENIU: [1335 ms] -20.94 dB (țintă -20.94)
+--- Audio.play_music() ---
+JOC:   [  48 ms] -59.21 dB (țintă -18.94)   ← fade-ul de rundă a rămas intact
+JOC:   [1541 ms] -38.84 dB (țintă -18.94)
+```
+Scena de test a fost ștearsă după.
+---
+
 ## Session log — 2026-07-26 (sunet pe fiecare puls mov al lui Saratalin)
 
 **Cerut de Răzvan:** „vreau atunci cand e flashing purple saratalin sa fie un audio fx - e in nether audio se numeste Saratalin Flashing Purple. Vreau sa se auda de fiecare data separat cand e un singur flash."

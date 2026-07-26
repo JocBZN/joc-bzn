@@ -104,8 +104,11 @@ func play(name: String, volume_db: float = 0.0, pitch_rand: float = 0.08) -> voi
 
 # --- Muzică de fundal, în buclă ---
 # Meniul o pornește cu play_menu_music(), jocul cu play_music() (spawner._ready).
+# Meniul intră FĂRĂ fade-in (`fade_in = 0`): e primul lucru care se aude la pornirea jocului,
+# iar o urcare de 3 secunde acolo se simte ca și cum sunetul ar fi stricat. Stingerea rămâne
+# cu fade — când pleci din meniu în rundă, cele două melodii tot se încrucișează frumos.
 func play_menu_music(volume_db: float = -14.0) -> void:
-	_play_track(MUSIC_MENU, volume_db)
+	_play_track(MUSIC_MENU, volume_db, 0.0)
 
 # Muzica din joc: alege o melodie la întâmplare din MUSIC_GAME, alta (posibil) la fiecare rundă.
 # Sar peste fișierele care lipsesc, ca să nu iasă tăcere dacă unul e șters/redenumit.
@@ -188,7 +191,9 @@ func _opreste_tween(tw: Tween) -> void:
 	if tw != null and tw.is_valid():
 		tw.kill()
 
-func _play_track(path: String, volume_db: float) -> void:
+# `fade_in` = în câte secunde urcă melodia NOUĂ de la tăcere la volumul ei. 0 = pornește direct
+# la volum (folosit de meniu). Stingerea celei vechi ține oricum FADE secunde.
+func _play_track(path: String, volume_db: float, fade_in: float = FADE) -> void:
 	# path gol sau fișier lipsă = pur și simplu tăcere (nu crapă, nu dă erori)
 	if path == "" or not ResourceLoader.exists(path):
 		stop_music()
@@ -216,12 +221,17 @@ func _play_track(path: String, volume_db: float) -> void:
 	_music_path = path
 	_music_base_db = volume_db
 	_music.stream = s
-	# pornim din tăcere și urcăm în FADE secunde până la volumul cerut (+ reglajul din Settings)
+	_opreste_tween(_tw_in)
+	if fade_in <= 0.0:
+		# fără fade: pornește direct la volumul cerut (+ reglajul din Settings)
+		_music.volume_db = _volum_muzica()
+		_music.play()
+		return
+	# pornim din tăcere și urcăm în `fade_in` secunde până la volumul cerut
 	_music.volume_db = TACERE_DB
 	_music.play()
-	_opreste_tween(_tw_in)
 	_tw_in = create_tween()
-	_tw_in.tween_property(_music, "volume_db", _volum_muzica(), FADE)
+	_tw_in.tween_property(_music, "volume_db", _volum_muzica(), fade_in)
 
 func _volum_muzica() -> float:
 	return _music_base_db + _lin_to_db(GameSettings.music_volume)   # reglajul „Muzică" din Settings
