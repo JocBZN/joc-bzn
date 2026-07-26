@@ -13,6 +13,34 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (boss-ii nu mai pot fi omorâți instant)
+
+**Cerut de Răzvan:** „Vreau sa nu poti sa dai instakill la bosses (saratalin si garda)."
+
+**Ce s-a făcut:**
+- Grup nou **`"boss"`**, la care se înscriu în `_ready()` atât `garda.gd` cât și `saratalin.gd`. Un singur loc de adevăr; un boss viitor devine imun doar adăugându-se în grup.
+- `bullet.gd::_on_body_entered()` și `player.gd::_sword_damage_pass()` — condiția de instakill are acum `and not <ținta>.is_in_group("boss")`. Erau EXACT două locuri care fac instakill (ambele calculau `dealt = int(hp)`); nu există altele — verificat prin căutare după `999999` și după `.hp) if`.
+- `codex.html`: `warn: "Nu merge pe boss (Garda / Saratalin)"` la ambele Hacksaw-uri, plus „· nu pe boss" la Duridama. **Artifactul a fost republicat.**
+
+**Duridama era deja imună, structural.** Aurirea trăiește în `enemy.gd` (`_try_golden` + ramura `if golden` din `take_damage`), iar boss-ii au `take_damage` propriu, care n-o cheamă niciodată. N-a trebuit atins nimic — dar merită scris, ca să nu pară o scăpare la o citire viitoare.
+
+**Textul de pe cartonașul din joc a rămas neschimbat** („1% instakill (+0.5% / stack)"). N-a cerut asta și pe cartonaș nu prea e loc; dacă vrea, se adaugă în `levelup.gd`.
+
+**Verificat** cu instakill setat la 100%, pe ambele căi de atac:
+```
+=== CALEA GLONȚULUI ===
+  Garda: în grupul boss=true | hp 305 -> 295 | mort=false -> OK
+  Saratalin: în grupul boss=true | hp 10000 -> 9990 | mort=false -> OK
+  inamic normal: în grupul boss=false | hp 30 -> 0 | mort=true -> OK
+=== CALEA SĂBIEI ===
+  Garda: atins de sabie=true | hp 306 -> 296 | mort=false -> OK
+  Saratalin: atins de sabie=true | hp 10000 -> 9990 | mort=false -> OK
+```
+Al treilea rând e important: **inamicul normal moare în continuare din prima**, deci Hacksaw n-a fost stricat, doar limitat. Scena de test a fost ștearsă după.
+
+**⚠️ Codexul publicat rămăsese în urmă cu mai multe sesiuni.** `codex.html` din repo era mai nou decât artifactul (Undying Spirit la 6s + „Blocked" + Unic, Angel Wings +10 nu +15, șansele 40/35/15/7.5/2.5 nu 30/30/20/15/5, nota despre proiectile pe Sabie & Stingător). Cineva a editat fișierul și n-a mai republicat. **Publicarea cere întâi `WebFetch` pe URL-ul artifactului** (altfel tool-ul refuză cu „hasn't viewed the latest version"), apoi `Artifact url=…`. Înainte de publicare am comparat live-ul cu repo-ul și am verificat în `levelup.gd` că șansele din repo sunt cele reale (`"common": 40.0`) — deci nu s-a pierdut nimic din ce era publicat.
+---
+
 ## Session log — 2026-07-26 (meniul pornește muzica fără fade-in)
 
 **Cerut de Răzvan:** „muzica de la meniu sa fie fara fade in".

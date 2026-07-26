@@ -95,8 +95,11 @@ func _update_target(delta: float) -> void:
 
 func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("enemy"):
-		# Hacksaw: șansă să ucidă instant inamicul (îi scoatem toată viața dintr-o lovitură)
-		var kill := instakill_chance > 0.0 and randf() < instakill_chance
+		# Hacksaw: șansă să ucidă instant inamicul (îi scoatem toată viața dintr-o lovitură).
+		# BOSS-II SUNT IMUNI (grupul „boss": Garda și Saratalin). Au bară proprie, faze și o
+		# cinematică la jumătatea vieții — un instakill le-ar putea încheia lupta din prima
+		# lovitură, la întâmplare, și tot ce s-a construit în jurul lor n-ar mai însemna nimic.
+		var kill := instakill_chance > 0.0 and not body.is_in_group("boss") and randf() < instakill_chance
 		var dealt := damage
 		if kill:
 			dealt = int(body.hp) if "hp" in body else 999999

@@ -957,9 +957,10 @@ func _sword_damage_pass(t: Dictionary) -> void:
 		if not _sword_rect_hit(dir, rect, enemy.global_position):
 			continue
 		loviti[id] = true
-		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură)
+		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură).
+		# Boss-ii sunt imuni, exact ca la gloanțe (vezi nota din `bullet.gd`).
 		var ik := instakill_chance_now()
-		var kill := ik > 0.0 and randf() < ik
+		var kill := ik > 0.0 and not enemy.is_in_group("boss") and randf() < ik
 		var dealt := dmg
 		if kill and "hp" in enemy:
 			dealt = int(enemy.hp)

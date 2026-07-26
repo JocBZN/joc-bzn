@@ -99,6 +99,7 @@ func _ready() -> void:
 	speed = speed * Difficulty.enemy_speed_mult()
 	hp = max_hp
 	add_to_group("enemy")   # ca gloanțele să-l lovească și să facă damage la contact
+	add_to_group("boss")    # IMUN la instakill (Hacksaw) — vezi `bullet.gd` / `player.gd`
 	add_to_group("saratalin")
 	var bara := _bara()
 	if bara != null:
