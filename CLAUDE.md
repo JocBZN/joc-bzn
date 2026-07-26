@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (înapoi la hitbox „ca la statuie": butoanele au fost o greșeală)
+
+**Reclamat de Răzvan, a doua oară:** „ba tot nu pot să schimb hitbox-ul la portal, poți să-i faci hitbox-ul ca la statuia lu' Garda?"
+
+**Ce se întâmpla de fapt** — s-a văzut în `git status`, nu din ce ziceam eu: `portal.tscn` avea forma dusă la **320×100**. Adică Răzvan CHIAR reușise s-o schimbe, trăgând de pătrățelele lui `CollisionShape2D`. Doar că `_aplica_hitbox()` din scriptul `@tool` o suprascria la fiecare încărcare din exportările Nord/Sud/Est/Vest. Din perspectiva lui: „trag, salvez, se întoarce la loc" = „nu pot să schimb hitbox-ul". Scena mai avea și `sink_duration = null` / `sink_depth = null`, semn că editorul lui se încurcase de tot cu scriptul.
+
+**Lecția, scrisă aici ca să nu se repete:** dacă o valoare e reglată CU MÂNA în editor, niciun script nu are voie să i-o scrie la încărcare. „Butoane comode" peste o valoare trasă cu mouse-ul înseamnă că mouse-ul pierde mereu, tăcut. Prima reclamație („nu văd butoanele") am pus-o pe seama cache-ului de editor — plauzibil, dar tratamentul corect era să întreb ce încearcă să facă, nu să lustruiesc butoanele.
+
+**Ce s-a făcut:**
+- `hitbox_reglabil.gd` **șters**;
+- `portal.gd` și `summoning_portal.gd` sunt iar scripturi simple (`extends StaticBody2D`, fără `@tool`), care NU ating `CollisionShape2D`. Exact tiparul din `statue.gd`;
+- `portal.tscn` păstrează **320×100** (valoarea lui) și a scăpat de liniile `= null`;
+- pentru „vreau să văd hitbox-ul cât joc" există deja meniul Godot **Debug → Visible Collision Shapes**; nu ne trebuie cod.
+
+**Verificat:** forma rămâne 320×100 după încărcare (înainte se întorcea la 250×60) ✅; lanțul complet încă merge — intrare în Nether pe un portal real, invocare, boss omorât, ieșire, portalurile se închid, 0 rămase ✅.
+
+---
+
 ## Session log — 2026-07-26 (bug: la începutul rundei camera nu e pe player)
 
 **Reclamat de Răzvan:** „când dau start la joc, ecranul nu e pe player din prima, e un bug dubios."

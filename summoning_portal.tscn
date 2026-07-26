@@ -8,10 +8,6 @@ size = Vector2(200, 44)
 
 [node name="SummoningPortal" type="StaticBody2D"]
 script = ExtResource("1_script")
-nord = 22.0
-sud = 22.0
-est = 100.0
-vest = 100.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture_filter = 1

@@ -1,5 +1,4 @@
-@tool
-extends "res://hitbox_reglabil.gd"
+extends StaticBody2D
 
 # SUMMONING PORTAL — structura din Nether care îl cheamă pe SARATALIN (`saratalin.gd`).
 # E sora statuii din lumea normală (`statue.gd`): apeși E și pornește aceeași secvență —
@@ -12,9 +11,13 @@ extends "res://hitbox_reglabil.gd"
 # pune una nouă la fiecare intrare în Nether.
 #
 # Poziția nodului = BAZA structurii (talpa) → și linia de la care te acoperă (Y-sort).
-# Butoanele de hitbox (Nord/Sud/Est/Vest + Vezi Hitbox) vin din `hitbox_reglabil.gd`.
+#
+# HITBOX-ul se reglează CU MÂNA în `summoning_portal.tscn`, ca la statuie: click pe
+# `CollisionShape2D` și tragi de pătrățelele portocalii. Scriptul nu-l atinge niciodată.
 
 const BOSS := preload("res://saratalin.tscn")
+
+@export var interact_range: float = 200.0   # cât de aproape trebuie să fii ca să apară textul
 
 # --- Cutremur (cât se scufundă structura) ---
 @export var shake_strength: float = 24.0
@@ -34,6 +37,9 @@ const ALERT_DIR := "res://Upgrades/symbol_alert_002_large_red/"
 const ALERT_FRAMES := 16   # frame0000.png … frame0015.png
 
 var _summoned := false
+
+func _ready() -> void:
+	add_to_group("interactable")   # ca să apară „Press E to interact" (vezi `interact_ui.gd`)
 
 # O singură invocare per structură.
 func poate_invoca() -> bool:
