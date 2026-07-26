@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (ESC pune pe pauză TOT sunetul)
+
+**Cerut de Răzvan:** „vreau să se pună pauză la tot sunetul atunci când dau ESC."
+
+**Ce am făcut:**
+- **`audio.gd`: `pause_all()` / `resume_all()`** — pun `stream_paused = true` pe muzică, pe ambientul de pădure și pe toate cele 12 boxe din pool. **`stream_paused`, nu `stop`**: la Resume totul continuă exact de unde a rămas (ca butonul de pauză de la un player), inclusiv un efect prins la jumătate.
+- **Excepție necesară:** `play()` face acum `p.stream_paused = false` pe boxa pe care o ia. Fără asta, clicurile din meniul de pauză și clicul-preview de la slider-ul SFX (`settings_ui.gd:100`) ar fi fost mute — boxele erau înghețate, iar `_find_free_player()` le vede tot ca „ocupate" (o boxă pe pauză raportează `playing = true`).
+- **`pause.gd`:** `Audio.pause_all()` în `_open_menu()`, `Audio.resume_all()` în `_close_menu()` — **și în `_on_main_menu()` + `_on_restart()`**. Ultimele două sunt obligatorii: `Audio` e autoload, supraviețuiește schimbării de scenă, deci boxele înghețate ar fi rămas mute în meniu / în runda nouă (tema de meniu ar fi „cântat" fără sunet).
+
+**Verificat (end-to-end, joc real):** scenă de test care instanțiază `main.tscn` și trimite un `InputEventKey` ESC prin `Input.parse_input_event` → meniu vizibil, `tree.paused = true`, muzică și ambient pauzate, iar după 1 secundă pe pauză **muzica a avansat cu 0.000s**. ESC din nou → meniul se închide și în următoarea secundă muzica avansează **0.981s**. Separat: un clic de buton dat în timpul pauzei chiar dezgheață o boxă și se aude, muzica rămânând pe pauză. Fișierele de test șterse.
+
+**De știut:** din pauză → Settings, slider-ul **Music** nu-ți dă feedback audibil (muzica e pe pauză); cel de **SFX** da, fiindcă are clicul de preview. Dacă te încurcă, se rezolvă ușor: `Audio.resume_all()` la intrarea în pagina de Settings și `pause_all()` la ieșire.
+
+---
+
 ## Session log — 2026-07-26 (muzică de fundal în joc: 2 melodii, aleasă random la fiecare rundă)
 
 **Cerut de Răzvan:** „ți-am adăugat un folder în audio — acolo sunt 2 melodii de fundal pentru când începe jocul. Le dai play random de fiecare dată."

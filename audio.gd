@@ -81,6 +81,7 @@ func play(name: String, volume_db: float = 0.0, pitch_rand: float = 0.08) -> voi
 		return
 	_ultima[name] = acum
 	var p := _find_free_player()
+	p.stream_paused = false   # boxa poate fi înghețată de pause_all(); clicurile din meniu trebuie să se audă
 	p.stream = _streams[name]
 	p.volume_db = volume_db + _lin_to_db(GameSettings.sfx_volume)   # reglajul „Efecte" din Settings
 	p.pitch_scale = 1.0 + randf_range(-pitch_rand, pitch_rand)
@@ -198,6 +199,27 @@ func _process(delta: float) -> void:
 		target = 1.0 - d
 	_ambient_level = lerpf(_ambient_level, target, clampf(delta * AMBIENT_FADE, 0.0, 1.0))
 	_ambient.volume_db = AMBIENT_DB + _lin_to_db(_ambient_level * GameSettings.sfx_volume)
+
+# --- Pauză globală de sunet (meniul de ESC) ---
+# Îngheață TOT ce se aude acum — muzica, ambientul de pădure și efectele care încă sună —
+# păstrând poziția, ca butonul de pauză de la un player. `stream_paused` (nu `stop`) = la Resume
+# continuă de unde a rămas. Clicurile din meniul de pauză se aud în continuare: `play()`
+# dezgheață boxa pe care o folosește.
+func pause_all() -> void:
+	if _music != null:
+		_music.stream_paused = true
+	if _ambient != null:
+		_ambient.stream_paused = true
+	for p in _players:
+		p.stream_paused = true
+
+func resume_all() -> void:
+	if _music != null:
+		_music.stream_paused = false
+	if _ambient != null:
+		_ambient.stream_paused = false
+	for p in _players:
+		p.stream_paused = false
 
 # Găsește o boxă care nu cântă; dacă toate cântă, o refolosește pe următoarea (rotativ).
 func _find_free_player() -> AudioStreamPlayer:

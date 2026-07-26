@@ -60,12 +60,14 @@ func _open_menu() -> void:
 	visible = true
 	_open = true
 	get_tree().paused = true
+	Audio.pause_all()      # tot sunetul îngheață (muzică, ambient, efecte) — se reia de unde a rămas
 
 func _close_menu() -> void:
 	_settings_ui.cancel_remap()
 	visible = false
 	_open = false
 	get_tree().paused = false
+	Audio.resume_all()
 
 # ---------- pagini ----------
 func _build_main_page() -> void:
@@ -100,10 +102,12 @@ func _on_resume() -> void:
 
 func _on_main_menu() -> void:
 	get_tree().paused = false
+	Audio.resume_all()   # obligatoriu: Audio e autoload, boxele înghețate ar rămâne mute în meniu
 	get_tree().change_scene_to_file("res://menu.tscn")
 
 func _on_restart() -> void:
 	get_tree().paused = false
+	Audio.resume_all()
 	get_tree().reload_current_scene()
 
 func _on_settings() -> void:
