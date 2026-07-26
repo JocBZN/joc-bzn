@@ -13,6 +13,27 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (Grasu: 3 direcții de alergare făcute prin oglindire)
+
+**Cerut de Răzvan:** „la grasu vreau sa facem mirroring la niste animatii - ti-am sters running west, north-west, si south-west. Iei tu counterparts de la directiile astea, le faci mirroring".
+
+**Atenție la ce s-a șters de fapt:** el a zis „west, north-west, south-west", dar în repo lipsesc **west, north-west și south-EST**; `south-west.gif` e încă acolo. Am mers pe ce zice folderul, nu pe ce zice mesajul — intenția era clară (direcția care lipsește se face din cea care a rămas). Deci: `west ← east`, `north_west ← north_east`, `south_east ← south_west`.
+
+**Ce s-a făcut:** `tool_mirror_grasu.gd` (unealtă nouă, se rulează ca scenă) încarcă cadrele-sursă cu `Image.load_from_file`, le dă `flip_x()` și le salvează peste cele 12 nume existente (3 direcții × 4 cadre). Numele și `.import`-urile păstrate ⇒ UID-urile rămân valabile ⇒ **`player_frames.tres` și `player.gd` n-au fost atinse**.
+
+**🔑 Capcana reală — oglindirea se face față de PERSONAJ, nu față de pânză.** `flip_x()` întoarce toată imaginea de 124×124, deci dacă arta nu e fix în mijloc, personajul ajunge în altă parte a pânzei — iar în joc **sare lateral** exact când te întorci. Unealta măsoară conturul opac înainte și după și mută rezultatul înapoi pe coloanele originalului (corecții de 1–6 px aici).
+
+**Verificat pe rulare reală** (nu doar în fișiere): apăsat fiecare din cele 8 direcții în joc și tipărit ce animație pornește + unde cade centrul artei față de nod:
+```
+east/west          -2.0 / -2.0 px
+north_east/north_west  -2.5 / -2.5 px
+south_east/south_west  +2.5 / +2.5 px
+```
+Identice în fiecare pereche, deci întoarcerea nu mișcă sprite-ul. Plus randate toate cele 8 direcții × 4 cadre și o poză din joc.
+
+**De reținut:** cele 3 direcții sunt acum **derivate**. Dacă se redesenează `east` / `north_east` / `south_west`, trebuie rulată din nou unealta, altfel cele două jumătăți o iau în direcții diferite.
+---
+
 ## Session log — 2026-07-27 (inamicul e acum polițist)
 
 **Cerut de Răzvan:** „ti-am pus sprite-uri noi in homeless directii, le schimbi tu si le faci si frame uri".
