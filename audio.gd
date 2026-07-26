@@ -25,6 +25,7 @@ const SFX := {
 	"forest_ambient":  "res://audio/Forest Ambient.wav",               # ambient de pădure (buclă, vezi mai jos)
 	"teleport":        "res://audio/Nether Audio/Teleport Sfx.wav",    # E pe portal: intrarea/ieșirea din Nether
 	"saratalin_flash": "res://audio/Nether Audio/Saratalin Flashing Purple.wav",  # UN puls mov din cinematica lui Saratalin
+	"enemy_hit":      "res://audio/Enemy Hit.wav",                     # un proiectil a rănit un inamic
 }
 
 const CHUNK_PX := 512.0     # mărimea unui chunk (ca în props/ground/pathways) — pentru desertness

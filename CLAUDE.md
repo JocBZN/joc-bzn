@@ -13,6 +13,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (sunet când un proiectil rănește un inamic)
+
+**Cerut de Răzvan:** „ti-am adaugat un sunet se numeste - Enemy Hit - vreau de fiecare data cand un inamic e ranit de un proiectil sa se auda usor sunetul ala".
+
+**Ce s-a făcut:**
+- `audio.gd` — `"enemy_hit": "res://audio/Enemy Hit.wav"`.
+- `bullet.gd::_on_body_entered()` — `Audio.play("enemy_hit", -8.0)` imediat după `take_damage`. Pus în glonț, nu în `enemy.gd::take_damage`, din două motive: (1) cererea zice **„de un proiectil"**, iar `take_damage` e chemat și de sabie, stingător, Thunder God și explozii; (2) așa prinde și **boss-ii**, care au `take_damage` propriu și n-ar fi sunat niciodată dacă hook-ul stătea în `enemy.gd`.
+- Fișierul a fost importat (`--import`) înainte de test.
+
+**De ce −8 și nu altceva (nu din ureche):** măsurat RMS-ul fișierului cu un script GDScript peste PCM-ul brut → **−20.0 dBFS**, vârf 1.0 (deci „hot": se poate doar atenua, nu mări). La −8 iese **~−28 dBFS efectiv**, care se așază exact unde trebuie în mixul măsurat pe 2026-07-2x: sub stingător (−25, celălalt sunet care pulsează încontinuu) și mult peste pași (−37).
+
+**Limită de recunoscut:** nu se poate compara direct cu sunetul de tras. `Bullet.mp3` e comprimat, deci RMS-ul lui n-a fost măsurabil niciodată — cei −12.5 dB ai lui sunt o estimare din ureche (vezi log-ul din 2026-07-25). Am ancorat sunetul nou în WAV-urile măsurate, nu în el.
+
+**Prima variantă a fost prea încet.** Am pornit de la −14 (≈ −34 efectiv), adică sub pași — practic inaudibil sub gloanțe. Măsurătoarea RMS a arătat asta; de aia se măsoară, nu se ghicește.
+
+**Verificat pe rulare reală**, cu trei inamici cu 100 000 HP lângă player (ca să fie RĂNIȚI, nu uciși):
+```
+TEST: porniri Enemy Hit in 5s = 10
+TEST: enemy_hit=-15.96 dB | shoot=-20.46 dB
+```
+(cifrele includ slider-ul „Efecte"; ele sunt volume SETATE, nu loudness — comparația reală e cea pe RMS de mai sus). Scena de test a fost ștearsă după.
+---
+
 ## Session log — 2026-07-26 (sunetul glonțului, de 1.5× mai încet)
 
 **Cerut de Răzvan:** „Fa cu 1.5x audiou de la gloante mai incet".
