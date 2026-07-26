@@ -38,8 +38,12 @@ const LIGHTNING := preload("res://lightning.tscn")
 @export var attack_interval: float = 1.8
 @export var bolt_damage: int = 18
 @export var bolt_speed: float = 320.0
-# Culoarea proiectilelor lui — roz-magenta, ca foaia lui, ca să nu le confunzi cu ale Gărzii.
-@export var bolt_tint: Color = Color(1.6, 0.5, 1.5)
+# Proiectilul lui e ȘTREANGUL (`Saratalin Attack.png`), nu bastona Gărzii. Cadrele rotite
+# cu contur mov sunt generate de `tool_contur.gd` — aceeași unealtă care a făcut bastona,
+# deci arată la fel de „vrăjit". Colorizarea e ușoară: doar ridică movul și luminozitatea,
+# ca să prindă glow-ul din `atmosphere.gd`, fără să înece culoarea funiei.
+const BOLT_FRAMES := "res://harta/nether/Nether Boss/attack_frames/"
+@export var bolt_tint: Color = Color(1.2, 1.0, 1.25)
 
 # --- Atacul special: un CERC de proiectile în toate direcțiile ---
 # Garda trage o rafală spre tine; Saratalin umple ecranul în jurul lui, deci nu poți sta
@@ -187,6 +191,7 @@ func _trage(dir: Vector2, cu_sunet: bool = true) -> void:
 	# `_ready()`, iar `_ready()` se declanșează chiar în clipa în care nodul intră în arbore.
 	# Pus după, proiectilele rămâneau violet ca ale Gărzii. (`damage`/`speed` se citesc în
 	# fiecare cadru, deci pe alea nu le deranjează ordinea.)
+	proj.frame_dir = BOLT_FRAMES
 	proj.tint = bolt_tint
 	proj.damage = maxi(1, int(round(bolt_damage * Difficulty.enemy_damage_mult())))
 	proj.speed = bolt_speed

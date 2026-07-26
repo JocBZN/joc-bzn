@@ -1,25 +1,48 @@
 extends Node
 
-# Generator: din bastona orientată nord-est (police baton.png) scoate o rotire COMPLETĂ, cadru
-# cu cadru, fiecare cu contur mov de 2px (1px plin + 1px translucid = glow discret).
-# Rulare: godot --headless --path <proj> res://tool_baton.tscn --quit-after 300
+# Generator de cadre pentru PROIECTILE: ia o poză, o rotește complet (cadru cu cadru) și
+# pune pe fiecare un contur MOV de 2px — 1px plin lipit de desen + 1px pe jumătate
+# transparent, ca să arate a strălucire, nu a chenar desenat cu creionul.
+#
+# Rulare:  godot --headless --path <proj> res://tool_contur.tscn
+#
+# A înlocuit `tool_baton.gd`, care făcea același lucru doar pentru bastona Gărzii. Cadrele
+# scrise se suprascriu la fiecare rulare, deci poți da drumul oricând după ce schimbi sursa.
+# Ca să adaugi un proiectil nou, mai pui o linie în `LUCRARI`.
 
-const DIR := "res://boss/lightning_burst_003_large_violet/"
-const SURSA := DIR + "police baton.png"
-const CADRE := 16                                # 16 × 22.5° = cerc complet
-const CONTUR := Color(0.72, 0.28, 1.0, 1.0)      # mov
+const CONTUR := Color(0.72, 0.28, 1.0, 1.0)      # movul conturului
 const PRAG := 0.35                               # de la ce alfa în sus considerăm că e desen
 
+const LUCRARI := [
+	{
+		# bastona Gărzii (sursa lui Răzvan, orientată nord-est)
+		"sursa": "res://boss/lightning_burst_003_large_violet/police baton.png",
+		"dir": "res://boss/lightning_burst_003_large_violet/",
+		"cadre": 16,
+	},
+	{
+		# ștreangul lui Saratalin
+		"sursa": "res://harta/nether/Nether Boss/Saratalin Attack.png",
+		"dir": "res://harta/nether/Nether Boss/attack_frames/",
+		"cadre": 16,
+	},
+]
+
 func _ready() -> void:
-	var src := Image.load_from_file(SURSA)
+	for l in LUCRARI:
+		_fa(l["sursa"], l["dir"], int(l["cadre"]))
+	get_tree().quit()
+
+func _fa(sursa: String, dir: String, cadre: int) -> void:
+	var src := Image.load_from_file(ProjectSettings.globalize_path(sursa))
 	if src == null:
-		print("!!! nu pot citi ", SURSA)
-		get_tree().quit()
+		print("!!! nu pot citi ", sursa)
 		return
 	src.convert(Image.FORMAT_RGBA8)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 	var w := src.get_width()
 	var h := src.get_height()
-	# Centrul REAL al desenului (nu al fișierului): altfel bastona se învârte excentric și pare
+	# Centrul REAL al desenului (nu al fișierului): altfel poza se învârte excentric și pare
 	# că șchioapătă. Luăm dreptunghiul pixelilor opaci și ne rotim în jurul centrului lui.
 	var x0 := w
 	var y0 := h
@@ -31,8 +54,7 @@ func _ready() -> void:
 				x0 = mini(x0, x); y0 = mini(y0, y)
 				x1 = maxi(x1, x); y1 = maxi(y1, y)
 	if x1 < 0:
-		print("!!! imaginea e goală")
-		get_tree().quit()
+		print("!!! imaginea e goală: ", sursa)
 		return
 	var cx := (x0 + x1) * 0.5
 	var cy := (y0 + y1) * 0.5
@@ -42,17 +64,16 @@ func _ready() -> void:
 	var lat := int(ceil(sqrt(float(latime * latime + inaltime * inaltime)))) + 6
 	if lat % 2 == 1:
 		lat += 1
-	print("sursă ", w, "×", h, " · desen ", latime, "×", inaltime, " · pânză ", lat, "×", lat)
-	for i in CADRE:
-		var unghi := TAU * i / CADRE
-		var img := _roteste(src, cx, cy, lat, unghi)
+	print(sursa.get_file(), ": sursă ", w, "×", h, " · desen ", latime, "×", inaltime, " · pânză ", lat, "×", lat)
+	for i in cadre:
+		var img := _roteste(src, cx, cy, lat, TAU * i / cadre)
 		_contur(img)
-		var cale := "%sframe%04d.png" % [DIR, i]
+		var cale := "%sframe%04d.png" % [dir, i]
 		var err := img.save_png(ProjectSettings.globalize_path(cale))
 		if err != OK:
 			print("!!! nu pot scrie ", cale, " (", err, ")")
-	print("gata: ", CADRE, " cadre scrise în ", DIR)
-	get_tree().quit()
+			return
+	print("   gata: ", cadre, " cadre în ", dir)
 
 # Rotire cu vecinul cel mai apropiat (pixel art: fără interpolare, ca să nu se încețoșeze).
 # Mergem invers: pentru fiecare pixel din destinație aflăm din ce pixel al sursei vine.
@@ -71,8 +92,7 @@ func _roteste(src: Image, cx: float, cy: float, lat: int, unghi: float) -> Image
 				dst.set_pixel(x, y, src.get_pixel(sx, sy))
 	return dst
 
-# Contur de 2px: inelul lipit de desen e mov plin, al doilea e mov pe jumătate transparent —
-# așa arată a strălucire, nu a chenar desenat cu creionul.
+# Contur de 2px: inelul lipit de desen e mov plin, al doilea e mov pe jumătate transparent.
 func _contur(img: Image) -> void:
 	var lat := img.get_width()
 	var inalt := img.get_height()

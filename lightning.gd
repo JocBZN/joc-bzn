@@ -3,11 +3,13 @@ extends Area2D
 # Bilă de lightning aruncată de boss-ul „Garda" spre player. Zboară drept pe direcția
 # dată la lansare și face damage când atinge player-ul. Hitbox = cerc (în lightning.tscn).
 
-const FRAME_DIR := "res://boss/lightning_burst_003_large_violet/"
-# Din 2026-07-22 proiectilul e BASTONA de poliție care se învârte, nu bila de lightning.
-# Cadrele sunt generate din `police baton.png` (sursa lui Răzvan, orientată nord-est) prin rotire
-# completă, 16 cadre × 22.5°, fiecare cu contur mov de 2px. Vezi `tool_baton.gd` din session log.
-const FRAME_COUNT := 16  # frame0000.png … frame0015.png = un cerc complet
+# Aceeași scenă serveșteanul boss: schimbi doar folderul de cadre înainte de `add_child`.
+#   • Garda    → BASTONA de poliție (implicit, din 2026-07-22);
+#   • Saratalin→ ȘTREANGUL lui (vezi `saratalin.gd`).
+# Ambele seturi sunt generate din poza sursă cu `tool_contur.gd`: rotire completă în 16 cadre
+# × 22.5°, fiecare cu contur mov de 2px.
+@export var frame_dir: String = "res://boss/lightning_burst_003_large_violet/"
+@export var frame_count: int = 16   # frame0000.png … frame0015.png = un cerc complet
 
 @export var speed: float = 340.0
 @export var damage: int = 15
@@ -35,12 +37,12 @@ func _build_frames() -> void:
 	var frames := SpriteFrames.new()
 	frames.set_animation_speed("default", anim_fps)
 	frames.set_animation_loop("default", true)
-	for i in FRAME_COUNT:
-		var tex := load("%sframe%04d.png" % [FRAME_DIR, i]) as Texture2D
+	for i in frame_count:
+		var tex := load("%sframe%04d.png" % [frame_dir, i]) as Texture2D
 		if tex != null:
 			frames.add_frame("default", tex)
 	if frames.get_frame_count("default") == 0:
-		push_warning("Lightning: cadrele nu-s importate încă — deschide o dată proiectul în Godot.")
+		push_warning("Lightning: lipsesc cadrele din %s (rulează --headless --import)" % frame_dir)
 	anim.sprite_frames = frames
 
 func _physics_process(delta: float) -> void:

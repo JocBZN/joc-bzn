@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (proiectilul lui Saratalin: ștreangul, cu contur mov)
+
+**Cerut de Răzvan:** „ți-am pus o poză în Nether Boss cu atacul lui Saratalin — se numește Saratalin Attack. Vreau să-i faci un stroke mov cum are Garda la armă."
+
+**Poza e un ȘTREANG** (funie cu laț), care se leagă frumos de structura de invocare — și ea are un ștreang atârnat de arcadă.
+
+**`tool_baton.gd` → `tool_contur.gd`:** unealta care făcea conturul mov al bastonei a fost generalizată cu o listă `LUCRARI` (sursă, folder, câte cadre), fiindcă acum are două de făcut. Aceeași rotire completă în 16 cadre × 22.5° și același contur de 2px (1px mov plin lipit de desen + 1px la jumătate de alfa — de aia arată a strălucire, nu a chenar). **Dovada că refactorizarea n-a stricat nimic:** după re-rulare, cadrele bastonei au ieșit identice bit cu bit (`git status` nu le-a marcat deloc).
+
+**`lightning.gd`:** `FRAME_DIR`/`FRAME_COUNT` erau constante; au devenit `@export var frame_dir` / `frame_count`, cu bastona ca implicit. Scena `lightning.tscn` e acum comună: Garda o folosește cum era, Saratalin îi pune `frame_dir` pe folderul lui. **Se pune ÎNAINTE de `add_child`**, ca și `tint` — `_build_frames()` rulează în `_ready()`, adică fix când nodul intră în arbore (aceeași capcană ca la culoarea proiectilelor, acum două session log-uri mai jos).
+
+**Colorizarea a scăzut** de la magenta agresiv (1.6, 0.5, 1.5) la (1.2, 1.0, 1.25): înainte proiectilul era o pată roz fiindcă trebuia să se distingă de bastonă. Acum are propria formă și propriul contur mov, deci tintul doar ridică luminozitatea ca să prindă glow-ul.
+
+**Verificat prin rulare:** boss chemat și aterizat, cerc de 12 ștreanguri în aer, toate cu `frame_dir` pe folderul nou și 16 cadre încărcate, captură cu conturul mov vizibil ✅. **Notă de testare:** prima captură a ieșit goală fiindcă am tras-o la 1.6s după E — boss-ul are 1.0s de scufundare a structurii + 1.9s de coborâre. Trebuie ~3.4s.
+
+---
+
 ## Session log — 2026-07-26 (Settings pe două pagini: KEYBINDS + GRAPHICS)
 
 **Cerut de Răzvan:** „add a separate window in the settings tab that is named Graphics — the main one should be named keybinds."
@@ -529,7 +545,7 @@ Anunțurile de val, HUD, Level Up, Game Over, Limbo erau deja engleză (comentar
 
 **Cerut de Răzvan:** a șters cadrele vechi ale atacului gărzii din `boss/lightning_burst_003_large_violet/` și a pus în loc **un singur cadru**, `police baton.png`, orientat nord-est. Voia din el o animație de atac **ca un cerc complet**, iar fiecare cadru (inclusiv al lui) să aibă **contur mov de 2px, cu efect ușor de glow**.
 
-**Cum s-a făcut:** `tool_baton.gd` (rămâne în repo, e sursa animației) — încarcă PNG-ul, îl rotește în **16 cadre × 22.5°** și scrie înapoi `frame0000…frame0015.png`. Rulare: `godot --headless --path <proj> res://tool_baton.tscn`.
+**Cum s-a făcut:** `tool_contur.gd` (rămâne în repo, e sursa animației; se numea `tool_baton.gd` până pe 2026-07-26) — încarcă PNG-ul, îl rotește în **16 cadre × 22.5°** și scrie înapoi `frame0000…frame0015.png`. Rulare: `godot --headless --path <proj> res://tool_contur.tscn`.
 
 **Două lucruri care contează în generator:**
 - **Rotirea se face în jurul centrului DESENULUI, nu al fișierului.** Bastona nu stă centrată în pânza ei de 128×128; rotită în jurul centrului imaginii, se învârtea excentric, ca o roată dezechilibrată. Tool-ul ia dreptunghiul pixelilor opaci și se rotește în jurul centrului lui, pe o pânză cât diagonala (160×160).
