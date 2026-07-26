@@ -85,6 +85,10 @@ func show_gameover(secunde: float, nivel: int) -> void:
 	level_label.text = "Level reached: %d" % nivel
 	kills_label.text = "Kills: %d" % kills
 	Audio.play("game_over", 16.0)  # fișier înregistrat foarte încet → +16dB ca să fie un stinger prezent
+	# Pe ecranul de moarte rămâne doar stinger-ul: muzica și ambientul de pădure se sting lin
+	# și tac. (Cerut pe 2026-07-26. `stop_music()` face fade de 3s, ca peste tot.)
+	Audio.stop_music()
+	Audio.fade_out_forest_ambient()
 	visible = true
 	get_tree().paused = true
 

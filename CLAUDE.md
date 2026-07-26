@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (fade de 3s la muzică + liniște pe ecranul de moarte)
+
+**Cerut de Răzvan:** „fade in și fade out de 3 secunde la toate melodiile" + „muzica și ambientul să nu se mai audă în death screen".
+
+**Fade-ul e CROSSFADE, nu fade-out-apoi-fade-in.** Dacă stingeam melodia veche și abia apoi o porneam pe cea nouă, la intrarea în Nether ar fi ieșit 6 secunde de tranziție cu liniște la mijloc. Acum melodia care pleacă rămâne pe boxa ei (`_music_vechi`) și coboară în timp ce noua urcă pe o boxă proaspătă. `_play_track` creează de fiecare dată un `AudioStreamPlayer` nou; `_stinge()` o eliberează pe cea veche la capătul tween-ului (și o eliberează și dacă nu cânta, altfel se adunau boxe).
+
+**„Zero"-ul fade-ului e -60dB, nu -80.** Sub ~-60 nu se mai aude nimic, deci prima secundă a unei urcări de la -80 ar fi fost tăcere moartă și fade-ul ar fi părut mai scurt decât e.
+
+**`refresh_music_volume()` omoară fade-in-ul în curs** și sare la volumul cerut. Altfel, dacă miști slider-ul de Muzică în primele 3 secunde ale unei melodii, tween-ul ar trage volumul înapoi spre ținta veche și ar părea că slider-ul nu face nimic.
+
+**Ambientul de pădure n-a primit tween**, ci un steag `_ambient_se_stinge`: `_process` deja mișcă `_ambient_level` spre o țintă în fiecare cadru, așa că îi spunem doar că ținta e tăcerea și, când ajunge sub 0.01, oprim boxa. Un tween peste el s-ar fi bătut cap în cap cu bucla aia.
+
+**De ce merge pe ecranul de moarte, care pune tot arborele pe pauză:** autoload-ul `Audio` e `PROCESS_MODE_ALWAYS`, iar tween-urile create pe el moștenesc asta. Verificat explicit — `tree paused=true` și fade-ul a continuat.
+
+**Verificat prin rulare:** fade-in la începutul rundei −53.6 → −42.8 → −29.2 → −18.9 dB (ținta) în 3s ✅; crossfade la intrarea în Nether — ambele cântă simultan, noua urcă (−56.8 → −35.9 → −18.9) în timp ce vechea coboară (−22.2 → −43.0) și e eliberată ✅; moarte în lumea normală — muzica −18.9 → −33.4 → −47.2 → oprită, ambientul 1.00 → 0.20 → 0.04 → oprit, ambele tăcute la 3.2s ✅.
+
+---
+
 ## Session log — 2026-07-26 (proiectilul lui Saratalin: ștreangul, cu contur mov)
 
 **Cerut de Răzvan:** „ți-am pus o poză în Nether Boss cu atacul lui Saratalin — se numește Saratalin Attack. Vreau să-i faci un stroke mov cum are Garda la armă."

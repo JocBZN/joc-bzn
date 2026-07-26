@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" uid="uid://c836mos4a6xvx" path="res://harta/nether/Nether Boss/Summoning Portal.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_summon"]
-size = Vector2(220, 60)
+size = Vector2(225, 80)
 
 [node name="SummoningPortal" type="StaticBody2D" unique_id=1426304197]
 script = ExtResource("1_script")

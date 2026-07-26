@@ -49,6 +49,16 @@ var _music: AudioStreamPlayer  # boxă separată doar pentru muzica de fundal (�
 var _music_path := ""       # ce melodie cântă acum (ca să n-o repornim degeaba)
 var _music_base_db := 0.0   # volumul „de bază" al melodiei; peste el se adaugă reglajul din Settings
 
+# --- Fade la muzică ---
+# Orice melodie INTRĂ din tăcere în FADE secunde și IESE la fel. Când se schimbă melodia
+# (ex. intri în Nether), cele două se suprapun: vechea se stinge pe boxa `_music_vechi`
+# în timp ce noua urcă pe `_music` — deci nu rămâne nicio pauză de liniște între ele.
+const FADE := 3.0
+const TACERE_DB := -60.0    # „zero" pentru un fade (nu -80: de acolo ultima parte a urcării e inaudibilă)
+var _music_vechi: AudioStreamPlayer   # boxa melodiei care se stinge acum
+var _tw_in: Tween
+var _tw_out: Tween
+
 # Transformă volumul-slider (0..1) în decibeli. 0 = tăcere completă (nu -inf, care ar da erori).
 func _lin_to_db(v: float) -> float:
 	return -80.0 if v <= 0.001 else linear_to_db(v)
@@ -136,10 +146,46 @@ func restore_world_music() -> void:
 	if _music != null and _music.playing:
 		_music.seek(poz)
 
-func stop_music() -> void:
+# Oprește muzica STINGÂND-O în FADE secunde. `imediat = true` o taie pe loc (nu se folosește
+# în joc; e acolo pentru cazurile în care chiar vrei liniște instantă).
+func stop_music(imediat: bool = false) -> void:
 	_music_path = ""
-	if _music != null:
+	if _music == null:
+		return
+	if imediat:
+		_opreste_tween(_tw_in)
 		_music.stop()
+		return
+	_stinge(_music)
+	_music = null   # boxa curentă devine „cea care se stinge"; următoarea melodie primește una nouă
+
+# Stinge o boxă în FADE secunde și apoi o oprește. Boxa e reținută în `_music_vechi` ca s-o
+# putem pune pe pauză odată cu restul (ESC) și ca să nu se calce două stingeri una pe alta.
+func _stinge(p: AudioStreamPlayer) -> void:
+	if p == null:
+		return
+	if not p.playing:
+		p.queue_free()   # n-are ce stinge, dar boxa tot trebuie eliberată (altfel se adună)
+		return
+	_opreste_tween(_tw_out)
+	if _music_vechi != null and _music_vechi != p and is_instance_valid(_music_vechi):
+		_music_vechi.stop()   # deja se stingea alta → o tăiem, n-avem trei melodii deodată
+		_music_vechi.queue_free()
+	_music_vechi = p
+	_tw_out = create_tween()
+	_tw_out.tween_property(p, "volume_db", TACERE_DB, FADE)
+	_tw_out.tween_callback(_gata_stins.bind(p))
+
+func _gata_stins(p: AudioStreamPlayer) -> void:
+	if p != null and is_instance_valid(p):
+		p.stop()
+		p.queue_free()
+	if _music_vechi == p:
+		_music_vechi = null
+
+func _opreste_tween(tw: Tween) -> void:
+	if tw != null and tw.is_valid():
+		tw.kill()
 
 func _play_track(path: String, volume_db: float) -> void:
 	# path gol sau fișier lipsă = pur și simplu tăcere (nu crapă, nu dă erori)
@@ -149,11 +195,14 @@ func _play_track(path: String, volume_db: float) -> void:
 	# dacă exact melodia asta cântă deja, o lăsăm în pace (să nu repornească din capăt)
 	if _music_path == path and _music != null and _music.playing:
 		return
-	if _music == null:
-		_music = AudioStreamPlayer.new()
-		_music.bus = "Master"
-		_music.process_mode = Node.PROCESS_MODE_ALWAYS  # cântă și pe pauză (ex. Game Over)
-		add_child(_music)
+	# melodia veche se stinge pe boxa ei, în paralel cu urcarea celei noi (crossfade)
+	if _music != null:
+		_stinge(_music)
+		_music = null
+	_music = AudioStreamPlayer.new()
+	_music.bus = "Master"
+	_music.process_mode = Node.PROCESS_MODE_ALWAYS  # cântă și pe pauză (ex. meniul de pauză)
+	add_child(_music)
 	var s = load(path)
 	if s == null:
 		return
@@ -166,13 +215,24 @@ func _play_track(path: String, volume_db: float) -> void:
 	_music_path = path
 	_music_base_db = volume_db
 	_music.stream = s
-	_music.volume_db = volume_db + _lin_to_db(GameSettings.music_volume)   # reglajul „Muzică" din Settings
+	# pornim din tăcere și urcăm în FADE secunde până la volumul cerut (+ reglajul din Settings)
+	_music.volume_db = TACERE_DB
 	_music.play()
+	_opreste_tween(_tw_in)
+	_tw_in = create_tween()
+	_tw_in.tween_property(_music, "volume_db", _volum_muzica(), FADE)
+
+func _volum_muzica() -> float:
+	return _music_base_db + _lin_to_db(GameSettings.music_volume)   # reglajul „Muzică" din Settings
 
 # Recalculează volumul muzicii care cântă acum (chemat din Settings când miști slider-ul).
+# Dacă tocmai urca (fade-in), oprim urcarea și sărim la volumul cerut — altfel tween-ul ar
+# trage înapoi spre volumul vechi și slider-ul ar părea că nu face nimic.
 func refresh_music_volume() -> void:
-	if _music != null:
-		_music.volume_db = _music_base_db + _lin_to_db(GameSettings.music_volume)
+	if _music == null:
+		return
+	_opreste_tween(_tw_in)
+	_music.volume_db = _volum_muzica()
 
 # --- Ambient de pădure ---
 # O buclă care se aude cât ești în pădure și se estompează lin când intri în deșert (și invers).
@@ -183,6 +243,7 @@ const AMBIENT_DB := 8.0      # volumul la pădure plină (fișierul e la ~-54dBF
 const AMBIENT_FADE := 1.5    # cât de repede urmărește ținta (mai mic = fade mai lent)
 var _ambient: AudioStreamPlayer
 var _ambient_level := 0.0    # 0..1, nivelul curent (urcă/coboară lin spre forestness)
+var _ambient_se_stinge := false   # true = coboară spre tăcere și apoi se oprește (moarte)
 
 func play_forest_ambient() -> void:
 	if not _streams.has("forest_ambient"):
@@ -201,6 +262,7 @@ func play_forest_ambient() -> void:
 		_ambient.stream = s
 		add_child(_ambient)
 	_ambient_level = 0.0          # pornește din tăcere → fade-in lin până la nivelul locului
+	_ambient_se_stinge = false
 	_ambient.volume_db = -80.0
 	_ambient.stream_paused = false  # siguranță: să nu rămână blocat pe pauză de la o rundă anterioară
 	if not _ambient.playing:
@@ -209,6 +271,14 @@ func play_forest_ambient() -> void:
 func stop_forest_ambient() -> void:
 	if _ambient != null:
 		_ambient.stop()
+	_ambient_se_stinge = false
+
+# Stinge ambientul LIN și apoi îl oprește (folosit la moarte — vezi `gameover.gd`).
+# Nu are tween propriu: `_process` deja mișcă `_ambient_level` spre o țintă, așa că îi
+# spunem doar că ținta e tăcerea și, când ajunge acolo, oprim boxa.
+func fade_out_forest_ambient() -> void:
+	if _ambient != null and _ambient.playing:
+		_ambient_se_stinge = true
 
 # Pune ambientul pe pauză păstrând poziția (ex. cât alegi un power up), apoi îl reia de unde era.
 # stream_paused (nu stop) = când revii, continuă din același loc, nu de la început.
@@ -225,10 +295,16 @@ func _process(delta: float) -> void:
 		return
 	# ținta = cât de pădure e locul de sub player (1 = pădure pură, 0 = deșert). Fără player → tăcere.
 	var target := 0.0
-	var p = get_tree().get_first_node_in_group("player")
-	if p != null and is_instance_valid(p):
-		var d: float = clampf(BiomeMap.desertness_at_chunk(p.global_position / CHUNK_PX), 0.0, 1.0)
-		target = 1.0 - d
+	if _ambient_se_stinge:
+		# ne stingem de tot (ecran de moarte): ținta e tăcerea, iar când am ajuns, oprim boxa
+		if _ambient_level < 0.01:
+			stop_forest_ambient()
+			return
+	else:
+		var p = get_tree().get_first_node_in_group("player")
+		if p != null and is_instance_valid(p):
+			var d: float = clampf(BiomeMap.desertness_at_chunk(p.global_position / CHUNK_PX), 0.0, 1.0)
+			target = 1.0 - d
 	_ambient_level = lerpf(_ambient_level, target, clampf(delta * AMBIENT_FADE, 0.0, 1.0))
 	_ambient.volume_db = AMBIENT_DB + _lin_to_db(_ambient_level * GameSettings.sfx_volume)
 
@@ -238,20 +314,21 @@ func _process(delta: float) -> void:
 # continuă de unde a rămas. Clicurile din meniul de pauză se aud în continuare: `play()`
 # dezgheață boxa pe care o folosește.
 func pause_all() -> void:
-	if _music != null:
-		_music.stream_paused = true
-	if _ambient != null:
-		_ambient.stream_paused = true
-	for p in _players:
-		p.stream_paused = true
+	_seteaza_pauza(true)
 
 func resume_all() -> void:
+	_seteaza_pauza(false)
+
+func _seteaza_pauza(pe_pauza: bool) -> void:
 	if _music != null:
-		_music.stream_paused = false
+		_music.stream_paused = pe_pauza
+	# și melodia care tocmai se stingea (crossfade în curs când ai apăsat ESC)
+	if _music_vechi != null and is_instance_valid(_music_vechi):
+		_music_vechi.stream_paused = pe_pauza
 	if _ambient != null:
-		_ambient.stream_paused = false
+		_ambient.stream_paused = pe_pauza
 	for p in _players:
-		p.stream_paused = false
+		p.stream_paused = pe_pauza
 
 # Găsește o boxă care nu cântă; dacă toate cântă, o refolosește pe următoarea (rotativ).
 func _find_free_player() -> AudioStreamPlayer:
