@@ -650,7 +650,10 @@ func _fire_bullets() -> void:
 	if target == null:
 		return
 	var dir := (target.global_position - global_position).normalized()
-	Audio.play("shoot", -9.0)   # pistol/mage; se trage des → ținut moderat (reglabil)
+	# pistol/mage; se trage des → ținut moderat (reglabil).
+	# −12.5 dB = de 1.5 ori mai încet decât −9 dB. Decibelii nu se împart, se SCAD:
+	# „de N ori mai încet" înseamnă −20·log10(N) dB, iar pentru 1.5 asta face −3.5 dB.
+	Audio.play("shoot", -12.5)
 	_muzzle(global_position + dir * 34.0, dir)
 	# damage-ul acestei salve, cu procentele care depind de starea de acum (Theo's / Cigarette / Diesel)
 	var dmg_base := int(round(bullet_damage * damage_mult()))

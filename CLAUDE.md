@@ -13,6 +13,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (sunetul glonțului, de 1.5× mai încet)
+
+**Cerut de Răzvan:** „Fa cu 1.5x audiou de la gloante mai incet".
+
+**Ce s-a făcut:** `player.gd::_fire_bullets()` — `Audio.play("shoot", -9.0)` → `Audio.play("shoot", -12.5)`. Un singur loc în tot jocul cheamă sunetul de glonț (verificat prin căutare după `play("shoot"`).
+
+**Atenție la matematică — decibelii NU se împart.** „De 1.5 ori mai încet" nu înseamnă `-9 / 1.5 = -6` (ăla ar fi mai TARE). Decibelul e logaritmic: „de N ori mai încet" = **scazi** `20·log10(N)` dB. Pentru N = 1.5 asta face 3.52 dB, deci −9 − 3.5 = **−12.5 dB**. Scris și în comentariu la linia respectivă, ca să nu fie „împărțit" data viitoare.
+
+**Verificat pe rulare reală**, măsurând amplitudinea liniară a boxei, nu numărul din cod:
+```
+TEST glonț: volume_db=-20.46 | amplitudine=0.0949 | inainte=0.1419 | raport vechi/nou=1.496
+```
+(`-20.46` include și reglajul „Efecte" din Settings; raportul 1.496 ≈ 1.5 e ce contează.) Scena de test a fost ștearsă după.
+---
+
 ## Session log — 2026-07-26 (boss-ii nu mai pot fi omorâți instant)
 
 **Cerut de Răzvan:** „Vreau sa nu poti sa dai instakill la bosses (saratalin si garda)."
