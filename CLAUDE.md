@@ -8,9 +8,33 @@ Quick rules:
 - **Node lookups use groups:** `"player"` and `"enemy"` (via `get_tree().get_first_node_in_group(...)` / `get_nodes_in_group(...)`); cast results with `as Node2D` before using `global_position`.
 - This is a **survivors-like / bullet-heaven** game (Vampire Survivors style), cyberpunk theme, for Android. See the roadmap in `README.md`.
 - **Repo activ:** `Desktop\joc-bzn` (clonă pe `main`, remote `JocBZN/joc-bzn`). Notele vechi care zic „Downloads\joc-bzn-main" sunt depășite.
-- **Există un CODEX al upgrade-urilor**, artifact pe claude.ai: `https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e`. Când schimbi ceva în `levelup.gd` (item nou, raritate, efect, iconiță) sau în `game_settings.gd` (META), **actualizează-l și pe el** — altfel rămâne în urmă în tăcere. **De pe 2026-07-17 e generat data-driven** din `codex.html` (în repo): editezi array-ul `ITEMS` / `SYN` de sus (efectele reale din cod), iconițele+chenarele se re-encodează base64 și se injectează în placeholder-ul `/*__ASSETS__*/` cu scriptul PowerShell (vezi session log 2026-07-17 „Codex regenerat”), apoi republici pe același URL cu `url=`. Mult mai simplu decât chirurgia pe base64.
+- **Există un CODEX al upgrade-urilor**, artifact pe claude.ai: `https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e`. Când schimbi ceva în `levelup.gd` (item nou, raritate, efect, iconiță) sau în `game_settings.gd` (META), **actualizează-l și pe el** — altfel rămâne în urmă în tăcere. **De pe 2026-07-17 e generat data-driven** din `codex.html` (în repo): editezi array-ul `ITEMS` / `SYN` de sus (efectele reale din cod), iconițele+chenarele se re-encodează base64 și se injectează în placeholder-ul `/*__ASSETS__*/` cu scriptul PowerShell (vezi session log 2026-07-17 „Codex regenerat”), apoi republici pe același URL cu `url=`. **⚠️ Randează-l ÎNTÂI în Chrome headless** (`--headless=new --enable-logging=stderr --log-level=0 --screenshot=...`): tot conținutul e generat din JS, deci o singură ghilimea greșită într-un string face pagina complet albă, fără niciun semn. S-a întâmplat (vezi log-ul din 2026-07-26 „codexul arată textul EXACT din joc"). Mult mai simplu decât chirurgia pe base64.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
 
+---
+
+## Session log — 2026-07-26 (codexul arată textul EXACT din joc + pagina era spartă)
+
+**Cerut de Răzvan:** „la artifact fa descrierile exact cum sunt scrise in joc sa stiu cum le schimb".
+
+**🔴 Descoperire importantă: codexul publicat era o PAGINĂ ALBĂ, și eu îl publicasem așa mai devreme în aceeași zi.**
+Linia 229 din `codex.html` avea `+ „Blocked".` — ghilimea de deschidere e cea românească (`„`), dar cea de închidere era **`"` normal**, care termină string-ul JS pe loc. Restul rândului devenea cod invalid: `Uncaught SyntaxError: Unexpected token '<'`. Tot randarea e în JS, deci **nu se afișa absolut nimic** — doar fundalul. Greșeala venea dintr-o sesiune anterioară (editarea Mike's Hedgehog), iar eu am republicat fișierul fără să-l fi randat vreodată. Reparat: `„Blocked”.`
+**➡️ REGULĂ NOUĂ: `codex.html` NU se publică fără să fie randat întâi.** Chrome headless merge și dă erorile de consolă:
+```
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --headless=new --no-sandbox --disable-gpu \
+  --enable-logging=stderr --log-level=0 --hide-scrollbars --window-size=1280,3000 \
+  --virtual-time-budget=8000 --screenshot=OUT.png "file:///C:/.../codex.html"
+```
+Pagina goală = ~154 KB PNG; randată = ~900 KB. Zero linii `CONSOLE` = JS curat. (`--dump-dom` NU merge — dă DOM-ul dinainte de JS.)
+
+**Ce s-a făcut pentru cerere:**
+- Câmp nou **`game:`** la fiecare din cele 47 de iteme = `desc`-ul din `levelup.gd`, **generat cu script**, nu copiat de mână.
+- Cardul are acum două rânduri etichetate: **ÎN JOC** (mono, chenar cyan punctat = textul de pe cardul de level up, literă cu literă) și **CE FACE DE FAPT** (efectul real din cod). Plus `id`-ul, care era deja acolo — cu el găsești linia în `levelup.gd`.
+- Lede-ul explică unde se schimbă textul (`levelup.gd`, câmpul `desc`).
+
+**Verificat:** script care despachetează entitățile HTML din `game:` și compară cu `desc` din `levelup.gd` → **47 identice, 0 diferite**. Plus randare în Chrome: 0 erori de consolă, carduri vizibile.
+
+**De reținut:** cele 3 descrieri cu `&` (Wine, Jean's Bomb, Death Sentence) sunt scrise `&amp;` în `codex.html`, fiindcă `el()` folosește `innerHTML`. În pagină se văd corect ca `&`. Dacă regenerezi câmpul `game:`, păstrează escapările.
 ---
 
 ## Session log — 2026-07-26 (fundalul meniului, la rezoluție întreagă)

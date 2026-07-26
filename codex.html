@@ -121,6 +121,21 @@
   .effect { font-size: 14.5px; color: var(--ink-dim); margin: 2px 0 0; }
   .effect b { color: var(--ink); font-weight: 600; }
 
+  /* textul EXACT de pe cardul din joc (levelup.gd, campul `desc`) */
+  .ingame {
+    font-family: var(--mono); font-size: 13px; line-height: 1.45; color: var(--cyan);
+    background: rgba(51, 230, 255, 0.07); border: 1px dashed rgba(51, 230, 255, 0.35);
+    border-radius: 3px; padding: 7px 10px 6px; margin: 2px 0 0; overflow-wrap: anywhere;
+  }
+  .ingame::before {
+    content: "în joc"; display: block; font-size: 9.5px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 3px;
+  }
+  .effect::before {
+    content: "ce face de fapt"; display: block; font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 3px;
+  }
+
   .warn {
     display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 4px;
     padding: 3px 9px; border: 1px solid rgba(255, 217, 51, 0.4); background: rgba(255, 217, 51, 0.09);
@@ -182,122 +197,170 @@ const RARS = [
   ["common", "Common"],
 ];
 
-// Efectele REALE, citite din levelup.gd (_apply) și player.gd — nu descrierile din joc.
+// `game` = textul EXACT de pe cardul din joc (levelup.gd, campul `desc`) — generat, nu scris de mana.
+// `eff` = efectul REAL, citit din levelup.gd (_apply) si player.gd.
 const ITEMS = [
   { id: "jean_bomb", name: "Jean's Bomb", icon: "upgrade_9.png", rar: "legendary", isRework: true,
+    game: "+20 damage &amp; AOE for 15% of damage",
     eff: "<b>+20 damage</b> și gloanțele explodează la impact: rază <b>130</b>, iar explozia face <b>15% din damage-ul tău</b> (nu 25 fix, ca înainte). La repetare: <b>+20 damage</b>, <b>+20 rază</b> și <b>+10% damage</b> la explozie. Explozia <b>nu mai suflă inamicii</b> (îi împrăștia tocmai din grămada în care îi adunaseși). Procentul se ia din damage-ul de la momentul tragerii, deci <b>crește singur</b> cu tot ce iei pe damage după." },
   { id: "gloante_paralele", name: "Twin Comets", icon: "upgrade_19.png", rar: "legendary", isRework: true,
+    game: "+2 projectiles at random enemies",
     eff: "<b>+2 proiectile garantate</b>, trase în <b>alți 2 inamici random</b> (stack → +4, +6). Aceeași mecanică cu Stacked Armory, dar două odată — se adună în același contor, deci Twin Comets + Stacked Armory = 3 proiectile bonus.",
     warn: "Doar la gloanțe" },
   { id: "doctor_hacksaw", name: "Doctor's Hacksaw", icon: "upgrade_23.png", rar: "legendary",
+    game: "5% instakill (+2% / stack)",
     eff: "<b>5% instakill</b> la prima luare, apoi <b>+2%</b> pe stack.",
     warn: "Nu merge pe boss (Garda / Saratalin)" },
 
   { id: "cocaina", name: "Weird Concoction", icon: "upgrade_15.png", rar: "epic",
+    game: "+speed - +fire rate",
     eff: "<b>+60 speed · +25% fire rate.</b> Cu Stroh → glonț combinat (sinergie ascunsă)." },
   { id: "stroh", name: "Stroh", icon: "upgrade_6.png", rar: "epic",
+    game: "+damage - +fire rate",
     eff: "<b>+10 damage · +18% fire rate.</b> Cu Weird Concoction → glonț combinat." },
   { id: "firewalker", name: "Firewalker", icon: "upgrade_10.png", rar: "epic",
+    game: "Burning trail while moving",
     eff: "Dâră de <b>foc</b> cât mergi. Se acumulează: mai mult damage, mai mare, mai mult timp." },
   { id: "frostwalker", name: "Frostwalker", icon: "upgrade_11.png", rar: "epic",
+    game: "Freezing trail slows enemies",
     eff: "Dâră de <b>gheață</b> care <b>încetinește</b> inamicii. Stack-urile țin slow-ul mai mult." },
   { id: "hedgehog", name: "Mike's Hedgehog", icon: "upgrade_21.png", rar: "epic",
-    eff: "<b>Reflectă 100%</b> din damage-ul primit înapoi în inamic — o dată la 6s. Pe block, player-ul fulgeră alb + „Blocked". <b>Unic</b> (nu mai apare după ce-l iei)." },
+    game: "Reflect 100% damage (once/6s)",
+    eff: "<b>Reflectă 100%</b> din damage-ul primit înapoi în inamic — o dată la 6s. Pe block, player-ul fulgeră alb + „Blocked”. <b>Unic</b> (nu mai apare după ce-l iei)." },
   { id: "nightclub", name: "The Nightclub", icon: "upgrade_25.png", rar: "epic",
+    game: "+35% Damage - -35% Attack speed",
     eff: "<b>+35% damage · −35% attack speed</b> (tragi mai rar, dar mai tare)." },
   { id: "panic_button", name: "Panic Button", icon: "upgrade_34.png", rar: "epic",
+    game: "100 Damage to all enemies, once",
     eff: "<b>100 damage</b> la TOȚI inamicii de pe hartă, o dată, chiar la luare. Apoi se consumă." },
   { id: "thunder_god", name: "Thunder God", icon: "upgrade_38.png", rar: "legendary", isRework: true,
+    game: "Chain lightning for 25% of damage (+25%/stack)",
     eff: "La impact (glonț/sabie), curent electric de la inamicul lovit spre <b>toți din 200px</b> (ca Jacob's Ladder); îi face albaștri. Arcul face <b>25% din damage-ul tău</b>, <b>+25% la fiecare repetare</b> (2× = 50%, 3× = 75%). Procentul se ia din damage-ul REAL al momentului, cu tot cu Theo's / Cigarette / Diesel. <i>Era Epic — a trecut la Legendary acum că se stivuiește.</i>",
     warn: "Gloanțe + sabie" },
 
   { id: "horse_mask", name: "Horse Mask", icon: "upgrade_52.png", rar: "epic", isNew: true,
+    game: "5% to charm an enemy (+5% / stack)",
     eff: "<b>5% pe lovitură</b> (+5% pe luare, <b>plus norocul</b>) să <b>farmeci</b> inamicul lovit: se face roz, își alege <b>cel mai apropiat alt inamic nefermecat</b> (rază 700px) și îl lovește cu <b>10 damage × dificultate, o dată la 0.5s</b>, până îl omoară — atunci vraja se rupe și se întoarce după tine. Cât e fermecat <b>nu-ți mai face damage la contact</b>, dar rămâne inamic: îl poți omorî normal.",
     warn: "Fermecatul nu farmecă mai departe · singur pe ecran, procul nu se pierde" },
   { id: "psychic_flip_flops", name: "Psychic Flip Flops", icon: "upgrade_53.png", rar: "epic", isNew: true,
+    game: "Aimbot: bullets steer into enemies",
     eff: "<b>Aimbot.</b> Gloanțele nu mai pleacă drept spre unde ERA inamicul: își urmăresc ținta și virează spre <b>unde va fi</b> când ajung la ea. Viraj de <b>8 rad/s</b> pe luare (a doua = 16, mai strâns). Măsurat pe o țintă care traversează linia de foc la 400px: <b>0% → 91%</b> rată de lovire. Dacă ținta rămâne în spate, glonțul zboară mai departe drept și își caută alta în față (altfel s-ar învârti la nesfârșit în jurul ei).",
     warn: "Doar la proiectile — sabia și Stingătorul nu" },
   { id: "strapungere", name: "Drill", icon: "upgrade_16.png", rar: "rare",
+    game: "Bullets pierce +1 enemy",
     eff: "Gloanțele <b>străpung +1</b> inamic înainte să dispară.", warn: "Doar la gloanțe" },
   { id: "critic", name: "Adrenaline", icon: "upgrade_3.png", rar: "rare", isNew: true,
+    game: "+15% Crit chance",
     eff: "<b>+15% șansă de CRIT.</b> Criticul dublează damage-ul (×2). Nu mai e plafonat la 100%: peste 100% → <b>multi-crit</b> (200% = ×4, 300% = ×8). Se cumulează cu Megane's Katana și îl umflă Norocul." },
   { id: "burger", name: "Rat's Burger", icon: "upgrade_18.png", rar: "rare",
+    game: "+30% Weapon size",
     eff: "<b>+30% Weapon size</b> peste mărimea curentă (se compune la fiecare luare)." },
   { id: "stolen_halo", name: "Stolen Halo", icon: "upgrade_29.png", rar: "rare",
+    game: "+10 Damage - +5 Max HP",
     eff: "<b>+10 damage · +5 Max HP</b> (stivuiește). Aureolă permanentă deasupra capului." },
   { id: "alex_protection", name: "Alex's Protection", icon: "upgrade_28.png", rar: "rare",
+    game: "+25% Max HP - +15% Move speed",
     eff: "<b>+25% Max HP · +15% Move speed.</b> Procentele se compun pe valoarea curentă." },
   { id: "megane_katana", name: "Megane's Katana", icon: "upgrade_33.png", rar: "rare",
+    game: "+15% Crit - more if faster",
     eff: "<b>+15% crit</b>, mai mult cu cât mergi mai repede (0 pe loc). Se adună peste Adrenaline." },
   { id: "stacked_armory", name: "Gunslinger", icon: "upgrade_47.png", rar: "rare", isNew: true,
+    game: "+1 projectile at a random enemy",
     eff: "<b>+1 proiectil garantat</b>, dar tras într-un <b>alt inamic random</b> (stack → +2, +3). Tragi în direcții diferite deodată. <i>Se numea Stacked Armory — doar numele și iconița s-au schimbat, efectul e același (id-ul a rămas <code>stacked_armory</code>).</i>",
     warn: "Doar la gloanțe" },
   { id: "death_sentence", name: "Death Sentence", icon: "upgrade_49.png", rar: "rare", isNew: true,
+    game: "-35% speed, +20% damage &amp; attack speed",
     eff: "<b>−35% viteză de mișcare</b>, <b>+20% damage</b>, <b>+20% attack speed</b>. Toate trei sunt procente pe valoarea CURENTĂ, deci se compun: a doua luare te lasă la <b>42%</b> din viteza inițială, a patra la <b>18%</b>.",
     warn: "Fără plasă de siguranță pe viteză" },
   { id: "lucky_die", name: "Lucky Die", icon: "upgrade_48.png", rar: "rare", isNew: true,
+    game: "Reroll: a new page of items",
     eff: "<b>Reroll:</b> îți dă pe loc o <b>pagină nouă</b> de iteme și <b>NU consumă nivelul</b> — tot alegi un item la final. Cele 3 iteme de pe pagina rerulată sunt excluse, deci pagina nouă e chiar alta (și Lucky Die nu poate reapărea pe ea).",
     warn: "Nu dă niciun stat" },
   { id: "plugged_in", name: "Plugged In", icon: "upgrade_39.png", rar: "rare", isNew: true,
+    game: "10% chance to chain lightning on hit",
     eff: "<b>10% șansă</b> (per luare, +10% pe stack) să facă exact ce face Thunder God la impact.",
     warn: "Gloanțe + sabie" },
   { id: "the_office", name: "The Office", icon: "upgrade_40.png", rar: "uncommon", isNew: true,
+    game: "+2.5 Luck - +5% Attack Speed",
     eff: "<b>+2.5 Noroc</b> și <b>+5% attack speed</b>. Jumătate de trifoi, dar vine la pachet cu cadență — singurul item de noroc care mai dă și altceva.",
     warn: "Noroc pe jumătate" },
   { id: "royal_flush", name: "Royal Flush", icon: "upgrade_42.png", rar: "epic", isNew: true,
+    game: "+10 Luck",
     eff: "<b>+10 Noroc</b> — dublu față de Unusual Clover, fără nimic pe lângă.",
     warn: "Doar noroc" },
   { id: "unusual_clover", name: "Unusual Clover", icon: "upgrade_43.png", rar: "rare", isNew: true,
+    game: "+5 Luck",
     eff: "<b>+5 Noroc</b> (se stivuiește). Norocul face <b>două</b> lucruri: mută șansele de raritate — la 5 noroc <b>−2.5% common, −2.5% uncommon, +2% rare, +2% epic, +1% legendary</b> — și adaugă <b>+2%</b> la șansele itemelor pe care le ai deja (crit 15% → 17%, instakill, Broken Watch, Plugged In).",
     warn: "Nu-ți dă o șansă pe care n-ai luat-o" },
   { id: "duridama", name: "Duridama", icon: "upgrade_45.png", rar: "legendary", isNew: true,
+    game: "1% to gild an enemy - next hit instakills",
     eff: "<b>1% șansă/lovitură</b> (+1% pe stack) să <b>aurească</b> un inamic: îngheață exact în cadrul lovit, cu filtru auriu, fără să-i scadă viața. <b>Următoarea lovitură îl ucide instant</b> și lasă <b>2× XP</b>.",
     warn: "Merge cu orice armă · nu pe boss" },
   { id: "undying_spirit", name: "Undying Spirit", icon: "upgrade_41.png", rar: "legendary", isNew: true,
+    game: "Second chance",
     eff: "Prima moarte nu te termină: ajungi în <b>LIMBO</b> — lume goală, alb-negru — cu <b>jumătate din viață</b> și un val de inamici pe tine. Reziști <b>1:00</b> și te întorci exact unde ai murit, cu inamicii de acolo <b>șterși</b>. Odată luat, <b>iese din listă</b> pentru toată runda — nu se stivuiește, deci a doua luare ar fi fost un Legendary irosit.",
     warn: "Nu mai apare după ce l-ai luat · mori în Limbo = Game Over" },
 
   { id: "seringa", name: "Last Resort", icon: "upgrade_35.png", rar: "uncommon", isNew: true,
+    game: "+7 Bullet damage",
     eff: "<b>+7 Bullet damage.</b> (Fostul „Knight's Power”, redenumit, cu iconiță nouă.)" },
   { id: "vodca", name: "Vodka", icon: "upgrade_5.png", rar: "uncommon",
+    game: "-3 Damage taken",
     eff: "<b>−3 Damage taken</b> (minim 1)." },
   { id: "glont_mare", name: "Double Dose", icon: "upgrade_14.png", rar: "uncommon",
+    game: "Bigger bullets - +5 damage",
     eff: "Gloanțe <b>mai mari</b> (sprite + hitbox) · <b>+5 damage</b>." },
   { id: "recul", name: "Knockback Stick", icon: "upgrade_22.png", rar: "uncommon",
+    game: "Bullets knock enemies back",
     eff: "Gloanțele <b>împing inamicii înapoi</b> (+250 knockback)." },
   { id: "rabbit_foot", name: "Rabbit's Foot", icon: "upgrade_20.png", rar: "uncommon",
+    game: "-5 Damage - +25% Move speed",
     eff: "<b>−5 damage</b> pe proiectil, dar <b>+25% viteză de mișcare</b> (se compune la fiecare luare)." },
   { id: "rusty_hacksaw", name: "Rusty Hacksaw", icon: "upgrade_24.png", rar: "uncommon",
+    game: "1% instakill (+0.5% / stack)",
     eff: "<b>1% instakill</b> la prima luare, apoi <b>+0.5%</b> pe stack.",
     warn: "Nu merge pe boss (Garda / Saratalin)" },
   { id: "theo_wrath", name: "Theo's Wrath", icon: "upgrade_30.png", rar: "uncommon",
+    game: "+15% Damage under 20% HP",
     eff: "<b>+15% damage sub 20% viață</b> (+10% pe stack). Bonus dinamic — se aprinde/stinge după viață." },
   { id: "diesel_power", name: "Diesel Power", icon: "upgrade_32.png", rar: "uncommon",
+    game: "+15% Damage - more if faster",
     eff: "<b>+15% damage</b>, mai mult cu cât mergi mai repede (0 pe loc). Plafonat la 2× viteză." },
   { id: "broken_watch", name: "Broken Watch", icon: "upgrade_36.png", rar: "uncommon", isNew: true,
+    game: "50% chance to fire +1 projectile",
     eff: "<b>50% șansă</b> să tragi <b>+1 proiectil</b> într-un alt inamic random. Repetarea crește proiectilele (+2, +3), nu șansa.",
     warn: "Doar la gloanțe" },
 
   { id: "hellas", name: "Hellas", icon: "upgrade_50.png", rar: "uncommon", isNew: true,
+    game: "+15% Move speed - +5% Crit chance",
     eff: "<b>+15% Move speed · +5% crit.</b> Viteza e procent pe valoarea <b>curentă</b>, deci se compune la fiecare luare (ca Alex's Protection), iar criticul se adună aditiv (ca Adrenaline). Fiind pe viteză, umflă indirect și <b>Diesel Power</b>, și <b>Megane's Katana</b>. Măsurat: 315 → 362.3 viteză." },
   { id: "bloody_situation", name: "Bloody Situation", icon: "upgrade_54.png", rar: "common", isNew: true,
+    game: "Crits heal you 2 HP (+2 / stack)",
     eff: "Fiecare lovitură <b>critică</b> te vindecă <b>2 HP</b> (+2 pe fiecare luare). Vindecarea se face la <b>impact</b>, nu la tragere — un glonț critic care ratează nu-ți dă nimic. <b>O vindecare per lovitură, nu per inamic atins:</b> un puls critic de Stingător care prinde 20 de inamici tot 2 HP dă (măsurat: 180 de inamici loviți → +18 HP, adică 2 pe puls), la fel o tăietură de sabie care mătură toată gloata. Fără crit (Adrenaline / Megane's Katana / Noroc) itemul nu face absolut nimic.",
     warn: "Inutil dacă ai 0% crit" },
   { id: "iarba", name: "Wine", icon: "upgrade_13.png", rar: "common",
+    game: "+3 HP/sec &amp; heal 30",
     eff: "<b>+3 HP/sec</b> regenerare & <b>heal 30</b> pe loc." },
   { id: "bere", name: "Beer", icon: "upgrade_4.png", rar: "common",
+    game: "+35 Max health",
     eff: "<b>+35 Max HP</b> (te și vindecă cu atât)." },
   { id: "foite", name: "Rolling Papers", icon: "upgrade_7.png", rar: "common",
+    game: "+10% Attack speed",
     eff: "<b>+10% Attack speed.</b>" },
   { id: "grinder", name: "Grinder", icon: "upgrade_8.png", rar: "common",
+    game: "-15% XP to level",
     eff: "<b>−15% XP</b> necesar până la nivelul următor." },
   { id: "tome_knowledge", name: "Tome of Knowledge", icon: "upgrade_44.png", rar: "rare", isNew: true,
+    game: "50% less XP to level up",
     eff: "<b>−50% XP</b> necesar până la nivelul următor. Reducerea se propagă la toate nivelurile (pragul crește din valoarea deja tăiată). Se stivuiește: a doua luare = 25% din original." },
   { id: "pufferfish", name: "Pufferfish", icon: "upgrade_17.png", rar: "common",
+    game: "+10 Weapon size",
     eff: "<b>+10 Weapon size</b> (sprite ȘI hitbox — glonț / sferă mage / aura Stingătorului)." },
   { id: "cigarette_pack", name: "Cigarette Pack", icon: "upgrade_31.png", rar: "common",
+    game: "+5% Damage",
     eff: "<b>+5% damage</b>, aditiv la fiecare luare (5% → 10% → 15%)." },
   { id: "borat_mankini", name: "Borat's Mankini", icon: "upgrade_51.png", rar: "common", isNew: true,
+    game: "50% chance for 2 XP gems every 5s",
     eff: "La fiecare <b>5 secunde</b>, <b>50% șansă</b> (+ norocul) să-ți pice <b>2 geme mici de XP</b> la 50–100px de tine — nu în buzunar, ca să le vezi cum vin singure. Valoarea lor urcă cu dificultatea (<code>Difficulty.xp_mult()</code>), exact ca gemele lăsate de inamici, altfel la minutul 10 ar fi firimituri. Ca la Broken Watch, repetarea crește <b>numărul</b> de geme (2 → 4 → 6), nu șansa.",
     warn: "Repetarea nu urcă șansa — doar norocul o urcă" },
 ];
@@ -353,8 +416,10 @@ hero.append(
   el("div", "kicker", "Codex"),
   el("h1", "title", "JOC-BZN"),
   el("p", "lede",
-    "Toate upgrade-urile din joc, cu efectele lor <strong>reale</strong> — citite direct din cod " +
-    "(<code>levelup.gd</code> și <code>player.gd</code>), nu din descrierile afișate în joc. " +
+    "Fiecare card are <strong>două</strong> rânduri: <em>în joc</em> = textul exact afișat pe cardul " +
+    "de level up, literă cu literă, ca să știi ce să cauți; <em>ce face de fapt</em> = efectul real, " +
+    "citit din cod. Textul din joc se schimbă în <code>levelup.gd</code>, în câmpul " +
+    "<code>desc</code> al itemului (după <code>id</code>-ul scris pe card). " +
     "Chenarele sunt exact cele din meniul de level up.")
 );
 app.append(hero, el("hr", "rule"));
@@ -391,6 +456,7 @@ for (const [rk, rl] of RARS) {
         + (it.isNew ? '<span class="tag-new">nou</span>' : "")
         + (it.isRework ? '<span class="tag-rework">modificat</span>' : "")),
       el("div", "id", it.id),
+      el("div", "ingame", it.game || "(fără text în joc)"),
       el("p", "effect", it.eff)
     );
     if (it.warn) body.append(el("span", "warn", it.warn));
