@@ -59,6 +59,12 @@ const BOLT_FRAMES := "res://harta/nether/Nether Boss/attack_frames/"
 # Când ajunge la 50% viață, jocul îngheață, camera intră pe el, pulsează mov de două ori,
 # urmează un cutremur mov — și de acolo încolo atacă de FURIE_ATAC ori mai des.
 @export var furie_atac: float = 3.0      # de câte ori mai repede atacă în faza 2
+# Atacul NOU, doar în faza 2: o salvă de proiectile ȚINTITE, unul după altul, foarte rapid.
+# Ca rafala Gărzii, dar de 5 în loc de 3. Ținta se recitește la fiecare proiectil, deci
+# salva te urmărește dacă fugi — nu pleacă toate spre locul unde erai la prima.
+@export var salva_shots: int = 5
+@export var salva_gap: float = 0.10      # pauza ÎNTRE proiectilele salvei (mic = salvă strânsă)
+@export var salva_interval: float = 6.0  # o dată la câte secunde
 @export var cin_zoom: float = 1.7        # cât de aproape intră camera (1 = neschimbat)
 @export var cin_intrare: float = 0.55    # cât durează apropierea camerei
 @export var cin_puls: float = 0.42       # cât ține UN puls mov
@@ -73,6 +79,12 @@ var _faza2 := false       # a trecut de jumătatea vieții (cinematica s-a jucat
 var _cinematic := false   # rulează cinematica ACUM (nu se mișcă, nu atacă)
 var _atk_cooldown := 0.0
 var _ring_cooldown := 0.0
+# salva de faza 2, derulată cu un contor din `_physics_process` (NU cu `await`): dacă moare
+# la mijlocul salvei, contorul dispare odată cu nodul — o corutină și-ar relua firul pe un
+# nod deja eliberat. Același tipar ca rafala Gărzii.
+var _salva_left := 0
+var _salva_timer := 0.0
+var _salva_cooldown := 0.0
 var _flash_tween: Tween
 
 var _xp1: PackedScene
@@ -182,6 +194,22 @@ func _cinematica_faza2() -> void:
 	var mod_vechi := process_mode
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().paused = true
+	# ÎNGHEȚ TOTAL. Pauza oprește deja player-ul, inamicii și gloanțele, dar mai rămâneau
+	# două lucruri care se mișcau peste filmuleț:
+	#   • `Fx` (numerele de damage, scânteile) e autoload cu PROCESS_MODE_ALWAYS — îl trecem
+	#     pe „pauzabil" cât ține treaba și îl punem la loc după;
+	#   • cronometrul de tras al player-ului putea scoate un ultim glonț chiar în cadrul în
+	#     care s-a declanșat pauza (cinematica pornește dintr-o lovitură, adică din fizică).
+	var fx_vechi := Fx.process_mode
+	Fx.process_mode = Node.PROCESS_MODE_PAUSABLE
+	if player.fire_timer != null:
+		player.fire_timer.stop()
+	# Lovitura care a declanșat cinematica tocmai a pornit sclipirea albă (`_flash`), care
+	# animează ACEEAȘI proprietate ca pulsurile mov. Lăsată în viață, ea trage `modulate`
+	# înapoi spre alb și movul nu se mai vede deloc. O oprim și pornim de la culoare curată.
+	if _flash_tween != null and _flash_tween.is_valid():
+		_flash_tween.kill()
+	anim.modulate = Color(1, 1, 1)
 
 	# 1) camera intră pe el: mutăm privirea de la player spre boss și strângem zoom-ul
 	var zoom_vechi := Vector2.ONE
@@ -208,12 +236,12 @@ func _cinematica_faza2() -> void:
 		p.tween_property(anim, "modulate", Color(1, 1, 1), cin_puls * 0.6)
 		await p.finished
 
-	# 3) cutremur + spălare mov peste tot ecranul
-	var bara := _bara()
-	if bara != null:
-		bara.flash_mov(0.5, cin_cutremur)
+	# 3) cutremur — MOVUL rămâne pe EL, nu pe ecran: se aprinde și ține aprins cât se zguduie
+	var g := create_tween()
+	g.tween_property(anim, "modulate", CULOARE_PULS, 0.15)
 	Audio.play("levelup", -2.0)
 	await _cutremur(cam, tinta).finished
+	await create_tween().tween_property(anim, "modulate", Color(1, 1, 1), 0.3).finished
 
 	# 4) camera înapoi la player (readuce și offset-ul la zero după zguduire)
 	if cam != null:
@@ -223,6 +251,9 @@ func _cinematica_faza2() -> void:
 		await t2.finished
 		cam.position_smoothing_enabled = neted_vechi
 
+	Fx.process_mode = fx_vechi
+	if player.fire_timer != null:
+		player.fire_timer.start()
 	get_tree().paused = false
 	process_mode = mod_vechi
 	_cinematic = false
@@ -246,6 +277,7 @@ func _infurie() -> void:
 	ring_interval = maxf(ring_interval / furie_atac, 0.5)
 	_atk_cooldown = 0.0
 	_ring_cooldown = ring_interval
+	_salva_cooldown = salva_interval * 0.5   # nu deschide cu salva fix când se termină filmulețul
 
 # Adevărat cât rulează filmulețul — `pause.gd` întreabă, ca ESC să nu-l întrerupă.
 func in_cinematic() -> bool:
@@ -276,13 +308,32 @@ func _physics_process(delta: float) -> void:
 
 	_atk_cooldown -= delta
 	_ring_cooldown -= delta
+	_salva_cooldown -= delta
 	var in_range := global_position.distance_to(player.global_position) <= attack_range
+
+	# salvă în curs: scoate proiectilele unul după altul, spre unde ești ACUM
+	if _salva_left > 0:
+		_salva_timer -= delta
+		if _salva_timer <= 0.0:
+			_trage(dir)
+			_salva_left -= 1
+			_salva_timer = salva_gap
+		return   # cât ține salva, restul atacurilor tac
 
 	# cercul de proiectile pleacă indiferent cât de departe ești — e atacul lui de zonă
 	if _ring_cooldown <= 0.0:
 		_ring_cooldown = ring_interval
 		_atk_cooldown = maxf(_atk_cooldown, attack_interval * 0.5)  # să nu se lipească de cerc
 		_trage_cerc()
+		return
+
+	# salva de 5 — o are DOAR după cinematică
+	if _faza2 and _salva_cooldown <= 0.0 and in_range:
+		_salva_cooldown = salva_interval
+		_salva_left = salva_shots
+		_salva_timer = 0.0   # primul proiectil pleacă imediat
+		# ca atacul obișnuit să nu se lipească de coada salvei
+		_atk_cooldown = maxf(_atk_cooldown, salva_shots * salva_gap + attack_interval * 0.5)
 		return
 
 	if _atk_cooldown <= 0.0 and in_range:

@@ -13,6 +13,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (cinematica: îngheț total, movul pe boss, salvă de 5)
+
+**Cerut de Răzvan:** player-ul să nu mai tragă în timpul cutscene-ului și TOTUL să fie înghețat; movul să pulseze pe Saratalin, nu pe ecran; iar după cinematică să mai aibă un atac — 5 proiectile țintite, unul după altul, rapid (ca rafala Gărzii, doar că de 5).
+
+**⚠️ Capcană de TESTARE care m-a costat două rulări — de citit înainte să testezi ceva cu `paused`:**
+1. **Scena de test nu are voie să fie PĂRINTELE lui `main.tscn` dacă are `process_mode = 3`.** Modul se moștenește în jos, deci punând observatorul deasupra jocului făceam TOT jocul „rulează mereu" — pauza nu îngheța nimic și măsurătorile ieșeau fals. Corect: rădăcină simplă (pauzabilă), cu `Main` și observatorul ca FRAȚI, doar observatorul cu ALWAYS.
+2. **Pe pauză, cadrele curg mult mai repede** (fără fizică, fără procesare: ~210fps în loc de 60). 45 de cadre înseamnă ~0.2s reale, nu 0.75. Măsurătorile din timpul unei cinematici se fac pe `Time.get_ticks_msec()`, nu pe număr de cadre — altfel pare că tween-urile nu rulează, când de fapt abia au început.
+
+**Ce s-a dovedit despre reclamația „player-ul trage în cutscene":** în arborele corect, pauza ÎL oprea deja (`can_process=false`, cronometrul de tras nu mișcă). Ce se mișca peste filmuleț era **`Fx`** — autoload cu `PROCESS_MODE_ALWAYS`, deci numerele de damage și scânteile curgeau mai departe. Cinematica îl trece acum pe `PAUSABLE` pe durata ei. În plus **oprim explicit `player.fire_timer`**: cinematica pornește dintr-o lovitură, adică din mijlocul fizicii, iar un ultim glonț putea ieși chiar în cadrul ăla.
+
+**Bug real găsit tot aici:** `_flash()` (sclipirea albă de la fiecare lovitură) animează ACEEAȘI proprietate ca pulsurile mov — `anim.modulate`. Fiindcă lovitura care declanșează cinematica pornește și flash-ul, movul era tras înapoi spre alb și nu se vedea. Cinematica omoară `_flash_tween` și pornește de la culoare curată.
+
+**Movul a ieșit de pe ecran:** `flash_mov()` și `ColorRect`-ul mov din `boss_bar.gd` au fost șterse. Acum boss-ul se aprinde mov și RĂMÂNE aprins cât ține cutremurul, apoi revine la alb.
+
+**Salva de 5** (`salva_shots`/`salva_gap`/`salva_interval`), doar în faza 2, derulată cu contor din `_physics_process` (nu cu `await`, ca la Gardă: dacă moare la mijloc, contorul dispare odată cu nodul). Ținta se recitește la fiecare proiectil → salva te urmărește dacă fugi.
+
+**Verificat prin rulare, măsurat pe timp real:** îngheț total (player `can_process=false`, `fire_timer` oprit, `Fx` pe PAUSABLE) ✅; zoom 0.7 → 1.19 ✅; modulate-ul boss-ului urcă la (3.20, 0.80, 4.00) în cutremur, cu fundalul ecranului neatins — verificat pe captură ✅; după cinematică totul revine (zoom 0.7, modulate alb, `Fx` înapoi pe ALWAYS, `fire_timer` pornit) ✅; salva scoate **exact 5** proiectile ✅.
+
+---
+
 ## Session log — 2026-07-26 (Saratalin: 10k viață, bară Dark Souls, cinematică la jumătate)
 
 **Cerut de Răzvan:** 10.000 HP, bară de viață cu nume ca în Dark Souls, iar la jumătate (5k) un filmuleț: îngheață jocul, zoom pe Saratalin, glow mov de două ori, cutremur cu efect mov, apoi înapoi la normal și atacă de 3 ori mai repede.

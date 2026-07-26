@@ -19,29 +19,18 @@ const C_FUNDAL := Color(0.06, 0.04, 0.06, 0.85)   # golul din spatele barei
 const C_CONTUR := Color(0.55, 0.47, 0.36)         # rama, auriu-șters ca în Dark Souls
 const C_VIATA := Color(0.72, 0.10, 0.22)          # roșu-sânge
 const C_URMA := Color(0.95, 0.55, 0.75, 0.55)     # „urma" albă-roz care rămâne în urma damage-ului
-const C_MOV := Color(0.62, 0.18, 1.0)             # movul cinematicii
 
 @export var urma_viteza: float = 0.55   # cât de repede coboară urma spre viața reală (fracție/sec)
 
 var _nume: Label
 var _bara: ProgressBar
 var _urma: ProgressBar     # a doua bară, DESUB, care coboară cu întârziere (efectul din Dark Souls)
-var _flash: ColorRect      # vălul mov de peste tot ecranul, pentru cinematică
 var _hp_max := 1.0
 
 func _ready() -> void:
 	add_to_group("boss_bar")
 	layer = 6                                  # peste HUD (nether e 4), sub Level Up / Game Over
 	process_mode = Node.PROCESS_MODE_ALWAYS    # vezi nota de sus: cinematica rulează pe pauză
-
-	# vălul mov: acoperă tot ecranul, invizibil până îl cere cinematica
-	_flash = ColorRect.new()
-	_flash.color = C_MOV
-	_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_flash.modulate.a = 0.0
-	_flash.visible = false
-	add_child(_flash)
 
 	var radacina := Control.new()
 	radacina.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -114,15 +103,6 @@ func set_hp(hp: int) -> void:
 
 func ascunde() -> void:
 	visible = false
-
-# Vălul mov peste tot ecranul: urcă repede, coboară lin. Chemat de cinematică.
-func flash_mov(varf: float = 0.45, durata: float = 0.6) -> void:
-	_flash.visible = true
-	_flash.modulate.a = 0.0
-	var t := create_tween()
-	t.tween_property(_flash, "modulate:a", varf, durata * 0.25)
-	t.tween_property(_flash, "modulate:a", 0.0, durata * 0.75)
-	t.tween_callback(func(): _flash.visible = false)
 
 # Urma coboară cu întârziere spre viața reală — de aia se vede cât ai mușcat dintr-o lovitură.
 func _process(delta: float) -> void:
