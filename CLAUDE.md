@@ -13,6 +13,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (inamicul e acum polițist)
+
+**Cerut de Răzvan:** „ti-am pus sprite-uri noi in homeless directii, le schimbi tu si le faci si frame uri".
+
+**Ce s-a făcut:** cele 8 GIF-uri noi (`A_faceless_police_officer_in_walk_<dir>.gif`, 124×124, 6 cadre fiecare) tăiate cu PowerShell + `System.Drawing` (`FrameDimension.Time` + `SelectActiveFrame`) **peste aceleași 48 de nume** din `homeless directii/frames/` — `walk_<dir>_<0..5>.png`.
+
+**🔑 De ce n-a trebuit atins nimic altceva:** păstrând numele **și fișierele `.import`**, UID-urile rămân valabile, deci `enemy_frames.tres` (care le referă cu `uid://`) merge mai departe neschimbat. La fel `enemy.gd`, `enemy.tscn` și hitbox-ul. Sesiunea din 2026-07-18 a trebuit să regenereze `.tres`-ul tocmai fiindcă atunci s-au schimbat și numele.
+
+**Hitbox-ul — măsurat, nu presupus:** conturul opac al polițistului e **27–39 × 61–63 px** (adunat pe toate cadrele), față de 31×59 la personajul vechi. Practic identic, deci `CircleShape2D` (rază 10 × scale 1.5) rămâne bun. Canvasul a crescut de la 120×120 la 124×124, dar asta singură nu înseamnă nimic — contează conturul opac, nu pânza.
+
+**Numele de fișiere sunt „greșite" intenționat:** folderul se cheamă în continuare `homeless directii` și cadrele `walk_*`, deși nu mai e niciun homeless în joc. Redenumirea ar rupe căile și UID-urile din `enemy_frames.tres`, fără să câștigăm nimic.
+
+**Verificat pe rulare reală:** randate toate 8 direcțiile × 6 cadre (orientări corecte: east→dreapta, west→stânga, north→din spate, south→din față, diagonalele la fel), fundal transparent, fără urme de la GIF. Apoi poză din joc, cu 8 inamici în cerc în jurul playerului.
+
+**Capcană (m-a prins de două ori azi):** un test care lasă playerul să moară **scrie un scor real în leaderboard** (`show_gameover` → `add_score` → `user://scores.save`). Am șters de fiecare dată scorurile false după verificare. Fie ții inamicii departe, fie cureți după tine.
+---
+
 ## Session log — 2026-07-27 (jocul în 9 limbi + UPGRADES scos din meniu)
 
 **Cerut de Răzvan:** „sterge sectiunea de upgrades din main menu. Vreau langa butonul de setari sa ai si change language (tot un buton mic cu un steag)" — English, Chinese, German, Spanish, Russian, French, Japanese, Polish, Turkish, cu tot textul din joc tradus. „unele cuvinte sunt mai ciudate poti sa le lasi asa (eg. Duridama nu inseamna nimic)".
