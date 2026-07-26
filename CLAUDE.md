@@ -13,6 +13,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (muzică de fundal în joc: 2 melodii, aleasă random la fiecare rundă)
+
+**Cerut de Răzvan:** „ți-am adăugat un folder în audio — acolo sunt 2 melodii de fundal pentru când începe jocul. Le dai play random de fiecare dată."
+
+**Ce am făcut** (tot în `audio.gd`):
+- Folderul nou e `audio/First 5 Minutes - Main World/` cu `Ruined_Place.ogg` și `tiny-rpg-town.ogg`. N-aveau `.import` → rulat `"<godot>" --headless --path <proiect> --import` (fără asta `ResourceLoader.exists()` dă fals la rulare directă și n-ar fi sunat nimic).
+- `MUSIC_GAME` era `""` (muzica din joc era **oprită** de la refactorul de dificultate). Acum e un **array** cu cele două căi. Ca să adaugi o melodie nouă: pui fișierul în folder + o linie în array, nimic altceva.
+- `play_music()` filtrează întâi căile care chiar există (`ResourceLoader.exists`) și alege una la întâmplare cu `randi() % size()`. Dacă lista iese goală (fișier șters/redenumit) → `stop_music()`, adică tăcere, nu eroare.
+- N-am atins fluxul: `spawner._ready()` cheamă `Audio.play_music()` la începutul rundei, `menu.gd` face `stop_music()` când intri în joc → `_music_path` e gol, deci verificarea „cântă deja aceeași piesă" nu blochează niciodată alegerea nouă. Loop-ul infinit și volumul (slider-ul „Music") merg ca înainte, sunt în `_play_track()`.
+
+**Verificat (rulare reală, scenă temporară de test):** 8 porniri consecutive au dat `tiny, tiny, Ruined, tiny, Ruined, tiny, Ruined, Ruined` — deci chiar alternează random; `playing=true`, poziția înaintează (0.88s după 1s), `stream.loop = true`, volum `-15.1 dB` (−12 de bază + slider-ul). Fișierele de test șterse după.
+
+**Ce reglezi ușor:** volumul de bază = argumentul lui `play_music()` (implicit `-12.0`, în `audio.gd`); lista de melodii = `MUSIC_GAME`.
+
+---
+
 ## Session log — 2026-07-26 (structură nouă: Portal 1 — rar, interactibil, momentan fără efect)
 
 **Cerut de Răzvan:** „ți-am băgat o structură nouă în folderul harta, Portal 1. Să se spawneze mai rar ca statuia și să fie tot interactibil la fel ca statuia, dar momentan nu face nimic." A ales: **1.5%** raritate și **zid ca statuia**.

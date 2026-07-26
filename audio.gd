@@ -28,7 +28,12 @@ const CHUNK_PX := 512.0     # mărimea unui chunk (ca în props/ground/pathways)
 
 # Muzica de fundal, pe ecrane. Gol = n-avem încă fișier (nu se aude nimic, fără erori).
 const MUSIC_MENU := "res://audio/main menu theme.ogg"
-const MUSIC_GAME := ""
+# În joc: se alege UNA la întâmplare din listă la începutul fiecărei runde.
+# Ca să adaugi o melodie nouă, pui fișierul în folder și mai scrii o linie aici.
+const MUSIC_GAME := [
+	"res://audio/First 5 Minutes - Main World/Ruined_Place.ogg",
+	"res://audio/First 5 Minutes - Main World/tiny-rpg-town.ogg",
+]
 
 const POOL_SIZE := 12       # câte "boxe" (playere) avem pregătite
 const MIN_GAP_MS := 45      # pauza minimă între două redări ale ACELUIAȘI sunet (vezi `play`)
@@ -86,8 +91,17 @@ func play(name: String, volume_db: float = 0.0, pitch_rand: float = 0.08) -> voi
 func play_menu_music(volume_db: float = -14.0) -> void:
 	_play_track(MUSIC_MENU, volume_db)
 
+# Muzica din joc: alege o melodie la întâmplare din MUSIC_GAME, alta (posibil) la fiecare rundă.
+# Sar peste fișierele care lipsesc, ca să nu iasă tăcere dacă unul e șters/redenumit.
 func play_music(volume_db: float = -12.0) -> void:
-	_play_track(MUSIC_GAME, volume_db)
+	var disponibile: Array = []
+	for path in MUSIC_GAME:
+		if ResourceLoader.exists(path):
+			disponibile.append(path)
+	if disponibile.is_empty():
+		stop_music()
+		return
+	_play_track(disponibile[randi() % disponibile.size()], volume_db)
 
 func stop_music() -> void:
 	_music_path = ""

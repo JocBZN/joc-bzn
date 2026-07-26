@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://cpi8r5va8hy8m"
+path="res://.godot/imported/Ruined_Place.ogg-d594fe781db7cdd2264859eeeaa0f14a.oggvorbisstr"
+
+[deps]
+
+source_file="res://audio/First 5 Minutes - Main World/Ruined_Place.ogg"
+dest_files=["res://.godot/imported/Ruined_Place.ogg-d594fe781db7cdd2264859eeeaa0f14a.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
