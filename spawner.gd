@@ -65,6 +65,17 @@ func _muta_player_aleator() -> void:
 			break
 	player.global_position = pos
 	GameSettings.run_spawn = pos
+	# ⚠️ OBLIGATORIU după teleportare. Camera player-ului are `position_smoothing_enabled`,
+	# adică urmărește ținta lin, cu întârziere. Ea pornește din (0,0) — unde stătea player-ul
+	# în scenă înainte să-l mutăm — iar noi tocmai l-am aruncat la zeci de mii de pixeli.
+	# Fără resetare, primele ~2 secunde de rundă arată lumea zburând pe lângă tine până
+	# prinde camera din urmă (măsurat: 89.500px decalaj în primul cadru, încă 36px la
+	# cadrul 120). `reset_smoothing()` lipește camera instant pe țintă.
+	# `force_update_scroll()` întâi, ca ținta să fie deja cea nouă când o „lipim".
+	var cam := player.get_node_or_null("Camera2D") as Camera2D
+	if cam != null:
+		cam.force_update_scroll()
+		cam.reset_smoothing()
 
 func _exit_tree() -> void:
 	Audio.stop_music()  # ieșim din joc (meniu/restart) → oprim muzica

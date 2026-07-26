@@ -13,6 +13,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (bug: la începutul rundei camera nu e pe player)
+
+**Reclamat de Răzvan:** „când dau start la joc, ecranul nu e pe player din prima, e un bug dubios."
+
+**Cauza:** camera player-ului are `position_smoothing_enabled = true` (în `player.tscn`), adică urmărește ținta lin, cu întârziere. `spawner._muta_player_aleator()` aruncă player-ul într-un punct aleator din lumea infinită (până la 100.000px pe fiecare axă), dar netezirea camerei pornea din `(0, 0)` — poziția din scenă, dinainte de mutare. Rezultatul: primele ~2 secunde din FIECARE rundă arătau lumea zburând pe lângă tine până prindea camera din urmă.
+
+**Măsurat înainte de reparare:** decalaj **89.526px** în primul cadru, 8.118px la cadrul 6, 788px la cadrul 60, **încă 36px la cadrul 120** (două secunde).
+
+**Reparat:** `cam.force_update_scroll()` + `cam.reset_smoothing()` imediat după teleportare, în `_muta_player_aleator()`. `force_update_scroll()` întâi, ca ținta să fie deja cea nouă când o „lipim". După reparare: **0px de la cadrul 2 încolo**.
+
+**Atenție la o capcană de măsurare:** `get_screen_center_position()` citit din `_process`-ul unui nod aflat DEASUPRA camerei în arbore întoarce încă valoarea veche pentru cadrul curent — camera își face actualizarea internă mai târziu în cadru. Măsurat așa, părea că mai rămâne un cadru greșit și după reparare. Verificarea corectă e captura primului cadru desenat: player-ul e fix în mijloc. Deci: la bug-uri de cameră, capturile bat API-ul.
+
+---
+
 ## Session log — 2026-07-26 (un singur Nether pe rundă: portalurile se închid după victorie)
 
 **Cerut de Răzvan:** „când ai ieșit din Nether după ce l-ai bătut pe Saratalin să fie cutremur și să intre portalul în pământ — să nu mai poți să intri tot run-ul ăla. Dacă sunt mai multe pe hartă în momentul ăla, să fie șterse și alea."
