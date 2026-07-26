@@ -18,6 +18,18 @@ A **survivors-like** (bullet-heaven) game — think *Vampire Survivors* / *Brota
 - **Indentation: TABS.** Godot rejects mixed tabs/spaces — this is *the* most common error when pasting code. After any paste use **Edit → Convert Indent to Tabs**.
 - **Groups** are used to find nodes across the tree: the player is in group `"player"`, enemies in group `"enemy"`. Look up with `get_tree().get_first_node_in_group("player")` and `get_nodes_in_group("enemy")`.
 - `get_*_in_group` returns a generic `Node`, so **cast with `as Node2D`** before touching `global_position` (otherwise "cannot infer type" errors). Dynamic property access on such nodes yields harmless **yellow** warnings (yellow = warning/OK, red = error/must fix).
+- **Groups used for combat:** on top of `"player"`/`"enemy"` there is **`"boss"`** (the Garda and Saratalin join it in their `_ready()`). It exists so effects that would trivialise a boss fight can opt out in one place — right now that is the Hacksaw instakill, skipped in both `bullet.gd` and the sword pass in `player.gd`.
+
+## The upgrade codex (published page)
+There is a **codex of every upgrade**, kept as `codex.html` in the repo and published as a private page on claude.ai: <https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e>. Each card shows **two** rows: **ÎN JOC** — the exact string the player sees on the level-up card, and **CE FACE DE FAPT** — what the code actually does, read out of `_apply()` in `levelup.gd` and `player.gd`. The first row is **generated from `levelup.gd`**, never typed by hand, so it cannot drift; a script re-derives all 47 and a second script checks them character for character.
+
+⚠️ **The whole page is built by JavaScript, so one bad character blanks it completely, with no error anywhere.** That happened: a Romanian closing quote written as a plain `"` ended a string early and the page shipped empty. **Always render it before publishing:**
+```
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --headless=new --no-sandbox --disable-gpu \
+  --enable-logging=stderr --log-level=0 --hide-scrollbars --window-size=1280,3000 \
+  --virtual-time-budget=8000 --screenshot=out.png "file:///C:/.../codex.html"
+```
+No `CONSOLE` lines on stderr means the JS is clean; a blank page weighs ~150 KB as a PNG, a rendered one ~900 KB. (`--dump-dom` is useless here — it dumps the DOM before the scripts run.)
 
 ## Project structure
 All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
