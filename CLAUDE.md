@@ -13,6 +13,31 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (sunet pe fiecare puls mov al lui Saratalin)
+
+**Cerut de Răzvan:** „vreau atunci cand e flashing purple saratalin sa fie un audio fx - e in nether audio se numeste Saratalin Flashing Purple. Vreau sa se auda de fiecare data separat cand e un singur flash."
+
+**Ce s-a făcut:**
+- `audio.gd` — o linie nouă în `SFX`: `"saratalin_flash": "res://audio/Nether Audio/Saratalin Flashing Purple.wav"`.
+- `saratalin.gd`, `_cinematica_faza2()` — `Audio.play("saratalin_flash", -4.0, 0.0)` **la fiecare aprindere**: în bucla celor două pulsuri (deci de două ori, la momentul fiecărui puls) și încă o dată când se aprinde movul ținut peste cutremur. **Trei redări separate**, nu un sunet lung întins peste tot filmulețul — asta a cerut („de fiecare data separat cand e un singur flash").
+- `pitch_rand = 0.0` intenționat. Implicit `Audio.play()` variază tonul cu ±8% ca gloanțele să nu sune identic; aici pulsurile TREBUIE să sune la fel, altfel al doilea pare alt sunet.
+
+**De ce merge suprapunerea:** `Audio.play()` ia o boxă liberă din `POOL_SIZE = 12` la fiecare apel, deci redările nu se taie una pe alta. Singurul lucru care le-ar fi putut înghiți e `MIN_GAP_MS = 45` (același sunet nu repornește mai des de atât) — dar între pulsuri sunt ~420 ms, deci nici pe departe. **Se aud prin îngheț** fiindcă `Audio` e autoload `PROCESS_MODE_ALWAYS`, la fel ca fade-urile.
+
+**Fișierul avea nevoie de import.** Răzvan pune `.wav`-ul în folder, dar fără `.wav.import` Godot nu-l vede și `ResourceLoader.exists()` întoarce `false` — `play()` iese în tăcere, fără nicio eroare roșie. Rulat `Godot --headless --path <proj> --import` înainte de test. **Dacă un sunet nou „nu se aude", ăsta e primul lucru de verificat.**
+
+**Cum s-a verificat (măsurat, nu presupus):** scenă de test cu observatorul **frate** cu `Main` (vezi capcana din log-ul de mai jos), care se uită direct în `Audio._players` și strigă când o boxă începe să redea exact fișierul de flash. Rezultat:
+```
+TEST: [ 548 ms] flash SFX pornit pe boxa 86067119792 | pitch=1.0 | pauzat=false | tree.paused=true
+TEST: [ 967 ms] flash SFX pornit pe boxa 86100674226 | pitch=1.0 | pauzat=false | tree.paused=true
+TEST: [1390 ms] flash SFX pornit pe boxa 86134228660 | pitch=1.0 | pauzat=false | tree.paused=true
+TEST: total porniri sunet flash = 3
+```
+548 ms = după intrarea camerei (`cin_intrare = 0.55`), apoi la fix `cin_puls = 0.42` distanță unul de altul — **boxe diferite**, deci chiar sunt redări separate, nu una repornită. Scena de test a fost ștearsă după.
+
+**Capcană repetată (a doua oară în aceeași zi):** `var cheie := p.get_instance_id()` → *„Cannot infer the type of «cheie»"*, scriptul de test n-a mai încărcat deloc. În scripturile astea, când valoarea vine dintr-un obiect netipat, **scrie tipul explicit** (`var cheie: int = ...`).
+---
+
 ## Session log — 2026-07-26 (cinematica: îngheț total, movul pe boss, salvă de 5)
 
 **Cerut de Răzvan:** player-ul să nu mai tragă în timpul cutscene-ului și TOTUL să fie înghețat; movul să pulseze pe Saratalin, nu pe ecran; iar după cinematică să mai aibă un atac — 5 proiectile țintite, unul după altul, rapid (ca rafala Gărzii, doar că de 5).

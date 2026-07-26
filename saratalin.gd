@@ -229,16 +229,22 @@ func _cinematica_faza2() -> void:
 		t.tween_property(cam, "zoom", zoom_vechi * cin_zoom, cin_intrare)
 		await t.finished
 
-	# 2) două pulsuri mov pe el
+	# 2) două pulsuri mov pe el — FIECARE puls își pornește propriul sunet, la momentul lui.
+	# Nu un sunet lung peste tot filmulețul: câte o instanță per aprindere (`Audio.play` ia o
+	# boxă liberă de fiecare dată, deci se pot suprapune fără să se taie una pe alta).
+	# `pitch_rand = 0` — pulsurile trebuie să sune identic, nu ușor diferit ca gloanțele.
 	for i in 2:
 		var p := create_tween()
+		Audio.play("saratalin_flash", -4.0, 0.0)
 		p.tween_property(anim, "modulate", CULOARE_PULS, cin_puls * 0.4)
 		p.tween_property(anim, "modulate", Color(1, 1, 1), cin_puls * 0.6)
 		await p.finished
 
-	# 3) cutremur — MOVUL rămâne pe EL, nu pe ecran: se aprinde și ține aprins cât se zguduie
+	# 3) cutremur — MOVUL rămâne pe EL, nu pe ecran: se aprinde și ține aprins cât se zguduie.
+	# E tot o aprindere, deci primește și el sunetul, plus bubuitura de cutremur peste.
 	var g := create_tween()
 	g.tween_property(anim, "modulate", CULOARE_PULS, 0.15)
+	Audio.play("saratalin_flash", -4.0, 0.0)
 	Audio.play("levelup", -2.0)
 	await _cutremur(cam, tinta).finished
 	await create_tween().tween_property(anim, "modulate", Color(1, 1, 1), 0.3).finished
