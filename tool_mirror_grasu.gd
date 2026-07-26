@@ -17,10 +17,13 @@ const DIR := "res://grasu directii/running/frames/"
 const CADRE := 4
 
 # destinație <- sursă (cea care a rămas)
+# ⚠️ Perechea de sud s-a INVERSAT pe 2026-07-27: la început rămăsese `south-west` și făceam
+# `south_east` din el; apoi Răzvan a pus la loc GIF-ul original `south-east` și l-a șters pe
+# celălalt, deci acum sursa e `south_east`. Dacă mai umblă cineva la GIF-uri, aici se schimbă.
 const PERECHI := {
 	"west": "east",
 	"north_west": "north_east",
-	"south_east": "south_west",
+	"south_west": "south_east",
 }
 
 func _ready() -> void:

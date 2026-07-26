@@ -17,7 +17,8 @@ Quick rules:
 
 **Cerut de Răzvan:** „la grasu vreau sa facem mirroring la niste animatii - ti-am sters running west, north-west, si south-west. Iei tu counterparts de la directiile astea, le faci mirroring".
 
-**Atenție la ce s-a șters de fapt:** el a zis „west, north-west, south-west", dar în repo lipsesc **west, north-west și south-EST**; `south-west.gif` e încă acolo. Am mers pe ce zice folderul, nu pe ce zice mesajul — intenția era clară (direcția care lipsește se face din cea care a rămas). Deci: `west ← east`, `north_west ← north_east`, `south_east ← south_west`.
+**Perechea de sud s-a inversat pe parcurs — starea FINALĂ e `south_west ← south_east`.** Prima dată el ștersese `south-east.gif` (deși în mesaj zicea „south-west"), așa că am făcut `south_east` din `south_west`. I-am semnalat nepotrivirea, a zis „am gresit eu", a pus la loc GIF-ul original `south-east` și l-a șters pe `south-west`. Deci acum **toate trei oglindirile merg spre vest**: `west ← east`, `north_west ← north_east`, `south_west ← south_east` — aranjamentul mai curat, în care tot ce e desenat de mână se uită spre est.
+**De reținut:** merită verificat ÎNTOTDEAUNA în folder ce lipsește de fapt, nu doar ce scrie în mesaj — a doua rundă a costat o retăiere de GIF și o reoglindire.
 
 **Ce s-a făcut:** `tool_mirror_grasu.gd` (unealtă nouă, se rulează ca scenă) încarcă cadrele-sursă cu `Image.load_from_file`, le dă `flip_x()` și le salvează peste cele 12 nume existente (3 direcții × 4 cadre). Numele și `.import`-urile păstrate ⇒ UID-urile rămân valabile ⇒ **`player_frames.tres` și `player.gd` n-au fost atinse**.
 
@@ -25,9 +26,9 @@ Quick rules:
 
 **Verificat pe rulare reală** (nu doar în fișiere): apăsat fiecare din cele 8 direcții în joc și tipărit ce animație pornește + unde cade centrul artei față de nod:
 ```
-east/west          -2.0 / -2.0 px
+east/west              -2.0 / -2.0 px
 north_east/north_west  -2.5 / -2.5 px
-south_east/south_west  +2.5 / +2.5 px
+south_east/south_west   0.0 /  0.0 px
 ```
 Identice în fiecare pereche, deci întoarcerea nu mișcă sprite-ul. Plus randate toate cele 8 direcții × 4 cadre și o poză din joc.
 
