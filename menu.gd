@@ -29,9 +29,10 @@ const TITLE_DIR := "res://menu/Title"       # logo-ul animat (4 cadre, 256x256)
 const TITLE_FRAME_COUNT := 4
 const TITLE_FRAME_TIME := 0.4               # secunde per cadru (mai mare = mai lent)
 const TITLE_SIZE := 240                     # cât de mare se afișează logo-ul, în pixeli
-# ATENȚIE la înălțime: ecranul de referință are 648px, iar cele 5 butoane ocupă 346
-# (5 × 58 + 4 × 14 separare). Deci logo + spațiere trebuie să stea sub ~274, altfel
-# butonul LEADERBOARD iese din ecran. Acum: 240 + 16 = 256, rămân ~23px marjă sus/jos.
+# ATENȚIE la înălțime: ecranul de referință are 648px, iar cele 4 butoane ocupă 274
+# (4 × 58 + 3 × 14 separare). Deci logo + spațiere trebuie să stea sub ~346, altfel
+# butonul LEADERBOARD iese din ecran. Acum: 240 + 16 = 256, deci e loc berechet.
+# (Erau 5 butoane până pe 2026-07-27, când a dispărut UPGRADES.)
 
 # --- reglaje pentru intro (schimbă-le liniștit, sunt doar de gust) ---
 const INTRO_CLEAR := 1.0      # câte secunde rulează video-ul curat, fără nimic peste el
@@ -44,8 +45,6 @@ const MENU_BLUR := 3.0        # cât de tare e blur-ul la final (0 = deloc, 8 = 
 var _panels := {}
 var _weapon_buttons := []
 var _lb_list: VBoxContainer
-var _coins_label: Label
-var _shop_rows := []
 
 var _bg_rect: TextureRect       # fundalul (întâi cadrul clar, apoi cadrele animate)
 var _bg_next: TextureRect       # cadrul următor, peste primul, pentru trecerea lină
@@ -69,6 +68,8 @@ var _intro_tweens: Array[Tween] = []   # tween-urile intro-ului, ca să le pot o
 var _main_buttons: VBoxContainer
 var _settings_btn: Button           # roata dințată din colțul dreapta-sus (deschide Settings)
 var _settings_ui: SettingsUI        # blocul refolosibil de setări (volume + remapare taste)
+var _lang_btn: Button               # steagul de lângă rotiță (deschide alegerea limbii)
+var _lang_buttons := {}             # cod limbă -> butonul din panoul LANGUAGE (pentru evidențiere)
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -80,8 +81,8 @@ func _ready() -> void:
 	_build_weapon()
 	_build_character()
 	_build_leaderboard()
-	_build_shop()
 	_build_settings()
+	_build_language()
 	_show("main")
 	Audio.stop_forest_ambient()   # ambientul de pădure e doar în joc, nu în meniu
 	Audio.play_menu_music()
@@ -220,6 +221,7 @@ func _play_intro() -> void:
 	_title_group.modulate.a = 0.0
 	_main_buttons.modulate.a = 0.0
 	_settings_btn.modulate.a = 0.0
+	_lang_btn.modulate.a = 0.0
 	_set_buttons_enabled(false)   # invizibile, dar tot ocupă loc — deci nu se poate da click
 
 	# layout-ul se calculează abia după un cadru; până atunci pozițiile sunt încă zero
@@ -254,6 +256,8 @@ func _play_intro() -> void:
 		.set_delay(INTRO_RISE * 0.5)
 	t2.tween_property(_settings_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
 		.set_delay(INTRO_RISE * 0.5)
+	t2.tween_property(_lang_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
+		.set_delay(INTRO_RISE * 0.5)
 	await t2.finished
 	if not _intro_running: return
 
@@ -287,6 +291,7 @@ func _skip_intro() -> void:
 	_title_group.modulate.a = 1.0
 	_main_buttons.modulate.a = 1.0
 	_settings_btn.modulate.a = 1.0
+	_lang_btn.modulate.a = 1.0
 	_title_mover.position.y = 0.0
 
 	# butoanele se activează abia din cadrul următor, ca apăsarea care a dat skip să nu
@@ -307,6 +312,8 @@ func _set_buttons_enabled(on: bool) -> void:
 			b.disabled = not on
 	if _settings_btn != null:
 		_settings_btn.disabled = not on
+	if _lang_btn != null:
+		_lang_btn.disabled = not on
 
 # fundal cu gradient vertical (mov-navy închis → aproape negru) — rezervă, dacă lipsește video-ul
 func _gradient_bg() -> void:
@@ -382,27 +389,51 @@ func _build_main() -> void:
 	_main_buttons.add_child(_menu_button("START", _on_start))
 	_main_buttons.add_child(_menu_button("CHOOSE CHARACTER", _show.bind("character")))
 	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
-	_main_buttons.add_child(_menu_button("UPGRADES", _on_shop))
 	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
-	# Butonul de Settings NU stă în lista verticală (ar înghesui-o și ar ieși din ecran).
-	# E o rotiță mică ancorată în colțul dreapta-sus, peste tot meniul principal.
-	_settings_btn = Button.new()
+	# Butoanele mici de sus NU stau în lista verticală (ar înghesui-o și ar ieși din ecran).
+	# Sunt ancorate în colțul dreapta-sus: rotița de Settings, iar la stânga ei steagul de limbă.
+	_settings_btn = _corner_button(_show.bind("settings"), 0)
 	_settings_btn.text = "⚙"
 	_settings_btn.add_theme_font_size_override("font_size", 26)
 	_settings_btn.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
-	_settings_btn.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
-	_settings_btn.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
-	_settings_btn.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
-	_settings_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	# ancorat de colțul dreapta-sus: 52x52, la 16px de fiecare margine
-	_settings_btn.anchor_left = 1.0
-	_settings_btn.anchor_right = 1.0
-	_settings_btn.offset_left = -(52 + 16)
-	_settings_btn.offset_right = -16
-	_settings_btn.offset_top = 16
-	_settings_btn.offset_bottom = 16 + 52
-	_settings_btn.pressed.connect(_show.bind("settings"))
 	_panels["main"].add_child(_settings_btn)
+
+	_lang_btn = _corner_button(_show.bind("language"), 1)
+	_lang_btn.expand_icon = true
+	# pixel art: fără filtrare, altfel steagul de 24x16 iese neclar când e mărit
+	_lang_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Marginile normale (14 px lateral) ar lăsa steagului doar 24px din cei 52 ai butonului,
+	# deci ar ieși un timbru pierdut în mijloc. Aici le strângem, ca să umple butonul.
+	for stare in ["normal", "hover", "pressed"]:
+		var sb: StyleBoxFlat = _lang_btn.get_theme_stylebox(stare).duplicate()
+		sb.content_margin_left = 6
+		sb.content_margin_right = 6
+		sb.content_margin_top = 6
+		sb.content_margin_bottom = 6
+		_lang_btn.add_theme_stylebox_override(stare, sb)
+	_panels["main"].add_child(_lang_btn)
+	_refresh_lang_button()
+
+# Un buton pătrat de 52x52 lipit de colțul dreapta-sus. `pozitie` = al câtelea e, numărând de
+# la dreapta spre stânga (0 = primul din colț), ca să nu repet offset-urile la fiecare buton.
+func _corner_button(cb: Callable, pozitie: int) -> Button:
+	const MARIME := 52
+	const MARGINE := 16
+	const SPATIU := 10
+	var b := Button.new()
+	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
+	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
+	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.anchor_left = 1.0
+	b.anchor_right = 1.0
+	var dreapta := MARGINE + pozitie * (MARIME + SPATIU)
+	b.offset_left = -(dreapta + MARIME)
+	b.offset_right = -dreapta
+	b.offset_top = MARGINE
+	b.offset_bottom = MARGINE + MARIME
+	b.pressed.connect(cb)
+	return b
 
 # Logo-ul animat, în locul vechiului titlu scris cu text.
 # Dacă lipsesc cadrele, ne întoarcem la titlul-text, ca meniul să nu rămână gol.
@@ -521,69 +552,77 @@ func _on_leaderboard() -> void:
 			var sec := int(s["time"]) % 60
 			# scorurile vechi (dinainte de kill count) n-au cheia "kills" → 0
 			var k: int = int(s.get("kills", 0))
-			var linie := "%d.   %d:%02d   ·   Level %d   ·   %d kills" % [rank, m, sec, s["level"], k]
+			# tr(...) explicit: textul are %d-uri, deci traducerea automată n-ar găsi nimic
+			# după ce numerele sunt deja puse în el (vezi i18n.gd)
+			var linie: String = tr("%d.   %d:%02d   ·   Level %d   ·   %d kills") % [rank, m, sec, s["level"], k]
 			if float(s["time"]) >= Difficulty.RUN_LENGTH:
-				linie += "   ·   SURVIVED"   # a apucat Final Swarm
+				linie += "   ·   " + tr("SURVIVED")   # a apucat Final Swarm
 			_lb_list.add_child(_center_label(linie, 22))
 			rank += 1
 	_show("leaderboard")
 
-# ---------- UPGRADES (meta-progresie) ----------
-func _build_shop() -> void:
-	var box := _make_panel("shop")
-	box.add_child(_header("UPGRADES"))
-	_coins_label = _center_label("", 26)
-	_coins_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))  # auriu
-	box.add_child(_coins_label)
-	box.add_child(_spacer(8))
-	_shop_rows.clear()
-	for u in GameSettings.META:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 16)
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		box.add_child(row)
-		var info := Label.new()
-		info.custom_minimum_size = Vector2(400, 0)
-		info.add_theme_font_size_override("font_size", 18)
-		row.add_child(info)
-		var buy := Button.new()
-		buy.custom_minimum_size = Vector2(160, 44)
-		buy.add_theme_font_size_override("font_size", 18)
-		buy.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-		buy.pressed.connect(_on_buy.bind(String(u["id"])))
-		row.add_child(buy)
-		_shop_rows.append({"id": u["id"], "name": u["name"], "per": u["per"], "info": info, "buy": buy})
-	box.add_child(_spacer(20))
+# ---------- LANGUAGE ----------
+# Panoul cu cele 9 limbi, deschis din butonul-steag de sus. Fiecare limbă e un buton cu
+# steagul mare și numele scris ÎN limba respectivă (așa îl recunoaște oricine, chiar dacă
+# meniul e momentan într-o limbă pe care n-o înțelege).
+#
+# Textele NU se rescriu de mână la schimbare: `TranslationServer.set_locale()` anunță toate
+# nodurile, iar Label/Button își traduc singure textul (vezi i18n.gd). Aici doar mutăm
+# evidențierea pe limba nouă și schimbăm steagul de pe butonul din colț.
+const LANG_CELL := Vector2(132, 74)   # mărimea butonului cu steag (numele stă sub el)
+
+func _build_language() -> void:
+	var box := _make_panel("language")
+	box.add_child(_header("LANGUAGE"))
+	box.add_child(_spacer(10))
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 10)
+	box.add_child(grid)
+	_lang_buttons.clear()
+	# ca la „CHOOSE WEAPON": butonul ține doar imaginea, numele e o etichetă sub el
+	for l in I18n.LIMBI:
+		var cod := String(l["cod"])
+		var slot := VBoxContainer.new()
+		slot.alignment = BoxContainer.ALIGNMENT_CENTER
+		slot.add_theme_constant_override("separation", 4)
+		grid.add_child(slot)
+		var b := Button.new()
+		b.custom_minimum_size = LANG_CELL
+		b.icon = I18n.steag(cod)
+		b.expand_icon = true
+		# pixel art: fără filtrare, altfel steagul de 24x16 iese neclar când e mărit
+		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.pressed.connect(_on_language_chosen.bind(cod))
+		slot.add_child(b)
+		_lang_buttons[cod] = b
+		# numele scris ÎN limba lui, deci NU se traduce (de-aia nu e o cheie în i18n.gd)
+		slot.add_child(_center_label(String(l["nume"]), 18))
+	_refresh_language_selection()
+	box.add_child(_spacer(22))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
 
-func _on_shop() -> void:
-	_refresh_shop()
-	_show("shop")
+func _on_language_chosen(cod: String) -> void:
+	I18n.schimba_limba(cod)
+	_refresh_language_selection()
+	_refresh_lang_button()
 
-func _on_buy(id: String) -> void:
-	GameSettings.buy(id)
-	_refresh_shop()
+# Limba activă are chenar verde, ca arma aleasă în „CHOOSE WEAPON".
+func _refresh_language_selection() -> void:
+	for cod in _lang_buttons:
+		var sel: bool = cod == GameSettings.language
+		var b: Button = _lang_buttons[cod]
+		var bg := Color(0.10, 0.24, 0.16, 0.95) if sel else BTN_MAIN
+		var bd := Color(0.4, 1.0, 0.5) if sel else BTN_SECOND
+		b.add_theme_stylebox_override("normal", _sb(bg, bd, 3))
+		b.add_theme_stylebox_override("hover", _sb(bg.lightened(0.10), bd.lightened(0.10), 3))
+		b.add_theme_stylebox_override("pressed", _sb(bg.lightened(0.20), bd.lightened(0.20), 3))
 
-func _refresh_shop() -> void:
-	_coins_label.text = "COINS:  %d" % GameSettings.coins
-	for r in _shop_rows:
-		var id: String = r["id"]
-		var lvl := GameSettings.level_of(id)
-		var mx := GameSettings.max_of(id)
-		r["info"].text = "%s   (%s)      Lv %d/%d" % [r["name"], r["per"], lvl, mx]
-		var buy: Button = r["buy"]
-		if lvl >= mx:
-			buy.text = "MAX"
-			buy.disabled = true
-		else:
-			buy.text = "BUY  %d" % GameSettings.cost_of(id)
-			buy.disabled = GameSettings.coins < GameSettings.cost_of(id)
-		buy.add_theme_stylebox_override("normal", _sb(Color(0.06, 0.12, 0.08, 0.9), Color(0.4, 1.0, 0.5, 0.55)))
-		buy.add_theme_stylebox_override("hover", _sb(Color(0.10, 0.20, 0.12, 0.95), Color(0.4, 1.0, 0.5)))
-		buy.add_theme_stylebox_override("pressed", _sb(Color(0.14, 0.28, 0.16, 0.95), Color(0.5, 1.0, 0.6)))
-		buy.add_theme_stylebox_override("disabled", _sb(Color(0.08, 0.08, 0.10, 0.6), Color(0.3, 0.3, 0.35, 0.4)))
-		buy.add_theme_color_override("font_color", Color(0.85, 1.0, 0.9))
-		buy.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.55))
+func _refresh_lang_button() -> void:
+	if _lang_btn != null:
+		_lang_btn.icon = I18n.steag(GameSettings.language)
 
 # ---------- SETTINGS ----------
 # Conținutul (volume + remapare taste) vine din componentul refolosibil SettingsUI, folosit și

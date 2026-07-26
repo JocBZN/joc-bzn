@@ -144,7 +144,10 @@ func announce(text: String, sub: String = "") -> void:
 
 func _process(_delta: float) -> void:
 	_update_timer()
-	kills_label.text = "Kills: %d" % GameSettings.run_kills
+	# tr(...) explicit peste tot unde textul are %d: cu numărul deja pus în el, traducerea
+	# automată n-ar mai găsi cheia din i18n.gd. (Se reface la fiecare cadru, deci se
+	# schimbă imediat dacă jucătorul schimbă limba.)
+	kills_label.text = tr("Kills: %d") % GameSettings.run_kills
 	var player := get_tree().get_first_node_in_group("player")
 	if player == null:
 		return
@@ -152,7 +155,7 @@ func _process(_delta: float) -> void:
 	health_bar.value = player.hp
 	xp_bar.max_value = player.xp_to_next
 	xp_bar.value = player.xp
-	level_label.text = "Level " + str(player.level)
+	level_label.text = tr("Level %d") % player.level
 
 # Cronometrul: numără invers cele 10 minute, apoi urcă de la 0 cu roșu (Final Swarm).
 func _update_timer() -> void:

@@ -77,13 +77,15 @@ func show_gameover(secunde: float, nivel: int) -> void:
 	GameSettings.bank_run_coins()  # bagă monedele din rundă la bancă
 	var m := int(secunde) / 60
 	var s := int(secunde) % 60
-	time_label.text = "Survived: %d:%02d" % [m, s]
+	# tr(...) explicit peste tot unde textul are %d — cu numărul deja pus în el, traducerea
+	# automată n-ar mai găsi cheia din i18n.gd
+	time_label.text = tr("Survived: %d:%02d") % [m, s]
 	# dacă a trecut de cele 10 minute, arătăm separat cât a rezistat în Final Swarm
 	if secunde >= Difficulty.RUN_LENGTH:
 		var o := int(secunde - Difficulty.RUN_LENGTH)
-		time_label.text += "   (Final Swarm: +%d:%02d)" % [o / 60, o % 60]
-	level_label.text = "Level reached: %d" % nivel
-	kills_label.text = "Kills: %d" % kills
+		time_label.text += tr("   (Final Swarm: +%d:%02d)") % [o / 60, o % 60]
+	level_label.text = tr("Level reached: %d") % nivel
+	kills_label.text = tr("Kills: %d") % kills
 	Audio.play("game_over", 16.0)  # fișier înregistrat foarte încet → +16dB ca să fie un stinger prezent
 	# Pe ecranul de moarte rămâne doar stinger-ul: muzica și ambientul de pădure se sting lin
 	# și tac. (Cerut pe 2026-07-26. `stop_music()` face fade de 3s, ca peste tot.)

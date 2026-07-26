@@ -13,6 +13,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (jocul în 9 limbi + UPGRADES scos din meniu)
+
+**Cerut de Răzvan:** „sterge sectiunea de upgrades din main menu. Vreau langa butonul de setari sa ai si change language (tot un buton mic cu un steag)" — English, Chinese, German, Spanish, Russian, French, Japanese, Polish, Turkish, cu tot textul din joc tradus. „unele cuvinte sunt mai ciudate poti sa le lasi asa (eg. Duridama nu inseamna nimic)".
+
+**Ce s-a făcut:**
+- **`i18n.gd`** (autoload nou `I18n`) — un singur dicționar `TRAD` cu **183 de chei × 8 limbi**: meniu, settings, pauză, game over, HUD, anunțurile de pe ecran, cele 47 de nume + descrieri de upgrade-uri, raritățile și panoul de statusuri. La pornire construiește câte un `Translation` per limbă și îl dă lui `TranslationServer`.
+- **`menu.gd`** — secțiunea UPGRADES ștearsă (butonul + `_build_shop` / `_on_shop` / `_on_buy` / `_refresh_shop`), iar în locul ei un panou **LANGUAGE** cu 9 steaguri. Butonul-steag stă lângă rotiță; helperul nou `_corner_button(cb, pozitie)` ține offset-urile colțului într-un singur loc.
+- **`menu/flags/*.png`** — steaguri pixel-art 24×16 **desenate din cod** cu `tool_flags.gd`, ca să nu depindem de imagini de pe net (licențe) și ca să se poată regenera oricând la altă mărime.
+- `game_settings.gd` — `language` + `set_language()`, salvat/încărcat ca restul setărilor.
+
+**🔑 Descoperirea care a făcut difful mic: Godot traduce SINGUR textul pus pe Label/Button.** Nu trebuie `tr()` peste tot — lași `b.text = "START"` și iese tradus, iar la schimbarea limbii nodurile primesc `NOTIFICATION_TRANSLATION_CHANGED` și se rescriu singure. De aia `levelup.gd`, `pause.gd`, `settings_ui.gd` și `player.gd` **n-au fost atinse deloc**, deși tot textul lor apare tradus.
+**⚠️ Reversul, care e o capcană reală:** un `tr()` pus pe o etichetă simplă ar STRICA schimbarea limbii — nodul ar reține textul deja tradus, iar a doua căutare n-ar mai găsi nimic, deci ar rămâne în limba veche. `tr()` se folosește **doar** unde textul are `%d`/`%s` (`hud.gd`, `gameover.gd`, `interact_ui.gd`, rândul de leaderboard din `menu.gd`) — acolo cheia oricum n-ar mai fi găsită după ce se pun numerele în ea.
+
+**Fontul — verificat ÎNAINTE de a scrie traducerile,** fiindcă putea să pice tot: `HomeVideo-Regular.otf` are latina completă (inclusiv ą/ę/ł/ż și ğ/ş/ı) **și chirilica**, dar zero glife CJK. Chineza și japoneza ies din **system fallback** (`allow_system_fallback=true` în `.import`) — se văd corect, doar cu alt font (nu pixel). Verificat cu `font.has_char()` + poză, nu presupus.
+
+**Verificat pe rulare reală:** `tool_check_i18n.tscn` (unealtă nouă) confirmă 183 chei × 8 limbi complete, zero nume/descrieri din `levelup.gd` fără traducere, zero `tr(...)` fără rând în tabel; singurele texte netraduse rămase în cod sunt „Nicotine & Knives" (titlul de rezervă) și „+" (prefixul cronometrului). Plus poze din joc: meniu (en/de/ru), panoul de limbi, settings (zh/pl), level up + panoul de statusuri (ru/zh), HUD (pl), pauză și game over (de). Panoul de statusuri are lățime FIXĂ — de-aia etichetele lungi sunt scurtate în tabel („Erlitt. Schaden", „Otrzym. obraż.") și s-a verificat pe poză că încap.
+
+**De reținut pentru unelte:** o unealtă care are nevoie de autoload-uri **nu merge cu `--script`** („Identifier not found: GameSettings") — se rulează ca **scenă**: `godot --headless --path . res://tool_check_i18n.tscn`.
+
+**Curățenie:** testul de game over chiar scrie în leaderboard-ul real (`show_gameover` cheamă `add_score`) — scorul fals (10:23, level 12) a fost șters din `user://scores.save` după verificare. Dacă mai rulezi așa un test, curăță după el.
+
+**Ce NU s-a atins:** meta-progresia din spatele magazinului (`META`, `buy()`, monedele, upgrade-urile deja cumpărate) e neatinsă — a dispărut doar ecranul; ce era cumpărat se aplică în continuare. Și **codexul rămâne în urmă**: încă descrie „magazinul permanent" ca pagină de meniu. L-am lăsat intenționat (datele sunt reale, doar inaccesibile), dar e de decis cu Răzvan ce facem cu secțiunea aia.
+---
+
 ## Session log — 2026-07-26 (28 de descrieri rescrise + Psychic Flip Flop)
 
 **Cerut de Răzvan:** o listă cu descrieri noi pentru 28 de iteme, plus redenumirea „Psychic Flip Flops" → **„Psychic Flip Flop"**.

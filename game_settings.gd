@@ -29,6 +29,12 @@ var vsync: bool = true
 var vignette: bool = true   # marginile întunecate care duc ochiul spre centru
 var glow: bool = true       # bloom-ul subtil de pe zonele luminoase
 
+# --- limba (butonul cu steag din meniul principal) ---
+# Codurile sunt cele din `i18n.gd`: „en", „zh", „de", „es", „ru", „fr", „ja", „pl", „tr".
+# Implicit „en", limba în care e scris jocul. Se aplică prin TranslationServer, deci schimbarea
+# se vede pe loc, fără repornire.
+var language: String = "en"
+
 # --- taste (remapabile din Settings) ---
 # Acțiunile astea le creăm NOI, din cod (nu în project.godot), tocmai ca să le putem schimba din
 # meniu. Fiecare are taste implicite; dacă jucătorul alege alta, o reținem în `keybinds` și
@@ -123,6 +129,12 @@ func set_glow(on: bool) -> void:
 	_refresh_atmosfera()
 	_save()
 
+# --- limbă ---
+# Doar reține și salvează alegerea; cine schimbă efectiv locale-ul e `I18n.schimba_limba()`.
+func set_language(cod: String) -> void:
+	language = cod
+	_save()
+
 # Pune fereastra și vsync-ul pe ce zic setările. Nu atingem fereastra dacă e deja cum trebuie
 # (`window_set_mode` cu aceeași valoare tot clipește pe unele drivere).
 func aplica_grafica() -> void:
@@ -200,6 +212,7 @@ func _save() -> void:
 			"scores": scores, "coins": coins, "upgrades": upgrades,
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "keybinds": keybinds,
 			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
+			"language": language,
 		})
 
 func _load() -> void:
@@ -221,5 +234,6 @@ func _load() -> void:
 		vsync = bool(data.get("vsync", vsync))
 		vignette = bool(data.get("vignette", vignette))
 		glow = bool(data.get("glow", glow))
+		language = String(data.get("language", language))
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil

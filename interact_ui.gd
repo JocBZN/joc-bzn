@@ -38,7 +38,8 @@ func _process(_delta: float) -> void:
 	_label.visible = _tinta != null
 	if _tinta == null:
 		return
-	_label.text = "Press %s to interact" % GameSettings.key_name("interact")
+	# tr(...) explicit: textul are un %s, deci traducerea automată n-ar găsi cheia (vezi i18n.gd)
+	_label.text = tr("Press %s to interact") % GameSettings.key_name("interact")
 	# poziția statuii din lume → pixeli de ecran, apoi centrăm eticheta pe orizontală
 	var screen: Vector2 = get_viewport().get_canvas_transform() * (_tinta.global_position + Vector2(0, world_offset_y))
 	_label.position = screen - Vector2(LABEL_W * 0.5, 0)
