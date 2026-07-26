@@ -13,6 +13,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (butoane pentru hitbox-ul portalului)
+
+**Cerut de Răzvan:** „pune-mi butoane să pot să fac eu hitbox-ul manual la portal."
+
+**`portal.gd` a devenit `@tool`** — rulează și în editor, deci cifrele se aplică pe loc în fereastra de editare, fără să pornească jocul. Trei butoane noi pe nodul `Portal`, în grupul „Hitbox":
+- `hitbox_size` (lățime × înălțime) și `hitbox_pos` (unde stă față de talpă) — au setter care scrie direct în `CollisionShape2D`;
+- `vezi_hitbox` — desenează conturul, **și în joc**: dreptunghi roșu = zidul, cerc albastru = `interact_range` (de unde apare „Press E"), punct+linie galbenă = originea nodului / linia de Y-sort.
+
+**Trei lucruri de reținut, dacă se mai umblă pe aici:**
+1. **Conturul e un nod separat** (clasa internă `Contur`), nu `_draw()` în `Portal`. Copiii se desenează PESTE părinte, deci liniile ar fi rămas ascunse sub `Sprite2D`. Nodul e adăugat ultimul, cu `z_index = 100`. Nu are `owner`, deci nu se salvează în `.tscn` când Răzvan salvează scena din editor.
+2. **Forma se duplică la rulare.** `RectangleShape2D` e sub-resursă a scenei → toate portalurile ar împărți același obiect și ultimul încărcat ar redimensiona-o pentru toate. În editor NU duplicăm (acolo vrem exact resursa din fișier, ca modificarea să se salveze). Testat cu două portaluri cu hitbox-uri diferite: nu se calcă.
+3. **Sursa adevărului s-a mutat.** Înainte, README-ul zicea „scriptul nu atinge niciodată hitbox-ul, ce vezi în editor aia iese". Acum comanda o dau exportările; dacă tragi de pătrățelele portocalii ale lui `CollisionShape2D`, modificarea se pierde la următoarea încărcare. Scris explicit în comentariul de sus din `portal.gd` și în README.
+
+**Valorile implicite sunt exact cele care erau deja în `portal.tscn`** (230×40 la `(0, 0.4)`), deci nimic nu s-a mișcat la vedere — `git diff portal.tscn` a ieșit gol.
+
+**Verificat:** parse-check curat; scenă de test cu două portaluri (forme proprii, independente), modificare live după instanțiere, contur prezent la `z=100`; captură din joc cu roșu+albastru+galben desenate peste artă; `portal.tscn` deschis în editor headless fără nicio eroare de la `@tool`.
+
+---
+
 ## Session log — 2026-07-26 (sunetul Nether-ului: muzică, pași, teleport)
 
 **Cerut de Răzvan:** „ți-am făcut un folder în audio — `Nether Audio`. `sky-lines` să fie melodia care e mereu pe loop când ești în Nether. `Footsteps_nether` sunt pașii. `Teleport sfx` e sunetul când apeși E pe Portal 1."
