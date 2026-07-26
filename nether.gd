@@ -30,6 +30,7 @@ const CLOCK_COLOR := Color(1.0, 0.50, 0.16)       # portocaliu de foc
 const CLOCK_WARN := Color(1.0, 0.82, 0.20)        # galben — ultimul minut
 const CLOCK_SWARM := Color(1.0, 0.10, 0.10)       # roșu — Nether Swarm
 const COMPASS_MARGIN := 96.0    # cât de departe de marginea ecranului stă săgeata spre portal
+const TELEPORT_DB := -4.0       # cât de tare e whoosh-ul de teleportare (E pe portal)
 
 # Nodurile care fac decorul. Sunt oprite cât ești în Nether → „lume fără nimic".
 # `Portals` e în listă ca să dispară portalurile lumii normale; al nostru de întoarcere
@@ -137,7 +138,11 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	# (nu în `Portals`), ca golirea generatorului să nu-l șteargă.
 	_spawn_return_portal(portal_pos)
 
-	Audio.stop_forest_ambient()   # nu mai ești în pădure
+	# Sunet: ambientul de pădure se oprește (nu mai ești în pădure), muzica lumii e pusă
+	# deoparte și pornește sky-lines în buclă. `TELEPORT_DB` = whoosh-ul de trecere.
+	Audio.stop_forest_ambient()
+	Audio.play("teleport", TELEPORT_DB, 0.0)
+	Audio.play_nether_music()
 	_clock.text = _mmss(NETHER_TIME)
 	_clock.add_theme_color_override("font_color", CLOCK_COLOR)
 	_clock.visible = true
@@ -147,7 +152,6 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 		_spawn_one()
 
 	_announce("THE NETHER", "Press E at the portal to go back")
-	Audio.play("levelup", -2.0)
 
 # ---------- IEȘIRE ----------
 # `anunt = false` când ieși pentru că ai murit — atunci nu are ce sărbători.
@@ -165,11 +169,13 @@ func exit_nether(anunt: bool = true) -> void:
 	_clock.visible = false
 	_arrow.visible = false
 	_dist.visible = false
+	# sunetul lumii înapoi: ambientul de pădure și melodia de dinainte, din secunda unde a rămas
 	Audio.play_forest_ambient()
+	Audio.restore_world_music()
 	if anunt:
+		Audio.play("teleport", TELEPORT_DB, 0.0)   # doar când ieși pe portal; dacă ai murit, nu
 		_flash_screen()
 		_announce("BACK", "The world is where you left it")
-		Audio.play("levelup", -2.0)
 
 func _process(delta: float) -> void:
 	if not active:

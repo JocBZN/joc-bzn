@@ -434,11 +434,15 @@ func _physics_process(delta: float) -> void:
 		_step_t -= delta
 		if _step_t <= 0.0:
 			_step_t = STEP_GAP
-			# pas de nisip în deșert, de iarbă în pădure (pitch-ul variază singur, să nu sune identic)
+			# pas de cărămidă în Nether, de nisip în deșert, de iarbă în pădure
+			# (pitch-ul variază singur, să nu sune identic)
+			var nether := get_tree().get_first_node_in_group("nether")
 			var in_desert := BiomeMap.desertness_at_chunk(global_position / 512.0) >= 0.5
-			# volume balansat: cele două fișiere au loudness diferit (sand mai tare) → offset diferit,
-			# ca pașii să sune la fel de tare pe ambele terenuri (subtili, mult sub combat)
-			if in_desert:
+			# volume balansat: fișierele au loudness diferit (sand mai tare) → offset diferit,
+			# ca pașii să sune la fel de tare pe toate terenurile (subtili, mult sub combat)
+			if nether != null and nether.active:
+				Audio.play("footsteps_nether", -7.0)
+			elif in_desert:
 				Audio.play("footsteps_sand", -9.0)
 			else:
 				Audio.play("footsteps_grass", -7.0)

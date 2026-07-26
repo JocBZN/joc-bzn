@@ -21,7 +21,9 @@ const SFX := {
 	"game_over":      "res://audio/Game Over.wav",                      # ecranul de Game Over
 	"footsteps_grass": "res://audio/Footsteps_Grass_Run_01.wav",       # un pas pe iarbă/pădure
 	"footsteps_sand":  "res://audio/Footsteps_Sand_Run_01.wav",        # un pas pe nisip/deșert
+	"footsteps_nether": "res://audio/Nether Audio/Footsteps_Nether.wav",  # un pas pe cărămida din Nether
 	"forest_ambient":  "res://audio/Forest Ambient.wav",               # ambient de pădure (buclă, vezi mai jos)
+	"teleport":        "res://audio/Nether Audio/Teleport Sfx.wav",    # E pe portal: intrarea/ieșirea din Nether
 }
 
 const CHUNK_PX := 512.0     # mărimea unui chunk (ca în props/ground/pathways) — pentru desertness
@@ -34,6 +36,8 @@ const MUSIC_GAME := [
 	"res://audio/First 5 Minutes - Main World/Ruined_Place.ogg",
 	"res://audio/First 5 Minutes - Main World/tiny-rpg-town.ogg",
 ]
+# În Nether: mereu aceeași melodie, în buclă, cât ești acolo (`nether.gd`).
+const MUSIC_NETHER := "res://audio/Nether Audio/sky-lines.ogg"
 
 const POOL_SIZE := 12       # câte "boxe" (playere) avem pregătite
 const MIN_GAP_MS := 45      # pauza minimă între două redări ale ACELUIAȘI sunet (vezi `play`)
@@ -95,6 +99,7 @@ func play_menu_music(volume_db: float = -14.0) -> void:
 # Muzica din joc: alege o melodie la întâmplare din MUSIC_GAME, alta (posibil) la fiecare rundă.
 # Sar peste fișierele care lipsesc, ca să nu iasă tăcere dacă unul e șters/redenumit.
 func play_music(volume_db: float = -12.0) -> void:
+	_nether_prev_path = ""   # rundă nouă → uităm ce cânta înainte de un Nether vechi
 	var disponibile: Array = []
 	for path in MUSIC_GAME:
 		if ResourceLoader.exists(path):
@@ -103,6 +108,33 @@ func play_music(volume_db: float = -12.0) -> void:
 		stop_music()
 		return
 	_play_track(disponibile[randi() % disponibile.size()], volume_db)
+
+# --- Muzica din Nether ---
+# Intri în Nether → ținem minte CE cânta și DIN CE SECUNDĂ, apoi punem sky-lines în buclă.
+# La întoarcere reluăm melodia lumii exact de unde a rămas (nu de la capăt), ca și cum
+# ar fi cântat mai departe cât ai fost plecat.
+var _nether_prev_path := ""
+var _nether_prev_db := 0.0
+var _nether_prev_pos := 0.0
+
+func play_nether_music(volume_db: float = -12.0) -> void:
+	if _music != null and _music.playing:
+		_nether_prev_path = _music_path
+		_nether_prev_db = _music_base_db
+		_nether_prev_pos = _music.get_playback_position()
+	_play_track(MUSIC_NETHER, volume_db)
+
+func restore_world_music() -> void:
+	if _nether_prev_path == "":
+		play_music()   # n-avem ce relua (ex. ai intrat fără muzică) → alegem una nouă
+		return
+	var path := _nether_prev_path
+	var db := _nether_prev_db
+	var poz := _nether_prev_pos
+	_nether_prev_path = ""
+	_play_track(path, db)
+	if _music != null and _music.playing:
+		_music.seek(poz)
 
 func stop_music() -> void:
 	_music_path = ""
