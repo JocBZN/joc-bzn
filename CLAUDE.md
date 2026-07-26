@@ -13,6 +13,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (SARATALIN, boss-ul Nether-ului + structura care îl cheamă)
+
+**Cerut de Răzvan:** „ți-am băgat o structură nouă și un boss nou în `harta/nether/Nether Boss`. Saratalin e bossul — îl faci tu frumos pe frame-uri că trebuie tăiat. Summoning Portal e structura care îl sumonează. Vreau la fel, cu un cutremur să se sumoneze și statuia să se ducă în pământ ca cealaltă. Dar bossul Saratalin vreau să coboare din tavan (coboară de unde nu vede player-ul)."
+
+**Tăierea foii, măsurată nu ghicită:** `Saratalin.png` e 3360×240. Am numărat coloanele complet transparente cu un script headless → **15 benzi pline**, deci **15 cadre de 224×240**. Centrele benzilor cad la ±2px de centrele feliilor de 224 (legănarea naturală a animației), deci felierea uniformă e corectă. NU am tăiat-o în 15 fișiere: `saratalin.gd` face 15 `AtlasTexture` peste aceeași imagine (ca frunzele din `leaffall.gd`). Schimbi foaia → schimbi `FRAMES`/`FRAME_W`, atât.
+
+**`summoning_portal.gd`** e sora statuii: simbol de alertă, cutremur, structura se scufundă și dispare, apoi cheamă boss-ul. Diferența cerută: **`saratalin.coboara_din_tavan()`** îl mută cu o jumătate de ecran + `ceiling_margin` DEASUPRA locului de aterizare și îl lasă să plutească în jos. Jumătatea de ecran se calculează în pixeli de LUME (`viewport.y / cam.zoom.y * 0.5`) — cu zoom 0.7 ies ~463px, deci 260 de margine peste. **Mutăm tot nodul, nu doar sprite-ul** (cum face `statue.gd` cu Garda): dacă mutam doar arta, corpul era deja jos și te lovea un boss invizibil cât „cobora".
+
+**`hitbox_reglabil.gd` (nou):** butoanele Nord/Sud/Est/Vest + conturul au ieșit din `portal.gd` într-un script de bază `@tool`, din care moștenesc acum și `portal.gd`, și `summoning_portal.gd` (`extends "res://hitbox_reglabil.gd"`). O singură copie a codului, aceleași butoane pe ambele structuri.
+
+**Două lucruri prinse de capturile de ecran, nu de cod:**
+1. **Proiectilele boss-ului rămâneau violet ca ale Gărzii.** Cauza: puneam `proj.tint` DUPĂ `add_child()`, iar `lightning.gd` citește `tint` o singură dată, în `_ready()` — care se declanșează exact când nodul intră în arbore. `tint` se pune ÎNAINTE de `add_child`. (`damage`/`speed` se citesc în fiecare cadru, de aia pe alea nu le deranja ordinea — și de aia bug-ul nu se vedea în `garda.gd`.)
+2. Aceeași capcană de inferență ca la conturul portalului, de data asta în scenă de test: `var altar_y := altar.global_position.y` nu compilează când `altar` e untyped.
+
+**⚠️ `portal.tscn` fusese modificat de Răzvan** între sesiuni: hitbox-ul dus la 250×60 (a tras de pătrățelele lui `CollisionShape2D`). Fiindcă acum comanda o dau exportările, valoarea lui s-ar fi pierdut tăcut la următoarea încărcare — am mutat-o în butoane (`nord/sud = 30`, `est/vest = 125`). **De verificat la fiecare sesiune viitoare:** dacă `git status` arată `.tscn`-uri atinse de el, prima întrebare e dacă valoarea aia mai supraviețuiește logicii din script.
+
+**Verificat prin rulare reală** (scenă de test, tasta E apăsată pe bune, apoi ștearsă): structura apare lângă portalul de întoarcere cu „Press E to interact" ✅; E → se scufundă și dispare ✅; boss-ul apare cu **719 HP** (700 × dificultate) și **15 cadre** cu regiunile exacte (cadrul 14 la x=3136) ✅; pornește la **898px deasupra player-ului**, cu ecranul de ~926px înălțime în lume — deci în afara câmpului vizual ✅; aterizează la ținta ei și pornește după player (dy=50px într-o secundă) ✅; cercul de 14 proiectile magenta, verificat pe captură ✅.
+
+**Rămas de făcut, dacă vrea:** proiectilul e tot bastonul Gărzii, doar recolorat — e artă provizorie.
+
+---
+
 ## Session log — 2026-07-26 (butoane pentru hitbox-ul portalului)
 
 **Cerut de Răzvan:** „pune-mi butoane să pot să fac eu hitbox-ul manual la portal."

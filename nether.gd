@@ -18,6 +18,7 @@ extends CanvasLayer
 
 const PORTAL := preload("res://portal.tscn")
 const ENEMY := preload("res://enemy.tscn")
+const SUMMON := preload("res://summoning_portal.tscn")   # structura care îl cheamă pe Saratalin
 
 # --- reglaje (schimbă-le liniștit) ---
 const NETHER_TIME := 420.0      # 7:00 — cât ține faza „normală" înainte de Nether Swarm
@@ -31,6 +32,10 @@ const CLOCK_WARN := Color(1.0, 0.82, 0.20)        # galben — ultimul minut
 const CLOCK_SWARM := Color(1.0, 0.10, 0.10)       # roșu — Nether Swarm
 const COMPASS_MARGIN := 96.0    # cât de departe de marginea ecranului stă săgeata spre portal
 const TELEPORT_DB := -4.0       # cât de tare e whoosh-ul de teleportare (E pe portal)
+# Unde punem structura de invocare a lui Saratalin, față de portalul de întoarcere.
+# Suficient de aproape cât s-o vezi când aterizezi, suficient de departe cât să n-o
+# apeși din greșeală în loc de portal.
+const SUMMON_OFFSET := Vector2(520.0, 40.0)
 
 # Nodurile care fac decorul. Sunt oprite cât ești în Nether → „lume fără nimic".
 # `Portals` e în listă ca să dispară portalurile lumii normale; al nostru de întoarcere
@@ -46,6 +51,7 @@ var _arrow: Label            # săgeata care arată încotro e portalul de înto
 var _dist: Label             # distanța până la el (px de lume)
 var _player: Node2D = null
 var _return_portal: Node2D = null
+var _summon_portal: Node2D = null   # structura lui Saratalin (dispare când o folosești)
 var _elapsed := 0.0          # de câte secunde ești în Nether
 var _entry_diff_time := 0.0  # în ce secundă a rundei ai intrat (de acolo pleacă dificultatea)
 var _swarm_announced := false
@@ -276,11 +282,19 @@ func _spawn_return_portal(portal_pos: Vector2) -> void:
 	_return_portal.retur = true          # apăsând E pe el IEȘI, nu intri iar
 	world.add_child(_return_portal)
 	_return_portal.global_position = poz
+	# lângă el, structura care îl cheamă pe Saratalin — una nouă la fiecare intrare în Nether
+	_summon_portal = SUMMON.instantiate()
+	world.add_child(_summon_portal)
+	_summon_portal.global_position = poz + SUMMON_OFFSET
 
 func _free_return_portal() -> void:
 	if _return_portal != null and is_instance_valid(_return_portal):
 		_return_portal.queue_free()
 	_return_portal = null
+	# structura se șterge singură când o folosești, deci aici poate fi deja liberă
+	if _summon_portal != null and is_instance_valid(_summon_portal):
+		_summon_portal.queue_free()
+	_summon_portal = null
 
 func _spawn_one() -> void:
 	if _player == null or not is_instance_valid(_player):

@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://summoning_portal.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://harta/nether/Nether Boss/Summoning Portal.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_summon"]
+size = Vector2(200, 44)
+
+[node name="SummoningPortal" type="StaticBody2D"]
+script = ExtResource("1_script")
+nord = 22.0
+sud = 22.0
+est = 100.0
+vest = 100.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("2_tex")
+offset = Vector2(0, -31.166667)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_summon")

@@ -1,20 +1,24 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cbudetnbxsux4"]
 
-[ext_resource type="Script" path="res://portal.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://5lauivygsv28" path="res://portal.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://u6x75iwkbjkx" path="res://harta/Portal 1.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_portal"]
-size = Vector2(230, 40)
+size = Vector2(250, 60)
 
-[node name="Portal" type="StaticBody2D"]
+[node name="Portal" type="StaticBody2D" unique_id=1936592460]
 script = ExtResource("1_script")
+nord = 30.0
+sud = 30.0
+est = 125.0
+vest = 125.0
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=378377321]
 texture_filter = 1
 scale = Vector2(2.4, 2.4)
 texture = ExtResource("2_tex")
-offset = Vector2(0, -25.166667)
+offset = Vector2(0, -25.166668)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1922763015]
 position = Vector2(0, 0.4)
 shape = SubResource("RectangleShape2D_portal")
