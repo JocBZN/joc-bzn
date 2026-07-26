@@ -19,8 +19,8 @@ var WEAPONS := [
 	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png"},
 ]
 
-const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (720p) pentru secunda de intro
-const BG_FRAMES_DIR := "res://menu/bg_frames"       # cadrele de animație (640x360)
+const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
+const BG_FRAMES_DIR := "res://menu/bg_frames"       # cadrele de animație (1920x1080)
 const BG_FRAME_COUNT := 60
 const BG_FPS := 10.0
 const BLUR_SHADER := "res://menu/menu_blur.gdshader"
@@ -115,8 +115,14 @@ func _show(which: String) -> void:
 # inclus în engine), iar conversia în Theora a ieșit de fiecare dată cu imaginea coruptă.
 # Așa că am tăiat 6 secunde din „main menu background.mp4" în cadre (vezi README).
 #
-# Cadrele animate sunt mici (640x360) fiindcă se văd doar blurate; pentru secunda de
-# intro, cât imaginea e clară, folosim un cadru separat de 720p.
+# Cadrele sunt la 1920x1080, adică exact rezoluția sursei — nu mărite din ceva mic.
+# (Au fost 640x360, pe ideea că se văd doar blurate; dar animația pornește din primul cadru,
+#  deci în secunda de intro, cât imaginea e CLARĂ, se vedea o poză mărită de 3 ori.)
+#
+# ⚠️ Import-ul lor e „VRAM Compressed" (`compress/mode=2` în .import), NU lossless. La 60 de
+# cadre 1080p, lossless ar însemna 1920·1080·4 B fiecare = ~486 MB de memorie video, ceea ce
+# nu merge nicăieri, cu atât mai puțin pe telefon. Comprimate, tot pachetul stă în ~62 MB.
+# Dacă regenerezi cadrele, verifică să rămână pe `compress/mode=2`.
 func _bg_setup() -> void:
 	if not ResourceLoader.exists(BG_STILL):
 		_gradient_bg()   # dacă lipsesc cadrele, meniul arată ca înainte
@@ -147,7 +153,7 @@ func _bg_setup() -> void:
 		if ResourceLoader.exists(p):
 			_frames.append(load(p))
 	# animația pornește din prima, nu după intro: fundalul e viu de la primul cadru.
-	# Cadrul static de 720p rămâne doar ca rezervă, dacă lipsesc cadrele animate.
+	# Cadrul static rămâne doar ca rezervă, dacă lipsesc cadrele animate.
 	if _frames.size() >= 2:
 		_bg_rect.texture = _frames[0]
 		_animating = true

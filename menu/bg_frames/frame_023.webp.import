@@ -3,19 +3,20 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://de8agwph7yeyx"
-path="res://.godot/imported/frame_023.webp-9cd96d7f183fe7273088a771ffdfad33.ctex"
+path.s3tc="res://.godot/imported/frame_023.webp-9cd96d7f183fe7273088a771ffdfad33.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://menu/bg_frames/frame_023.webp"
-dest_files=["res://.godot/imported/frame_023.webp-9cd96d7f183fe7273088a771ffdfad33.ctex"]
+dest_files=["res://.godot/imported/frame_023.webp-9cd96d7f183fe7273088a771ffdfad33.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0

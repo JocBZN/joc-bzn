@@ -13,6 +13,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (fundalul meniului, la rezoluție întreagă)
+
+**Cerut de Răzvan:** „Background-ul de la meniu arata prost, nu e hd, rezolva".
+
+**Cauza:** cadrele erau **640×360**, întinse pe tot ecranul. Ideea inițială (log-ul din 2026-07-19) era că se văd doar blurate, deci rezoluția n-ar conta — dar între timp animația a fost pornită din **primul cadru**, iar `INTRO_CLEAR = 1.0` ține imaginea **CLARĂ** o secundă întreagă. Deci în exact secunda în care te uiți la ea, era o poză mărită de 3 ori. Cadrul clar de 720p (`bg_still.webp`) rămăsese doar rezervă, nefolosit.
+
+**Ce s-a făcut:** cadrele re-extrase din `menu/main menu background.mp4` la **1920×1080** (rezoluția sursei), aceleași 6 secunde de la t=0, același 10 fps, aceleași 60 de cadre — verificat cu PSNR că vechiul `frame_001` corespunde cu t=0 din video, deci segmentul e identic și animația arată la fel. `bg_still.webp` la fel, 1080p.
+
+**Cheia e MODUL DE IMPORT, nu rezoluția.** La `compress/mode=0` (lossless, cum erau), 60 de cadre 1080p = **486 MB memorie video — măsurat, nu estimat**. De asta refuzase sesiunea veche 720p. Trecute pe **`compress/mode=2` (VRAM Compressed)**, aceleași cadre costă ~62 MB. Memoria totală de texturi: **62.5 MB → 77.5 MB**, pentru **de 9 ori mai mulți pixeli**.
+**⚠️ Dacă regenerezi cadrele, verifică să rămână pe `compress/mode=2`** — Godot rescrie `.import`-urile și, pe lossless, meniul încearcă să aloce o jumătate de gigabyte.
+
+**Capcană de măsurare — PSNR minte aici.** Cadrul nou (1080p comprimat VRAM) iese **mai prost** la PSNR față de original decât cel vechi mărit: **30.2 vs 32.3 dB**. Explicația: PSNR premiază neclaritatea (o poză blurată „greșește" puțin peste tot) și pedepsește artefactele de bloc pe contururi dure — exact ce are arta asta plată, cu culori mari și margini tăiate. **Am tăiat un crop și m-am uitat:** varianta nouă are brazii și norii cu contur clar, unde înainte era pastă. Deci s-a mers pe ochi, nu pe cifră. (De reținut pentru orice comparație viitoare de imagini.)
+
+**Verificat:** captură în secunda clară (contur curat, fără scări) + captură la 5 s, cu blur, titlu și butoane — meniul e neschimbat în rest. Scenele de test au fost șterse după.
+
+**Pe disc:** cadrele trec de la 1.3 MB la 5.1 MB. `main menu background.mp4` rămâne gitignorat (79 MB, doar pe discul lui Răzvan) — regenerarea cere `ffmpeg`:
+```
+ffmpeg -ss 0 -t 6 -i "menu/main menu background.mp4" \
+  -vf "fps=10,scale=1920:1080:flags=lanczos" -c:v libwebp -quality 92 \
+  menu/bg_frames/frame_%03d.webp
+```
+---
+
 ## Session log — 2026-07-26 (Enemy Hit, încă de 1.5× mai încet)
 
 **Cerut de Răzvan:** „fa-l cu 1.5x mai incet" (despre sunetul de la sesiunea de mai jos).
