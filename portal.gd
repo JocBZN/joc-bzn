@@ -17,29 +17,36 @@ extends StaticBody2D
 # ---------------------------------------------------------------------------
 # CUM REGLEZI HITBOX-UL (butoanele din Inspector)
 # ---------------------------------------------------------------------------
-# Scriptul e `@tool`, adică rulează ȘI în editor: orice cifră schimbi mai jos se
-# vede PE LOC în fereastra de editare, fără să pornești jocul.
+# Scriptul e `@tool`, adică rulează ȘI în editor: orice cifră schimbi se vede PE LOC
+# în fereastra de editare, fără să pornești jocul.
 #
-#   1. deschide `portal.tscn` și dă click pe nodul de sus, `Portal`;
-#   2. în Inspector ai grupul „Hitbox" — `Hitbox Size` (lățime × înălțime, în pixeli)
-#      și `Hitbox Pos` (unde stă față de talpa portalului; y negativ = mai sus);
-#   3. bifează `Vezi Hitbox` ca să vezi conturul: dreptunghiul ROȘU e zidul de care
-#      te lovești, cercul ALBASTRU e raza din care apare „Press E", punctul GALBEN
-#      e originea nodului (talpa, linia de Y-sort);
-#   4. bifa rămâne bifată și în joc — util ca să te lovești de el și să vezi exact
-#      unde e. Când ești mulțumit, DEBIFEAZ-O, altfel se vede și în jocul final.
+#   1. deschide `portal.tscn` (dublu-click pe fișier în panoul FileSystem, stânga-jos);
+#   2. în Scene (stânga-sus) dă click pe nodul de SUS, `Portal` — nu pe `CollisionShape2D`,
+#      butoanele sunt pe nodul de sus;
+#   3. în Inspector, jos, ai secțiunea **Hitbox**. Dacă e strânsă, click pe ea s-o deschizi.
+#      Patru cifre, câte una pentru fiecare latură — cât se întinde zidul din TALPA
+#      portalului în direcția aia, în pixeli:
+#         Nord = în sus     Sud = în jos     Est = la dreapta     Vest = la stânga
+#      Mărești `Nord` → peretele crește în sus. Mărești `Est` → crește spre dreapta. Atât.
+#   4. bifează `Vezi Hitbox` ca să vezi ce faci: dreptunghi ROȘU = zidul (cu literele
+#      N/S/E/V pe laturi), cerc ALBASTRU = raza din care apare „Press E", punct GALBEN
+#      = talpa portalului (linia lui de Y-sort);
+#   5. bifa merge și în joc, ca să te poți lovi de el și să vezi exact unde e marginea.
+#      Când ești mulțumit, DEBIFEAZ-O — altfel se vede și în jocul final.
 #
-# ⚠️ De acum comanda o dau cifrele astea, NU valorile din nodul `CollisionShape2D`:
-# la fiecare pornire scriptul scrie forma după ele. Dacă tragi de pătrățelele
-# portocalii ale lui `CollisionShape2D` cu mouse-ul, modificarea se pierde — treci
-# prin `Hitbox Size` / `Hitbox Pos`.
+# ⚠️ Comanda o dau cele patru cifre, NU nodul `CollisionShape2D`: la fiecare încărcare
+# scriptul îi scrie forma după ele. Dacă tragi de pătrățelele portocalii cu mouse-ul,
+# modificarea se pierde. Treci prin Nord/Sud/Est/Vest.
 #
-# Arta (poza) a rămas neatinsă, se reglează tot din `Sprite2D`. Un singur lucru de
-# ținut minte acolo: `Sprite2D.offset.y = -25.17` e calculat ca baza artei să cadă
-# 74px SUB originea nodului. Cifra 74 nu e la întâmplare: sprite-ul player-ului e
-# CENTRAT pe punctul lui de sortare, deci se întinde ~64px sub el. Dacă arta urcă
-# prea sus, când player-ul trece prin spate îi rămân picioarele afară, sub portal.
-# Copacii și statuia folosesc tot 74. Deci: poți să cobori arta, dar nu s-o urci sub ~64.
+# Dacă aveai Godot DESCHIS când s-a schimbat scriptul și secțiunea nu apare:
+# Project → Reload Current Project. Editorul ține minte vechea versiune a unui `@tool`.
+#
+# Arta (poza) se reglează în continuare din `Sprite2D`. Un singur lucru de ținut minte
+# acolo: `Sprite2D.offset.y = -25.17` e calculat ca baza artei să cadă 74px SUB originea
+# nodului. Cifra 74 nu e la întâmplare: sprite-ul player-ului e CENTRAT pe punctul lui
+# de sortare, deci se întinde ~64px sub el. Dacă arta urcă prea sus, când player-ul trece
+# prin spate îi rămân picioarele afară, sub portal. Copacii și statuia folosesc tot 74.
+# Deci: poți să cobori arta, dar nu s-o urci sub ~64.
 
 @export var interact_range: float = 200.0:   # cât de aproape trebuie să fii ca să apară textul
 	set(v):
@@ -48,15 +55,25 @@ extends StaticBody2D
 @export var retur: bool = false              # true doar pe portalul de întoarcere din Nether
 
 @export_group("Hitbox")
-## Lățimea și înălțimea zidului, în pixeli.
-@export var hitbox_size: Vector2 = Vector2(230, 40):
+## Cât urcă zidul DEASUPRA tălpii portalului (px).
+@export var nord: float = 20.0:
 	set(v):
-		hitbox_size = v
+		nord = v
 		_aplica_hitbox()
-## Unde stă zidul față de talpa portalului. y negativ = mai sus.
-@export var hitbox_pos: Vector2 = Vector2(0, 0.4):
+## Cât coboară zidul SUB talpa portalului (px).
+@export var sud: float = 20.0:
 	set(v):
-		hitbox_pos = v
+		sud = v
+		_aplica_hitbox()
+## Cât se întinde zidul la DREAPTA (px).
+@export var est: float = 115.0:
+	set(v):
+		est = v
+		_aplica_hitbox()
+## Cât se întinde zidul la STÂNGA (px).
+@export var vest: float = 115.0:
+	set(v):
+		vest = v
 		_aplica_hitbox()
 ## Desenează conturul (și în joc). Debifeaz-o când ai terminat de reglat.
 @export var vezi_hitbox: bool = false:
@@ -76,7 +93,9 @@ func _ready() -> void:
 	# Se anunță în grupul pe care îl citește `interact_ui.gd`. Statuia e în același grup.
 	add_to_group("interactable")
 
-# Scrie forma de coliziune după cifrele din Inspector.
+# Traduce cele patru laturi în ce înțelege Godot: un dreptunghi (mărime + centru).
+#   lățime = vest + est, înălțime = nord + sud
+#   centrul = la mijloc între laturi, față de talpă
 #
 # În joc DUPLICĂM forma: `RectangleShape2D` e o sub-resursă a scenei, deci toate portalurile
 # ar împărți același obiect și ultimul care scrie ar decide pentru toate. În editor NU
@@ -89,8 +108,9 @@ func _aplica_hitbox() -> void:
 		if not Engine.is_editor_hint() and not cs.shape.resource_local_to_scene:
 			cs.shape = cs.shape.duplicate()
 			cs.shape.resource_local_to_scene = true
-		cs.shape.size = hitbox_size
-	cs.position = hitbox_pos
+		# minim 1px: un dreptunghi de 0 ar dispărea de tot și n-ai mai nimeri înapoi
+		cs.shape.size = Vector2(maxf(vest + est, 1.0), maxf(nord + sud, 1.0))
+	cs.position = Vector2((est - vest) * 0.5, (sud - nord) * 0.5)
 	_redeseneaza()
 
 func _redeseneaza() -> void:
@@ -131,12 +151,25 @@ class Contur extends Node2D:
 	func _draw() -> void:
 		if portal == null:
 			return
-		# zidul (roșu): plin, transparent + contur gros
-		var r := Rect2(portal.hitbox_pos - portal.hitbox_size * 0.5, portal.hitbox_size)
+		# tipurile sunt scrise explicit: `portal` e un `Node2D`, deci GDScript nu poate
+		# ghici singur ce tip au `nord`/`sud`/... și refuză să compileze fără ele
+		var sus: float = -portal.nord
+		var jos: float = portal.sud
+		var st: float = -portal.vest
+		var dr: float = portal.est
+		# zidul (roșu): plin transparent + contur gros
+		var r := Rect2(Vector2(st, sus), Vector2(dr - st, jos - sus))
 		draw_rect(r, Color(1.0, 0.2, 0.2, 0.18))
 		draw_rect(r, Color(1.0, 0.25, 0.25), false, 2.0)
+		# literele pe laturi, ca să știi care cifră mișcă ce
+		var font := ThemeDB.fallback_font
+		var c := Color(1.0, 0.55, 0.55)
+		draw_string(font, Vector2((st + dr) * 0.5 - 5, sus - 6), "N", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, c)
+		draw_string(font, Vector2((st + dr) * 0.5 - 5, jos + 18), "S", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, c)
+		draw_string(font, Vector2(dr + 6, (sus + jos) * 0.5 + 6), "E", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, c)
+		draw_string(font, Vector2(st - 20, (sus + jos) * 0.5 + 6), "V", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, c)
 		# raza de interacțiune (albastru): de aici încolo apare „Press E"
 		draw_arc(Vector2.ZERO, portal.interact_range, 0.0, TAU, 64, Color(0.3, 0.85, 1.0, 0.75), 2.0)
-		# originea nodului (galben): talpa portalului și linia lui de Y-sort
+		# talpa portalului (galben): originea nodului și linia lui de Y-sort
 		draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.95, 0.2))
 		draw_line(Vector2(-40, 0), Vector2(40, 0), Color(1.0, 0.95, 0.2, 0.6), 1.0)

@@ -17,18 +17,23 @@ Quick rules:
 
 **Cerut de Răzvan:** „pune-mi butoane să pot să fac eu hitbox-ul manual la portal."
 
-**`portal.gd` a devenit `@tool`** — rulează și în editor, deci cifrele se aplică pe loc în fereastra de editare, fără să pornească jocul. Trei butoane noi pe nodul `Portal`, în grupul „Hitbox":
-- `hitbox_size` (lățime × înălțime) și `hitbox_pos` (unde stă față de talpă) — au setter care scrie direct în `CollisionShape2D`;
-- `vezi_hitbox` — desenează conturul, **și în joc**: dreptunghi roșu = zidul, cerc albastru = `interact_range` (de unde apare „Press E"), punct+linie galbenă = originea nodului / linia de Y-sort.
+**`portal.gd` a devenit `@tool`** — rulează și în editor, deci cifrele se aplică pe loc în fereastra de editare, fără să pornească jocul. Butoane noi pe nodul `Portal`, în grupul „Hitbox":
+- **`nord` / `sud` / `est` / `vest`** — cât se întinde zidul din talpa portalului în fiecare direcție, în pixeli. **A doua iterație:** prima variantă avea `hitbox_size` + `hitbox_pos` (mărime + centru, cum gândește Godot), dar Răzvan a cerut explicit pe laturi — mult mai ușor de reglat când vrei „doar puțin mai sus". Traducerea e în `_aplica_hitbox()`: `size = (vest+est, nord+sud)`, `position = ((est-vest)/2, (sud-nord)/2)`.
+- `vezi_hitbox` — desenează conturul, **și în joc**: dreptunghi roșu cu literele N/S/E/V pe laturi, cerc albastru = `interact_range` (de unde apare „Press E"), punct+linie galbenă = originea nodului / linia de Y-sort.
 
-**Trei lucruri de reținut, dacă se mai umblă pe aici:**
+**⚠️ Capcana care ne-a costat o tură** — Răzvan a zis „nu e niciun meniu de hitbox în Inspector". Cauza reală, găsită abia când am cerut lista de proprietăți a nodului: în clasa internă `Contur`, `var sus := -portal.nord` **nu compilează** — `portal` e declarat `Node2D`, deci GDScript nu știe ce tip are `nord` și refuză inferența. Un `@tool` care nu compilează **nu dă niciun semn în Inspector**: nodul apare pur și simplu fără proprietățile din script, ca și cum n-ar avea script. Tipurile din clasa internă se scriu explicit (`var sus: float = ...`).
+**Cum se verifică**, fiindcă `--check-only --script res://portal.gd` a trecut fără să sufle o vorbă: instanțiezi scena într-o scenă de test și tipărești `get_property_list()`, filtrat pe `PROPERTY_USAGE_GROUP` / `PROPERTY_USAGE_SCRIPT_VARIABLE`. Aia e exact lista pe care o vede Inspector-ul. Dacă grupul tău nu e acolo, nici Răzvan nu-l vede.
+
+**Restul lucrurilor de reținut, dacă se mai umblă pe aici:**
 1. **Conturul e un nod separat** (clasa internă `Contur`), nu `_draw()` în `Portal`. Copiii se desenează PESTE părinte, deci liniile ar fi rămas ascunse sub `Sprite2D`. Nodul e adăugat ultimul, cu `z_index = 100`. Nu are `owner`, deci nu se salvează în `.tscn` când Răzvan salvează scena din editor.
 2. **Forma se duplică la rulare.** `RectangleShape2D` e sub-resursă a scenei → toate portalurile ar împărți același obiect și ultimul încărcat ar redimensiona-o pentru toate. În editor NU duplicăm (acolo vrem exact resursa din fișier, ca modificarea să se salveze). Testat cu două portaluri cu hitbox-uri diferite: nu se calcă.
 3. **Sursa adevărului s-a mutat.** Înainte, README-ul zicea „scriptul nu atinge niciodată hitbox-ul, ce vezi în editor aia iese". Acum comanda o dau exportările; dacă tragi de pătrățelele portocalii ale lui `CollisionShape2D`, modificarea se pierde la următoarea încărcare. Scris explicit în comentariul de sus din `portal.gd` și în README.
 
-**Valorile implicite sunt exact cele care erau deja în `portal.tscn`** (230×40 la `(0, 0.4)`), deci nimic nu s-a mișcat la vedere — `git diff portal.tscn` a ieșit gol.
+**Valorile implicite dau exact hitbox-ul de dinainte:** N20 S20 E115 V115 → 230×40. Singura diferență e că centrul cade la `(0, 0)` în loc de `(0, 0.4)` — 0.4px, adică nimic, în schimb cifrele sunt rotunde. `portal.tscn` a rămas neschimbat.
 
-**Verificat:** parse-check curat; scenă de test cu două portaluri (forme proprii, independente), modificare live după instanțiere, contur prezent la `z=100`; captură din joc cu roșu+albastru+galben desenate peste artă; `portal.tscn` deschis în editor headless fără nicio eroare de la `@tool`.
+**Verificat:** lista de proprietăți conține `[GRUP] Hitbox` + `nord/sud/est/vest/vezi_hitbox`; N80 S20 E40 V115 → `size=(155, 100)`, `pos=(-37.5, -30)` (exact cât trebuie); două portaluri cu hitbox-uri diferite nu se calcă (forme duplicate); captură din joc cu conturul + literele desenate peste artă; `portal.tscn` deschis în editor headless, zero erori de la `@tool`.
+
+**Dacă Răzvan zice iar că nu vede butoanele:** întâi întreabă dacă avea Godot deschis când s-a schimbat scriptul — editorul ține minte versiunea veche a unui `@tool`; **Project → Reload Current Project** rezolvă. Al doilea suspect: click pe nodul de sus `Portal`, nu pe `CollisionShape2D`.
 
 ---
 
