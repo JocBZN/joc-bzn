@@ -20,7 +20,7 @@ var direction: Vector2 = Vector2.RIGHT
 var time_left: float
 var _hits: int = 0         # câți inamici a lovit deja
 
-# --- URMARIRE (homing) = itemul Psychic Flip Flops ---
+# --- URMARIRE (homing) = itemul Psychic Flip Flop ---
 # IMPLICIT E OPRIT (0.0): glontul pleaca in linie dreapta spre unde ERA inamicul in clipa
 # tragerii, exact ca inainte de 2026-07-21. Din 2026-07-22 urmarirea nu mai e gratuita pentru
 # toata lumea, ci e efectul itemului `psychic_flip_flops` (Epic) — player.gd pune aici

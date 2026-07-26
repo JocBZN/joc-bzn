@@ -65,7 +65,7 @@ func horse_mask_chance() -> float:
 		return 0.0
 	return minf(1.0, horse_mask_stacks * HORSE_MASK_PER + luck_bonus())
 
-# Psychic Flip Flops („aimbot"): gloanțele se corectează în zbor spre ținta lor și țintesc UNDE
+# Psychic Flip Flop („aimbot"): gloanțele se corectează în zbor spre ținta lor și țintesc UNDE
 # VA FI, nu unde e. Urmărirea a fost o vreme (2026-07-21 → 07-22) pornită din oficiu la toate
 # gloanțele; acum e efectul ACESTUI item — fără el gloanțele zboară drept, ca la început.
 # Toată mecanica stă în `bullet.gd` (`homing_turn`); aici e doar cât de strâns virează.
@@ -716,7 +716,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.explosion_radius = ex_radius
 	bullet.explosion_damage = ex_damage
 	bullet.thunder = thunder_stacks > 0 or plugged_in_stacks > 0  # Thunder God / Plugged In: curent la impact
-	# Ținta + cât de strâns virează spre ea. Fără Psychic Flip Flops, `aimbot_turn()` e 0 și
+	# Ținta + cât de strâns virează spre ea. Fără Psychic Flip Flop, `aimbot_turn()` e 0 și
 	# glonțul ignoră ținta complet — zboară drept, ca înainte de urmărire.
 	bullet.target = tinta
 	bullet.homing_turn = aimbot_turn()

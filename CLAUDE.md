@@ -13,6 +13,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-26 (28 de descrieri rescrise + Psychic Flip Flop)
+
+**Cerut de Răzvan:** o listă cu descrieri noi pentru 28 de iteme, plus redenumirea „Psychic Flip Flops" → **„Psychic Flip Flop"**.
+
+**Ce s-a făcut:**
+- `levelup.gd` — cele 28 de câmpuri `desc` rescrise + `nume` schimbat la `psychic_flip_flops`. Aplicate **cu script**, dintr-o listă `id|text`, nu editate una câte una.
+- `codex.html` — câmpul `game:` regenerat pentru **toate** cele 47 de iteme din `levelup.gd` (nu doar cele 28), plus `name:` sincronizat. Artifact republicat.
+- Comentariile din `bullet.gd` și `player.gd` care numeau itemul, plus intrarea din README, actualizate la numele nou. Log-urile vechi din CLAUDE.md rămân cu numele vechi — sunt istorie.
+
+**Verificat pe rulare reală, nu în fișier:** rulat jocul și tipărită lista pe care o vede chiar meniul de level up (`menu.UPGRADES`) — toate 28 apar cu textul nou, iar itemul se numește „Psychic Flip Flop". Apoi comparat `codex.html` cu `levelup.gd`: **47 identice, 0 diferite**. Codexul randat în Chrome headless: 0 erori de consolă.
+
+**Detaliu de acces:** `UPGRADES` e `var`, nu `const` — deci se citește direct (`menu.UPGRADES`). Pe `const` ar fi trebuit `get_script().get_script_constant_map()`. Am pierdut două rulări încercând întâi `ITEMS` (nume greșit) și apoi harta de constante.
+
+**Verificare de conținut, nu doar de sincronizare:** noile texte pun cifre acolo unde înainte era vag („+damage - +fire rate" → „+10 Damage +18% Attack Speed" la Stroh). Am confirmat în `_apply` că Stroh chiar dă `bullet_damage += 10`, deci cifra de pe card e reală.
+
+**De observat:** multe descrieri noi renunță la partea cu stivuirea („1% instakill (+0.5% / stack)" → „1% instakill"). Nu e o scăpare, e alegerea lui — cardul din joc e scurt. Informația despre stack n-a dispărut: e în rândul **CE FACE DE FAPT** din codex.
+---
+
 ## Session log — 2026-07-26 (codexul arată textul EXACT din joc + pagina era spartă)
 
 **Cerut de Răzvan:** „la artifact fa descrierile exact cum sunt scrise in joc sa stiu cum le schimb".
