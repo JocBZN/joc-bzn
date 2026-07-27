@@ -453,15 +453,42 @@ func _trage_iteme(n: int, exclude: Array = []) -> Array:
 			out.append(u)
 	return out
 
+# Calea completă a iconiței unui item: numele scurte se caută în `Upgrades/`, căile care încep
+# deja cu res:// se folosesc ca atare. O cere și `chest.gd`, ca să arate ce a scos din cufăr.
+func icon_path(u) -> String:
+	var p: String = u["icon"]
+	return p if p.begins_with("res://") else ICON_DIR + p
+
+# ---------------------------------------------------------------------------
+# UN UPGRADE LA ÎNTÂMPLARE, APLICAT PE LOC — îl cere CUFĂRUL (`chest.gd`), fără ecran de ales.
+# ---------------------------------------------------------------------------
+# Folosește ACEEAȘI tragere ca la level up (`_trage_unul`), deci rarităţile îşi păstrează
+# şansele reale (Legendary 2.5%) şi norocul contează. Alternativa — „la fel de probabil oricare
+# din cele 47" — ar fi făcut un Legendary de 4× mai probabil dintr-un cufăr decât dintr-un nivel.
+# Întoarce dicționarul itemului (are `nume`, `icon`, `rar`) sau `null` dacă n-a rămas nimic.
+func da_random_acum():
+	var p = get_tree().get_first_node_in_group("player")
+	if p == null:
+		return null
+	# Lucky Die n-are ce căuta aici: efectul lui e „mai dă-mi o pagină de iteme", iar cufărul nu
+	# deschide nicio pagină — ar fi fost un cufăr irosit. Îl scoatem din tragere.
+	var fara := []
+	for u2 in UPGRADES:
+		if u2["id"] == "lucky_die":
+			fara.append(u2)
+	var u = _trage_unul(fara)
+	if u == null:
+		return null
+	_apply(u["id"], p)
+	if u.get("unic", false) and not _luate_unic.has(u["id"]):
+		_luate_unic.append(u["id"])   # „unicele" ies din listă la fel ca la level up
+	return u
+
 func _show_choices(exclude: Array = []) -> void:
 	_current = _trage_iteme(3, exclude)
 	for i in 3:
 		var u = _current[i]
-		# iconița
-		var icon_path: String = u["icon"]
-		if not icon_path.begins_with("res://"):
-			icon_path = ICON_DIR + icon_path   # numele scurte se caută în Upgrades/; căile res:// se folosesc direct
-		_icons[i].texture = load(icon_path)
+		_icons[i].texture = load(icon_path(u))
 		# border-ul + raritatea, cu culoarea EXACTĂ luată din border
 		var rar = RARITIES.get(u.get("rar", "common"), RARITIES["common"])
 		_borders[i].texture = load(MENU_UI_DIR + rar["border"])

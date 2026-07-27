@@ -16,6 +16,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (cufărul dă un upgrade random + explozia multicoloră)
+
+**Cerut de Răzvan:** „ti-am pus un folder nou in chest, se numeste Chest Animation 2 - e o animatie de mai multe culori intr-o singura poza, faci tu frame-urile. Vreau ca fiecare frame sa fie randomizat cu o culoare diferita, mereu arata altfel. Animatia vreau sa apara cand deschizi chestul deasupra lui si vreau sa iti dea un upgrade random din toate care sunt bagate in joc. dupa ce se termina animatia o sa apara iconita de la upgrade 2 secunde dupa sa isi ia fade out."
+
+**Ce s-a făcut:** `chest_fx.gd` (nod din cod, fără scenă — ca `firetrail.gd`) + `levelup.gd::da_random_acum()`.
+
+**🔑 Foaia NU s-a tăiat în fișiere.** `652.png` e 1024×576 = **16 coloane (cadrele) × 9 rânduri (culorile)**, celule de 64×64, fundal transparent, aceeași formă în 9 culori (verificat: 561 de pixeli opaci în fiecare rând). Cadrele se decupează la rulare cu `AtlasTexture` — 144 de PNG-uri ar fi fost aceeași imagine de 144 de ori.
+
+**🔑 „Fiecare cadru altă culoare" = rândul se trage la întâmplare PENTRU FIECARE CADRU**, cu o singură regulă: niciodată aceeași culoare de două ori la rând (altfel se vede ca o sacadare, nu ca o pâlpâire). Măsurat pe 3 rulări: 6-9 culori folosite din 9, 0 repetări consecutive.
+
+**🔑 Efectul se agață de `World`, NU de cufăr.** Cufărul stă într-un container de chunk care se ȘTERGE când te îndepărtezi; ca fiu al lui, animația ar fi murit la jumătate, iar `await`-urile ar fi rămas agățate de un nod mort. (Notă: `statue.gd::_rise_enemy` pune boss-ul invocat în `get_parent()`, adică fix în containerul de chunk al statuii — dacă fugi ~1500px de statuie, containerul se descarcă și boss-ul dispare din luptă. N-am atins-o, dar merită reparată.)
+
+**🔑 Upgrade-ul se dă la DESCHIDERE, nu la sfârșitul animației** — dacă mori sau pleci în cele ~3.4 secunde, tot l-ai luat. Animația doar ARATĂ ce ai primit.
+
+**Alegere de echilibru, spusă lui Răzvan:** „random din toate" l-am făcut cu **aceeași tragere ca la level up** (`_trage_unul`), nu uniform peste cele 47. Uniform ar fi însemnat 5 legendare / 47 iteme = **10.6% șansă de Legendary dintr-un cufăr**, față de 2.5% la level up — de 4 ori mai probabil, la 35% din poteci. Așa, rarităţile și norocul rămân cele din joc. Verificat pe 300 de trageri cu noroc 0: **40.7 / 32.7 / 16.0 / 8.3 / 2.3%** = exact tabelul din `RARITY_CHANCE`.
+
+**⚠️ Lucky Die e scos din tragerea cufărului.** Efectul lui e „mai dă-mi o pagină de iteme", iar cufărul nu deschide nicio pagină — ar fi fost pur și simplu un cufăr irosit.
+
+**Capcană Godot:** un `SpriteFrames.new()` vine DOAR cu animația `"default"`. Fără `add_animation("boom")`, `set_animation_speed`/`add_frame` dau „Animation 'boom' doesn't exist" și animația iese goală. (`statue.gd` scapă fiindcă folosește chiar `"default"`.)
+
+**Verificat pe rulare reală, de 3 ori:** diferența pe proprietățile player-ului a arătat de fiecare dată alt upgrade aplicat cu adevărat (Borat's Mankini, Bloody Situation, Rabbit's Foot), nodul de efect s-a șters singur (0 rămase), plus poze din fiecare fază: explozie → iconiță → fade.
+
+---
+
 ## Session log — 2026-07-27 (cufere lângă poteci, la 20px, pe 10% din poteci)
 
 **Cerut de Răzvan:** „ai un nou folder in harta, se numeste Chest - Vreau sa se spawneze chest-uri in jurul Pathblock-urilor, adica la o distanta de 20px de un path. Nu vreau sa fie la fiecare path, vreau sa aiba o rata de spawn de 10% langa orice path. Vreau sa aiba un scris tot ca la statuie Press E to interact. Si cand apesi E face animatia."

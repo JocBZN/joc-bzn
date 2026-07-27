@@ -10,8 +10,9 @@ extends StaticBody2D
 # `harta/Chest/Chest Animation/`), capacul rămâne ridicat, iar textul dispare fiindcă
 # `poate_invoca()` întoarce de-acum `false` — un cufăr se deschide o singură dată.
 #
-# ⚠️ Deschiderea e DEOCAMDATĂ doar animația: cufărul nu dă încă nimic (bani, viață,
-# upgrade). Când vrei să dea, locul e la sfârșitul lui `invoca()`.
+# Ce primești: **un upgrade la întâmplare din toate cele din joc**, aplicat pe loc, fără ecran
+# de ales (`levelup.gd::da_random_acum()`). Deasupra cufărului pleacă efectul din `chest_fx.gd`:
+# explozie de raze multicoloră → iconița itemului primit → se stinge.
 #
 # Poziția nodului = linia de SORTARE (Y-sort), NU talpa artei: arta coboară `BASE_JOS`
 # pixeli sub ea, ca player-ul care trece prin fața cufărului să fie desenat peste el.
@@ -22,6 +23,9 @@ extends StaticBody2D
                                              # `scale`-ul cufărului (0.7 în scenă, adică vârful lăzii
                                              # închise e la -47). Schimbi scara → mută și cifra asta.
 @export var open_fps: float = 7.0            # viteza animației de deschidere (3 cadre ≈ 0.43s)
+@export var fx_offset_y: float = -120.0      # cât de sus deasupra cufărului pleacă explozia
+
+const CHEST_FX := preload("res://chest_fx.gd")
 
 # Cutia DESENATĂ a cufărului închis, în pixelii TEXTURII (nu ai lumii): arta ocupă 102×91 px
 # din imaginea de 128×128, restul e transparent. Din ea calculează `chests.gd` cât să-l
@@ -61,6 +65,18 @@ func invoca() -> void:
 	_deschis = true
 	var spr := $AnimatedSprite2D as AnimatedSprite2D
 	spr.play("open")   # „open" nu e în buclă → se oprește singură pe ultimul cadru (capac ridicat)
-	# AICI se pune recompensa, când vrei să dea ceva:
-	#   await spr.animation_finished
-	#   GameSettings.add_coins(...)
+
+	# Recompensa se dă ACUM, nu la sfârșitul animației: dacă mori sau pleci în timpul ei, tot
+	# ai luat-o. Animația doar ARATĂ ce ai primit.
+	var meniu := get_tree().get_first_node_in_group("levelup_menu")
+	var primit = meniu.da_random_acum() if meniu != null else null
+	var cale_icon: String = meniu.icon_path(primit) if primit != null else ""
+
+	# Efectul se agață de LUME, nu de cufăr: containerul de chunk al cufărului se șterge când
+	# te îndepărtezi, iar animația ar muri la jumătate. Lumea e locul unde `spawner.gd` pune
+	# și inamicii — adică părintele player-ului.
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	var lume: Node = player.get_parent() if player != null else get_parent()
+	var fx := CHEST_FX.new()
+	lume.add_child(fx)
+	fx.porneste(global_position + Vector2(0, fx_offset_y), cale_icon)
