@@ -25,10 +25,13 @@ func _ready() -> void:
 	_label = Label.new()
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.custom_minimum_size = Vector2(LABEL_W, 0)
-	_label.add_theme_font_size_override("font_size", 28)
+	# Micșorat la jumătate pe 2026-07-27 (era 28/6), cerut de Răzvan. Conturul scade odată cu
+	# textul: la 14px, un contur de 6 ar fi mai gros decât liniile literelor și textul ar arăta
+	# ca o pată neagră.
+	_label.add_theme_font_size_override("font_size", 14)
 	_label.add_theme_color_override("font_color", LABEL_COLOR)
 	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	_label.add_theme_constant_override("outline_size", 6)
+	_label.add_theme_constant_override("outline_size", 3)
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label.visible = false
 	add_child(_label)
