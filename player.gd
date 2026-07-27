@@ -1348,13 +1348,25 @@ func gain_xp(amount: int) -> void:
 		xp -= xp_to_next
 		_level_up()
 
-func _level_up() -> void:
+func _level_up(cu_sunet: bool = true) -> void:
 	level += 1
-	Audio.play("levelup", -2.0)  # jingle de nivel nou
+	if cu_sunet:
+		Audio.play("levelup", -2.0)  # jingle de nivel nou
 	xp_to_next = int(xp_to_next * 1.2)  # pragul crește cu 20% la fiecare nivel
 	var menu := get_tree().get_first_node_in_group("levelup_menu")
 	if menu != null:
 		menu.open()
+
+# Dăruiește `n` niveluri deodată, FĂRĂ XP — premiul pentru Saratalin (vezi `saratalin.gd`).
+# Sunt niveluri ADEVĂRATE, nu doar n ecrane de ales: crește `level` și urcă pragul de XP
+# exact ca o creștere normală. Altfel „nivel" ar fi însemnat aici altceva decât în rest.
+# Ecranele se strâng singure: `levelup.open()` ține un contor și le arată pe rând.
+# Jingle-ul îl dăm o singură dată — trei suprapuse în același cadru sună a bug, nu a premiu.
+func da_niveluri(n: int, cu_sunet: bool = true) -> void:
+	if n <= 0 or dead:
+		return
+	for i in n:
+		_level_up(cu_sunet and i == 0)
 
 # --- îmbunătățiri aplicate de ecranul de level up ---
 func upgrade_max_hp(amount: int) -> void:

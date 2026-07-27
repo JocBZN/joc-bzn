@@ -16,6 +16,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (Saratalin plătește 3 niveluri când moare)
+
+**Cerut de Răzvan:** „Dupa ce moare Saratalin, iti da 3 levele de upgrade orice level ai avea in momentul ala"
+
+**Ce s-a făcut:** `player.gd::da_niveluri(n, cu_sunet)` + chemarea din `saratalin.gd::_die()`.
+
+**🔑 Sunt niveluri ADEVĂRATE, nu 3 ecrane de ales.** Crește `level` cu 3 și urcă pragul de XP de 3 ori (×1.2 fiecare), exact ca o creștere normală. Dacă dădeam doar 3 ecrane, „nivel" ar fi însemnat aici altceva decât în tot restul jocului. Ecranele se așază singure la rând: `levelup.open()` are deja un contor pentru cazul „ai urcat mai multe niveluri deodată".
+
+**🔑 Timer legat de PLAYER, nu `await` în `saratalin.gd`.** Boss-ul se șterge (`queue_free`) la capătul animației de moarte, iar un `await` pe un nod mort nu se mai reia NICIODATĂ — premiul s-ar fi pierdut în tăcere. Legăm `timeout` direct de metoda player-ului; dacă moare și el între timp, Godot rupe singur legătura (semnalele către un obiect șters se desfac).
+
+**De ce 1.4 secunde întârziere:** fără ea, ecranul de level up pune jocul pe pauză PESTE animația de moarte a boss-ului și peste anunțul „THE WAY IS OPEN" — nu apucai să vezi că l-ai omorât.
+
+**De ce fără jingle:** `nether.gd::boss_invins()` pornește FIX același sunet („levelup") ca fanfară de „drumul e liber", cu un cadru înainte. Încă unul peste el sună dublat, nu mai festiv. De aia `_level_up()` a primit un parametru `cu_sunet`.
+
+**Verificat pe rulare reală, pornind de la un nivel oarecare (7, nu 1):** level 7 → **10**, prag XP 55 → **94** (exact trei pași de ×1.2), fix **3** ecrane de ales unul după altul, iar după al treilea jocul se depauzează.
+
+---
+
 ## Session log — 2026-07-27 (cuferele se deschid cu CHEI, 0.5% drop de la inamici)
 
 **Cerut de Răzvan:** „Ti-am pus o poza in folderul chest, se numeste key. Vreau sa trebuiasca sa ai chei ca sa poti sa deschizi chest-uri. 1 key = 1 chest. Key poate fi dropat doar cand omori un inamic, la fel ca xp-ul. Doar ca are sansa de drop de 0.5% per inamic mort."

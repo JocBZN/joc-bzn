@@ -405,11 +405,34 @@ func _die() -> void:
 	if nether != null:
 		nether.boss_invins()
 	_drop_xp.call_deferred()   # vezi enemy.gd: un Area2D nou nu se poate adăuga în timpul fizicii
+	_premiu_niveluri()
 	_zguduie_camera()
 	var t := create_tween()
 	t.tween_property(anim, "scale", anim.scale * 1.4, 0.12)
 	t.parallel().tween_property(anim, "modulate:a", 0.0, 0.16)
 	t.tween_callback(queue_free)
+
+# Premiul pentru Saratalin: 3 NIVELURI, oricât ai avea în momentul ăla (cerut de Răzvan).
+# Nu depinde de nimic — nici de cât ai stat în Nether, nici de nivelul tău.
+const NIVELURI_PREMIU := 3
+@export var premiu_intarziere: float = 1.4   # cât aștepți până sar ecranele de ales (secunde)
+
+# 🔑 De ce un timer legat de PLAYER și nu un `await` aici: Saratalin se șterge (`queue_free`)
+# la capătul animației de moarte, iar un `await` pe un nod mort nu se mai reia niciodată.
+# Legăm timeout-ul direct de metoda player-ului; dacă între timp moare și el, Godot rupe
+# singur legătura (semnalele către un obiect șters se desfac), deci nu poate crăpa.
+#
+# Întârzierea nu e cosmetică: fără ea, ecranul de level up pune jocul pe pauză PESTE animația
+# de moarte a boss-ului și peste anunțul „THE WAY IS OPEN" — n-ai apuca să vezi că l-ai omorât.
+#
+# `cu_sunet = false`: `nether.gd::boss_invins()` tocmai a pornit FIX același sunet („levelup")
+# ca fanfară de „drumul e liber". Încă unul peste el ar suna dublat, nu mai festiv.
+func _premiu_niveluri() -> void:
+	var p := get_tree().get_first_node_in_group("player")
+	if p == null:
+		return
+	get_tree().create_timer(premiu_intarziere).timeout.connect(
+		p.da_niveluri.bind(NIVELURI_PREMIU, false))
 
 func _drop_xp() -> void:
 	var parent := get_parent()
