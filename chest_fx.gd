@@ -22,8 +22,9 @@ const CULORI := 9    # câte variante de culoare = rândurile foii
 
 const BURST_FPS := 6.67     # 16 cadre ≈ 2.4s (de 3× mai încet decât primele 20 fps)
 const BURST_SCALE := 1.0    # 64px pe ecran (de 2× mai mică decât primul 2.0)
-const ICON_SCALE := 0.36    # iconițele sunt 128×128 → ~46px (de 2.5× mai mică decât primul 0.9)
-const PAUZA := 2.0          # cât stă iconița înainte să se stingă (cerut de Răzvan)
+const ICON_SCALE := 0.72    # iconițele sunt 128×128 → ~92px
+const PAUZA := 1.0          # cât stă iconița NEATINSĂ înainte să înceapă stingerea
+                            # (pe ecran o vezi PAUZA + FADE, adică 1.6s în total)
 const FADE := 0.6           # cât durează stingerea
 const URCARE := 30.0        # cât urcă iconița cât se stinge
 

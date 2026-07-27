@@ -40,6 +40,8 @@ Quick rules:
 
 **Reglaj cerut imediat după:** „Animatia fa-o de 3x mai SLOW - si de 2x mai mica. Poza de upgrade fa-o de 2.5x mai mica" → `BURST_FPS` 20 → **6.67** (16 cadre: 0.8s → **2.4s**), `BURST_SCALE` 2.0 → **1.0** (128px → 64px), `ICON_SCALE` 0.9 → **0.36** (115px → 46px). Toată secvența ține acum ~5s de la apăsat E până dispare iconița.
 
+**Și încă un reglaj, imediat după:** „Fa upgrade-urile la chest de 2x mai mari si sa stea doar jumate din timp" → `ICON_SCALE` 0.36 → **0.72** (46px → 92px), `PAUZA` 2.0 → **1.0**. „Cât stă pe ecran" l-am citit ca timpul cât stă NEATINSĂ (ăla pe care l-a cerut inițial: „2 secunde"), nu ca total cu tot cu fade — deci fade-ul a rămas 0.6s, iar iconița se vede în total ~1.6s. Măsurat pe rulare: apare la 2.40s de la apăsat E, începe să se stingă la 3.41s, dispare la 4.00s.
+
 **⚠️ Capcană la verificat, nu la cod:** prima măsurătoare părea să arate că efectul „nu se mai șterge" (rămânea 1 nod viu la final). De fapt testul se oprea la 5.8s, iar secvența abia se termina la ~5.9s — plus `save_png` la 1920×1080 mănâncă ~0.4s de ceas real la fiecare poză, deci momentele cerute se duc în urmă. Cu prints pe stare (cadrul curent, `is_playing`, alpha iconiței) s-a văzut imediat că totul mergea corect. **Când un test „pică" pe timing, întâi verifică ceasul testului.**
 
 ---
