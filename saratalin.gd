@@ -15,7 +15,7 @@ extends CharacterBody2D
 # Cele 15 cadre sunt o singură animație de plutire, în buclă — creatura nu merge pe
 # picioare, deci nu are nevoie de animații pe 8 direcții ca Garda.
 
-const SHEET := "res://harta/nether/Nether Boss/Saratalin.png"
+const SHEET := "res://harta/nether/Nether Boss/Saratalin_contur.png"
 const FRAME_W := 224   # lățimea unui cadru din foaie
 const FRAME_H := 240
 const FRAMES := 15     # câte cadre are foaia

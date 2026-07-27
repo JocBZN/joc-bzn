@@ -16,6 +16,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (Saratalin: contur mov de 1px pe fiecare cadru)
+
+**Cerut de Răzvan:** „da-i lu saratalin in fiecare frame cate un stroke de 1px mov".
+
+**Ce s-a făcut:** unealtă nouă, `tool_contur_foaie.gd` (+ `.tscn`), fratele lui `tool_contur.gd` — acela face proiectile (le rotește și le pune contur de 2px), asta conturează **foi de cadre**. Ia `Saratalin.png`, o taie mental în cele 15 cadre de 224×240 și scrie o foaie nouă, `Saratalin_contur.png`, cu contur mov plin de 1px lipit de desen (același `Color(0.72, 0.28, 1.0)` ca la ștreang). `SHEET` din `saratalin.gd` arată acum spre foaia conturată.
+
+**🔑 Sursa NU se suprascrie.** Conturul e pixel opac, deci dacă unealta ar scrie peste `Saratalin.png`, a doua rulare ar contura conturul și marginea s-ar îngroșa la fiecare rulare. Scriind alt fișier, unealta e re-rulabilă oricând (util când Răzvan schimbă foaia).
+
+**🔑 Conturul se face ÎN INTERIORUL ferestrei fiecărui cadru.** Cadrele sunt lipite unul de altul în foaie și se taie la rulare cu `AtlasTexture`; dacă vecinătatea s-ar căuta peste toată imaginea, desenul dintr-un cadru ar scoate mov pe marginea celui de lângă el și în joc ai vedea o dâră pe muchie. Unealta îți și spune dacă desenul atinge marginea cadrului (acolo conturul ar ieși tăiat) — la Saratalin nu atinge, are loc peste tot.
+
+**Verificat pe poză**, feliind foaia exact cum o feliază jocul (`AtlasTexture`, `TEXTURE_FILTER_NEAREST`): 3 cadre din animație plus un decupaj mărit 4×, pe fundal întunecat ca în Nether. Conturul e continuu, de exact 1px, și nu intră în cadrul vecin. Scena de test a fost ștearsă după verificare.
+
+**De actualizat la pachet:** nimic în codex (nu s-a atins `levelup.gd`).
+
+---
+
 ## Session log — 2026-07-27 (meniul arată ca jocul: ramă ornată, titluri aurii, ierarhie)
 
 **Cerut de Răzvan:** „Cum pot sa fac meniul sa arate mai aesthetic?" → i-am dat diagnosticul, a ales „toate cinci".
