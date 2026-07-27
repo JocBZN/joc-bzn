@@ -29,6 +29,12 @@ extends StaticBody2D
 @export var open_fps: float = 7.0            # viteza animației de deschidere (3 cadre ≈ 0.43s)
 @export var fx_offset_y: float = -120.0      # cât de sus deasupra cufărului pleacă explozia
 
+# Volumele celor două sunete (în decibeli, 0 = cât e fișierul; -6 = pe jumătate de tare).
+# „Chest Animation" e mixat mai încet decât „Chest Opening" (vârf -12 dBFS față de 0), de-aia
+# primește +3: altfel momentul de recompensă s-ar auzi mai șters decât scârțâitul capacului.
+@export var open_db: float = 0.0
+@export var anim_db: float = 3.0
+
 const CHEST_FX := preload("res://chest_fx.gd")
 
 # Cutia DESENATĂ a cufărului închis, în pixelii TEXTURII (nu ai lumii): arta ocupă 102×91 px
@@ -80,6 +86,8 @@ func invoca() -> void:
 		return
 	_deschis = true
 	var spr := $AnimatedSprite2D as AnimatedSprite2D
+	Audio.play("chest_open", open_db, 0.0)   # capacul, fix pe apăsarea tastei (fără variație de ton)
+	spr.animation_finished.connect(_capac_ridicat)
 	spr.play("open")   # „open" nu e în buclă → se oprește singură pe ultimul cadru (capac ridicat)
 
 	# Recompensa se dă ACUM, nu la sfârșitul animației: dacă mori sau pleci în timpul ei, tot
@@ -96,3 +104,10 @@ func invoca() -> void:
 	var fx := CHEST_FX.new()
 	lume.add_child(fx)
 	fx.porneste(global_position + Vector2(0, fx_offset_y), cale_icon)
+
+# Capacul a ajuns sus („open" s-a terminat, ~0.43s la open_fps = 7). ABIA ACUM intră sunetul de
+# magie: explozia de raze e pe ecran de la apăsarea tastei și mai ține ~2.4s, deci sunetul (1.5s)
+# încape întreg peste ea, iar scârțâitul capacului apucă să se stingă în loc să se calce cu el.
+# Vrei ambele fix odată cu apăsarea? Mută linia de mai jos lângă cea cu „chest_open".
+func _capac_ridicat() -> void:
+	Audio.play("chest_anim", anim_db, 0.0)

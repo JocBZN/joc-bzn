@@ -47,7 +47,10 @@ func _on_body_entered(body: Node) -> void:
 	_luata = true
 	remove_from_group("key")
 	GameSettings.add_key()
-	Audio.play("xp", -3.0)   # același blip ca la XP, dar mai tare: e un obiect rar
+	# Sunetul ei propriu (până acum cerea „xp", care nu mai există în audio.gd → nu se auzea nimic).
+	# Fără variație de ton (al treilea argument 0.0): cade una la ~200 de morți, deci n-are cum să
+	# sune repetitiv, iar un „ding" de recompensă scremut la alt ton de fiecare dată sună ieftin.
+	Audio.play("key_pickup", 0.0, 0.0)
 	var t := create_tween()
 	t.tween_property(sprite, "scale", _base_scale * 1.7, 0.08)
 	t.parallel().tween_property(sprite, "modulate:a", 0.0, 0.12)

@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://cwnnau2ba26mj"
+path="res://.godot/imported/Chest Animation.wav-40dd39787ec7d3d7dc2c3ff3fe3c614a.sample"
+
+[deps]
+
+source_file="res://audio/Chest Animation.wav"
+dest_files=["res://.godot/imported/Chest Animation.wav-40dd39787ec7d3d7dc2c3ff3fe3c614a.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

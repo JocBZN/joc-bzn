@@ -28,6 +28,9 @@ const SFX := {
 	"saratalin_flash": "res://audio/Nether Audio/Saratalin Flashing Purple.wav",  # UN puls mov din cinematica lui Saratalin
 	"enemy_hit":      "res://audio/Enemy Hit.wav",                     # un proiectil a rănit un inamic
 	"earthquake":     "res://audio/Earthquake.wav",                    # bubuitura de cutremur (vezi QUAKE_DB)
+	"key_pickup":     "res://audio/Key Pickup.wav",                    # ai călcat pe o cheie de cufăr
+	"chest_open":     "res://audio/Chest Opening.wav",                 # ai apăsat E pe cufăr (capacul se ridică)
+	"chest_anim":     "res://audio/Chest Animation.wav",               # explozia de raze de deasupra cufărului deschis
 }
 
 # Cutremurul are volumul lui, într-un singur loc: se aude din cinci locuri din joc (invocarea

@@ -16,6 +16,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-28 (sunet la cheie și la cufăr: Key Pickup · Chest Opening · Chest Animation)
+
+**Cerut de Răzvan:** „ti am adaugat la audio - Key Pickup - se aude atunci cand ridici o cheie de pe jos. si Chest Animation - incepe dupa ce s-a deschis chest-ul si incepe animatia. Ti-am mai bagat si Chest Opening, se aude atunci cand apesi E sa deschizi chest-ul"
+
+**Ce s-a făcut:** trei intrări noi în `Audio.SFX` (`key_pickup` / `chest_open` / `chest_anim`) și trei locuri de unde se cheamă — `key.gd::_on_body_entered`, `chest.gd::invoca()` și `chest.gd::_capac_ridicat()`.
+
+**🔑 Cheia nu se auzea deloc până acum.** `key.gd` cerea `Audio.play("xp", -3.0)`, iar `"xp"` a fost șters din `SFX` demult (n-avem fișier) — `play()` iese tăcut când numele nu există, deci ridicatul unei chei era mut de la bun început, nu de azi. Acum are sunetul ei.
+
+**🔑 Cele două sunete de cufăr NU pornesc odată.** `chest_open` intră fix pe apăsarea lui E, iar `chest_anim` abia când animația capacului s-a terminat (semnalul `animation_finished` al lui `AnimatedSprite2D`, adică ~0.43s la `open_fps = 7`) — exact cum a cerut, „după ce s-a deschis chest-ul". Numerele arată că se așază bine: `Chest Opening` are 1.64s și e deja la ~-10 dBFS când intră al doilea, explozia de raze ține ~2.4s, iar `Chest Animation` are 1.50s, deci încape întreagă peste ea. Dacă le vrea odată, se mută o linie (scrie în comentariu unde).
+
+**Volume:** `open_db = 0`, `anim_db = +3`, amândouă `@export` pe cufăr (se reglează din inspector, ca `open_fps`). Cei +3 nu sunt gust: măsurat cu `tool_audio_info`, `Chest Animation` are vârful la **-12 dBFS** față de 0 la `Chest Opening` (rms aproape egal, -27.6 vs -27.8), deci la volum egal momentul de recompensă s-ar fi auzit mai șters decât scârțâitul capacului. Rămâne mult cap până la tăiere. `pitch_rand = 0` la toate trei: sunt evenimente rare și „compuse", iar un ton ușor diferit de fiecare dată sună ieftin (aceeași alegere ca la `teleport` și `saratalin_flash`).
+
+**Verificat pe rulare reală** (scenă de test, ștearsă după): toate trei fișierele s-au încărcat în `Audio._streams`, iar boxele chiar cântau — la ridicarea cheii `["key_pickup"]`; la apăsarea E `["chest_open"]`, la 0.30s tot doar el, iar de la 0.55s `["chest_open", "chest_anim"]`. Cheia s-a și consumat corect (2 → 1).
+
+**⚠️ WAV-urile noi n-aveau `.import`.** Godot nu importă singur la o rulare directă, doar la deschiderea editorului, deci a trebuit `--headless --path . --import` înainte de orice test. Valabil de fiecare dată când Răzvan pune fișiere noi în `audio/`.
+
+---
+
 ## Session log — 2026-07-27 (viteză înjumătățită, fiecare armă cu plusul și minusul ei, contur galben pe cheie)
 
 **Cerut de Răzvan:** „vreau playerul Sa inceapa cu speed de 2x mai putin. Fiecare arma vreau sa aibe un avantaj si dezavantaj. Pistolul are 15 damage dar attack speed mai mic(e prea mare asta de e acum la inceput fa-l cu 1.5x mai putin). Fire staff are 10 damage dar attack speed mai mare(cu 1.5x mai mult decat la pistol) la stingator are 12 damage si attack speed ca la pistol. la cursed sword 20 damage si attack speed ca la pistol. Cheia sa aiba un stroke galben de 1px"
