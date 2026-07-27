@@ -16,6 +16,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (Nether-ul are inamicii lui: creaturile violete, mult mai rapide)
+
+**Cerut de Răzvan:** „Ti-am facut un folder in homeless directii, se numeste Nether Enemies, vreau in nether sa se spawneze doar baietii astia, sunt mult mai rapizi ca enemies normali."
+
+**Ce s-a făcut:** 8 GIF-uri (o direcție fiecare, 4 cadre, 124×124) → 32 PNG-uri în `homeless directii/Nether Enemies/frames/` → `enemy_nether_frames.tres` → `enemy_nether.tscn` (**același `enemy.gd`**, doar alte cadre și `speed = 190` față de 120 la polițist). În Nether curg numai ei.
+
+**🔑 Sunt DOUĂ locuri care nasc inamici în Nether, nu unul.** `nether.gd` face valul de la intrare (`BURST = 25`) — acolo scena nouă e pusă direct, fiindcă acolo ești prin definiție în Nether. Dar **spawner-ul rundei CONTINUĂ să lucreze cât ești dincolo** (Nether-ul nu-l oprește, cum face Limbo), deci și el trebuie să aleagă: `_scena_inamic()` întreabă nodul din grupul `"nether"` dacă `active`. Dacă schimbam doar `nether.gd`, în Nether ar fi curs în continuare polițiști din spawner.
+
+**🔑 `.tres`-ul de animații e GENERAT, nu scris de mână** (`tool_frames_nether.gd`). 8 direcții × 4 cadre = 32 de referințe cu UID; scrise de mână, o greșeală se vede abia la rulare ca „resource not found". Unealta le încarcă cu `load()` și se plânge pe loc dacă lipsește vreun cadru.
+
+**🔑 GIF → PNG: `tool_taie_gifuri.ps1`** (rămâne în repo, ia folderul ca parametru). Godot nu încarcă GIF-uri, iar pe mașina asta nu există ImageMagick/ffmpeg/Python — System.Drawing din .NET citește cadrele (`FrameDimension.Time`). Fiecare cadru se desenează pe o pânză goală, altfel GIF-urile cu cadre parțiale ies mânjite. După tăiere, OBLIGATORIU `--import`.
+
+**Verificat pe rulare reală, cu numărătoare:** în lume → „polițiști: 2 · creaturi Nether: 0", viteze `[120]`; după `nether.enter()` → „polițiști: 0 · creaturi Nether: 24", viteze `[190, 191]`. Plus două poze: grila cu toate cadrele (curate, fără mânjeli de la GIF) și una din joc, din Nether.
+
+**⚠️ De reținut pentru echilibru:** polițiștii sunt plafonați de `SPEED_CAP` (2.2×) la 264 px/s, adică **mereu sub cei 300 ai player-ului** — de aia poți fugi de ei la nesfârșit. Creaturile astea pornesc de la 190, deci după destul Nether Swarm trec de 300 și **nu mai poți fugi**. E consecința directă a lui „mult mai rapizi"; i-am spus. Se reglează din `speed` pe `enemy_nether.tscn`.
+
+**Notă:** testul cu player-ul lăsat pe loc a murit în 3 secunde (25 de creaturi rapide în jur) — a scris în leaderboard, dar 0:03 n-a intrat în top 10 (cel mai slab e 62.7s), deci n-a stricat nimic. Verificat, nu presupus.
+
+---
+
 ## Session log — 2026-07-27 (sunet nou: Mage Staff + cutremur)
 
 **Cerut de Răzvan:** „Ti-am bagat mage staff audio pt proiectilele de la mage staff. Si ti am bagat si earthquake (la earthquake vreau sa se auda mai tare)".

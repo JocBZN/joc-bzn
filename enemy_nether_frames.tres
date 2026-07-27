@@ -1,0 +1,173 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_east_0.png" id="1_21lvf"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_east_1.png" id="2_h8ikc"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_east_2.png" id="3_iqcya"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_east_3.png" id="4_hvi6p"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_0.png" id="5_u32i1"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_1.png" id="6_n2r3m"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_2.png" id="7_tede7"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_3.png" id="8_ynr0m"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_east_0.png" id="9_wnmt3"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_east_1.png" id="10_o77t8"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_east_2.png" id="11_dqewd"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_east_3.png" id="12_kkxet"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_west_0.png" id="13_8at3q"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_west_1.png" id="14_h31c7"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_west_2.png" id="15_w12hd"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_north_west_3.png" id="16_02iyg"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_0.png" id="17_5hdfa"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_1.png" id="18_8s8ik"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_2.png" id="19_tx80a"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_3.png" id="20_sghhb"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_east_0.png" id="21_u74ot"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_east_1.png" id="22_pucep"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_east_2.png" id="23_mv0ub"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_east_3.png" id="24_ik4lb"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_west_0.png" id="25_opwbk"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_west_1.png" id="26_cxpou"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_west_2.png" id="27_qjxog"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_south_west_3.png" id="28_m4iyp"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_west_0.png" id="29_65k0o"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_west_1.png" id="30_rfivk"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_west_2.png" id="31_qovqq"]
+[ext_resource type="Texture2D" path="res://homeless directii/Nether Enemies/frames/run_west_3.png" id="32_ukifj"]
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_21lvf")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_h8ikc")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_iqcya")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_hvi6p")
+}],
+"loop": 1,
+"name": &"east",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("5_u32i1")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_n2r3m")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_tede7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_ynr0m")
+}],
+"loop": 1,
+"name": &"north",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("9_wnmt3")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_o77t8")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_dqewd")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_kkxet")
+}],
+"loop": 1,
+"name": &"north_east",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("13_8at3q")
+}, {
+"duration": 1.0,
+"texture": ExtResource("14_h31c7")
+}, {
+"duration": 1.0,
+"texture": ExtResource("15_w12hd")
+}, {
+"duration": 1.0,
+"texture": ExtResource("16_02iyg")
+}],
+"loop": 1,
+"name": &"north_west",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("17_5hdfa")
+}, {
+"duration": 1.0,
+"texture": ExtResource("18_8s8ik")
+}, {
+"duration": 1.0,
+"texture": ExtResource("19_tx80a")
+}, {
+"duration": 1.0,
+"texture": ExtResource("20_sghhb")
+}],
+"loop": 1,
+"name": &"south",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("21_u74ot")
+}, {
+"duration": 1.0,
+"texture": ExtResource("22_pucep")
+}, {
+"duration": 1.0,
+"texture": ExtResource("23_mv0ub")
+}, {
+"duration": 1.0,
+"texture": ExtResource("24_ik4lb")
+}],
+"loop": 1,
+"name": &"south_east",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("25_opwbk")
+}, {
+"duration": 1.0,
+"texture": ExtResource("26_cxpou")
+}, {
+"duration": 1.0,
+"texture": ExtResource("27_qjxog")
+}, {
+"duration": 1.0,
+"texture": ExtResource("28_m4iyp")
+}],
+"loop": 1,
+"name": &"south_west",
+"speed": 12.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("29_65k0o")
+}, {
+"duration": 1.0,
+"texture": ExtResource("30_rfivk")
+}, {
+"duration": 1.0,
+"texture": ExtResource("31_qovqq")
+}, {
+"duration": 1.0,
+"texture": ExtResource("32_ukifj")
+}],
+"loop": 1,
+"name": &"west",
+"speed": 12.0
+}]

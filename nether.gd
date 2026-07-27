@@ -17,7 +17,10 @@ extends CanvasLayer
 # punct e sinucidere să mai stai.
 
 const PORTAL := preload("res://portal.tscn")
-const ENEMY := preload("res://enemy.tscn")
+# Inamicii de aici NU sunt polițiștii din lume, ci creaturile violete ale Nether-ului
+# (`enemy_nether.tscn`) — același script, alte cadre și viteză mult mai mare. Aici suntem
+# prin definiție în Nether, deci nu întrebăm pe nimeni: valul de la intrare e mereu al lor.
+const ENEMY := preload("res://enemy_nether.tscn")
 const SUMMON := preload("res://summoning_portal.tscn")   # structura care îl cheamă pe Saratalin
 
 # --- reglaje (schimbă-le liniștit) ---

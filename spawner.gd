@@ -11,6 +11,10 @@ extends Node
 # fiindcă `garda.gd` citește aceiași multiplicatori de dificultate.
 
 const ENEMY := preload("res://enemy.tscn")
+# În Nether curg ALȚI inamici: creaturile violete din `enemy_nether.tscn` (același `enemy.gd`,
+# alte cadre, viteză mult mai mare). Spawner-ul continuă să lucreze cât ești acolo — Nether-ul
+# nu-l oprește, cum face Limbo — deci el trebuie să știe de unde ia scena.
+const ENEMY_NETHER := preload("res://enemy_nether.tscn")
 
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
@@ -109,7 +113,7 @@ func _spawn_enemy() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
-	var enemy := ENEMY.instantiate()
+	var enemy := _scena_inamic().instantiate()
 	# Inamicii apar DOAR din direcția în care se uită player-ul (cerut pe 2026-07-22): un con
 	# de ±`spawn_cone_deg` în jurul privirii, nu tot cercul. Când stai pe loc, privirea rămâne
 	# ultima direcție de mers, deci continuă să vină de acolo.
@@ -122,6 +126,15 @@ func _spawn_enemy() -> void:
 	# în World (Y-sortat), la fel ca player-ul, ca să fie acoperit corect de copaci
 	player.get_parent().add_child(enemy)
 	enemy.global_position = player.global_position + offset
+
+# Ce inamic naște lumea ACUM. În Nether numai creaturile violete, în rest polițiștii.
+# Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el
+# știe dacă ești dincolo. Dacă lipsește (o scenă de test fără el), rămân inamicii normali.
+func _scena_inamic() -> PackedScene:
+	var n := get_tree().get_first_node_in_group("nether")
+	if n != null and n.get("active") == true:
+		return ENEMY_NETHER
+	return ENEMY
 
 # Cere HUD-ului să afișeze un text mare pe ecran (cu subtitlu).
 func _announce(text: String, sub: String = "") -> void:
