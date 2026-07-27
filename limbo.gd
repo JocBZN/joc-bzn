@@ -3,12 +3,13 @@ extends CanvasLayer
 # LIMBO — mecanica itemului „Undying Spirit" (upgrade_41).
 #
 # Când mori și ai itemul (o singură dată pe rundă), în loc de Game Over ești dus într-o
-# lume goală, alb-negru: fără copaci, pietre, structuri sau statui. Peste tine vine dintr-o
+# lume goală, alb-negru: fără copaci, pietre, structuri, statui, cufere sau poteci. Peste tine vine dintr-o
 # dată un val mare de inamici. Trebuie să reziști LIMBO_TIME secunde, apoi ești trimis
 # înapoi exact unde ai murit — iar inamicii care erau pe tine în acel moment nu mai există.
 #
 # Cum e făcut: NU se încarcă altă scenă. Rămânem în aceeași lume, dar:
-#   • generatoarele de decor (Props/Rocks/DesertStructures/Statues) sunt oprite și golite;
+#   • generatoarele de decor (Props/Rocks/DesertStructures/Statues/Chests + potecile) sunt
+#     oprite și golite;
 #   • spawner-ul normal e oprit, ca să nu curgă inamici de dificultatea reală;
 #   • `Difficulty` e înghețat, iar inamicii se calculează după dificultatea de acum un minut;
 #   • un shader alb-negru acoperă ecranul.
@@ -29,7 +30,10 @@ const CLOCK_SIZE := 64                          # mai mare decât cronometrul ru
 const CLOCK_COLOR := Color(1.0, 0.10, 0.10)     # roșu aprins
 
 # Nodurile care fac decorul. Sunt oprite cât ești în Limbo → „lume fără structuri".
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues"]
+const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Chests"]
+# `Paths` (potecile) NU e în `World`, ci frate cu el, direct în `main.tscn` — de aia are
+# nevoie de listă separată. Exact ca în `nether.gd`.
+const ROOT_NODES := ["Paths"]
 
 var active := false
 
@@ -188,16 +192,23 @@ func _set_world_enabled(on: bool) -> void:
 	if parent == null:
 		return
 	for n in WORLD_NODES:
-		var node := parent.get_node_or_null(n)
-		if node == null:
-			continue
-		node.visible = on
-		node.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
-		if not on:
-			for c in node.get_children():
-				c.queue_free()
-			if node.get("_loaded") != null:
-				node.set("_loaded", {})
+		_toggle_generator(parent.get_node_or_null(n), on)
+	# potecile stau LÂNGĂ `World`, nu în el (vezi ROOT_NODES)
+	var root := parent.get_parent()
+	if root != null:
+		for n in ROOT_NODES:
+			_toggle_generator(root.get_node_or_null(n), on)
+
+func _toggle_generator(node: Node, on: bool) -> void:
+	if node == null:
+		return
+	node.visible = on
+	node.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+	if not on:
+		for c in node.get_children():
+			c.queue_free()
+		if node.get("_loaded") != null:
+			node.set("_loaded", {})
 
 func _set_spawner_enabled(on: bool) -> void:
 	if _spawner == null:

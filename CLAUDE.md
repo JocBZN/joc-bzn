@@ -16,6 +16,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (fără cufere și fără poteci în Limbo)
+
+**Cerut de Răzvan:** „chest-urile nu vreau sa se spawneze in limbo si nici path-urile"
+
+**🔑 Au fost DOUĂ probleme, nu una.** `Chests` lipsea pur și simplu din `WORLD_NODES` — asta era ușor. Dar `Paths` **nu e în `World`**, e frate cu el, direct sub `Main`. Bucla veche din `limbo.gd` se plimba doar prin copiii părintelui player-ului, deci n-avea CUM să găsească potecile, oricâte nume i-ai fi pus în listă. A fost nevoie de a doua listă, `ROOT_NODES`, exact ca în `nether.gd` (care avea deja despărțirea asta din 2026-07-26).
+
+**De reținut:** dacă mai adaugi un generator de decor, întreabă-te întâi **unde stă în `main.tscn`** — în `World` sau lângă el. Cele două dimensiuni (Limbo și Nether) au fiecare două liste tocmai din motivul ăsta, iar acum arată la fel.
+
+**Verificat pe rulare reală, cu numărătoare, nu din ochi:** în lume `Chests` avea 81 de containere de chunk cu un cufăr desenat și `Paths` 48 de tile-uri; în Limbo amândouă 0 și invizibile; după întoarcere, exact aceleași cifre ca înainte (golirea lui `_loaded` e ce face ca reîntoarcerea să meargă). Plus poze din toate cele trei momente.
+
+**Observat, NEatins:** frunzele care cad (`leaffall.gd`, din `Atmosphere`) continuă să cadă și în Limbo — `Atmosphere` nu e generator de decor, deci nu intră în listele astea. Într-o lume goală, fără copaci, arată ciudat. I-am spus; n-a cerut-o.
+
+---
+
 ## Session log — 2026-07-27 (Saratalin plătește 3 niveluri când moare)
 
 **Cerut de Răzvan:** „Dupa ce moare Saratalin, iti da 3 levele de upgrade orice level ai avea in momentul ala"
