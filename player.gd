@@ -1390,8 +1390,22 @@ func die() -> void:
 	else:
 		get_tree().reload_current_scene()  # fallback dacă n-ai adăugat încă ecranul de Game Over
 
+# 🔑 RESTUL SE PĂSTREAZĂ, nu se aruncă (2026-07-28). Înainte aici era `int(amount * mult)`, iar
+# `int()` TAIE zecimalele: gema mică valorează 1, deci 1 × 1.15 = 1.15 → 1. Adică orice bonus de
+# XP sub +100% era complet invizibil pe gemele mici — și ele sunt majoritatea. Nu doar itemul nou
+# (5G Tower) era mort din start, ci și nivelurile de „XP gain" din magazinul permanent (+8% fiecare).
+# Acum ce rămâne sub 1 se strânge în `_xp_rest` și intră în XP de îndată ce se adună un întreg:
+# la +15%, a șaptea gemă de 1 aduce 2 în loc de 1. Pe termen lung totalul e exact cât spune procentul.
+var _xp_rest := 0.0
+
 func gain_xp(amount: int) -> void:
-	xp += int(amount * xp_gain_mult)
+	# `+ 1e-9`: 1.15 nu se scrie exact în binar, așa că după 20 de geme suma ajunge la
+	# 22.999999… în loc de 23, iar `int()` ar da 22. Punctul nu s-ar pierde (rămâne în rest și
+	# iese la gema următoare), dar cifrele n-ar mai fi cele pe care le socotește jucătorul.
+	var exact := amount * xp_gain_mult + _xp_rest + 1e-9
+	var intreg := int(exact)
+	_xp_rest = exact - float(intreg)
+	xp += intreg
 	# while (nu if) ca să prindem și cazul în care un salt mare de XP trece peste mai multe niveluri
 	while xp >= xp_to_next:
 		xp -= xp_to_next

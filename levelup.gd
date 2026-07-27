@@ -75,6 +75,7 @@ var UPGRADES := [
 	{"id": "hermes_sandals", "nume": "Hermes' Sandals", "icon": "upgrade_56.png", "rar": "legendary", "desc": "+100 Movement Speed +10% Attack Speed"},
 	{"id": "aussie_special", "nume": "Aussie Special", "icon": "upgrade_57.png", "rar": "legendary", "desc": "Projectiles ricochet +1 time"},
 	{"id": "old_reliable", "nume": "Old Reliable", "icon": "upgrade_55.png", "rar": "common", "desc": "Reflect 15% of damage taken"},
+	{"id": "tower_5g", "nume": "5G Tower", "icon": "upgrade_58.png", "rar": "epic", "desc": "Enemies drop 15% more xp"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -792,6 +793,12 @@ func _apply(id: String, p) -> void:
 			# bumerangul: după ce a terminat de străpuns, glonțul SARE la alt inamic din jur
 			# (până la 420px, inclusiv în spate) în loc să dispară. +1 săritură pe luare.
 			p.ricochet += 1
+		"tower_5g":
+			# turnul 5G: +15% XP pe luare, peste multiplicatorul din magazinul permanent (se adună,
+			# nu se înmulțesc). Prinde TOT XP-ul care intră, nu doar ce lasă inamicii — și gemele
+			# de la Borat's Mankini, și cele din alte surse. Vezi `player.gain_xp()`: acolo se
+			# păstrează și restul sub 1, altfel pe gemele mici procentul s-ar pierde la rotunjire.
+			p.xp_gain_mult += 0.15
 		"old_reliable":
 			# Old Reliable: 15% din damage-ul primit se întoarce în inamicul care te-a lovit,
 			# LA FIECARE lovitură (+15% pe luare). Fără cooldown, fără block — vezi `reflect_pct`

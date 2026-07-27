@@ -16,6 +16,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-28 (item nou: 5G Tower + BUG vechi la XP, prins cu ocazia asta)
+
+**Cerut de Răzvan:** „mai am un upgrade - upgrade_58 (epic) - 5G Tower - Enemies drop 15% more xp"
+
+**Ce s-a făcut:** `p.xp_gain_mult += 0.15` (multiplicatorul exista deja, din meta-progresie) — 50 → **51 de iteme**. Dar itemul, așa cum era codul, **n-ar fi făcut absolut nimic**.
+
+**🔑 BUG-UL (vechi, nu introdus acum):** `gain_xp()` făcea `xp += int(amount * xp_gain_mult)`, iar `int()` TAIE zecimalele. **Gema mică de XP valorează 1**, deci `int(1 × 1.15) = 1`. Adică orice bonus de XP sub +100% era **complet invizibil pe gemele de 1** — și alea sunt majoritatea a ce ridici. Nu doar 5G Tower era mort din start: și nivelurile de „XP gain" din magazinul permanent (+8% fiecare, până la +64%) nu făceau nimic pe gemele mici. Bug-ul era acolo dinainte; itemul nou doar l-a scos la lumină.
+
+**Reparația:** `gain_xp()` ține acum restul sub 1 în `_xp_rest` și-l adaugă la următoarea gemă. La +15%, a șaptea gemă de 1 aduce 2 în loc de 1, iar pe termen lung totalul e exact procentul cerut.
+
+**⚠️ Și un `+ 1e-9`, care nu e paranoia:** 1.15 nu se scrie exact în binar, așa că după 20 de geme suma ajungea la 22.999999… și `int()` dădea **22 în loc de 23**. Punctul nu se pierdea (rămânea în rest), dar cifrele n-ar mai fi fost cele pe care le socotește jucătorul. Cu epsilon iese fix 23. **Prins pe rulare, nu pe hârtie** — prima rulare a testului a scos 22 și de-aia am mai umblat o dată.
+
+**Verificat pe rulare reală:** `xp_gain_mult` 1.00 → 1.15 → 1.30 la a doua luare (se ADUNĂ). 20 de geme de 1 la +15% → **23 XP** (înainte: 20). 5 geme de 10 → **57** (= 50 × 1.15). Iconița există și se încarcă.
+
+**Traduceri:** 2 chei noi × 8 limbi. `tool_check_i18n`: 192 de chei, tot tradus.
+
+**Codex:** card nou (epic, `isNew`) + iconița base64 + o notă în „Ce nu scrie în joc" despre bug-ul de rotunjire — e exact genul de lucru pe care jucătorul n-are cum să-l ghicească. Verificat: 51 de carduri complete, id-uri identice cu `levelup.gd`, toate iconițele au base64, randat în Chrome fără erori.
+
+---
+
 ## Session log — 2026-07-28 (3 iteme noi: Hermes' Sandals · Aussie Special · Old Reliable)
 
 **Cerut de Răzvan:** „3 new upgrades. upgrade_56 - Hermes' Sandals (legendary) - +100 Movement Speed +10% Attack Speed. upgrade_57 - Aussie Special (legendary) - Projectiles ricochet +1 time. upgrade_55 - Old Reliable (common) - Reflect 15% of damage taken (reflects everytime an enemy hits the player, stacks with Mike's Hedgehog but doesn't block the hit every 6s like that one does)"
