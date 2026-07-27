@@ -38,6 +38,10 @@ Quick rules:
 
 **Verificat pe rulare reală, de 3 ori:** diferența pe proprietățile player-ului a arătat de fiecare dată alt upgrade aplicat cu adevărat (Borat's Mankini, Bloody Situation, Rabbit's Foot), nodul de efect s-a șters singur (0 rămase), plus poze din fiecare fază: explozie → iconiță → fade.
 
+**Reglaj cerut imediat după:** „Animatia fa-o de 3x mai SLOW - si de 2x mai mica. Poza de upgrade fa-o de 2.5x mai mica" → `BURST_FPS` 20 → **6.67** (16 cadre: 0.8s → **2.4s**), `BURST_SCALE` 2.0 → **1.0** (128px → 64px), `ICON_SCALE` 0.9 → **0.36** (115px → 46px). Toată secvența ține acum ~5s de la apăsat E până dispare iconița.
+
+**⚠️ Capcană la verificat, nu la cod:** prima măsurătoare părea să arate că efectul „nu se mai șterge" (rămânea 1 nod viu la final). De fapt testul se oprea la 5.8s, iar secvența abia se termina la ~5.9s — plus `save_png` la 1920×1080 mănâncă ~0.4s de ceas real la fiecare poză, deci momentele cerute se duc în urmă. Cu prints pe stare (cadrul curent, `is_playing`, alpha iconiței) s-a văzut imediat că totul mergea corect. **Când un test „pică" pe timing, întâi verifică ceasul testului.**
+
 ---
 
 ## Session log — 2026-07-27 (cufere lângă poteci, la 20px, pe 10% din poteci)

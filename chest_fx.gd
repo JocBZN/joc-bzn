@@ -20,9 +20,9 @@ const CADRU := 64    # latura unei celule din foaie (px)
 const CADRE := 16    # câte cadre are animația = coloanele foii
 const CULORI := 9    # câte variante de culoare = rândurile foii
 
-const BURST_FPS := 20.0     # 16 cadre ≈ 0.8s
-const BURST_SCALE := 2.0    # 64px × 2 = 128px pe ecran
-const ICON_SCALE := 0.9     # iconițele sunt 128×128 → ~115px, cât să se vadă ce ai primit
+const BURST_FPS := 6.67     # 16 cadre ≈ 2.4s (de 3× mai încet decât primele 20 fps)
+const BURST_SCALE := 1.0    # 64px pe ecran (de 2× mai mică decât primul 2.0)
+const ICON_SCALE := 0.36    # iconițele sunt 128×128 → ~46px (de 2.5× mai mică decât primul 0.9)
 const PAUZA := 2.0          # cât stă iconița înainte să se stingă (cerut de Răzvan)
 const FADE := 0.6           # cât durează stingerea
 const URCARE := 30.0        # cât urcă iconița cât se stinge
