@@ -6,7 +6,7 @@ A **survivors-like** (bullet-heaven) game — think *Vampire Survivors* / *Brota
 
 ## Game concept
 - Top-down arena. The **player** appears centered (a `Camera2D` follows them) but moves freely across a large world.
-- **Enemies** spawn continuously from off-screen and chase the player.
+- **Enemies** spawn continuously from off-screen and chase the player. They **stop at the edge of the player's sprite** instead of walking over them — by distance, in code, never by physics collision, so they neither clump into each other nor shove the player.
 - The player **auto-fires** projectiles at the nearest enemy. Enemies have HP and die.
 - Enemies touching the player deal **contact damage**; the player has HP + a health bar.
 - **Roguelike core:** dead enemies drop **XP** → XP bar fills → **level up** → choose **1 of 3 items/upgrades** (weighted by rarity). Difficulty ramps over time (enemies faster/tougher/hit harder, drop more XP). **51 upgrades** with real effects and hidden synergies. Playable in **9 languages** (flag button in the menu).
