@@ -36,6 +36,12 @@ Quick rules:
 
 **⚠️ Cufărul nu dă NIMIC deocamdată** — s-a cerut doar animația. Cârligul pentru recompensă e la sfârșitul lui `chest.gd::invoca()`.
 
+**Rundă 2, aceeași zi — „fa spawn-rateu la chesturi de la 10% la 35%".** `chest_chance = 0.35`. Măsurat din nou: 655 de poteci → 230 de cufere = **35.1%**.
+
+**🔑 Între timp Răzvan reglase `chest.tscn` din editor (`scale = 0.7`, hitbox 150×50) — și asta STRICASE cei 20px.** `cutie()` întorcea cifrele din textură (102×91), deci generatorul credea cufărul cu 43% mai mare decât e și îl împingea la ~35px de potecă, nu la 20. Reparat: `cutie()` nu mai e `static`, înmulțește cu `scale`, iar `chests.gd` **măsoară un exemplar de probă** (`_cutie_cufar()`, făcut o dată și aruncat) în loc să aibă cifrele scrise în el. Acum, orice scară pune el în editor, distanța rămâne 20. Verificat: min = max = 20.0px la toate cele 230.
+
+**De reținut:** ăsta e al doilea caz (după hitbox-ul portalului, 2026-07-26) în care o valoare reglată cu mâna în editor și o valoare scrisă în cod se bat cap în cap. Regula care iese: **codul citește ce e în scenă, nu presupune.**
+
 ---
 
 ## Session log — 2026-07-27 (Nether-ul are inamicii lui: creaturile violete, mult mai rapide)

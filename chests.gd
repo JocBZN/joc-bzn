@@ -4,22 +4,22 @@ extends Node2D
 #
 # Reguli cerute de Răzvan (2026-07-27):
 #  - cufărul stă la `gap_px` (20px) de marginea potecii — atât rămâne gol între potecă și lada lui;
-#  - NU lângă fiecare potecă: `chest_chance` (10%) din poteci primesc unul.
+#  - NU lângă fiecare potecă: `chest_chance` din poteci primesc unul. Era 10% la prima variantă,
+#    urcat la **35%** pe 2026-07-27 fiindcă ieșeau prea rar ca să le vezi într-o rundă.
 #
-# Cei 10% se numără pe POTECI, nu pe chunk-uri: întâi întrebăm `Paths` dacă chunk-ul ăsta chiar
-# are o potecă desenată, și abia apoi dăm cu zarul. Cum potecile apar la ~1 din 10 chunk-uri, un
-# cufăr iese cam la 100 de chunk-uri — sunt rare, trebuie să le cauți.
+# Procentul se numără pe POTECI, nu pe chunk-uri: întâi întrebăm `Paths` dacă chunk-ul ăsta chiar
+# are o potecă desenată, și abia apoi dăm cu zarul. Cum potecile apar la ~1 din 10 chunk-uri, la
+# 35% iese un cufăr cam la 30 de chunk-uri.
 #
 # Determinist, ca tot decorul: sămânța vine din cheia chunk-ului → aceeași potecă are mereu
 # cufărul în același loc, chiar dacă pleci și te întorci. (Ce se schimbă de la o rundă la alta
 # e punctul de START al player-ului, ales aleator în `spawner.gd`.)
 
 const CHEST := preload("res://chest.tscn")
-const CHEST_SCRIPT := preload("res://chest.gd")  # doar pentru `cutie()` (mărimea artei)
 const SEED_SALT := 0xC4E5  # sămânță proprie → cufărul nu urmează tiparul potecilor/pietrelor
 
 @export var load_radius: int = 4          # CA la poteci: cufărul trebuie să apară odată cu poteca lui
-@export var chest_chance: float = 0.1     # ce parte din poteci primesc un cufăr (0.1 = 10%)
+@export var chest_chance: float = 0.35    # ce parte din poteci primesc un cufăr (0.35 = 35%)
 @export var gap_px: float = 20.0          # spațiul gol dintre marginea potecii și marginea cufărului
 @export var min_dist_rock: float = 130.0  # cât de departe stă de o piatră (pietrele nu se feresc de poteci)
 @export var tries: int = 8                # câte laturi de potecă încercăm până renunțăm la cufăr
@@ -27,6 +27,7 @@ const SEED_SALT := 0xC4E5  # sămânță proprie → cufărul nu urmează tiparu
 var _loaded := {}
 var _paths: Node = null   # nodul Paths (pathways.gd) — el știe unde sunt tile-urile potecilor
 var _rocks: Node2D = null # nodul Rocks — ca să nu înfigem cufărul într-o piatră
+var _cutie := Rect2()     # mărimea reală a cufărului, măsurată o dată (vezi `_cutie_cufar`)
 
 func _ready() -> void:
 	var p := get_parent()
@@ -91,13 +92,24 @@ func chunk_chest_pos(key: Vector2i) -> Vector2:
 	if laturi.is_empty():
 		return Vector2.INF
 
-	var box: Rect2 = CHEST_SCRIPT.cutie()
+	var box := _cutie_cufar()
 	for i in tries:
 		var l: Dictionary = laturi[rng.randi_range(0, laturi.size() - 1)]
 		var pos := _pozitie_langa(l["tile"], l["n"], box)
 		if not _langa_piatra(pos):
 			return pos
 	return Vector2.INF
+
+# Cât de mare e un cufăr, în pixeli de lume. Îl măsurăm pe un exemplar de probă, făcut o
+# singură dată și aruncat imediat, în loc să scriem cifrele aici: `chest.tscn` are `scale`
+# reglat cu mâna (0.7 acum), iar `cutie()` îl bagă deja în calcul. Așa, dacă Răzvan mai
+# schimbă scara din editor, distanța până la potecă rămâne corectă fără să umblu în cod.
+func _cutie_cufar() -> Rect2:
+	if _cutie.size == Vector2.ZERO:
+		var proba := CHEST.instantiate()
+		_cutie = proba.cutie()
+		proba.free()
+	return _cutie
 
 # Poziția cufărului pentru un tile de potecă și o direcție de ieșire, astfel încât între
 # MARGINEA potecii și MARGINEA desenată a cufărului să rămână exact `gap_px`.
