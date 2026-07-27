@@ -16,6 +16,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-28 (3 iteme noi: Hermes' Sandals · Aussie Special · Old Reliable)
+
+**Cerut de Răzvan:** „3 new upgrades. upgrade_56 - Hermes' Sandals (legendary) - +100 Movement Speed +10% Attack Speed. upgrade_57 - Aussie Special (legendary) - Projectiles ricochet +1 time. upgrade_55 - Old Reliable (common) - Reflect 15% of damage taken (reflects everytime an enemy hits the player, stacks with Mike's Hedgehog but doesn't block the hit every 6s like that one does)"
+
+**Ce s-a făcut:** 47 → **50 de iteme**. Două dintre ele au avut nevoie de mecanică nouă, nu doar de o linie în `_apply`.
+
+**Hermes' Sandals** — `p.speed += 100.0` + `p.upgrade_fire_rate(0.90)`. Viteza e FIXĂ, nu procent ca la Hellas: pe 215 de bază e aproape jumătate în plus dintr-o singură luare, de-aia e Legendary. 🔑 **Convenția din fișier pentru cadență e `factor = 1 − procent`** (Rolling Papers „+10%" = 0.90), nu `1/1.1`. M-am ținut de ea ca să nu am două iteme scrise diferit; strict matematic, ×0.90 pe interval înseamnă +11.1% lovituri/s, nu +10%.
+
+**Aussie Special** — mecanică nouă în `bullet.gd`: `ricochet` (câte sărituri au mai rămas) + `_loviti` (id-urile celor loviți deja). Când glonțul ar muri (`_hits > pierce`), în loc să dispară caută cel mai apropiat inamic nelovit în **420px** — **inclusiv în spate**, altfel n-ar fi ricoșeu — se întoarce spre el și primește o viață minimă de 1.2s (fără asta, un glonț care sare la ultima zecime de secundă n-ar apuca să ajungă). 🔑 **Ordinea contează:** întâi se consumă străpungerea, abia apoi sare — așa Drill și Aussie se adună în loc să se anuleze. 🔑 **`_loviti` nu e paranoia:** cu doi inamici lipiți unul de altul, un glonț fără memorie ar sări înainte-înapoi între ei la nesfârșit.
+
+**Old Reliable** — `reflect_pct` în player.gd, aplicat în `_take_contact_damage()` pe RAMURĂ SEPARATĂ de Mike's Hedgehog, deci se adună cu el exact cum a cerut. Diferența: ariciul reflectă 100% **și te apără**, o dată la 6s; ăsta reflectă 15% din **fiecare** lovitură și nu apără deloc. 🔑 **Minim 1 damage:** la începutul rundei damage-ul de contact e 5, iar 5 × 15% = 0.75 s-ar fi rotunjit la **zero** — itemul ar fi părut stricat exact în minutele în care îl iei.
+
+**Traduceri:** 6 chei noi (3 nume + 3 descrieri) × 8 limbi, adăugate în `i18n.gd`. `tool_check_i18n` zice „TOTUL E TRADUS" pe 190 de chei.
+
+**Verificat pe rulare reală:** Hermes → speed 215→315, interval 0.750→0.675 (1.33→1.48 lovituri/s). Old Reliable → `reflect_pct` 0.15, damage de contact 5 → reflect 1, iar după 3 lovituri inamicul a pierdut exact 3 HP (deci chiar nu are cooldown). Aussie → glonțul a lovit inamicul din traiectorie ȘI pe al doilea, pus intenționat în lateral unde numai un ricoșeu ajunge, apoi a dispărut. Plus poză cu toate trei pe cardurile REALE din meniul de level up (chenare de raritate corecte, iconițe întregi).
+
+**Codex actualizat și republicat:** 3 carduri noi (cu `isNew`) + iconițele base64 + o notă în „Ce nu scrie în joc" despre cum se adună Old Reliable cu ariciul. Verificat: 50 de carduri, fiecare cu `game:` și `eff:`, id-urile identice cu `levelup.gd` (`diff` gol), fiecare iconiță folosită are base64, randat în Chrome fără erori.
+
+**⚠️ Rămas nerezolvat, spus pe față:** descrierea lui Hermes' Sandals („+100 Movement Speed +10% Attack Speed") e cea mai lungă din joc și **se rupe pe două rânduri** pe cardul de level up. Nu clipește nimic și nu iese din card, dar dacă vrea un rând, „Move Speed" în loc de „Movement Speed" ar încăpea (așa scrie și Hellas). N-am schimbat textul: e copy-ul lui.
+
+---
+
 ## Session log — 2026-07-28 (codexul: secțiune nouă „Statusuri de start")
 
 **Cerut de Răzvan:** „Pune in artfact care sunt default stats - ce statusuri are playerul cand incepe un run"

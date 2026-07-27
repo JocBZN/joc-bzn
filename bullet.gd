@@ -16,9 +16,23 @@ var explosion_frames: SpriteFrames = null  # animație de explozie (mage = viole
 var instakill_chance: float = 0.0  # șansa (0..1) să ucidă instant inamicul (Hacksaw)
 var thunder: bool = false          # Thunder God: la impact, curent electric spre inamicii din jur
 
+# --- RICOȘEU = itemul Aussie Special ---
+# De câte ori mai poate SĂRI glonțul la alt inamic după ce a terminat de străpuns. Zero = se
+# oprește la fel ca înainte, deci fără item nimic din codul de mai jos nu se execută.
+# Diferența față de `pierce`: străpungerea îl duce DREPT prin cine îi stă în cale, ricoșeul îl
+# ÎNTOARCE spre un inamic ales din jur (inclusiv în spate). Întâi se consumă străpungerea, apoi
+# sare — așa cele două se adună în loc să se anuleze.
+var ricochet: int = 0
+const RICOCHET_RANGE := 420.0        # cât de departe își caută următoarea victimă (px)
+const RICOCHET_LIFETIME := 1.2       # secunde garantate după un salt, ca să apuce să ajungă la ea
+
 var direction: Vector2 = Vector2.RIGHT
 var time_left: float
 var _hits: int = 0         # câți inamici a lovit deja
+# Pe cine a lovit deja (id-uri). Un glonț care ricoșează se poate întoarce peste un inamic prin
+# care tocmai a trecut; fără lista asta l-ar lovi a doua oară și, cu doi inamici lipiți, ar
+# putea sări înainte și înapoi între ei la nesfârșit.
+var _loviti: Array = []
 
 # --- URMARIRE (homing) = itemul Psychic Flip Flop ---
 # IMPLICIT E OPRIT (0.0): glontul pleaca in linie dreapta spre unde ERA inamicul in clipa
@@ -95,6 +109,9 @@ func _update_target(delta: float) -> void:
 
 func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("enemy"):
+		if _loviti.has(body.get_instance_id()):
+			return   # deja lovit de glonțul ăsta (vezi `_loviti`)
+		_loviti.append(body.get_instance_id())
 		# Hacksaw: șansă să ucidă instant inamicul (îi scoatem toată viața dintr-o lovitură).
 		# BOSS-II SUNT IMUNI (grupul „boss": Garda și Saratalin). Au bară proprie, faze și o
 		# cinematică la jumătatea vieții — un instakill le-ar putea încheia lupta din prima
@@ -139,7 +156,35 @@ func _on_body_entered(body: Node) -> void:
 		# străpungere: dispare doar după ce a lovit (pierce + 1) inamici
 		_hits += 1
 		if _hits > pierce:
-			queue_free()
+			# Aussie Special: în loc să dispară, sare la alt inamic — dacă mai are sărituri și
+			# dacă are la cine. Dacă nu găsește pe nimeni în rază, moare ca înainte.
+			if ricochet > 0 and _sari_la_alt_inamic():
+				ricochet -= 1
+			else:
+				queue_free()
+
+# Caută cel mai apropiat inamic pe care NU l-a lovit deja și întoarce glonțul spre el.
+# Spre deosebire de `_update_target` (urmărirea de la Psychic Flip Flop), aici căutăm în TOATE
+# direcțiile, inclusiv în spate: un ricoșeu care ar putea sări doar înainte n-ar mai fi ricoșeu.
+# Îi prelungim și viața: un glonț care sare la ultima zecime de secundă n-ar apuca să ajungă.
+# `target` e pus și el, ca să se înțeleagă cu urmărirea dacă player-ul are ambele iteme.
+func _sari_la_alt_inamic() -> bool:
+	var best: Node2D = null
+	var best_d2 := RICOCHET_RANGE * RICOCHET_RANGE
+	for e in get_tree().get_nodes_in_group("enemy"):
+		var en := e as Node2D
+		if en == null or en.is_queued_for_deletion() or _loviti.has(en.get_instance_id()):
+			continue
+		var d2 := (en.global_position - global_position).length_squared()
+		if d2 < best_d2:
+			best_d2 = d2
+			best = en
+	if best == null:
+		return false
+	target = best
+	time_left = maxf(time_left, RICOCHET_LIFETIME)
+	set_direction((best.global_position - global_position).normalized())
+	return true
 
 # Explozie AOE (Jean's Bomb): animația de explozie + damage tuturor inamicilor din rază.
 func _explode() -> void:

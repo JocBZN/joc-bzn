@@ -214,6 +214,11 @@ func luck_bonus() -> float:
 @export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
 @export var instakill_chance: float = 0.0  # șansa (0..1) ca o lovitură să ucidă instant inamicul (Hacksaw)
 @export var pierce: int = 0                # prin câți inamici trece glonțul
+# Aussie Special: de câte ori SARE glonțul la alt inamic după ce a terminat de străpuns.
+# Nu e același lucru cu `pierce`: străpungerea îl duce mai departe DREPT, prin inamicii aflați
+# pe traiectorie; ricoșeul îl ÎNTOARCE spre alt inamic ales din jur. Se aplică după ce
+# străpungerea s-a epuizat (vezi `bullet.gd`), deci cele două se adună, nu se bat cap în cap.
+@export var ricochet: int = 0
 @export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
 # --- mărimea ARMEI (sprite + hitbox), comună tuturor armelor ---
 # Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui). Stingător: mărește raza aurei.
@@ -258,6 +263,11 @@ var _speed_base: float = 300.0               # viteza la începutul rundei (dup�
 @export var hedgehog: bool = false         # Mike's Hedgehog: reflectă damage-ul primit înapoi în inamic
 var _hedgehog_next: float = 0.0            # momentul (sec) când reflectul redevine disponibil (cooldown 6s)
 const HEDGEHOG_CD := 6.0                    # secunde între două block-uri Mike's Hedgehog
+# Old Reliable: reflectă un PROCENT din damage-ul primit, DE FIECARE DATĂ când te lovește un
+# inamic — fără cooldown și fără să blocheze lovitura (tu încasezi normal). Ăsta e tot ce-l
+# deosebește de Mike's Hedgehog, care reflectă 100% dar o dată la 6s ȘI te apără de lovitura aia.
+# Se adună cu el: la o lovitură prinsă de Hedgehog, inamicul mănâncă și cei 100%, și procentul.
+@export var reflect_pct: float = 0.0
 var _flash_mat: ShaderMaterial             # material de flash alb pe sprite (block-ul Hedgehog)
 @export var hp_regen: int = 0              # HP regenerat pe secundă (crește la level up)
 var hp: int
@@ -745,6 +755,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.is_crit = is_crit
 	bullet.speed = bullet_speed
 	bullet.pierce = pierce
+	bullet.ricochet = ricochet   # Aussie Special: de câte ori sare la alt inamic după străpungere
 	bullet.knockback = knockback
 	bullet.instakill_chance = instakill_chance_now()
 	bullet.explosion_radius = ex_radius
@@ -1260,6 +1271,14 @@ func _take_contact_damage() -> void:
 			continue
 		if global_position.distance_to(enemy.global_position) < contact_range:
 			take_damage(dmg)
+			# Old Reliable: reflectă un procent din damage înapoi, la FIECARE lovitură. Fără
+			# cooldown și fără block — lovitura te-a atins oricum (`take_damage` de mai sus).
+			# Minimul de 1 e pentru ca la damage mic (5 × 15% = 0.75) reflectul să nu fie rotunjit
+			# la 0, adică itemul să nu pară stricat în primele minute.
+			if reflect_pct > 0.0 and enemy.has_method("take_damage"):
+				var refl := maxi(1, int(round(dmg * reflect_pct)))
+				enemy.take_damage(refl)
+				Fx.damage_number(enemy.global_position, refl)
 			# Mike's Hedgehog: reflectă 100% din damage înapoi în inamic, cel mult o dată la HEDGEHOG_CD
 			if hedgehog and now >= _hedgehog_next and enemy.has_method("take_damage"):
 				enemy.take_damage(dmg)

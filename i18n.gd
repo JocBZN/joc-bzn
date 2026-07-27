@@ -195,6 +195,9 @@ const TRAD := {
 "Horse Mask": ["马头面具", "Pferdemaske", "Máscara de Caballo", "Маска Лошади", "Masque de Cheval", "馬のマスク", "Maska Konia", "At Maskesi"],
 "Psychic Flip Flop": ["通灵人字拖", "Psycho-Flipflop", "Chancla Psíquica", "Психическая Вьетнамка", "Tong Psychique", "サイキックビーサン", "Psychiczny Japonek", "Medyum Terlik"],
 "Bloody Situation": ["血腥场面", "Blutige Lage", "Situación Sangrienta", "Кровавая Ситуация", "Situation Sanglante", "血まみれの状況", "Krwawa Sytuacja", "Kanlı Durum"],
+"Hermes' Sandals": ["赫尔墨斯的凉鞋", "Hermes’ Sandalen", "Las Sandalias de Hermes", "Сандалии Гермеса", "Les Sandales d’Hermès", "ヘルメスのサンダル", "Sandały Hermesa", "Hermes’in Sandaletleri"],
+"Aussie Special": ["澳洲特调", "Aussie-Spezial", "Especial Australiano", "Австралийский Особый", "Spécial Aussie", "オージースペシャル", "Australijski Specjał", "Avustralya Özel"],
+"Old Reliable": ["老伙计", "Der Bewährte", "El Viejo Confiable", "Старый Надёжный", "Le Vieux Fidèle", "頼れる相棒", "Stary Niezawodny", "Eski Güvenilir"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -244,6 +247,9 @@ const TRAD := {
 "5% to charm an enemy": ["5% 魅惑敌人", "5% Chance, einen Gegner zu bezaubern", "5% de encantar a un enemigo", "5% очаровать врага", "5% de charmer un ennemi", "5%で敵を魅了", "5% szans na oczarowanie wroga", "%5 düşmanı büyüleme"],
 "Aimbot": ["自动瞄准", "Zielhilfe", "Apuntado automático", "Автоприцел", "Visée auto", "オートエイム", "Autocelowanie", "Otomatik nişan"],
 "Crits heal you 2 HP": ["暴击回复 2 生命", "Krits heilen dich um 2 HP", "Los críticos te curan 2 HP", "Криты лечат на 2 HP", "Les critiques te soignent 2 PV", "クリティカルで2HP回復", "Kryty leczą 2 HP", "Kritikler 2 CAN iyileştirir"],
+"+100 Movement Speed +10% Attack Speed": ["+100 移速 +10% 攻速", "+100 Tempo +10% Angriffstempo", "+100 Velocidad +10% Vel. de ataque", "+100 скорость +10% скорость атаки", "+100 Vitesse +10% Vitesse d’attaque", "+100 移動速度 +10% 攻撃速度", "+100 Szybkość +10% Szybkość ataku", "+100 Hız +10% Saldırı hızı"],
+"Projectiles ricochet +1 time": ["弹射 +1 次", "Geschosse prallen +1x ab", "Los proyectiles rebotan +1 vez", "Снаряды рикошетят +1 раз", "Les projectiles ricochent +1 fois", "弾が+1回跳ね返る", "Pociski odbijają się +1 raz", "Mermiler +1 kez sekiyor"],
+"Reflect 15% of damage taken": ["反弹 15% 所受伤害", "15% des erlittenen Schadens reflektieren", "Refleja 15% del daño recibido", "Отражает 15% полученного урона", "Renvoie 15% des dégâts subis", "受けたダメージの15%を反射", "Odbija 15% otrzymanych obrażeń", "Alınan hasarın %15’ini yansıt"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 

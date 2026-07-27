@@ -72,6 +72,9 @@ var UPGRADES := [
 	{"id": "horse_mask", "nume": "Horse Mask", "icon": "upgrade_52.png", "rar": "epic", "desc": "5% to charm an enemy"},
 	{"id": "psychic_flip_flops", "nume": "Psychic Flip Flop", "icon": "upgrade_53.png", "rar": "epic", "desc": "Aimbot"},
 	{"id": "bloody_situation", "nume": "Bloody Situation", "icon": "upgrade_54.png", "rar": "common", "desc": "Crits heal you 2 HP"},
+	{"id": "hermes_sandals", "nume": "Hermes' Sandals", "icon": "upgrade_56.png", "rar": "legendary", "desc": "+100 Movement Speed +10% Attack Speed"},
+	{"id": "aussie_special", "nume": "Aussie Special", "icon": "upgrade_57.png", "rar": "legendary", "desc": "Projectiles ricochet +1 time"},
+	{"id": "old_reliable", "nume": "Old Reliable", "icon": "upgrade_55.png", "rar": "common", "desc": "Reflect 15% of damage taken"},
 ]
 
 const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
@@ -777,3 +780,20 @@ func _apply(id: String, p) -> void:
 			# (prima = 10%), plafonat la 100%. Folosește același lanț (thunder_burst).
 			# Crește doar ȘANSA: singur, arcul lui rămâne la 25% din damage.
 			p.plugged_in_stacks += 1
+		"hermes_sandals":
+			# sandalele lui Hermes: viteză + cadență. Viteza e o valoare FIXĂ (+100), nu procent ca
+			# la Hellas — de-aia e legendară: pe viteza de start (215) e aproape jumătate în plus,
+			# dintr-o singură luare. Cadența urmează convenția din tot fișierul: `factor = 1 - procent`
+			# (Rolling Papers +10% = 0.90), deci intervalul dintre trageri scade cu 10%.
+			# Fiind pe viteză, umflă indirect și Diesel Power / Megane's Katana, ca Hellas.
+			p.speed += 100.0
+			p.upgrade_fire_rate(0.90)
+		"aussie_special":
+			# bumerangul: după ce a terminat de străpuns, glonțul SARE la alt inamic din jur
+			# (până la 420px, inclusiv în spate) în loc să dispară. +1 săritură pe luare.
+			p.ricochet += 1
+		"old_reliable":
+			# Old Reliable: 15% din damage-ul primit se întoarce în inamicul care te-a lovit,
+			# LA FIECARE lovitură (+15% pe luare). Fără cooldown, fără block — vezi `reflect_pct`
+			# în player.gd pentru diferența față de Mike's Hedgehog, cu care se adună.
+			p.reflect_pct += 0.15
