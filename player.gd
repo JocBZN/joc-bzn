@@ -14,13 +14,19 @@ const SHOCKWAVE := preload("res://shockwave.gd")   # unda de șoc a lui Panic Bu
 # Ordinea urmează unghiul crescător (y în jos): E, SE, S, SV, V, NV, N, NE.
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 
-# Viteza de mers. ⚠️ Înjumătățită pe 2026-07-27 (era 300), cerut de Răzvan.
-# Consecința e mare și e intenționată: polițiștii pleacă de la 120 și urcă cu 3.5%/minut, deci
-# te ajung din urmă pe la minutul 7 și ajung la 264 (plafonul `SPEED_CAP`), adică 1.76× cât tine.
-# Creaturile din Nether pleacă direct de la 190 → sunt mai rapide ca tine din prima secundă.
-# Cu alte cuvinte, viteza de mers a devenit un stat pe care CHIAR trebuie să-l iei din upgrade-uri
-# (Rabbit's Foot, Alex's Protection, Hellas, Weird Concoction), nu unul pe care îl ai gratis.
-@export var speed: float = 150.0
+# Viteza de mers. Pe 2026-07-27 a fost întâi înjumătățită (300 → 150), apoi urcată cu 35%
+# în aceeași zi, tot la cererea lui Răzvan: 150 × 1.35 = 202.5, adică ~două treimi din cât era
+# la început. Unde cade asta față de inamici:
+#   • polițiștii pleacă de la 120 și urcă cu 3.5%/minut, dar în primele 10 minute nu trec de
+#     162 — deci în toată faza 1 ești mai rapid. Te ajung abia în Final Swarm, pe la ~11:37,
+#     iar la plafon (`SPEED_CAP` 2.2) fac 264, adică 1.30× cât tine;
+#   • creaturile din Nether pleacă de la 190, deci te întrec de pe la minutul 2 al rundei —
+#     practic mereu, fiindcă nu ajungi la un portal mai devreme.
+# Cu alte cuvinte: în lume poți fugi, în Nether nu. Viteza rămâne un stat care merită luat
+# din upgrade-uri (Rabbit's Foot, Alex's Protection, Hellas, Weird Concoction).
+# (Cifrele de sus sunt pe viteza CURATĂ. Fiecare nivel de Speed din magazin adaugă 15 și le
+# împinge mai încolo: cu un singur nivel, 217.5 → polițiștii la 12:12, creaturile la 4:12.)
+@export var speed: float = 202.5
 @export var fire_interval: float = 0.75    # rescris de `_aplica_arma()` după arma aleasă
 @export var bullet_damage: int = 15        # idem; crește la level up
 @export var bullet_speed: float = 700.0    # cât de repede zboară glonțul (crește la level up)

@@ -33,7 +33,7 @@ Quick rules:
 
 **🔑 `sword_slow_start` (1.9×) a DISPĂRUT.** Era acolo intenționat, ca sabia să pornească lentă și să simți creșterea de attack speed. Dar a cerut explicit „attack speed ca la pistol", deci dezavantajul sabiei rămâne raza, nu viteza. L-am spus, nu l-am ascuns.
 
-**⚠️ Consecința vitezei — spusă pe față:** polițiștii pleacă de la 120 și urcă cu 3.5%/minut, deci **pe la minutul 7 te ajung din urmă**, iar la plafon (`SPEED_CAP` 2.2) fac 264, adică **1.76× cât tine**. Creaturile din Nether pleacă direct de la 190 → **sunt mai rapide ca tine din prima secundă acolo**. Viteza de mers a devenit un stat pe care chiar trebuie să-l construiești din upgrade-uri (Rabbit's Foot, Alex's Protection, Hellas, Weird Concoction). E exact ce a cerut, dar nu e o schimbare mică.
+**⚠️ Consecința vitezei — spusă pe față:** la 150, polițiștii (120 de bază, +3.5%/minut) te ajungeau pe la minutul 7 și făceau 264 la plafon = 1.76× cât tine, iar creaturile din Nether (190) erau mai rapide din prima secundă. **A doua zar, la câteva minute după: „fa viteza basic cu 35% mai rapid decat e acum" → 150 × 1.35 = 202.5.** Măsurat cu matematica reală a jocului (pe salvarea lui, cu Speed nivel 1 = 217.5): polițiștii te depășesc abia la **12:12** (deci toată faza 1 le fugi) și fac 264 la plafon = **1.21×**; creaturile din Nether te depășesc la **4:12** din rundă și ajung la 418 = **1.92×**. Pe viteza curată (202.5): ~11:37, respectiv ~1:53. Concluzia care contează: **în lume poți fugi, în Nether nu.**
 
 **Conturul cheii:** `tool_contur_foaie.gd` știe acum o culoare PE LUCRARE (`"culoare"`, implicit movul) și acceptă imagini simple cu `"cadre": 1`. Scrie `key_contur.png`; `key.png` rămâne neatins, deci unealta se poate rula oricând fără să se îngroașe conturul. Îl folosesc și obiectul de pe jos, și iconița din HUD.
 
@@ -165,7 +165,7 @@ Quick rules:
 
 **Verificat pe rulare reală, cu numărătoare:** în lume → „polițiști: 2 · creaturi Nether: 0", viteze `[120]`; după `nether.enter()` → „polițiști: 0 · creaturi Nether: 24", viteze `[190, 191]`. Plus două poze: grila cu toate cadrele (curate, fără mânjeli de la GIF) și una din joc, din Nether.
 
-**⚠️ De reținut pentru echilibru:** polițiștii sunt plafonați de `SPEED_CAP` (2.2×) la 264 px/s, adică **mereu sub cei 300 ai player-ului** — de aia poți fugi de ei la nesfârșit. Creaturile astea pornesc de la 190, deci după destul Nether Swarm trec de 300 și **nu mai poți fugi**. E consecința directă a lui „mult mai rapizi"; i-am spus. Se reglează din `speed` pe `enemy_nether.tscn`.
+**⚠️ De reținut pentru echilibru:** polițiștii sunt plafonați de `SPEED_CAP` (2.2×) la 264 px/s, adică **mereu sub cei 300 ai player-ului** — de aia poți fugi de ei la nesfârșit. Creaturile astea pornesc de la 190, deci după destul Nether Swarm trec de 300 și **nu mai poți fugi**. *(Depășit la câteva ore după: pe 2026-07-27 viteza player-ului a coborât la 202.5, deci acum și polițiștii te prind — vezi log-ul „viteză înjumătățită…" de mai sus.)* E consecința directă a lui „mult mai rapizi"; i-am spus. Se reglează din `speed` pe `enemy_nether.tscn`.
 
 **Notă:** testul cu player-ul lăsat pe loc a murit în 3 secunde (25 de creaturi rapide în jur) — a scris în leaderboard, dar 0:03 n-a intrat în top 10 (cel mai slab e 62.7s), deci n-a stricat nimic. Verificat, nu presupus.
 
