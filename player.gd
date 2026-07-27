@@ -14,9 +14,15 @@ const SHOCKWAVE := preload("res://shockwave.gd")   # unda de șoc a lui Panic Bu
 # Ordinea urmează unghiul crescător (y în jos): E, SE, S, SV, V, NV, N, NE.
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 
-@export var speed: float = 300.0
-@export var fire_interval: float = 0.5
-@export var bullet_damage: int = 10        # cât rău fac gloanțele (crește la level up)
+# Viteza de mers. ⚠️ Înjumătățită pe 2026-07-27 (era 300), cerut de Răzvan.
+# Consecința e mare și e intenționată: polițiștii pleacă de la 120 și urcă cu 3.5%/minut, deci
+# te ajung din urmă pe la minutul 7 și ajung la 264 (plafonul `SPEED_CAP`), adică 1.76× cât tine.
+# Creaturile din Nether pleacă direct de la 190 → sunt mai rapide ca tine din prima secundă.
+# Cu alte cuvinte, viteza de mers a devenit un stat pe care CHIAR trebuie să-l iei din upgrade-uri
+# (Rabbit's Foot, Alex's Protection, Hellas, Weird Concoction), nu unul pe care îl ai gratis.
+@export var speed: float = 150.0
+@export var fire_interval: float = 0.75    # rescris de `_aplica_arma()` după arma aleasă
+@export var bullet_damage: int = 15        # idem; crește la level up
 @export var bullet_speed: float = 700.0    # cât de repede zboară glonțul (crește la level up)
 # Gloanțe paralele: din 2026-07-21 NICIUN item nu mai crește `bullet_count` (Twin Comets dădea
 # +2, acum dă proiectile bonus ca Gunslinger). Mecanica rămâne funcțională, gata de refolosit.
@@ -102,8 +108,28 @@ var mankini_stacks: int = 0
 var has_undying: bool = false
 var undying_used: bool = false
 
-# --- tipul de armă (ales din meniu: pistol / mage / extinguisher) ---
+# --- tipul de armă (ales din meniu: pistol / mage / extinguisher / sword) ---
 var weapon_type: String = "pistol"
+
+# --- FIECARE ARMĂ CU AVANTAJUL ȘI DEZAVANTAJUL EI (cerut de Răzvan, 2026-07-27) ---
+# Până acum toate porneau identic (10 damage, o lovitură la 0.5s) și se deosebeau doar prin
+# FELUL în care lovesc. Acum alegi și între „rar și greu" și „des și slab":
+#
+#   armă            damage   pauză între lovituri   lovituri/s
+#   pistol            15           0.75               1.33
+#   mage staff        10           0.50               2.00   ← de 1.5× mai des ca pistolul
+#   extinguisher      12           0.75               1.33
+#   cursed sword      20           0.75               1.33
+#
+# ⚠️ `damage` de aici e statul din panou (`bullet_damage`), nu neapărat cât intră în inamic:
+# stingătorul ADAUGĂ `aura_damage` + jumătate din el (10 + 6 = 16 pe puls), iar sabia adaugă
+# `sword_base_damage` întreg (8 + 20 = 28 pe tăietură). Vezi `_aura_tick()` și tăietura sabiei.
+const ARME := {
+	"pistol":       {"damage": 15, "interval": 0.75},
+	"mage":         {"damage": 10, "interval": 0.50},
+	"extinguisher": {"damage": 12, "interval": 0.75},
+	"sword":        {"damage": 20, "interval": 0.75},
+}
 # Stingător = AURĂ: pulsează în jurul tău, mai mare cu nivelul, mai des cu cadența
 @export var aura_base_radius: float = 90.0
 @export var aura_growth: float = 12.0      # cât crește raza pe nivel
@@ -159,7 +185,6 @@ const SWORD_FRAME_W := 64.0                  # lățimea unui cadru (fx/cursed s
 @export var sword_debug: bool = false        # desenează conturul tăieturii peste joc, ca să-l reglezi cu ochii
 
 @export var sword_base_damage: int = 8       # damage de bază/tăietură; total = asta + bullet_damage
-@export var sword_slow_start: float = 1.9    # la început taie mai rar (fire_interval × asta la selectarea sabiei)
 
 var _sword_frames: SpriteFrames             # cele 12 cadre din fx/cursed sword fx
 var _sword_frame_px := Vector2(64, 55)      # mărimea unui cadru, în pixeli de artă (citită din textură)
@@ -265,6 +290,7 @@ func _ready() -> void:
 	add_to_group("player")
 	# arma aleasă din meniu (pistol / mage / extinguisher)
 	weapon_type = GameSettings.weapon_type
+	_aplica_arma()  # damage-ul și cadența de bază ale armei alese — ÎNAINTE de meta
 	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
 	# Reperul lui Diesel Power = viteza cu care PORNEȘTI runda, luată DUPĂ META. Așa itemul
 	# măsoară viteza câștigată în rundă (Weird Concoction, Alex's Protection), nu ce ai cumpărat
@@ -278,10 +304,8 @@ func _ready() -> void:
 	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (12 cadre)
 	_electric_frames = _load_fx_frames("res://fx/electricity fx", 30.0, false)  # arcul de Thunder God (14 cadre)
 	_masoara_arta_sabiei()  # anvelopa animației → din ea se croiește dreptunghiul care lovește
-	# Cursed Sword taie mai rar la început (ca să simți creșterea când iei attack speed).
-	# O face slow o SINGURĂ dată aici; upgrade-urile de attack speed (Rabbit's Foot etc.) o accelerează după.
-	if weapon_type == "sword":
-		fire_interval *= sword_slow_start
+	# (Cursed Sword avea aici un slow de 1.9× la început. A dispărut pe 2026-07-27: Răzvan a
+	# cerut sabia cu ACEEAȘI cadență ca pistolul, iar dezavantajul ei nu mai e viteza, ci raza.)
 	hp = max_hp
 	# reperul panoului de statusuri: valorile de la START, DUPĂ meta + slow-ul sabiei
 	_stats_base = {
@@ -1347,6 +1371,14 @@ func gain_xp(amount: int) -> void:
 	while xp >= xp_to_next:
 		xp -= xp_to_next
 		_level_up()
+
+# Damage-ul și cadența de bază ale armei alese (vezi tabelul `ARME`). Se cheamă ÎNAINTE de
+# `_apply_meta()`, ca upgrade-urile permanente să se adune PESTE valorile armei, nu invers —
+# altfel arma ar șterge ce ai cumpărat din magazin.
+func _aplica_arma() -> void:
+	var a: Dictionary = ARME.get(weapon_type, ARME["pistol"])
+	bullet_damage = int(a["damage"])
+	fire_interval = float(a["interval"])
 
 func _level_up(cu_sunet: bool = true) -> void:
 	level += 1

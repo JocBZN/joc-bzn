@@ -95,7 +95,7 @@ func _ready() -> void:
 	keys_box.add_theme_constant_override("separation", 6)
 	keys_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var key_icon := TextureRect.new()
-	key_icon.texture = load("res://harta/Chest/key.png")
+	key_icon.texture = load("res://harta/Chest/key_contur.png")   # varianta cu conturul galben
 	key_icon.custom_minimum_size = Vector2(34, 34)
 	key_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	key_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

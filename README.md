@@ -76,12 +76,23 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 ## Weapons
 Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_ready`). All four share the **same base stats** (`bullet_damage` 10, `fire_interval` 0.5, `bullet_speed` 700) — `weapon_type` only changes *behaviour*, in four places in `player.gd`:
 
+**Each weapon now trades damage against rate of fire** *(2026-07-27)* — before this they all started identical (10 damage, one hit every 0.5 s) and differed only in *how* they hit. The numbers live in one table, **`ARME` at the top of `player.gd`**, applied by `_aplica_arma()` **before** `_apply_meta()` so shop upgrades stack on top of the weapon instead of being overwritten:
+
+| Weapon | Damage | Interval | Hits/s |
+|---|---|---|---|
+| **Pistol** | 15 | 0.75 s | 1.33 |
+| **Mage Staff** | 10 | 0.50 s | 2.00 (**1.5× the pistol**) |
+| **Extinguisher** | 12 | 0.75 s | 1.33 |
+| **Cursed Sword** | 20 | 0.75 s | 1.33 |
+
+⚠️ **That "damage" is the `bullet_damage` stat, not always what lands.** The extinguisher adds `aura_damage` + half of it (10 + 6 = **16** per pulse) and the sword adds `sword_base_damage` whole (8 + 20 = **28** per slash). ⚠️ **`sword_slow_start` is gone** — the sword used to swing at 1.9× the interval; Răzvan asked for pistol cadence, so its drawback is now its reach, not its speed.
+
 | Weapon | How it fires |
 |---|---|
 | **Pistol** | One bullet at the nearest enemy. Nothing else. |
 | **Mage Staff** | The same bullet, re-skinned as an animated orb, that **explodes on impact** (radius 110, damage = 60% of `bullet_damage`). |
 | **Extinguisher** | No bullets at all — an **aura** pulses around you every `fire_interval`, hitting *every* enemy within `aura_base_radius + level × aura_growth`, for `aura_damage + 50% of bullet_damage` (15 at start). |
-| **Cursed Sword** | No bullets — a **melee slash** in the direction you're **facing** (`_facing`), hitting *every* enemy inside a fixed rectangle that runs from the player out to the animation's furthest pixel, for `sword_base_damage + bullet_damage`. Built on the **Firewalker model**: `sword_size` is the width in px, and the rectangle is *measured from the art* at startup, so art and hitbox cannot drift apart. Starts **slow** (`fire_interval × sword_slow_start` when picked) and speeds up with attack-speed upgrades. The slash animation is a **child of the player**, so it follows you (feels like the sword is always in hand), and draws **under** him. Scales with damage / crit / knockback / instakill / weapon-size upgrades. |
+| **Cursed Sword** | No bullets — a **melee slash** in the direction you're **facing** (`_facing`), hitting *every* enemy inside a fixed rectangle that runs from the player out to the animation's furthest pixel, for `sword_base_damage + bullet_damage`. Built on the **Firewalker model**: `sword_size` is the width in px, and the rectangle is *measured from the art* at startup, so art and hitbox cannot drift apart. Swings at the **pistol's cadence** since 2026-07-27 (the old `sword_slow_start` 1.9× handicap was removed on request). The slash animation is a **child of the player**, so it follows you (feels like the sword is always in hand), and draws **under** him. Scales with damage / crit / knockback / instakill / weapon-size upgrades. |
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
@@ -300,7 +311,7 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 - ✅ **Hitbox is a fixed rectangle cut from the animation's envelope.** In art space (x = forward, y = sideways), rotated by your facing: it starts at **0** (the player, so the gap between him and the crescent still deals damage), ends **forward at the animation's furthest pixel** (92 px), and **sideways at its furthest pixels** (−63…+67). It never changes during the sweep. The envelope is *measured at startup* from the frames' opaque pixels (`_masoara_arta_sabiei`), not hardcoded — swap the art and it recomputes; being in art pixels, it follows `sword_size`/`sword_reach`/`sword_lateral` automatically.
 - ✅ **The hitbox is measured from the art, not guessed.** It originally hit at 135 px in a ±81° cone while the art only reached 107 px within ±62° — roughly **3× the visible area**, killing enemies past your shoulders. Shapes tried since, and why each was dropped: cone (the art wraps around the player at close reach, so fitting a forward cone yields ±180°) → disc (covers the hollow between the crescent's horns) → pixel-perfect 1:1 (exact, but left the gap between player and slash undamaged) → **rectangle**. Areas: disc 17,765 px², rectangle **11,960 px²**, 1:1 only 5,131 px².
 - ⚠️ **Balance follow-up:** the honest hitbox covers far less than the broken one did, so the sword hits noticeably less than it originally felt. Not compensated yet — knobs are `sword_base_damage`, `sword_size` (the hitbox follows it automatically) and `sword_slow_start`.
-- ✅ **New weapon — Cursed Sword** (4th selectable weapon in the menu). Auto-**slashes in the facing direction** every `fire_interval`. Base swing is intentionally **slow** (`sword_slow_start` = 1.9× interval when picked) so attack-speed upgrades feel impactful; scales with the player's damage / crit / knockback / instakill / weapon-size upgrades (modelled on the Extinguisher aura + bullet instakill).
+- ✅ **New weapon — Cursed Sword** (4th selectable weapon in the menu). Auto-**slashes in the facing direction** every `fire_interval`. Base swing was intentionally **slow** (`sword_slow_start` = 1.9× interval when picked) until 2026-07-27, when it was brought to the pistol's cadence on request; scales with the player's damage / crit / knockback / instakill / weapon-size upgrades (modelled on the Extinguisher aura + bullet instakill).
 - ✅ **Slash animation attached to the player.** The slash `AnimatedSprite2D` is a **child of the Player node** (not left behind in the world), so it moves with you — the vibe is that the sword is always in hand. Its position/scale divide by the player's `scale` (×2 in `main.tscn`) to stay in real pixels.
 - ✅ **Upgrade tweaks** (`levelup.gd`): **Rabbit's Foot** now −5 damage · **+25%** attack speed (was +10%); **Grinder** rarity Rare → **Common**; **The Nightclub** rarity Epic → **Rare**; **Syringe → Last Resort** (new icon `upgrade_35.png`; was briefly "Knight's Power" / `upgrade_26.png`).
 

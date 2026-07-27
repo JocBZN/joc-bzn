@@ -14,9 +14,12 @@ extends Node
 #
 # Ca să conturezi altă foaie, mai pui o linie în `LUCRARI`.
 
-const CONTUR := Color(0.72, 0.28, 1.0, 1.0)      # același mov ca la proiectile
+const CONTUR := Color(0.72, 0.28, 1.0, 1.0)      # același mov ca la proiectile (culoarea implicită)
+const GALBEN := Color(1.0, 0.85, 0.15, 1.0)      # galbenul cheii de cufăr
 const PRAG := 0.35                               # de la ce alfa în sus considerăm că e desen
 
+# O imagine simplă (nu foaie de cadre) se pune tot aici, cu `"cadre": 1`.
+# `"culoare"` e opțional; fără el se folosește movul.
 const LUCRARI := [
 	{
 		# Saratalin, boss-ul Nether-ului: 3360×240 = 15 cadre de 224×240
@@ -24,14 +27,21 @@ const LUCRARI := [
 		"iesire": "res://harta/nether/Nether Boss/Saratalin_contur.png",
 		"cadre": 15,
 	},
+	{
+		# Cheia de cufăr: o singură imagine de 128×128, deci „un cadru"
+		"sursa": "res://harta/Chest/key.png",
+		"iesire": "res://harta/Chest/key_contur.png",
+		"cadre": 1,
+		"culoare": GALBEN,
+	},
 ]
 
 func _ready() -> void:
 	for l in LUCRARI:
-		_fa(l["sursa"], l["iesire"], int(l["cadre"]))
+		_fa(l["sursa"], l["iesire"], int(l["cadre"]), l.get("culoare", CONTUR))
 	get_tree().quit()
 
-func _fa(sursa: String, iesire: String, cadre: int) -> void:
+func _fa(sursa: String, iesire: String, cadre: int, culoare: Color) -> void:
 	var src := Image.load_from_file(ProjectSettings.globalize_path(sursa))
 	if src == null:
 		print("!!! nu pot citi ", sursa)
@@ -45,7 +55,7 @@ func _fa(sursa: String, iesire: String, cadre: int) -> void:
 	var lat := w / cadre
 	print(sursa.get_file(), ": ", w, "×", h, " · ", cadre, " cadre de ", lat, "×", h)
 	for i in cadre:
-		_contur_cadru(src, i * lat, lat, h, i)
+		_contur_cadru(src, i * lat, lat, h, i, culoare)
 	var err := src.save_png(ProjectSettings.globalize_path(iesire))
 	if err != OK:
 		print("!!! nu pot scrie ", iesire, " (", err, ")")
@@ -55,7 +65,7 @@ func _fa(sursa: String, iesire: String, cadre: int) -> void:
 # Conturul unui singur cadru. Ne uităm DOAR în interiorul ferestrei cadrului: altfel desenul
 # dintr-un cadru ar scoate contur în cadrul vecin, iar la rulare (unde cadrele sunt tăiate cu
 # AtlasTexture) ar apărea o dâră mov pe margine.
-func _contur_cadru(img: Image, x_start: int, lat: int, inalt: int, idx: int) -> void:
+func _contur_cadru(img: Image, x_start: int, lat: int, inalt: int, idx: int, culoare: Color) -> void:
 	# Întâi harta de „aici e desen", ca să nu conturăm conturul pe care tocmai l-am pus.
 	var plin := PackedByteArray()
 	plin.resize(lat * inalt)
@@ -82,4 +92,4 @@ func _contur_cadru(img: Image, x_start: int, lat: int, inalt: int, idx: int) -> 
 					if plin[ny * lat + nx] == 1:
 						vecin = true
 			if vecin:
-				img.set_pixel(x_start + x, y, CONTUR)
+				img.set_pixel(x_start + x, y, culoare)

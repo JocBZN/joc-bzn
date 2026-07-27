@@ -7,6 +7,10 @@ extends Area2D
 # E o variantă mult mai simplă decât `xp.gd`: acolo există contopirea în bule, fiindcă în
 # Final Swarm cad mii de geme. Aici cade una la ~200 de morți, deci nu se strâng niciodată
 # grămadă și n-au de ce să se contopească.
+#
+# Arta e `key_contur.png` — cheia lui Răzvan cu un contur GALBEN de 1px, pus de
+# `tool_contur_foaie.gd`. Sursa `key.png` rămâne neatinsă, deci unealta poate fi rulată
+# oricând fără să se îngroașe conturul.
 
 @export var magnet_range: float = 150.0   # de la ce distanță zboară spre player (puțin peste XP,
                                           # ca o cheie rară să nu-ți scape pe lângă picior)

@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://key.gd" id="1_key"]
-[ext_resource type="Texture2D" path="res://harta/Chest/key.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://harta/Chest/key_contur.png" id="2_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_key"]
 radius = 36.0

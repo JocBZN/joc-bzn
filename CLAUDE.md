@@ -16,6 +16,31 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (viteză înjumătățită, fiecare armă cu plusul și minusul ei, contur galben pe cheie)
+
+**Cerut de Răzvan:** „vreau playerul Sa inceapa cu speed de 2x mai putin. Fiecare arma vreau sa aibe un avantaj si dezavantaj. Pistolul are 15 damage dar attack speed mai mic(e prea mare asta de e acum la inceput fa-l cu 1.5x mai putin). Fire staff are 10 damage dar attack speed mai mare(cu 1.5x mai mult decat la pistol) la stingator are 12 damage si attack speed ca la pistol. la cursed sword 20 damage si attack speed ca la pistol. Cheia sa aiba un stroke galben de 1px"
+
+**Ce s-a făcut:** `speed` 300 → **150**; tabelul `ARME` la începutul lui `player.gd` + `_aplica_arma()`; `key_contur.png` din `tool_contur_foaie.gd`.
+
+| armă | damage | interval | lovituri/s |
+|---|---|---|---|
+| pistol | 15 | 0.75 | 1.33 |
+| mage staff | 10 | 0.50 | 2.00 |
+| extinguisher | 12 | 0.75 | 1.33 |
+| cursed sword | 20 | 0.75 | 1.33 |
+
+**🔑 `_aplica_arma()` se cheamă ÎNAINTE de `_apply_meta()`.** Invers, arma ar fi ȘTERS ce a cumpărat din magazin (meta scrie `bullet_damage += ...`, deci trebuie să se adune peste valoarea armei, nu să fie suprascrisă). Pe salvarea lui Răzvan (Damage nivel 3 = +9) numerele văzute în joc sunt 24/19/21/29, nu 15/10/12/20 — diferențele dintre arme se păstrează exact.
+
+**🔑 `sword_slow_start` (1.9×) a DISPĂRUT.** Era acolo intenționat, ca sabia să pornească lentă și să simți creșterea de attack speed. Dar a cerut explicit „attack speed ca la pistol", deci dezavantajul sabiei rămâne raza, nu viteza. L-am spus, nu l-am ascuns.
+
+**⚠️ Consecința vitezei — spusă pe față:** polițiștii pleacă de la 120 și urcă cu 3.5%/minut, deci **pe la minutul 7 te ajung din urmă**, iar la plafon (`SPEED_CAP` 2.2) fac 264, adică **1.76× cât tine**. Creaturile din Nether pleacă direct de la 190 → **sunt mai rapide ca tine din prima secundă acolo**. Viteza de mers a devenit un stat pe care chiar trebuie să-l construiești din upgrade-uri (Rabbit's Foot, Alex's Protection, Hellas, Weird Concoction). E exact ce a cerut, dar nu e o schimbare mică.
+
+**Conturul cheii:** `tool_contur_foaie.gd` știe acum o culoare PE LUCRARE (`"culoare"`, implicit movul) și acceptă imagini simple cu `"cadre": 1`. Scrie `key_contur.png`; `key.png` rămâne neatins, deci unealta se poate rula oricând fără să se îngroașe conturul. Îl folosesc și obiectul de pe jos, și iconița din HUD.
+
+**Verificat pe rulare reală,** instanțiind player-ul cu fiecare din cele 4 arme: intervalele au ieșit exact 0.750 / 0.500 / 0.750 / 0.750 (adică 1.33 și 2.00 lovituri/s), viteza 150 + 15 din meta = 165. Plus poză cu cheia conturată pe jos și în HUD — la scara 0.45 conturul de 1px se vede bine, fiindcă desenul cheii e subțire și galbenul e o bună parte din siluetă.
+
+---
+
 ## Session log — 2026-07-27 (fără cufere și fără poteci în Limbo)
 
 **Cerut de Răzvan:** „chest-urile nu vreau sa se spawneze in limbo si nici path-urile"
