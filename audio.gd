@@ -34,9 +34,14 @@ const SFX := {
 # Gărzii, invocarea lui Saratalin, cinematica lui de la jumătate, Panic Button, portalul care
 # se scufundă la ieșirea din Nether) și trebuie să bubuie la fel peste tot. Răzvan l-a vrut
 # TARE — de-asta e peste 0, nu sub: e singurul sunet al jocului care înseamnă „se cutremură
-# pământul". Fișierul are vârful la -2.4 dBFS, deci +6 dB îl duce aproape de maximul boxei;
-# dacă vrei și mai tare, ridici de aici, dar peste ~+9 începe să sune spart.
-const QUAKE_DB := 6.0
+# pământul". Decibelii nu se înmulțesc, se ADUNĂ: „de 2 ori mai tare" = +20·log10(2) ≈ +6 dB,
+# deci 6 → 12 (cerut de Răzvan pe 2026-07-27, a doua rundă).
+#
+# ⚠️ De aici încolo NU mai există cap: fișierul are vârful la -2.4 dBFS, iar la +12 dB, cu
+# slider-ul de efecte dat tare, vârful trece de maximul plăcii de sunet și se TAIE (bubuitura
+# poate să pârâie). Dacă se aude spart, soluția nu e să cobori de aici, ci să scazi RESTUL
+# efectelor — ce contează la urechi e diferența dintre ele, nu numărul absolut.
+const QUAKE_DB := 12.0
 
 const CHUNK_PX := 512.0     # mărimea unui chunk (ca în props/ground/pathways) — pentru desertness
 

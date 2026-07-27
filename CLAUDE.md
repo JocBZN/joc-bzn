@@ -22,7 +22,9 @@ Quick rules:
 
 **Ce s-a făcut:** două intrări noi în `audio.gd` — `mage_shoot` (`audio/Mage Staff Audio.wav`) și `earthquake` (`audio/Earthquake.wav`). `_fire_bullets()` din `player.gd` alege sunetul după `weapon_type`, deci Mage Staff nu mai împrumută `Bullet.mp3`-ul pistolului. Cutremurul se aude în **toate cele cinci locuri unde se zguduie ecranul**: invocarea Gărzii (`statue.gd`), invocarea lui Saratalin (`summoning_portal.gd`), cinematica lui de la jumătate (`saratalin.gd` — acolo era `levelup` pus ca placeholder pentru bubuitură), **Panic Button** (`player.gd`, unde era `hurt` cu comentariul „placeholder") și portalul care se scufundă la ieșirea din Nether (`nether.gd`).
 
-**🔑 Volumul cutremurului stă într-o singură constantă: `Audio.QUAKE_DB = 6.0`.** Cinci locuri de chemare ⇒ dacă valoarea e scrisă de cinci ori, sigur rămâne una în urmă. E **peste 0** fiindcă Răzvan l-a vrut tare; fișierul are vârful la −2.4 dBFS, deci peste ~+9 începe să sune spart. `pitch_rand = 0`, ca toate cutremurele să sune identic.
+**🔑 Volumul cutremurului stă într-o singură constantă: `Audio.QUAKE_DB`.** Cinci locuri de chemare ⇒ dacă valoarea e scrisă de cinci ori, sigur rămâne una în urmă. `pitch_rand = 0`, ca toate cutremurele să sune identic.
+
+**A doua rundă, tot 2026-07-27: „sa se auda earthquake de 2x mai tare" → 6.0 → 12.0.** Decibelii se ADUNĂ, nu se înmulțesc: „de 2 ori mai tare" = +20·log10(2) ≈ **+6 dB**. **Peste plafon, în cunoștință de cauză:** fișierul are vârful la −2.4 dBFS, deci la +12 vârful iese la **+1.6 dBFS cu slider-ul lui (0.4)** și +9.6 cu slider-ul la maxim — placa de sunet îl taie și bubuitura poate pârâi. I-am spus. Dacă se aude spart, se coboară RESTUL efectelor, nu ăsta: la urechi contează doar diferența dintre sunete.
 
 **🔑 Măsoară fișierul înainte să-i dai un volum.** `tool_audio_info.gd` (unealtă nouă, rămâne în repo) citește WAV-ul **de pe disc**, nu resursa importată — Godot importă WAV-urile ca **QOA comprimat** (`format 3`), din care nu poți citi probele, așa că prima variantă a uneltei n-a putut măsura nimic. Parsează RIFF-ul de mână și scoate durata, vârful, rms-ul și profilul pe sferturi de secundă.
 
