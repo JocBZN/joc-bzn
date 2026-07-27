@@ -119,7 +119,8 @@ func invoca() -> void:
 	# 1) simbol de alertă deasupra statuii
 	_spawn_alert(global_position + Vector2(0, _statue_top_y()))
 
-	# 2a) cutremur pe ecran (tremură camera player-ului)
+	# 2a) cutremur pe ecran (tremură camera player-ului) + bubuitura lui
+	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player != null:
 		var cam := player.get_node_or_null("Camera2D") as Camera2D

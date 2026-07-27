@@ -580,7 +580,7 @@ func _stat_row(label: String, cur: float, base: float, lower_better: bool, disp:
 # încasează. Ce e MAI DEPARTE de atât nu mai încasează, spre deosebire de varianta veche care lovea
 # toată harta, inclusiv inamici pe care nici nu-i vedeai.
 func panic_button(dmg: int) -> void:
-	Audio.play("hurt", -4.5)  # bubuitura (placeholder)
+	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)  # bubuitura (același cutremur ca la invocări)
 	start_quake(0.9, 0.85)    # cutremurul ține cât mătură unda, plus puțin
 	var w := Node2D.new()
 	w.set_script(SHOCKWAVE)
@@ -653,7 +653,11 @@ func _fire_bullets() -> void:
 	# pistol/mage; se trage des → ținut moderat (reglabil).
 	# −12.5 dB = de 1.5 ori mai încet decât −9 dB. Decibelii nu se împart, se SCAD:
 	# „de N ori mai încet" înseamnă −20·log10(N) dB, iar pentru 1.5 asta face −3.5 dB.
-	Audio.play("shoot", -12.5)
+	# Mage Staff are sunetul lui (un „vuiet" magic), pistolul rămâne pe Bullet.mp3.
+	if weapon_type == "mage":
+		Audio.play("mage_shoot", -12.0)
+	else:
+		Audio.play("shoot", -12.5)
 	_muzzle(global_position + dir * 34.0, dir)
 	# damage-ul acestei salve, cu procentele care depind de starea de acum (Theo's / Cigarette / Diesel)
 	var dmg_base := int(round(bullet_damage * damage_mult()))

@@ -11,7 +11,8 @@ extends Node
 # îl pui în audio/ și adaugi o linie mai jos; restul jocului începe să-l folosească singur.
 const SFX := {
 	"button":         "res://audio/button.wav",
-	"shoot":          "res://audio/Bullet.mp3",                         # glonțul de pistol / mage
+	"shoot":          "res://audio/Bullet.mp3",                         # glonțul de pistol
+	"mage_shoot":     "res://audio/Mage Staff Audio.wav",               # proiectilul de Mage Staff (are alt sunet decât pistolul)
 	"levelup":        "res://audio/Choose Item Menu Open - Close.wav",  # ecranul de Level Up
 	"hurt":           "res://audio/When enemy hits player.wav",         # player-ul primește damage
 	"extinguisher":   "res://audio/Extinguisher.wav",                   # pulsul stingătorului
@@ -26,7 +27,16 @@ const SFX := {
 	"teleport":        "res://audio/Nether Audio/Teleport Sfx.wav",    # E pe portal: intrarea/ieșirea din Nether
 	"saratalin_flash": "res://audio/Nether Audio/Saratalin Flashing Purple.wav",  # UN puls mov din cinematica lui Saratalin
 	"enemy_hit":      "res://audio/Enemy Hit.wav",                     # un proiectil a rănit un inamic
+	"earthquake":     "res://audio/Earthquake.wav",                    # bubuitura de cutremur (vezi QUAKE_DB)
 }
+
+# Cutremurul are volumul lui, într-un singur loc: se aude din cinci locuri din joc (invocarea
+# Gărzii, invocarea lui Saratalin, cinematica lui de la jumătate, Panic Button, portalul care
+# se scufundă la ieșirea din Nether) și trebuie să bubuie la fel peste tot. Răzvan l-a vrut
+# TARE — de-asta e peste 0, nu sub: e singurul sunet al jocului care înseamnă „se cutremură
+# pământul". Fișierul are vârful la -2.4 dBFS, deci +6 dB îl duce aproape de maximul boxei;
+# dacă vrei și mai tare, ridici de aici, dar peste ~+9 începe să sune spart.
+const QUAKE_DB := 6.0
 
 const CHUNK_PX := 512.0     # mărimea unui chunk (ca în props/ground/pathways) — pentru desertness
 
@@ -41,7 +51,11 @@ const MUSIC_GAME := [
 # În Nether: mereu aceeași melodie, în buclă, cât ești acolo (`nether.gd`).
 const MUSIC_NETHER := "res://audio/Nether Audio/sky-lines.ogg"
 
-const POOL_SIZE := 12       # câte "boxe" (playere) avem pregătite
+const POOL_SIZE := 20       # câte "boxe" (playere) avem pregătite
+# 12 ajungeau când toate efectele erau scurte (0.2–0.4s). Sunetul de Mage Staff ține ~1.5s,
+# iar cu attack speed mare se trage la ~0.2s → singur ar fi ținut ocupate vreo 8 boxe, iar
+# pașii/loviturile ar fi început să se taie între ele. 20 e tot ieftin (un nod tăcut costă
+# aproape nimic) și lasă loc de respiro.
 const MIN_GAP_MS := 45      # pauza minimă între două redări ale ACELUIAȘI sunet (vezi `play`)
 var _ultima := {}           # nume -> momentul (ms) când s-a auzit ultima oară
 var _streams := {}          # nume -> AudioStream încărcat

@@ -250,6 +250,7 @@ func _inchide_portalurile() -> void:
 		portals.opreste()
 
 	if al_nostru != null:
+		Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 		_zguduie_camera()
 		al_nostru.intra_in_pamant()
 

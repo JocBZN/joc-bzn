@@ -65,7 +65,8 @@ func invoca() -> void:
 	_announce("SARATALIN", "It comes down from above")
 	Audio.play("levelup", -2.0)
 
-	# 2a) cutremur pe ecran
+	# 2a) cutremur pe ecran + bubuitura lui
+	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 	_zguduie_camera()
 
 	# 2b) structura intră în pământ: nu mai e zid, coboară și se stinge

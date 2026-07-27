@@ -246,7 +246,7 @@ func _cinematica_faza2() -> void:
 	var g := create_tween()
 	g.tween_property(anim, "modulate", CULOARE_PULS, 0.15)
 	Audio.play("saratalin_flash", -4.0, 0.0)
-	Audio.play("levelup", -2.0)
+	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)   # bubuitura de cutremur peste aprindere
 	await _cutremur(cam, tinta).finished
 	await create_tween().tween_property(anim, "modulate", Color(1, 1, 1), 0.3).finished
 

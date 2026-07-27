@@ -16,6 +16,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (sunet nou: Mage Staff + cutremur)
+
+**Cerut de Răzvan:** „Ti-am bagat mage staff audio pt proiectilele de la mage staff. Si ti am bagat si earthquake (la earthquake vreau sa se auda mai tare)".
+
+**Ce s-a făcut:** două intrări noi în `audio.gd` — `mage_shoot` (`audio/Mage Staff Audio.wav`) și `earthquake` (`audio/Earthquake.wav`). `_fire_bullets()` din `player.gd` alege sunetul după `weapon_type`, deci Mage Staff nu mai împrumută `Bullet.mp3`-ul pistolului. Cutremurul se aude în **toate cele cinci locuri unde se zguduie ecranul**: invocarea Gărzii (`statue.gd`), invocarea lui Saratalin (`summoning_portal.gd`), cinematica lui de la jumătate (`saratalin.gd` — acolo era `levelup` pus ca placeholder pentru bubuitură), **Panic Button** (`player.gd`, unde era `hurt` cu comentariul „placeholder") și portalul care se scufundă la ieșirea din Nether (`nether.gd`).
+
+**🔑 Volumul cutremurului stă într-o singură constantă: `Audio.QUAKE_DB = 6.0`.** Cinci locuri de chemare ⇒ dacă valoarea e scrisă de cinci ori, sigur rămâne una în urmă. E **peste 0** fiindcă Răzvan l-a vrut tare; fișierul are vârful la −2.4 dBFS, deci peste ~+9 începe să sune spart. `pitch_rand = 0`, ca toate cutremurele să sune identic.
+
+**🔑 Măsoară fișierul înainte să-i dai un volum.** `tool_audio_info.gd` (unealtă nouă, rămâne în repo) citește WAV-ul **de pe disc**, nu resursa importată — Godot importă WAV-urile ca **QOA comprimat** (`format 3`), din care nu poți citi probele, așa că prima variantă a uneltei n-a putut măsura nimic. Parsează RIFF-ul de mână și scoate durata, vârful, rms-ul și profilul pe sferturi de secundă.
+
+**🔑 Ambele fișiere aveau ~1s de LINIȘTE lipită la coadă** (2.5s de 96kHz/24 biți, cu sunet doar până pe la 1.5s). Contează: o boxă din pool rămâne ocupată cât ține stream-ul, inclusiv liniștea. Le-am importat cu **`edit/trim=true`** în `.import` (1.37s și 1.17s după) **și** am urcat `POOL_SIZE` de la **12 la 20** — cu attack speed mare, Mage Staff-ul singur ar fi ținut vreo 8 boxe și ar fi început să taie pașii și loviturile.
+
+**Verificat pe o rundă REALĂ**, nu doar citind codul: test care pornește `main.tscn` cu `weapon_type = "mage"`, îl lasă 7 secunde și apoi se uită în `Audio._ultima` (dicționarul care ține minte ce s-a redat) — a ieșit `["enemy_hit", "game_start", "mage_shoot"]`, deci sunetul nou chiar cântă și `shoot`-ul de pistol NU mai apare. Cutremurul cerut direct a prins o boxă la volumul așteptat. Plus compilate toate cele 6 scripturi atinse.
+
+---
+
 ## Session log — 2026-07-27 (Saratalin: contur mov de 1px pe fiecare cadru)
 
 **Cerut de Răzvan:** „da-i lu saratalin in fiecare frame cate un stroke de 1px mov".
