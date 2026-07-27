@@ -38,8 +38,14 @@ func _process(_delta: float) -> void:
 	_label.visible = _tinta != null
 	if _tinta == null:
 		return
-	# tr(...) explicit: textul are un %s, deci traducerea automată n-ar găsi cheia (vezi i18n.gd)
-	_label.text = tr("Press %s to interact") % GameSettings.key_name("interact")
+	# Obiectul poate cere ALT text prin `eticheta()` — cufărul încuiat zice „You need a key",
+	# ca să nu pară că tasta e stricată. Textul lui e simplu (fără %s), deci îl punem ca atare
+	# și îl traduce Godot singur. Cine nu cere nimic rămâne pe textul obișnuit cu tasta, unde
+	# `tr(...)` e explicit fiindcă are %s (vezi i18n.gd).
+	var text := ""
+	if _tinta.has_method("eticheta"):
+		text = _tinta.eticheta()
+	_label.text = text if text != "" else tr("Press %s to interact") % GameSettings.key_name("interact")
 	# Cât de sus stă textul. O statuie de ~260px și un cufăr de ~90px nu-l vor la aceeași
 	# înălțime, așa că fiecare obiect poate cere alta prin `label_offset_y`. Cine n-o are
 	# (statui, portaluri) rămâne pe `world_offset_y`, valoarea de dinainte.

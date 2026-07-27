@@ -11,6 +11,7 @@ var xp_bar: ProgressBar
 var level_label: Label
 var timer_label: Label      # cronometrul mare, sus-centru
 var kills_label: Label      # numărul de inamici uciși, sus-dreapta
+var keys_label: Label       # câte chei de cufăr ai (sub kill-uri), lângă iconița de cheie
 
 const TIMER_NORMAL := Color(1, 1, 1)             # alb cât e liniște
 const TIMER_WARN := Color(1.0, 0.75, 0.2)        # galben sub 1 minut rămas
@@ -81,6 +82,34 @@ func _ready() -> void:
 	kills_label.add_theme_constant_override("outline_size", 5)
 	add_child(kills_label)
 
+	# --- Chei de cufăr (sub kill-uri) ---
+	# Doar iconița (`harta/Chest/key.png`) + numărul: n-are text de tradus și se înțelege în
+	# orice limbă. Fără el n-ai avea cum să știi dacă poți deschide un cufăr sau nu.
+	var keys_box := HBoxContainer.new()
+	keys_box.anchor_left = 1.0
+	keys_box.anchor_right = 1.0
+	keys_box.offset_left = -220
+	keys_box.offset_right = -20
+	keys_box.offset_top = 52
+	keys_box.alignment = BoxContainer.ALIGNMENT_END
+	keys_box.add_theme_constant_override("separation", 6)
+	keys_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var key_icon := TextureRect.new()
+	key_icon.texture = load("res://harta/Chest/key.png")
+	key_icon.custom_minimum_size = Vector2(34, 34)
+	key_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	key_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	key_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	keys_box.add_child(key_icon)
+	keys_label = Label.new()
+	keys_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	keys_label.add_theme_font_size_override("font_size", 22)
+	keys_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+	keys_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	keys_label.add_theme_constant_override("outline_size", 5)
+	keys_box.add_child(keys_label)
+	add_child(keys_box)
+
 # Creează o ProgressBar colorată (culoare de umplere + culoare de fundal).
 func _make_bar(fill: Color, bg: Color) -> ProgressBar:
 	var bar := ProgressBar.new()
@@ -148,6 +177,7 @@ func _process(_delta: float) -> void:
 	# automată n-ar mai găsi cheia din i18n.gd. (Se reface la fiecare cadru, deci se
 	# schimbă imediat dacă jucătorul schimbă limba.)
 	kills_label.text = tr("Kills: %d") % GameSettings.run_kills
+	keys_label.text = str(GameSettings.run_keys)   # doar cifra: iconița de lângă spune ce e
 	var player := get_tree().get_first_node_in_group("player")
 	if player == null:
 		return

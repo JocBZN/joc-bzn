@@ -100,6 +100,7 @@ const TRAD := {
 "Level %d": ["等级 %d", "Level %d", "Nivel %d", "Уровень %d", "Niveau %d", "レベル %d", "Poziom %d", "Seviye %d"],
 "Press %s to interact": ["按 %s 互动", "%s drücken zum Interagieren", "Pulsa %s para interactuar", "Нажми %s для действия", "Appuie sur %s pour interagir", "%s キーで調べる", "Naciśnij %s, aby wejść w interakcję", "Etkileşim için %s'e bas"],
 "Blocked": ["格挡", "Geblockt", "Bloqueado", "Заблокировано", "Bloqué", "ブロック", "Zablokowane", "Engellendi"],
+"You need a key": ["需要钥匙", "Du brauchst einen Schlüssel", "Necesitas una llave", "Нужен ключ", "Il te faut une clé", "カギが必要", "Potrzebujesz klucza", "Bir anahtar gerek"],
 
 # ---------- level up ----------
 "LEVEL UP!  Choose:": ["升级！选择:", "LEVEL UP!  Wähle:", "¡SUBES DE NIVEL!  Elige:", "НОВЫЙ УРОВЕНЬ!  Выбери:", "NIVEAU SUPÉRIEUR !  Choisis :", "レベルアップ！選べ:", "NOWY POZIOM!  Wybierz:", "SEVİYE ATLADIN!  Seç:"],

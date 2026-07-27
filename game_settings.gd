@@ -12,6 +12,10 @@ var coins: int = 0              # monede permanente (meta-progresie)
 var upgrades: Dictionary = {}   # id upgrade -> nivel deținut
 var run_coins: int = 0          # monede strânse în runda curentă (băgate la bancă la game over)
 var run_kills: int = 0          # inamici uciși în runda curentă
+# Chei de cufăr strânse în runda curentă. Cad de la inamici (0.5% — vezi `enemy.gd`) și se
+# consumă câte una la fiecare cufăr deschis (`chest.gd`). NU se păstrează între runde: sunt
+# resursă de rundă, ca monedele necunoscute încă, nu meta-progresie.
+var run_keys: int = 0
 var run_spawn: Vector2 = Vector2.ZERO  # unde a început runda (lumea e infinită, startul e aleator)
 
 # --- sunet (reglat din meniul Settings) --- 0.0 = mut, 1.0 = volum normal.
@@ -184,12 +188,26 @@ func buy(id: String) -> bool:
 func reset_run() -> void:
 	run_coins = 0
 	run_kills = 0
+	run_keys = 0
 
 func add_run_coins(n: int) -> void:
 	run_coins += n
 
 func add_kill() -> void:
 	run_kills += 1
+
+func add_key(n: int = 1) -> void:
+	run_keys += n
+
+# Consumă o cheie pentru un cufăr. `false` = n-ai niciuna, deci cufărul rămâne încuiat.
+# Verificarea și scăderea stau ÎMPREUNĂ, într-un singur loc: dacă cine cheamă ar întreba
+# întâi „am cheie?" și abia apoi ar scădea, două cufere deschise în același cadru ar putea
+# trece amândouă cu o singură cheie.
+func foloseste_cheie() -> bool:
+	if run_keys <= 0:
+		return false
+	run_keys -= 1
+	return true
 
 func bank_run_coins() -> void:
 	coins += run_coins

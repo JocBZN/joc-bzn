@@ -10,6 +10,10 @@ extends StaticBody2D
 # `harta/Chest/Chest Animation/`), capacul rămâne ridicat, iar textul dispare fiindcă
 # `poate_invoca()` întoarce de-acum `false` — un cufăr se deschide o singură dată.
 #
+# 🔑 ÎȚI TREBUIE O CHEIE. Cheile cad de la inamici (0.5% per mort, `enemy.gd`), se strâng în
+# `GameSettings.run_keys` și se consumă câte una per cufăr. Fără cheie, deasupra scrie
+# „You need a key" și E nu face nimic.
+#
 # Ce primești: **un upgrade la întâmplare din toate cele din joc**, aplicat pe loc, fără ecran
 # de ales (`levelup.gd::da_random_acum()`). Deasupra cufărului pleacă efectul din `chest_fx.gd`:
 # explozie de raze multicoloră → iconița itemului primit → se stinge.
@@ -55,12 +59,24 @@ func cutie() -> Rect2:
 	return Rect2(Vector2(-ART_W * 0.5, BASE_JOS - ART_H) * scale, Vector2(ART_W, ART_H) * scale)
 
 # Mai poate fi deschis? `interact_ui.gd` întreabă asta înainte să arate textul.
+# ⚠️ Rămâne `true` și când n-ai cheie — altfel un cufăr încuiat n-ar mai avea NICIUN text
+# deasupra și ar arăta ca un obiect de decor. Textul se schimbă (vezi `eticheta()`), iar
+# `invoca()` refuză deschiderea.
 func poate_invoca() -> bool:
 	return not _deschis
+
+# Ce scrie deasupra cufărului. `interact_ui.gd` cere asta dacă obiectul o are; "" înseamnă
+# „lasă textul obișnuit cu tasta". Scris în ENGLEZĂ, ca tot ce se afișează (vezi `i18n.gd`).
+func eticheta() -> String:
+	return "You need a key" if GameSettings.run_keys <= 0 else ""
 
 # Apăsarea tastei de interacțiune ajunge aici.
 func invoca() -> void:
 	if _deschis:
+		return
+	# O cheie = un cufăr. Verificarea și scăderea se fac într-o singură mișcare, în
+	# `GameSettings`, ca să nu poată trece două cufere cu aceeași cheie.
+	if not GameSettings.foloseste_cheie():
 		return
 	_deschis = true
 	var spr := $AnimatedSprite2D as AnimatedSprite2D

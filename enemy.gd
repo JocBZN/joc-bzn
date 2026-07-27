@@ -52,6 +52,12 @@ var _charm_next := 0.0        # momentul (sec) când poate lovi din nou
 # Scenele de XP (le încărcăm doar dacă există deja, ca să nu dea eroare)
 var _xp1: PackedScene
 var _xp2: PackedScene
+var _key: PackedScene
+
+# Șansa ca un inamic mort să lase o CHEIE de cufăr (cerut de Răzvan: 0.5%, adică 1 la 200
+# de morți). NU se scalează cu nimic — nici cu dificultatea, nici cu norocul: e o rată fixă,
+# ca să poți socoti câte cufere deschizi într-o rundă după câți inamici omori.
+const KEY_CHANCE := 0.005
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -65,6 +71,8 @@ func _ready() -> void:
 		_xp1 = load("res://xp1.tscn")
 	if ResourceLoader.exists("res://xp2.tscn"):
 		_xp2 = load("res://xp2.tscn")
+	if ResourceLoader.exists("res://key.tscn"):
+		_key = load("res://key.tscn")
 
 func _physics_process(delta: float) -> void:
 	if _dying or golden:
@@ -290,3 +298,9 @@ func _drop_xp() -> void:
 		rare.value = int(round(int(round(rare.value * Difficulty.xp_mult())) * _xp_bonus))
 		parent.add_child(rare)
 		rare.global_position = global_position + Vector2(20, 0)
+	# CHEIE de cufăr: 0.5%, independent de restul dropului (poți primi și XP rar, și cheie).
+	# Cade puțin în lateral, ca să nu stea fix peste geme și să n-o vezi.
+	if _key != null and randf() < KEY_CHANCE:
+		var cheie := _key.instantiate()
+		parent.add_child(cheie)
+		cheie.global_position = global_position + Vector2(-22, -6)

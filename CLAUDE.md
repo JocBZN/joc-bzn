@@ -16,6 +16,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (cuferele se deschid cu CHEI, 0.5% drop de la inamici)
+
+**Cerut de Răzvan:** „Ti-am pus o poza in folderul chest, se numeste key. Vreau sa trebuiasca sa ai chei ca sa poti sa deschizi chest-uri. 1 key = 1 chest. Key poate fi dropat doar cand omori un inamic, la fel ca xp-ul. Doar ca are sansa de drop de 0.5% per inamic mort."
+
+**Ce s-a făcut:** `key.tscn` + `key.gd` (obiect de cules, ca gema de XP), `GameSettings.run_keys`, dropul în `enemy.gd::_drop_xp`, cufărul cere cheie, contor pe HUD.
+
+**🔑 `foloseste_cheie()` VERIFICĂ ȘI SCADE într-o singură chemare.** Dacă cel care cheamă ar întreba întâi „am cheie?" și abia apoi ar scădea, două cufere deschise în același cadru ar trece amândouă cu o singură cheie. Regula „1 key = 1 chest" trăiește într-un singur loc, în `game_settings.gd`.
+
+**🔑 Cufărul încuiat rămâne cu `poate_invoca()` = true.** Dacă întorcea `false`, `interact_ui.gd` nu mai afișa NIMIC deasupra lui și cufărul arăta ca un obiect de decor — n-ai fi știut niciodată de ce nu se deschide. În loc de asta, `interact_ui.gd` a primit un cârlig nou, opțional: dacă obiectul are `eticheta()`, textul vine de la el. Cufărul fără cheie zice **„You need a key"** (tradus în toate cele 9 limbi, verificat cu `tool_check_i18n.tscn`).
+
+**🔑 `key.gd` e mult mai simplu decât `xp.gd`, INTENȚIONAT.** Gema de XP are toată mașinăria de contopire în bule fiindcă în Final Swarm cad mii și omoară framerate-ul. Cheia cade la ~200 de morți, deci n-are cum să se strângă grămadă — copiat doar pulsul, plutirea și magnetul (rază 150 în loc de 130: un obiect atât de rar n-ai vrea să-ți scape pe lângă picior).
+
+**Rata NU scalează cu nimic** — nici cu dificultatea, nici cu norocul. Așa „câte chei iau pe rundă" e pur și simplu „kill-uri ÷ 200". Măsurat pe 5000 de morți: **26 de chei = 0.52%** (și 22, și 28 la alte rulări — exact zgomotul așteptat pentru 0.5%).
+
+**Ce am adăugat FĂRĂ să ceară, fiindcă altfel nu se putea juca:** contorul de chei pe HUD (iconița lui `key.png` + cifra, sub KILLS). Fără el n-ai cum să știi dacă merită să te duci la un cufăr. I-am spus.
+
+**Verificat pe rulare reală:** cules → run_keys 0→1; E fără cheie → cufărul rămâne închis și contorul rămâne 0; E cu 2 chei → se deschide și rămâne exact 1. Plus poze: cheia pe jos, cufărul încuiat cu textul, cufărul deschis.
+
+---
+
 ## Session log — 2026-07-27 (cufărul dă un upgrade random + explozia multicoloră)
 
 **Cerut de Răzvan:** „ti-am pus un folder nou in chest, se numeste Chest Animation 2 - e o animatie de mai multe culori intr-o singura poza, faci tu frame-urile. Vreau ca fiecare frame sa fie randomizat cu o culoare diferita, mereu arata altfel. Animatia vreau sa apara cand deschizi chestul deasupra lui si vreau sa iti dea un upgrade random din toate care sunt bagate in joc. dupa ce se termina animatia o sa apara iconita de la upgrade 2 secunde dupa sa isi ia fade out."
