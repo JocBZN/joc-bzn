@@ -6,6 +6,25 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var speed: float = 120.0
 @export var max_hp: int = 30
 @export var knockback_decay: float = 900.0  # cât de repede se stinge împinsul (px/s pe secundă)
+
+# --- Unde se opresc, ca să nu intre peste player (2026-07-28) ---
+# `stop_dist` = distanța CENTRU-LA-CENTRU sub care inamicul nu mai înaintează spre tine: acolo
+# se ating desenele. 41 = jumătatea lățimii player-ului (15) + jumătatea lățimii polițistului
+# (26), măsurate pe pixelii chiar desenați, fără marginea transparentă. Creatura din Nether e
+# mai lată, așa că `enemy_nether.tscn` își pune 53 al ei.
+#
+# 🔑 NU e coliziune fizică — layerele au rămas exact cum erau (inamicii se ciocnesc doar de
+# obstacole, `mask = 1`). De-asta nu se întoarce bug-ul vechi: inamicii nu se opresc unul în
+# altul (deci nu se lipesc în ciorchine) și nu împing player-ul, fiindcă fizica nici nu știe
+# unii de alții. Oprirea e o simplă socoteală de distanță, aici în cod.
+#
+# ⚠️ Nu urca `stop_dist` peste `contact_range`-ul player-ului (60): damage-ul de contact se dă
+# tot pe distanță, deci un inamic oprit mai departe de-atât n-ar mai apuca să te lovească
+# NICIODATĂ. `_oprire()` plafonează singur și te avertizează în consolă dacă se întâmplă.
+@export var stop_dist: float = 41.0
+const STOP_SLACK := 4.0     # zonă moartă înainte de oprire: fără ea ar tremura între „mai fac un pas" și „stau"
+const STOP_MARGINE := 6.0   # cât rămâne garantat sub `contact_range` după plafonare
+var _stop := -1.0           # `stop_dist` plafonat, calculat o singură dată (vezi `_oprire()`)
 var hp: int
 var _dying := false
 var _knockback := Vector2.ZERO  # împins temporar de gloanțe
@@ -89,8 +108,10 @@ func _physics_process(delta: float) -> void:
 		return
 	if charmed:
 		_charm_attack(tinta)
-	var directie := (tinta.global_position - global_position).normalized()
-	velocity = directie * (speed * _current_slow_mult()) + _knockback  # mers (încetinit de gheață) + împins de gloanțe
+	var spre := tinta.global_position - global_position
+	var directie := spre.normalized()
+	# mers (oprit la marginea player-ului, încetinit de gheață) + împins de gloanțe
+	velocity = _viteza_mers(directie, spre.length(), not charmed) + _knockback
 	move_and_slide()
 	_knockback = _knockback.move_toward(Vector2.ZERO, knockback_decay * delta)  # împinsul scade rapid la 0
 	# scade slow-ul și pune filtrul albastru cât timp e înghețat (dar nu în timpul unei sclipiri de lovitură)
@@ -107,6 +128,53 @@ func _physics_process(delta: float) -> void:
 	# doar când chiar se schimbă direcția (ca la player): play() în fiecare cadru costă degeaba
 	if anim.animation != DIRECTII[idx]:
 		anim.play(DIRECTII[idx])
+
+# Cât de repede și încotro merge pe cadrul ăsta. Când ținta e PLAYER-UL sunt trei cazuri:
+#   dist mai mare decât oprirea     → merge normal spre el;
+#   între oprire-SLACK și oprire    → STĂ pe loc — aici se ating desenele, ăsta e tot scopul;
+#   sub oprire-SLACK                → iese înapoi din el.
+# Al treilea caz nu e teoretic: player-ul nu e oprit de nimeni (așa a fost cerut, ca să nu-l mai
+# împingă gloata), deci poate să intre EL peste un inamic oprit. Fără ieșire, inamicul ar rămâne
+# lipit în mijlocul lui — exact ce arăta bug-ul vechi.
+# Ieșirea folosește viteza ÎNTREAGĂ, nu cea încetinită de gheață: altfel un inamic înghețat prin
+# care ai trecut ar ieși în ralanti și ar sta secunde bune peste tine.
+#
+# Când e fermecat (Horse Mask) și aleargă după alt inamic, nu se aplică nimic din toate astea:
+# distanța de acolo e treaba lui `CHARM_HIT_RANGE`, iar cifra 41 e croită pe lățimea player-ului.
+func _viteza_mers(directie: Vector2, dist: float, spre_player: bool) -> Vector2:
+	var v := speed * _current_slow_mult()
+	if not spre_player:
+		return directie * v
+	var stop := _oprire()
+	if dist > stop:
+		return directie * v
+	if dist > stop - STOP_SLACK:
+		return Vector2.ZERO
+	if dist < 0.001:
+		# Suprapunere PERFECTĂ (player-ul a nimerit exact centrul lui). `normalized()` pe un vector
+		# nul dă tot zero, deci „iese înapoi" ar însemna să nu se miște niciodată și ar rămâne
+		# înțepenit în player — chiar bug-ul de care fugim. Îl scoatem într-o direcție oarecare,
+		# dar aceeași de fiecare dată pentru același inamic (nu una nouă la fiecare cadru, care
+		# l-ar face să vibreze pe loc), și diferită de la unul la altul, ca doi suprapuși să nu
+		# plece amândoi în același sens. Prins de testul din 2026-07-28.
+		return Vector2.RIGHT.rotated(float(get_instance_id() % 360) * (PI / 180.0)) * speed
+	return -directie * speed
+
+# `stop_dist`, plafonat o singură dată sub raza de damage a player-ului. Vezi comentariul de la
+# `stop_dist`: dacă un inamic s-ar opri mai departe decât `contact_range`, n-ar mai putea să te
+# lovească deloc, iar jocul ar deveni imposibil de pierdut — în tăcere. Așa că plafonăm, dar o
+# și spunem în consolă: înseamnă că sprite-ul inamicului e mai lat decât raza de contact și
+# atunci se mărește `contact_range`, nu se micșorează pe furiș oprirea.
+func _oprire() -> float:
+	if _stop >= 0.0:
+		return _stop
+	_stop = stop_dist
+	if _player != null and is_instance_valid(_player) and "contact_range" in _player:
+		var plafon: float = float(_player.contact_range) - STOP_MARGINE
+		if _stop > plafon:
+			push_warning("Enemy: stop_dist %.0f > contact_range-%.0f → plafonat la %.0f, altfel inamicul nu te-ar mai atinge" % [_stop, STOP_MARGINE, plafon])
+			_stop = plafon
+	return _stop
 
 # Chemată de gheața Frostwalker: reîmprospătează slow-ul la maxim.
 # `hold` = câte secunde stă la slow MAXIM (crește cu fiecare upgrade); apoi revine în SLOW_RECOVER sec.

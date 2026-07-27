@@ -11,6 +11,7 @@ collision_layer = 4
 collision_mask = 1
 script = ExtResource("1_script")
 speed = 190.0
+stop_dist = 53.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("2_frames")

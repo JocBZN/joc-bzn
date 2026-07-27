@@ -16,6 +16,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-28 (inamicii se opresc la marginea player-ului, fără să se lipească)
+
+**Cerut de Răzvan:** „Vreau ca inamicii sa nu treaca prin sprite-ul de la player. Vreau inamicii sa nu mai treaca prin player, vreau sa se opreasca cand se lovesc sprite-urile. Dar nu vreau sa fie iar bugul de se lipesc unul de altul"
+
+**Ce s-a făcut:** oprire **pe distanță, în cod** (`enemy.gd`), NU coliziune fizică. `stop_dist` = 41 la polițist, 53 la creatura din Nether (`enemy_nether.tscn`).
+
+**🔑 De ce nu prin layere de coliziune** — asta e tot răspunsul la „nu vreau iar bug-ul". Bug-ul vechi venea exact din fizică: inamicii se opreau unul în altul și se strângeau ciorchine, iar player-ul era împins de gloată. Layerele au rămas **neatinse** (toți au `mask = 1`, adică doar obstacolele), deci fizica nici nu știe unii de alții — nu are ce să se lipească și nu are ce să împingă. Oprirea e o socoteală de distanță în `_viteza_mers()`.
+
+**De unde ies cifrele:** măsurate pe pixelii chiar desenați (`get_used_rect()`, fără marginea transparentă), în px de lume: player 30×58 (jumătate de lățime **15**), polițist 53×87 (**26**), creatura din Nether 75×81 (**38**). 15+26 = **41**, 15+38 = **53**.
+
+**⚠️ Plafonul de 60 e obligatoriu, nu decorativ.** Damage-ul de contact se dă tot pe distanță (`player.contact_range = 60`), deci un inamic care s-ar opri mai departe de-atât **nu te-ar mai atinge niciodată** — jocul ar deveni imposibil de pierdut, în tăcere. `_oprire()` plafonează la `contact_range - 6` și scrie un warning în consolă. Dacă vreodată un inamic nou e mai lat, se mărește `contact_range`, nu se micșorează pe furiș oprirea.
+
+**Trei cazuri în `_viteza_mers()`:** peste `stop` → merge normal; între `stop-4` și `stop` → stă (aici se ating desenele); sub `stop-4` → **iese înapoi** din player. Al treilea nu e teoretic: player-ul nu e oprit de nimeni (așa a fost cerut), deci intră EL peste inamici. Ieșirea merge cu viteza întreagă, nu cea încetinită de gheață, altfel un inamic înghețat prin care ai trecut ar sta secunde bune peste tine.
+
+**🔑 Bug prins de test, nu de ochi:** dacă player-ul nimerește **exact** centrul unui inamic, `normalized()` pe vectorul nul dă tot zero → inamicul rămânea înțepenit în player pe veci (fix bug-ul de care fugeam). Acum are o direcție de ieșire fixă per inamic (din `get_instance_id()`), aceeași la fiecare cadru (ca să nu vibreze) dar diferită între ei (ca doi suprapuși să nu plece în același sens).
+
+**Verificat pe rulare reală:** patru polițiști din patru părți + o creatură de Nether s-au oprit toți la 40.0 px (zona bună 37–41), Nether-ul la 51.0 (49–53), toți sub `contact_range` — deci încă te lovesc. Teleportat player-ul peste unul, de două ori (suprapunere perfectă și 10.8 px): a ieșit la 38.0, respectiv 38.8. Plus poză de aproape, cu Y-sort pornit ca în lume.
+
+**Ce NU rezolvă (spus pe față):** lateral desenele se ating curat, dar **sus-jos tot se suprapun pe ecran** — sprite-urile au 58–87px înălțime, sunt centrate pe nod, iar inelul are doar 41px. E comportament normal de joc top-down (Y-sort desenează în față pe cine e mai jos) și nu poate fi lărgit peste ~54 fără să pice damage-ul de contact. **Boss-ii nu sunt incluși:** `garda.gd` și `saratalin.gd` au codul lor de urmărire și încă intră peste player.
+
+---
+
 ## Session log — 2026-07-28 (sunet la cheie și la cufăr: Key Pickup · Chest Opening · Chest Animation)
 
 **Cerut de Răzvan:** „ti am adaugat la audio - Key Pickup - se aude atunci cand ridici o cheie de pe jos. si Chest Animation - incepe dupa ce s-a deschis chest-ul si incepe animatia. Ti-am mai bagat si Chest Opening, se aude atunci cand apesi E sa deschizi chest-ul"
