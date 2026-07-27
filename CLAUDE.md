@@ -16,6 +16,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-27 (cufere lângă poteci, la 20px, pe 10% din poteci)
+
+**Cerut de Răzvan:** „ai un nou folder in harta, se numeste Chest - Vreau sa se spawneze chest-uri in jurul Pathblock-urilor, adica la o distanta de 20px de un path. Nu vreau sa fie la fiecare path, vreau sa aiba o rata de spawn de 10% langa orice path. Vreau sa aiba un scris tot ca la statuie Press E to interact. Si cand apesi E face animatia."
+
+**Ce s-a făcut:** `chest.tscn` + `chest.gd` (StaticBody2D, AnimatedSprite2D cu cele 3 cadre din `harta/Chest/Chest Animation/`) și `chests.gd`, nod nou în `World` din `main.tscn`.
+
+**🔑 Primul generator care se agață de ALT generator, nu de grila de chunk-uri.** Ceilalți (copaci, pietre, statui, portaluri) dau cu zarul pe chunk. Ăsta întâi întreabă `Paths` ce tile-uri are poteca chunk-ului și abia apoi aruncă cei 10% — altfel „10% din poteci" ar fi însemnat de fapt „10% din chunk-uri", adică de zece ori mai multe cufere.
+
+**🔑 `pathways.gd` a primit `path_tiles(key)`, nu m-am legat de `_raw_path()`.** O potecă prea apropiată de o vecină CEDEAZĂ (`_yields_to_neighbor`) — are tile-uri brute, dar nu se desenează niciodată. Cu `_raw_path()` ar fi apărut cufere singure pe iarbă, lângă o potecă invizibilă.
+
+**🔑 Cei 20px se măsoară de la MARGINEA cufărului, nu de la originea nodului.** Cufărul are ~102px lățime; dacă puneam originea la 20px de potecă, jumătate din ladă intra peste pământ. De aia `chest.gd` are `cutie()` (Rect2 cu arta față de origine) și e `static`, ca generatorul s-o poată cere fără să existe încă un cufăr.
+
+**🔑 Se ferește de PIETRE (130px).** Pietrele sunt singurul decor care NU se ferește de poteci (`rocks.gd` nici nu se uită la ele), deci pot sta exact unde ar cădea cufărul. Copacii nu sunt o problemă: `props.gd` ține 2 tile-uri libere de fiecare parte a potecii. Verificarea se face în jurul chunk-ului în care CADE cufărul, nu al celui care a pornit poteca — o potecă lungă se întinde pe 2-3 chunk-uri.
+
+**Verificat pe rulare reală, pe 14 400 de chunk-uri:** 655 de poteci desenate → 59 de cufere = **9.0%** (restul de 1% se pierde la pietre), gol până la potecă **exact 20.0px la toate** (min = max), cea mai apropiată piatră 146px. Plus 4 poze: cufăr închis cu textul deasupra, player-ul ascuns în spatele lui (y-sort corect), cadrul din mijloc al animației și cufărul deschis cu textul dispărut.
+
+**Detaliu de UI:** `interact_ui.gd` avea o singură înălțime pentru text (`world_offset_y = -175`, potrivită statuii). Peste un cufăr de 90px textul cădea fix pe capac, așa că fiecare obiect poate acum cere `label_offset_y` (cufărul: -125, adică peste capacul RIDICAT, care urcă la -85). Cine n-o are rămâne pe valoarea veche.
+
+**⚠️ Cufărul nu dă NIMIC deocamdată** — s-a cerut doar animația. Cârligul pentru recompensă e la sfârșitul lui `chest.gd::invoca()`.
+
+---
+
 ## Session log — 2026-07-27 (Nether-ul are inamicii lui: creaturile violete, mult mai rapide)
 
 **Cerut de Răzvan:** „Ti-am facut un folder in homeless directii, se numeste Nether Enemies, vreau in nether sa se spawneze doar baietii astia, sunt mult mai rapizi ca enemies normali."

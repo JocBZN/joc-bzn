@@ -40,8 +40,15 @@ func _process(_delta: float) -> void:
 		return
 	# tr(...) explicit: textul are un %s, deci traducerea automată n-ar găsi cheia (vezi i18n.gd)
 	_label.text = tr("Press %s to interact") % GameSettings.key_name("interact")
-	# poziția statuii din lume → pixeli de ecran, apoi centrăm eticheta pe orizontală
-	var screen: Vector2 = get_viewport().get_canvas_transform() * (_tinta.global_position + Vector2(0, world_offset_y))
+	# Cât de sus stă textul. O statuie de ~260px și un cufăr de ~90px nu-l vor la aceeași
+	# înălțime, așa că fiecare obiect poate cere alta prin `label_offset_y`. Cine n-o are
+	# (statui, portaluri) rămâne pe `world_offset_y`, valoarea de dinainte.
+	var sus: float = world_offset_y
+	var cerut = _tinta.get("label_offset_y")
+	if cerut != null:
+		sus = float(cerut)
+	# poziția obiectului din lume → pixeli de ecran, apoi centrăm eticheta pe orizontală
+	var screen: Vector2 = get_viewport().get_canvas_transform() * (_tinta.global_position + Vector2(0, sus))
 	_label.position = screen - Vector2(LABEL_W * 0.5, 0)
 
 # apasă tasta de interacțiune → cheamă `invoca()` pe ținta curentă

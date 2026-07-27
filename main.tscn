@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://pause.gd" id="17_pause"]
 [ext_resource type="Script" path="res://nether.gd" id="19_nether"]
 [ext_resource type="Script" path="res://boss_bar.gd" id="20_bossbar"]
+[ext_resource type="Script" path="res://chests.gd" id="21_chests"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -65,6 +66,10 @@ script = ExtResource("12_statues")
 [node name="Portals" type="Node2D" parent="World" unique_id=86867323]
 y_sort_enabled = true
 script = ExtResource("18_portals")
+
+[node name="Chests" type="Node2D" parent="World" unique_id=86867324]
+y_sort_enabled = true
+script = ExtResource("21_chests")
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)

@@ -172,6 +172,18 @@ func _yields_to_neighbor(key: Vector2i, my_set: Dictionary) -> bool:
 							return true
 	return false
 
+# Tile-urile FINALE ale potecii unui chunk — adică exact cele care se și DESENEAZĂ. Ca
+# `_raw_path`, dar goale și când poteca cedează în fața unei vecine (`_yields_to_neighbor`).
+# Le cere `chests.gd`: fără verificarea asta ar pune cufere lângă poteci invizibile.
+func path_tiles(key: Vector2i) -> Array:
+	var tiles := _raw_path(key)
+	if tiles.is_empty():
+		return tiles
+	var tset := {}
+	for pos in tiles:
+		tset[pos] = true
+	return [] if _yields_to_neighbor(key, tset) else tiles
+
 # E poziția de lume `world_pos` pe o potecă (sau la ≤ `margin` tile-uri de ea)? Folosit de copaci
 # (props.gd) ca să NU crească pe potecă / pe blend-ul ei. Determinist, nu depinde de ce e încărcat.
 func is_on_path(world_pos: Vector2, margin: int = 0) -> bool:

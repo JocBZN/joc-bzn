@@ -47,7 +47,7 @@ const SHAKE_TIME := 0.9
 # Nodurile care fac decorul. Sunt oprite cât ești în Nether → „lume fără nimic".
 # `Portals` e în listă ca să dispară portalurile lumii normale; al nostru de întoarcere
 # stă direct în `World`, deci nu-l atinge golirea.
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals"]
+const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 
 var active := false
