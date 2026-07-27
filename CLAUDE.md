@@ -16,6 +16,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-28 (codexul: secțiune nouă „Statusuri de start")
+
+**Cerut de Răzvan:** „Pune in artfact care sunt default stats - ce statusuri are playerul cand incepe un run"
+
+**Ce s-a făcut:** secțiune nouă în `codex.html`, prima după hero: două tabele — `ARME` (ce depinde de arma aleasă) și `BASE` (identic la toate patru). Republicat pe același URL.
+
+**🔑 Cifrele NU sunt citite din cod, sunt scoase rulând jocul.** Scenă de test care instanțiază player-ul cu fiecare din cele 4 arme și tipărește `stat_lines()` — adică exact rândurile pe care le vede Răzvan în panoul din meniul de level up, nu o listă paralelă care poate să se rupă de joc.
+
+**⚠️ Meta-progresia trebuia scoasă din ecuație.** `_apply_meta()` rulează în `_ready()`, deci un player instanțiat pornește cu upgrade-urile CUMPĂRATE (salvarea lui Răzvan are `damage: 3, speed: 1`). Am golit `GameSettings.upgrades` **doar în RAM** înainte de instanțiere, ca să iasă baza curată; nu se cheamă nimic care salvează. Verificat cu `md5sum` pe `scores.save` înainte și după — neatins. Tabelul spune explicit că peste el se adaugă magazinul.
+
+**Statusurile de start (fără meta):** Max HP 100 · Regen 0 · Speed 215 · Crit 0% (×2) · Instakill 0% · Luck 0 · Projectiles 1 · Pierce 0 · Weapon Size 100% · Knockback 0 · Damage Taken 5 la 0.5s sub 60px · XP pentru nivelul 2 = 20 (prag ×1.2/nivel). Pe armă: pistol 15 @1.33/s, mage 10 @2.00/s, extinguisher 12 @1.33/s (**16** pe puls: 10 + jumătate din 12), sabie 20 @1.33/s (**28** pe tăietură: 8 + 20).
+
+**Montaj:** o singură trecere de `sed` cu două `-e 'Nr fisier'` (datele după array-ul META, render-ul după `app.append(hero, …)`), din fișiere scrise cu Write — deci diacriticele n-au trecut prin literale de shell. Zero stiluri noi: refolosește tabelul din „Magazin permanent" (`.shop-scroll` + `.num` cu cifre tabulare).
+
+**Verificat:** randat în Chrome headless (fără erori, poză), 47 carduri cu `game:` + `eff:` fiecare, iar id-urile din codex vs `levelup.gd` — `diff` gol. La publicare am primit 409 („sesiunea n-a văzut ultima versiune"); am luat versiunea publicată cu WebFetch și am comparat-o cu baza locală — **identice**, deci n-avea nimeni altcineva modificări de pierdut. Fără `force`.
+
+---
+
 ## Session log — 2026-07-28 (inamicii se opresc la marginea player-ului, fără să se lipească)
 
 **Cerut de Răzvan:** „Vreau ca inamicii sa nu treaca prin sprite-ul de la player. Vreau inamicii sa nu mai treaca prin player, vreau sa se opreasca cand se lovesc sprite-urile. Dar nu vreau sa fie iar bugul de se lipesc unul de altul"

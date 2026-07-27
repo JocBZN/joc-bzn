@@ -374,6 +374,30 @@ const META = [
   { name: "Regen", per: "+1 HP/sec", cost: 70, max: 5 },
 ];
 
+// STATUSURI DE START — citite din player.gd (tabelul ARME + valorile implicite) și verificate
+// rulând jocul cu META golit, adică fără magazinul permanent.
+const ARME = [
+  { name: "Pistol",       dmg: "15", aps: "1.33/s", real: "<b>15</b> pe glonț" },
+  { name: "Mage Staff",   dmg: "10", aps: "2.00/s", real: "<b>10</b> pe proiectil — tragi de 1.5× mai des" },
+  { name: "Extinguisher", dmg: "12", aps: "1.33/s", real: "<b>16</b> pe puls de aură (10 + jumătate din 12)" },
+  { name: "Cursed Sword", dmg: "20", aps: "1.33/s", real: "<b>28</b> pe tăietură (8 + 20)" },
+];
+
+const BASE = [
+  { name: "Max HP", val: "100", note: "Viața de plecare. Pornești cu ea plină." },
+  { name: "HP Regen", val: "0/s", note: "Nu regenerezi nimic până nu iei un upgrade sau nivel de Regen din magazin." },
+  { name: "Move Speed", val: "215", note: "Polițiștii pornesc de la 120 și se accelerează cu timpul — te ajung abia pe la minutul 12. Creaturile din Nether sunt mai rapide de la început." },
+  { name: "Crit", val: "0%", note: "Criticul face <b>×2</b> damage. Peste 100% se lovește de două ori (multi-crit)." },
+  { name: "Instakill", val: "0.0%", note: "Vine doar din Hacksaw. Boșii sunt <b>imuni</b>." },
+  { name: "Luck", val: "0", note: "Înclină raritățile la level up <i>și</i> umflă șansele itemelor pe care <b>LE AI</b> (+0.4 puncte procentuale pe punct). Nu-ți dă o șansă pe care n-ai luat-o niciodată: fără un item de crit, criticul rămâne 0%." },
+  { name: "Projectiles", val: "1", note: "Câte proiectile pleacă <i>garantat</i> la o salvă. Broken Watch nu intră aici — e pe șansă." },
+  { name: "Pierce", val: "0", note: "Glonțul se oprește în primul inamic atins." },
+  { name: "Weapon Size", val: "100%", note: "Mărimea armei/proiectilului. O cresc Pufferfish (+px) și Rat's Burger (×%)." },
+  { name: "Knockback", val: "0", note: "Inamicii nu sunt împinși înapoi când îi lovești." },
+  { name: "Damage Taken", val: "5", note: "Cât încasezi la fiecare <b>0.5 s</b> cât un inamic e mai aproape de <b>60px</b> de tine. Vodka îl scade." },
+  { name: "XP → nivelul 2", val: "20", note: "Pragul crește cu <b>20%</b> la fiecare nivel (20 → 24 → 28 → …)." },
+];
+
 const SYN = [
   { title: "Weird Concoction + Stroh", accent: "var(--cyan)",
     body: "Luate <b>împreună</b>, Pistolul trage un glonț special <b>combinat</b> (violet). Separat, fiecare păstrează doar bonusul de stat — glonțul rămâne normal." },
@@ -423,6 +447,41 @@ hero.append(
     "Chenarele sunt exact cele din meniul de level up.")
 );
 app.append(hero, el("hr", "rule"));
+
+// statusuri de start (player.gd)
+function tabel(cap, randuri) {
+  const scroll = el("div", "shop-scroll");
+  const t = el("table");
+  t.innerHTML = "<thead><tr>" + cap + "</tr></thead>";
+  const tb = el("tbody");
+  for (const r of randuri) { const tr = el("tr"); tr.innerHTML = r; tb.append(tr); }
+  t.append(tb);
+  scroll.append(t);
+  return scroll;
+}
+
+const startSec = el("section");
+const stHead = el("div", "sec-head");
+stHead.append(el("h2", null, "Statusuri de start"),
+  el("span", "sec-note", "cu ce pornești o rundă · player.gd"));
+startSec.append(stHead, el("p", "sec-lede",
+  "Exact rândurile din panoul de statusuri al meniului de level up, la secunda 0. Sunt valorile " +
+  "<b>curate</b>: peste ele se adaugă nivelurile cumpărate din <b>Magazinul permanent</b> (mai jos), " +
+  "deci cu Damage nivel 3 începi cu +9 damage față de tabelul ăsta. Pagina de cumpărat a fost scoasă " +
+  "din meniu, dar ce era luat înainte se aplică în continuare."));
+
+startSec.append(el("p", "sec-lede", "<b>Ce depinde de arma aleasă</b>"));
+startSec.append(tabel(
+  "<th>Armă</th><th class='num'>Damage</th><th class='num'>Attack Speed</th><th>Ce intră de fapt în inamic</th>",
+  ARME.map(a => "<td style='white-space:nowrap'>" + a.name + "</td><td class='num'>" + a.dmg + "</td>" +
+    "<td class='num'>" + a.aps + "</td><td>" + a.real + "</td>")));
+
+startSec.append(el("p", "sec-lede", "<b>Identic la toate patru armele</b>"));
+startSec.append(tabel(
+  "<th>Status</th><th class='num' style='white-space:nowrap'>La start</th><th>Ce înseamnă</th>",
+  BASE.map(b => "<td style='white-space:nowrap'>" + b.name + "</td><td class='num'>" + b.val + "</td><td>" + b.note + "</td>")));
+
+app.append(startSec, el("hr", "rule"));
 
 // sectiunea de upgrade-uri
 const sec = el("section");
