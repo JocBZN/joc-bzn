@@ -19,9 +19,14 @@ const ENEMY_NETHER := preload("res://enemy_nether.tscn")
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
 @export var spawn_distance: float = 700.0
-# Cât de larg e conul din fața player-ului din care apar inamicii (grade, în fiecare parte).
-# 45 = un sfert de cerc în față. 180 ar însemna „de peste tot", ca înainte.
-@export var spawn_cone_deg: float = 45.0
+# Cât de larg e conul din jurul privirii din care apar inamicii (grade, în fiecare parte).
+# 180 = CERC COMPLET, te înconjoară din toate direcțiile (cerut pe 2026-07-28).
+# 45 ar însemna „doar din față", cum era între 2026-07-22 și acum.
+@export var spawn_cone_deg: float = 180.0
+# Marja peste marginea ecranului la care apar. Contează abia de când spawnul e în cerc: în față
+# aveai oricum destul loc, dar în SPATE și în lateral ecranul se vede mai departe decât
+# `spawn_distance`, deci inamicii ar fi „pocnit" în plin ecran, din senin. Vezi `_distanta_spawn`.
+@export var spawn_margin: float = 90.0
 @export var max_enemies: int = 300        # plafon de siguranță, ca să nu moară framerate-ul
 @export var max_batch: int = 12           # câți inamici pot apărea deodată într-un lot
 
@@ -114,18 +119,30 @@ func _spawn_enemy() -> void:
 	if player == null:
 		return
 	var enemy := _scena_inamic().instantiate()
-	# Inamicii apar DOAR din direcția în care se uită player-ul (cerut pe 2026-07-22): un con
-	# de ±`spawn_cone_deg` în jurul privirii, nu tot cercul. Când stai pe loc, privirea rămâne
-	# ultima direcție de mers, deci continuă să vină de acolo.
+	# Inamicii apar într-un con de ±`spawn_cone_deg` în jurul privirii. Cu 180 (implicit de pe
+	# 2026-07-28) conul e cercul întreg, deci te înconjoară — nu mai vin doar din față.
+	# Când stai pe loc, privirea rămâne ultima direcție de mers.
 	var privire := Vector2.DOWN
 	if player.has_method("facing_dir"):
 		privire = player.facing_dir()
 	var con := deg_to_rad(spawn_cone_deg)
 	var unghi := privire.angle() + randf_range(-con, con)
-	var offset := Vector2(cos(unghi), sin(unghi)) * spawn_distance
+	var offset := Vector2(cos(unghi), sin(unghi)) * _distanta_spawn()
 	# în World (Y-sortat), la fel ca player-ul, ca să fie acoperit corect de copaci
 	player.get_parent().add_child(enemy)
 	enemy.global_position = player.global_position + offset
+
+# De la ce distanță apar. Niciodată mai aproape decât colțul ecranului + `spawn_margin`, ca să
+# nu-i vezi materializându-se. Zona vizibilă o citim din transformarea camerei
+# (`canvas_transform` inversată = ce bucată de lume se vede acum), NU din `spawn_distance`
+# calculat de mână: așa rămâne corect la orice zoom, orice rezoluție de telefon și orice
+# scară a player-ului — dacă am fi socotit „viewport / zoom" am fi ignorat scara părintelui.
+func _distanta_spawn() -> float:
+	var vp := get_viewport()
+	if vp == null:
+		return spawn_distance
+	var vizibil := vp.get_canvas_transform().affine_inverse() * Rect2(Vector2.ZERO, vp.get_visible_rect().size)
+	return max(spawn_distance, vizibil.size.length() * 0.5 + spawn_margin)
 
 # Ce inamic naște lumea ACUM. În Nether numai creaturile violete, în rest polițiștii.
 # Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el

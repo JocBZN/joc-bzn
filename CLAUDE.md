@@ -16,6 +16,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-28 (inamicii revin din cerc + sabia chiar ajunge la Saratalin)
+
+**Cerut de Răzvan:** „Vreau ca inamicii sa se spawneze in cerc, nu doar in fata playerului. E un bug la cursed sword nu da damage in saratalin decat foarte aproape"
+
+**1. Spawn în cerc.** `spawn_cone_deg` înapoi la **180** (era 45 de pe 2026-07-22). Codul conului n-a fost atins, doar valoarea implicită — orice între 45 și 180 merge în continuare.
+
+**⚠️ Ce nu se vedea din cerință:** `spawn_distance` = 700px e **mai mic decât ecranul**. Măsurat: se văd **1645×925px** de lume la zoom 0.7, deci colțul e la **944px**. În față nu se observa, dar în SPATE inamicii ar fi apărut pur și simplu în plin ecran. Am adăugat `_distanta_spawn()`: ia dreptunghiul vizibil din `canvas_transform` (inversată) și naște la `max(spawn_distance, jumătate de diagonală + spawn_margin)` → **1034px** pe fereastra de 1152×648, mai mult pe ecran mai mare. **Din transformare, nu din „viewport / zoom"** — altfel ignori scara părintelui camerei și pe alt telefon iese greșit.
+
+**2. Bug-ul de la Cursed Sword.** `_sword_rect_hit()` compara **un singur punct** — centrul inamicului — cu dreptunghiul tăieturii. La un inamic normal (corp de 15px) nu se simte; la **Saratalin** (cerc de coliziune 46px, sprite 224×240) însemna că nu-i dădeai damage până nu-i intrai cu centrul în dreptunghi, adică până nu erai suprapus peste el. Gloanțele n-au avut problema: ele lovesc prin fizică, pe cercul de coliziune. Acum și sabia face **cerc vs. dreptunghi**, cu raza citită din `CollisionShape2D`-ul inamicului (`_raza_corp()`, măsurată o dată și ținută în `meta`, deci moare odată cu nodul).
+
+**Verificat pe rulare:** dreptunghiul ajunge la **104,5px** în față; centrul lui Saratalin e prins până la **150,5px** (104,5 + 46). În jocul real, cu sabia: la 110px lua damage și înainte, **la 140px lua 0 înainte și 37 acum**, la 165px tot nimic (deci s-a lungit brațul, nu a devenit infinit). Spawn-ul, măsurat pe o rundă de 6 secunde: inamici în **toate cele 4 cadrane** (1/1/1/1), la 671–1028px, toți născuți dincolo de colțul ecranului.
+
+**⚠️ Rămâne la fel (nu era în cerință):** aura Stingătorului și unda de șoc tot testează doar punctul-centru (`distance_to(enemy.global_position)`). Dacă vreodată pare că un boss nu simte aura lipit de el, acolo e.
+
+**Codexul NU s-a atins:** nu s-a schimbat niciun item, nicio raritate și nicio cifră din `ARME`/`BASE` — doar raza la care lovește sabia.
+
+---
+
 ## Session log — 2026-07-28 (item nou: 5G Tower + BUG vechi la XP, prins cu ocazia asta)
 
 **Cerut de Răzvan:** „mai am un upgrade - upgrade_58 (epic) - 5G Tower - Enemies drop 15% more xp"

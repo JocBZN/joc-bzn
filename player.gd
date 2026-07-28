@@ -1002,7 +1002,8 @@ func _sword_damage_pass(t: Dictionary) -> void:
 		var id := enemy.get_instance_id()  # ID, nu nodul: inamicul poate muri între treceri
 		if loviti.has(id):
 			continue
-		if not _sword_rect_hit(dir, rect, enemy.global_position):
+		# cu raza corpului: un boss mare e lovit când îl ATINGE tăietura, nu când îi intri în centru
+		if not _sword_rect_hit(dir, rect, enemy.global_position, _raza_corp(enemy)):
 			continue
 		loviti[id] = true
 		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură).
@@ -1112,10 +1113,43 @@ func _sword_hit_rect() -> Rect2:
 	return Rect2(0.0, sus, max(fata, 0.0), max(y1, y2) - sus)
 
 # Inamicul e în dreptunghi? Îl aducem în sistemul artei (rotim invers cu privirea), apoi
-# un simplu has_point — hitbox-ul are aceeași formă în toate direcțiile, doar întoarsă.
-func _sword_rect_hit(dir: Vector2, rect: Rect2, punct: Vector2) -> bool:
+# comparăm CERCUL lui de corp cu dreptunghiul — nu doar punctul din centru.
+#
+# ⚠️ De ce nu doar `has_point(centru)`: la inamicii mici (rază ~15 px) diferența nu se simte,
+# dar la un boss ca SARATALIN (cerc de coliziune de 46 px, sprite de 224×240) însemna că
+# tăietura dădea damage doar când CENTRUL lui intra în dreptunghi — adică vizual când erai
+# aproape suprapus peste el. Lipit de corpul lui, dar cu centrul afară, sabia trecea prin el
+# degeaba. Gloanțele n-au avut niciodată problema asta: ele lovesc prin fizică, deci pe cercul
+# de coliziune. Acum sabia folosește ACELAȘI cerc → aceeași lungime a brațului pentru amândouă.
+func _sword_rect_hit(dir: Vector2, rect: Rect2, punct: Vector2, raza: float = 0.0) -> bool:
 	var local := (punct - global_position).rotated(-dir.angle())
-	return rect.has_point(local)
+	if raza <= 0.0:
+		return rect.has_point(local)
+	# cel mai apropiat punct AL DREPTUNGHIULUI de centrul inamicului; dacă e mai aproape decât
+	# raza lui, cercul atinge dreptunghiul (test cerc–dreptunghi clasic, ține și pe colțuri)
+	var p := Vector2(
+		clampf(local.x, rect.position.x, rect.end.x),
+		clampf(local.y, rect.position.y, rect.end.y))
+	return local.distance_squared_to(p) <= raza * raza
+
+# Raza corpului unui inamic, în pixeli de lume: cercul lui de coliziune (fix cel pe care îl
+# lovesc gloanțele), înmulțit cu scara la care e pus în lume. O măsurăm o singură dată și o
+# ținem în `meta` pe inamicul însuși — dispare odată cu el, deci nu ținem minte noduri moarte.
+func _raza_corp(enemy: Node2D) -> float:
+	if enemy.has_meta("raza_corp"):
+		return float(enemy.get_meta("raza_corp"))
+	var r := 0.0
+	for c in enemy.get_children():
+		var cs := c as CollisionShape2D
+		if cs == null or cs.shape == null:
+			continue
+		if cs.shape is CircleShape2D:
+			r = max(r, (cs.shape as CircleShape2D).radius)
+		elif cs.shape is RectangleShape2D:
+			r = max(r, (cs.shape as RectangleShape2D).size.length() * 0.5)
+	r *= max(enemy.global_scale.x, enemy.global_scale.y)
+	enemy.set_meta("raza_corp", r)
+	return r
 
 # Direcția în care se uită player-ul ACUM (ultima direcție reală de mers; când stă pe loc rămâne
 # cea de dinainte). Publică, fiindcă o citește și spawner-ul: inamicii apar doar din față.
