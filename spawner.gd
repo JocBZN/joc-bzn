@@ -37,6 +37,24 @@ const ENEMY_NETHER := preload("res://enemy_nether.tscn")
 # 0 = ca înainte (nu scapă niciunul), 1 = lumea normală rămâne doar cu creaturi violete.
 @export_range(0.0, 1.0) var nether_share: float = 0.30
 
+# --- Cât de rea devine lumea după ce te-ai întors viu din Nether (cerut pe 2026-07-30) ---
+# Regula, în cuvintele lui Răzvan: „dublează spawn-rate-ul și puterea inamicilor NORMALI".
+# Creaturile din Nether NU intră în dublare — ele rămân exact cum sunt dincolo (50 HP de bază
+# față de 30, viteză 190 față de 120) și tot `nether_share` din inamici, cum s-a cerut.
+#
+#   · `escaped_police_mult` = 2 → de două ori mai mulți POLIȚIȘTI pe secundă;
+#   · `escaped_power_mult`  = 2 → cu de două ori mai multă VIAȚĂ (`enemy.gd::power_mult`).
+#
+# ⚠️ Rata TOTALĂ nu se înmulțește cu 2, ci cu 2 / (1 − `nether_share`) = 2,86. Motivul e o
+# aritmetică ușor de greșit (am greșit-o o dată): ÎNAINTE de Nether polițiștii erau 100% din
+# flux, iar DUPĂ sunt doar 70% din el. Ca să fie de două ori mai mulți polițiști pe secundă ȘI
+# creaturile să rămână 30% din total, fluxul întreg trebuie să crească mai mult decât dublu.
+# Verificat pe rulare: 1,3 → 3,7 inamici/s, din care 2,6 polițiști (exact dublul celor 1,3).
+#
+# Amândoi sunt `@export`, deci se pot potoli din inspector fără să umbli în cod. 1.0 = nimic.
+@export var escaped_police_mult: float = 2.0
+@export var escaped_power_mult: float = 2.0
+
 # --- Punctul de START, ales la întâmplare la fiecare rundă ---
 # Lumea e infinită și generată procedural din coordonate: fiecare loc arată altfel, dar
 # ACELAȘI loc arată mereu la fel. Până acum porneai mereu din (0,0), deci vedeai mereu
@@ -107,6 +125,9 @@ func _process(_delta: float) -> void:
 func _spawn_tick() -> void:
 	# câți inamici pe secundă ar trebui să apară acum
 	var rate := (1.0 / spawn_interval) * Difficulty.spawn_mult()
+	if _scapat_din_nether():
+		# de două ori mai mulți polițiști, cu creaturile tot la `nether_share` din total
+		rate *= escaped_police_mult / maxf(0.01, 1.0 - nether_share)
 	var interval := 1.0 / rate
 	var batch := 1
 	# dacă ritmul cerut e mai rapid decât poate bate timer-ul, compensăm scoțând
@@ -125,7 +146,12 @@ func _spawn_enemy() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
-	var enemy := _scena_inamic().instantiate()
+	var scena := _scena_inamic()
+	var enemy := scena.instantiate()
+	# Polițiștii se îngrașă după ce te-ai întors din Nether; creaturile de acolo, nu — ele erau
+	# deja tari. Se pune ÎNAINTE de `add_child`, fiindcă `enemy.gd::_ready()` îl citește acolo.
+	if scena == ENEMY and _scapat_din_nether():
+		enemy.power_mult = escaped_power_mult
 	# Inamicii apar într-un con de ±`spawn_cone_deg` în jurul privirii. Cu 180 (implicit de pe
 	# 2026-07-28) conul e cercul întreg, deci te înconjoară — nu mai vin doar din față.
 	# Când stai pe loc, privirea rămâne ultima direcție de mers.
@@ -167,6 +193,14 @@ func _scena_inamic() -> PackedScene:
 	if n.get("escaped") == true and randf() < nether_share:
 		return ENEMY_NETHER
 	return ENEMY
+
+# Te-ai întors VIU din Nether? Cât ești ÎNCĂ acolo nu se aplică nimic din îngroșarea de mai sus:
+# Nether-ul își are dificultatea lui (`nether.gd::_diff_time`), n-are rost să o dublăm și noi peste.
+func _scapat_din_nether() -> bool:
+	var n := get_tree().get_first_node_in_group("nether")
+	if n == null or n.get("active") == true:
+		return false
+	return n.get("escaped") == true
 
 # Cere HUD-ului să afișeze un text mare pe ecran (cu subtitlu).
 func _announce(text: String, sub: String = "") -> void:

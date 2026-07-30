@@ -16,6 +16,36 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (întors din Nether = polițiști dubli, ca număr și ca viață)
+
+**Cerut de Răzvan:** „vreau sa fie la fel ca putere si spawn rate, si atunci cand vine player-ul din nether, dubleaza spawn-rateul si puterea inamicilor normali din lumea normala."
+
+**Întrebat înainte de a scrie cod** (trei citiri diferite duceau la jocuri diferite). Răspunsurile lui: creaturile rămân **ca în Nether** (mai tari decât polițiștii), dublarea prinde **doar polițiștii**, amestecul rămâne **30%** creaturi.
+
+**Ce s-a făcut.** `spawner.gd` are `escaped_police_mult` (2) și `escaped_power_mult` (2), amândoi `@export`. Când `nether.escaped` e aprins: rata crește și fiecare polițist primește `power_mult = 2`, citit de `enemy.gd::_ready()` peste multiplicatorul de dificultate. Creaturile nu-l primesc.
+
+**⚠️ Aritmetica pe care am greșit-o o dată, în timpul lucrului.** Am pus întâi „rata totală × 2" și am măsurat: polițiștii crescuseră doar cu 1,4×. Motivul: ÎNAINTE de Nether polițiștii sunt **100%** din flux, iar DUPĂ sunt doar **70%**. Ca să fie de două ori mai mulți polițiști pe secundă ȘI creaturile să rămână 30% din total, fluxul întreg trebuie înmulțit cu `2 / (1 − nether_share)` = **2,86**, nu cu 2. Scris în comentariu, ca să nu se „simplifice" cineva înapoi la 2.
+
+**„Putere" = doar VIAȚA.** Viteza nu se atinge (dublată, polițiștii i-ar întrece pe creaturi). Damage-ul de contact nici n-ar avea cum: nu vine de la inamic, ci din statul `contact_damage` al player-ului × `Difficulty.enemy_damage_mult()` (vezi `player._take_contact_damage`), deci e același pentru orice inamic de pe ecran. Multiplicatorul se pune din spawner ÎNAINTE de `add_child` (acolo rulează `_ready`), deci **niciun fișier `.tscn` n-a fost atins** — important, fiindcă `enemy_nether.tscn` are modificări necomise ale lui Răzvan.
+
+**Măsurat, 60s pe fază, dificultate înghețată ca fazele să fie comparabile:**
+
+| | înainte de Nether | după întoarcere |
+|---|---|---|
+| total | 1,25 inamici/s | **3,63/s** |
+| polițiști | 1,25/s (100%) | **2,48/s** (68%) — exact dublu |
+| creaturi | 0 | 1,15/s (32%) |
+| viață de bază polițist | 29,7 | **60,0** |
+| viață de bază creatură | — | 49,7 (neschimbată) |
+
+**⚠️ Două capcane de testare, ambele m-au trimis pe piste false:**
+1. **Ecranul de Level Up pune jocul pe PAUZĂ** și oprește spawnerul, dar `get_tree().create_timer()` merge mai departe (are `process_always = true` din oficiu). Cu player-ul nemuritor care strânge XP la nesfârșit, măsurătoarea arăta o rată care „scade cu timpul" — de fapt jocul stătea. Soluția: `p.xp_to_next = 1_000_000_000` în test.
+2. **`instance_id` se REFOLOSEȘTE** după ce un nod e șters, deci un test care ține minte id-urile văzute subnumără grav într-un măcel de 40 de secunde. Numără prin `child_entered_tree` pe `World` și distinge tipul prin `scene_file_path` — numele nodului NU merge, Godot îl rescrie în `@Enemy@1234` la duplicate.
+
+**De urmărit în joc:** lumea se umple mult mai repede (180 de inamici vii după 60s în test), deci plafonul `max_enemies` = 300 se atinge mai devreme decât înainte.
+
+---
+
 ## Session log — 2026-07-30 (aparatele EGT nu mai apar în Limbo)
 
 **Cerut de Răzvan:** „egt-urile nu vreau sa se spawneze in nether."

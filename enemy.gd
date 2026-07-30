@@ -7,6 +7,17 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var max_hp: int = 30
 @export var knockback_decay: float = 900.0  # cât de repede se stinge împinsul (px/s pe secundă)
 
+# Înmulțitor de PUTERE pus din AFARĂ, de `spawner.gd`, înainte ca inamicul să intre în arbore
+# (deci înainte de `_ready`, unde se aplică). Serveșe unui singur lucru deocamdată: după ce
+# player-ul se întoarce viu din Nether, POLIȚIȘTII lumii normale devin de două ori mai grași
+# (vezi `spawner.gd::escaped_power_mult`). Creaturile din Nether nu-l primesc — ele sunt deja
+# tari, și așa au rămas, cum a cerut Răzvan pe 2026-07-30.
+#
+# ⚠️ Doar VIAȚA se înmulțește, nu și viteza. Damage-ul de contact nici n-ar avea ce: el nu vine
+# de la inamic, ci din statul `contact_damage` al player-ului × `Difficulty.enemy_damage_mult()`
+# (vezi `player._take_contact_damage`), deci e la fel pentru orice inamic de pe ecran.
+@export var power_mult: float = 1.0
+
 # --- Unde se opresc, ca să nu intre peste player (2026-07-28) ---
 # `stop_dist` = distanța CENTRU-LA-CENTRU sub care inamicul nu mai înaintează spre tine: acolo
 # se ating desenele. 41 = jumătatea lățimii player-ului (15) + jumătatea lățimii polițistului
@@ -109,7 +120,7 @@ const KEY_CHANCE := 0.005
 
 func _ready() -> void:
 	# Devine mai puternic cu cât dificultatea a crescut (setat la nașterea fiecărui inamic)
-	max_hp = int(max_hp * Difficulty.enemy_hp_mult())
+	max_hp = maxi(1, int(max_hp * Difficulty.enemy_hp_mult() * power_mult))
 	speed = speed * Difficulty.enemy_speed_mult()
 	hp = max_hp
 	add_to_group("enemy")
