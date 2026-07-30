@@ -16,6 +16,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (creaturile din Nether te urmează în lumea normală)
+
+**Cerut de Răzvan:** „Dupa ce vii din nether vreau sa se spawneze inamicii de acolo si in overworld."
+
+**Ce s-a făcut.** `nether.gd` are acum steagul public **`escaped`**, aprins la ieșirea prin portal, iar `spawner.gd::_scena_inamic()` îl citește: cât e aprins, **`nether_share` (30%)** din inamicii lumii normale sunt creaturi violete, restul polițiști. Numărul TOTAL de inamici nu se schimbă — doar cine sunt. Lumea devine mai colțuroasă (creaturile au 190 viteză și 50 HP), nu mai aglomerată.
+
+**„și" din cerință = AMESTEC, nu înlocuire.** De aia e o proporție, nu un comutator. `nether_share` e `@export`, deci se reglează din inspector: 0 = ca înainte, 1 = lumea normală rămâne doar cu creaturi.
+
+**Doar la ieșirea VOLUNTARĂ** (`exit_nether(true)`, adică prin portal după ce cade Saratalin). La ieșirea forțată (`anunt = false`) ai murit, deci runda s-a terminat oricum. Steagul NU se salvează nicăieri: la rundă nouă `main.tscn` se reîncarcă și pleacă de la `false` singur.
+
+**Anunț nou**, ca să nu apară creaturi din senin fără explicație: la 2,8 secunde după „BACK" intră „SOMETHING FOLLOWED YOU / Nether creatures now roam the world". ⚠️ Bannerul din HUD e **unul singur** — un `announce` nou îl taie pe cel dinainte — de aia trebuie așteptată stingerea primului (0,25 + 1,6 + 0,6 = 2,45s). Și se leagă prin **`connect`, nu cu `await`**: dacă dai Restart în cele 2,8 secunde, nodul e șters, iar o corutină s-ar trezi pe un obiect mort; la `connect`, Godot rupe singur legătura.
+
+**🐛 Bug reparat din mers (introdus tot azi, la aparatele EGT):** `WORLD_NODES` din `nether.gd` — lista generatoarelor oprite cât ești dincolo — **nu-l conținea pe „EGTs"**, deci aparatele de cazinou rămâneau aprinse și vizibile în Nether, unde n-au ce căuta. Regula, scrisă acum și în cod: **orice generator nou pus în `World` trebuie trecut ȘI în `WORLD_NODES`**.
+
+**Verificat pe rulare** (1000 de trageri de scenă în fiecare stare, plus un lot chiar născut în lume): înainte de Nether **0%** violeți, în Nether **100%**, după întoarcere **30,1%** — exact proporția cerută. `EGTs` oprit în Nether și repornit la ieșire. 41 de inamici născuți cu adevărat în lumea normală au ieșit amestecați, verificat și pe captură.
+
+**⚠️ Testul a omorât player-ul** (i-am teleportat 41 de inamici în cap ca să încapă în cadru) → s-a scris în leaderboard-ul REAL. Verificat: scorul fals (0:03) **n-a intrat în top 10** (ultimul e la 494s) și runda avusese 0 kill-uri, deci 0 monede băgate la bancă. Nimic de curățat, dar tot capcana din regula de sus.
+
+**Traduceri:** 2 chei noi × 8 limbi; `tool_check_i18n` trece pe 206 chei.
+
+---
+
 ## Session log — 2026-07-30 (cazinoul: plăți pe tip de pariu + panoul intră în ramă)
 
 **Cerut de Răzvan:** „Nu arata foarte bine la stats la gamble, poti sa faci textul mai mic sa intre in meniu mai bine, nici butoanele nu intra bine. La win la un numar specific vreau sa fie 20x. La rosu sau negru e 2x. 1st 12, 2nd 12 si 3rd 12 vreau sa fie 3x. La toate 2 to 1 column vreau sa fie 3x. la 1-12 vreau sa fie 3x. la 19-36 vreau sa fie 3x. la even si odd vreau sa fie 2x."

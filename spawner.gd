@@ -30,6 +30,13 @@ const ENEMY_NETHER := preload("res://enemy_nether.tscn")
 @export var max_enemies: int = 300        # plafon de siguranță, ca să nu moară framerate-ul
 @export var max_batch: int = 12           # câți inamici pot apărea deodată într-un lot
 
+# Ce parte din inamicii lumii normale sunt creaturi din Nether DUPĂ ce te-ai întors viu de acolo
+# (vezi `nether.gd::escaped`). 0.30 = aproximativ unul din trei. Nu se schimbă numărul total de
+# inamici, doar cine sunt: creaturile din Nether sunt mai rapide (190 față de viteza normală) și
+# mai grase (50 HP), deci lumea devine mai colțuroasă fără să devină mai aglomerată.
+# 0 = ca înainte (nu scapă niciunul), 1 = lumea normală rămâne doar cu creaturi violete.
+@export_range(0.0, 1.0) var nether_share: float = 0.30
+
 # --- Punctul de START, ales la întâmplare la fiecare rundă ---
 # Lumea e infinită și generată procedural din coordonate: fiecare loc arată altfel, dar
 # ACELAȘI loc arată mereu la fel. Până acum porneai mereu din (0,0), deci vedeai mereu
@@ -144,12 +151,20 @@ func _distanta_spawn() -> float:
 	var vizibil := vp.get_canvas_transform().affine_inverse() * Rect2(Vector2.ZERO, vp.get_visible_rect().size)
 	return max(spawn_distance, vizibil.size.length() * 0.5 + spawn_margin)
 
-# Ce inamic naște lumea ACUM. În Nether numai creaturile violete, în rest polițiștii.
-# Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el
-# știe dacă ești dincolo. Dacă lipsește (o scenă de test fără el), rămân inamicii normali.
+# Ce inamic naște lumea ACUM.
+#   • în Nether  → numai creaturile violete;
+#   • în lumea normală, DUPĂ ce te-ai întors viu din Nether → amestec: `nether_share` din ei
+#     sunt creaturi violete, restul polițiști (cerut de Răzvan pe 2026-07-30);
+#   • altfel → doar polițiști.
+# Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el ține
+# atât `active`, cât și `escaped`. Dacă lipsește (o scenă de test fără el), rămân cei normali.
 func _scena_inamic() -> PackedScene:
 	var n := get_tree().get_first_node_in_group("nether")
-	if n != null and n.get("active") == true:
+	if n == null:
+		return ENEMY
+	if n.get("active") == true:
+		return ENEMY_NETHER
+	if n.get("escaped") == true and randf() < nether_share:
 		return ENEMY_NETHER
 	return ENEMY
 

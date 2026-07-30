@@ -47,10 +47,20 @@ const SHAKE_TIME := 0.9
 # Nodurile care fac decorul. Sunt oprite cât ești în Nether → „lume fără nimic".
 # `Portals` e în listă ca să dispară portalurile lumii normale; al nostru de întoarcere
 # stă direct în `World`, deci nu-l atinge golirea.
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests"]
+# ⚠️ Când adaugi un generator nou în `World` (main.tscn), treci-l ȘI aici, altfel rămâne aprins
+# în Nether și-i vezi obiectele plutind într-o dimensiune în care n-au ce căuta. Așa a pățit
+# „EGTs" (aparatele de cazinou), adăugat pe 2026-07-30 și uitat de aici până în aceeași zi.
+const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests", "EGTs"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 
 var active := false
+
+# Ai fost în Nether și te-ai ÎNTORS viu. De aici încolo creaturile violete curg și în lumea
+# normală, amestecate cu polițiștii — vezi `spawner.gd::_scena_inamic()` și `nether_share`.
+# Se aprinde o singură dată, la ieșirea voluntară prin portal, și rămâne aprins până la sfârșitul
+# rundei. NU se salvează nicăieri: la rundă nouă scena `main.tscn` se reîncarcă, deci pleacă de
+# la `false` singur.
+var escaped := false
 
 var _flash: ColorRect
 var _clock: Label
@@ -201,6 +211,25 @@ func exit_nether(anunt: bool = true) -> void:
 		_flash_screen()
 		_announce("BACK", "The portals are closing")
 		_inchide_portalurile()
+		# Te-ai întors viu → creaturile de dincolo încep să apară și în lumea normală.
+		# Doar la ieșirea VOLUNTARĂ: dacă ai murit acolo (`anunt = false`), runda s-a terminat oricum.
+		escaped = true
+		_anunta_scapatii()
+
+# Al doilea anunț, după ce se stinge primul. Bannerul din HUD e unul singur — un `announce` nou
+# îl taie pe cel dinainte (vezi `hud.gd`) — deci trebuie așteptat: 0,25 apariție + 1,6 ținut +
+# 0,6 stingere = 2,45s, plus o pauză de respiro.
+#
+# ⚠️ Se leagă prin `connect`, NU cu `await` pe un timer: dacă player-ul dă Restart în cele 2,8
+# secunde, nodul ăsta e șters, iar o corutină ar încerca să se trezească pe un obiect mort.
+# La `connect`, Godot rupe singur legătura când obiectul dispare.
+func _anunta_scapatii() -> void:
+	get_tree().create_timer(2.8).timeout.connect(_scapatii_acum)
+
+func _scapatii_acum() -> void:
+	if active:
+		return   # ai apucat să reintri în Nether între timp — anunțul n-ar mai avea sens
+	_announce("SOMETHING FOLLOWED YOU", "Nether creatures now roam the world")
 
 func _process(delta: float) -> void:
 	if not active:
