@@ -8,6 +8,10 @@ extends Node2D
 const ROCKS_DIR := "res://stones/"
 const SEED_SALT := 0x51ED  # sămânță diferită de a copacilor → pietrele nu urmează același tipar
 
+# Măsurătorile de contur (conturul opac și cel al trunchiului), cu cache — aceleași pe care le
+# folosesc copacii și cactușii. De aici iese cât de lată e o piatră și cât de gros un trunchi.
+const GroundShadow := preload("res://ground_shadow.gd")
+
 @export var chunk_size: int = 512          # mărimea unui pătrat de lume (px)
 @export var load_radius: int = 3           # câte pătrate în jurul player-ului ținem încărcate
 @export var rocks_per_chunk: int = 1       # câte pietre (maxim) într-un pătrat
@@ -21,13 +25,21 @@ const SEED_SALT := 0x51ED  # sămânță diferită de a copacilor → pietrele n
 @export var hitbox_east: float = 0.0       # marginea din DREAPTA (Est)
 @export var hitbox_west: float = 0.0       # marginea din STÂNGA (Vest)
 @export var sort_anchor: float = 0.35      # de la ce % din înălțime (măsurat de la bază) piatra începe să te acopere
+# Câtă iarbă rămâne între marginea pietrei și marginea trunchiului (px de lume). Distanța reală
+# se socotește din mărimile lor adevărate, nu dintr-o cifră fixă — vezi `_langa_copac`.
+@export var tree_clearance: float = 30.0
 
 var _rocks: Array[Texture2D] = []
 var _loaded := {}  # Vector2i (chunk) -> Node2D (containerul cu pietrele lui)
+var _props: Node2D = null  # nodul Props (copacii) — pietrele se feresc de ei
 
 func _ready() -> void:
 	_rocks = _load_dir(ROCKS_DIR)
 	print("Pietre încărcate: %d" % _rocks.size())
+	# fratele „Props" din main.tscn — îl folosim ca să nu punem pietre în trunchiuri
+	var p := get_parent()
+	if p != null:
+		_props = p.get_node_or_null("Props") as Node2D
 
 # Încarcă toate imaginile .png dintr-un folder, în ordine STABILĂ (sortată) → determinist.
 func _load_dir(path: String) -> Array[Texture2D]:
@@ -102,6 +114,8 @@ func _build_chunk(key: Vector2i) -> Node2D:
 	for i in mine.size():
 		if _too_close(mine[i], i, mine, neighbors):
 			continue  # prea aproape de altă piatră → n-o punem
+		if _langa_copac(mine[i]["pos"], mine[i]["tex"], key):
+			continue  # ar ieși înfiptă într-un trunchi → n-o punem
 		var r: Dictionary = mine[i]
 		var rock := _make_rock(r["tex"])
 		rock.position = r["pos"]
@@ -130,6 +144,51 @@ func _too_close(me: Dictionary, my_index: int, mine: Array, neighbors: Array) ->
 		if key_smaller and me["pos"].distance_to(other["pos"]) < _min_dist(me["tex"], other["tex"]):
 			return true
 	return false
+
+# ---------------------------------------------------------------------------
+# PIETRELE SE FERESC DE COPACI (2026-07-30)
+# ---------------------------------------------------------------------------
+# Cele două generatoare sunt independente (fiecare cu sămânța lui) și, până acum, NICIUNUL nu se
+# uita la celălalt: copacii verificau distanța doar față de copaci, pietrele doar față de pietre.
+# Se vedea în joc — o piatră crescută fix în trunchiul unui copac.
+#
+# Fiindcă amândouă sunt DETERMINISTE (poziția depinde doar de cheia chunk-ului, nu de ordinea în
+# care se încarcă lumea), e destul ca UNA din părți să cedeze — aici piatra. Dacă s-ar feri și
+# copacii de pietre, aceeași ciocnire i-ar șterge pe amândoi și ar rămâne o pată goală.
+#
+# ⚠️ `_chunk_trees_raw()` întoarce copacii BRUȚI, inclusiv pe cei care vor fi refuzați mai încolo
+# (prea aproape de alt copac, sau pe o potecă). Deci ne ferim și de locuri unde până la urmă nu
+# crește nimic. E aceeași aproximare pe care o fac deja statuile și aparatele EGT, și e partea
+# sigură a greșelii: pierdem câteva pietre, dar nu punem niciuna în copac.
+func _langa_copac(pos: Vector2, tex: Texture2D, key: Vector2i) -> bool:
+	if _props == null or not _props.has_method("_chunk_trees_raw"):
+		return false
+	var raza_piatra := _raza_piatra(tex)
+	for dx in [-1, 0, 1]:
+		for dy in [-1, 0, 1]:
+			for t in _props._chunk_trees_raw(Vector2i(key.x + dx, key.y + dy)):
+				if pos.distance_to(t["pos"]) < raza_piatra + _raza_trunchi(t["tex"]) + tree_clearance:
+					return true
+	return false
+
+# Cât se întinde arta pietrei în lateral, față de originea nodului (px de lume). `Sprite2D` e
+# centrat pe textură și n-are offset pe X, deci marginile vizibile se măsoară din mijlocul ei.
+# Contează conturul OPAC, nu canvasul: pietrele au 32×32 sau 64×64, dar arta din ele variază.
+func _raza_piatra(tex: Texture2D) -> float:
+	var u := GroundShadow.used_rect(tex)
+	var mijloc := float(tex.get_width()) * 0.5
+	return maxf(mijloc - float(u.position.x), float(u.end.x) - mijloc) * rock_scale
+
+# Cât se întinde TRUNCHIUL copacului în lateral, față de originea lui. Trunchiul, nu coroana:
+# o piatră sub coroană arată firesc, una prin trunchi nu — iar coroanele au 186–269px lățime,
+# adică ar fi măturat jumătate din pietrele pădurii. Trunchiul poate fi descentrat față de nod
+# (arta nu e simetrică), de-aia intră și deplasarea lui în socoteală.
+func _raza_trunchi(tex: Texture2D) -> float:
+	var tr := GroundShadow.trunk_rect(tex)
+	var mijloc := float(tex.get_width()) * 0.5
+	var centru_trunchi := float(tr.position.x) + float(tr.size.x) * 0.5 - mijloc
+	var scara: float = _props.tree_scale
+	return (absf(centru_trunchi) + float(tr.size.x) * 0.5) * scara
 
 func _make_rock(tex: Texture2D) -> StaticBody2D:
 	var body := StaticBody2D.new()

@@ -107,6 +107,14 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-30, rocks no longer grow inside tree trunks)
+- 🐛 **The two generators could not see each other at all.** `props.gd` only spaced trees against trees and `rocks.gd` only rocks against rocks, so a rock could — and did — spawn dead centre in a trunk. Statues, portals, chests and the new EGT cabinets all avoided both from day one; the tree/rock pair, the densest in the game, was the one nobody checked.
+- ✅ `rocks.gd` gained **`_langa_copac()`**, the same pattern `statues.gd` uses (ask `Props._chunk_trees_raw()` over the 9 surrounding chunks). **The rock is the one that yields, and one side is enough**: both generators are deterministic (position depends only on the chunk key, never on load order), so there is no "who was there first" — and if trees avoided rocks too, the same collision would delete **both** and leave a bald patch.
+- ⚠️ **The distance is derived from the real sizes, not a fixed number.** Measured: rocks are **52–124px** wide in world units, trunks **22–82px**. One threshold would either leave big rocks touching trunks or sweep small rocks out of the whole forest. It is now `rock's visible half-width + trunk half-width + tree_clearance (30px)`, read through `GroundShadow` (already cached — pixel scanning is expensive), and it accounts for trunks that sit off-centre in their art.
+- ⚠️ **Trunk, not canopy.** A rock under a canopy looks right; canopies are **186–269px** wide, so checking against them would have erased nearly every forest rock.
+- Measured over 3721 chunks, before and after: of **1184** rocks, **39 (3.3%)** were inside a trunk, the worst buried **82.2px** deep. Now **zero** overlaps, minimum edge-to-edge gap **30.7px**, at a cost of **5.6%** of rocks. Also confirmed on screen by walking the player to the worst case.
+- ℹ️ `_chunk_rocks_raw()` is unchanged (the filter lives in `_build_chunk`), so what chests, statues and EGT cabinets believe about rock positions is exactly as before.
+
 ## Current state (2026-07-30, the EGT machine and its roulette)
 - ✅ **A new world structure, the EGT cabinet** (`egts.gd` / `egt.tscn`) — 2% of chunks, spawned and spaced like statues and portals, but **reusable**: it is never spent, so the only thing stopping you playing again is the risk.
 - ✅ **"Let's go gambling"** (`casino.gd`) — E on the cabinet pauses the run and opens the menu; **Gamble your stats** leads to a full roulette table, **Gamble your items** is deliberately greyed out with *Coming soon*.

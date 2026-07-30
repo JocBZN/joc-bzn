@@ -16,6 +16,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (pietrele nu mai cresc în trunchiul copacilor)
+
+**Cerut de Răzvan:** „ti-am pus un screenshot in debugging vezi care e problema si rezolva, isi fac overlapping copacii cu pietrele" (`debugging/Screenshot 2026-07-23 182612.png` — o piatră fix în trunchiul unui copac).
+
+**Cauza:** cele două generatoare **nu se vedeau deloc între ele**. `props.gd::_too_close()` compara copacul doar cu alți copaci, `rocks.gd::_too_close()` piatra doar cu alte pietre. Fiecare avea grijă de ai lui și niciunul de celălalt. Ironia: **statuile, portalurile, cuferele și aparatele EGT se fereau de amândoi de la bun început** — doar perechea copac/piatră, cea mai deasă din joc, rămăsese neverificată.
+
+**Reparația:** `rocks.gd` a primit `_langa_copac()`, pe același tipar ca `statues.gd` (întreabă `Props._chunk_trees_raw()` pe cele 9 chunk-uri din jur).
+
+**🔑 Cedează PIATRA, nu copacul, și e destul una singură.** Ambele generatoare sunt deterministe — poziția depinde doar de cheia chunk-ului, nu de ordinea încărcării — deci nu există „cine a fost primul". Dacă s-ar feri și copacii de pietre, aceeași ciocnire i-ar șterge pe **amândoi** și ar rămâne o pată goală în pădure.
+
+**⚠️ Distanța se socotește din mărimile REALE, nu dintr-o cifră fixă**, fiindcă pietrele nu-s deloc egale: măsurate, au între **52 și 124px** lățime în lume, iar trunchiurile între **22 și 82px**. Un prag fix ori lăsa pietrele mari lipite de trunchi, ori mătura pietrele mici din toată pădurea. Acum: `raza vizibilă a pietrei + raza trunchiului + tree_clearance (30px)`, cu conturul opac citit din `GroundShadow` (care are deja cache, scanarea pixelilor e scumpă).
+
+**⚠️ TRUNCHIUL, nu coroana.** O piatră sub coroană arată firesc — coroanele au **186–269px** lățime, deci verificarea pe coroană ar fi șters aproape toate pietrele din pădure. Intră și descentrarea trunchiului față de nod (arta nu e simetrică).
+
+**⚠️ Ne ferim și de copacii care nu vor crește.** `_chunk_trees_raw()` întoarce copacii BRUȚI, inclusiv pe cei refuzați mai încolo (prea aproape de alt copac, sau pe potecă). E aceeași aproximare pe care o fac deja statuile și EGT-urile, și e partea sigură a greșelii: pierdem câteva pietre în plus, dar nu punem niciuna în copac.
+
+**Măsurat pe 3721 de chunk-uri, înainte și după:** din **1184** de pietre, **39 (3,3%) erau înfipte într-un trunchi**, cea mai rea intra **82,2px** în copac. Acum: **0** suprapuneri, cea mai mică distanță margine-la-margine **30,7px** (peste pragul de 30), cu **5,6%** pietre pierdute. Verificat și vizual: am dus player-ul fix în locul celui mai rău caz — piatra nu mai e, restul pădurii și pietrele din jur sunt neatinse.
+
+**Ce NU s-a atins:** `_chunk_rocks_raw()` a rămas neschimbat (filtrul e în `_build_chunk`), deci ce cred cuferele/statuile/EGT-urile despre pozițiile pietrelor e exact ca înainte.
+
+---
+
 ## Session log — 2026-07-30 (structură nouă: aparatul EGT + ruleta „Let's go gambling")
 
 **Cerut de Răzvan:** „Vreau sa implementez o noua structura, o ai in folderul harta -> EGT -> egt. Vreau atunci cand apesi E pe structura asta se opreste jocu ca la upgrades si iti deschide o interfata noua. Interfata vreau sa scrie sus Let's go gambling. Apoi are 2 butoane sub asta, unul se numeste Gamble your stats, iar celalalt Gamble your items. Pentru Gamble your stats dupa ce apesi te baga in alt meniu unde e o Roulette Table (…) vreau ca toate numerele de la Roulette Table sa mearga. (…) poti tu sa decupezi moneda rosie si sa o folosesti atunci cand player-ul da click pe un numar. Vreau sa ai niste optiuni in dreapta de Roulette Table ca sa selectezi ce statusuri vrei sa faci gamble cu ele. Vreau sa fie pe bune codata ruleta sa mearga random."
