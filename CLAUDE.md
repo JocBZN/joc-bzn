@@ -16,6 +16,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (aparatele EGT nu mai apar în Limbo)
+
+**Cerut de Răzvan:** „egt-urile nu vreau sa se spawneze in nether."
+
+**În Nether nu se spawnau deja** — verificat pe rulare: intri, te plimbi 20 de mutări prin lume, **0 aparate**, generatorul stins și invizibil, iar la ieșire revine. Ăla fusese reparat mai devreme în aceeași zi (`WORLD_NODES` din `nether.gd`).
+
+**Unde se spawnau de fapt: în LIMBO.** Sunt DOUĂ dimensiuni-buzunar care sting decorul, fiecare cu lista ei, iar `limbo.gd::WORLD_NODES` nu-l avea pe „EGTs". Măsurat înainte de reparare: **2 aparate vii și vizibile** în Limbo, cu tot cu hitbox și cu tastă E funcțională — puteai să deschizi cazinoul în mijlocul probei de 60 de secunde. Reparat prin adăugarea lui „EGTs" în listă; verificat: 0 în Limbo, generatorul repornit corect la ieșire.
+
+**Regula, scrisă acum în AMBELE fișiere:** un generator nou pus în `World` (main.tscn) se trece în `WORLD_NODES` din `nether.gd` **și** din `limbo.gd`. Aceeași scăpare, de două ori, cu același obiect.
+
+**Rămas nereparat, semnalat lui Răzvan:** `Portals` e în lista Nether-ului, dar NU în a Limbo-ului, deci portalurile spre Nether rămân vizibile în Limbo (măsurat: 1 portal viu). Apăsatul pe E acolo nu face nimic — `nether.gd::enter()` refuză cât `limbo.active` — deci e un obiect mort pe ecran, nu un bug de logică. N-am atins-o fiindcă e o schimbare vizibilă pe care n-a cerut-o.
+
+---
+
 ## Session log — 2026-07-30 (norocul înclină ruleta EGT)
 
 **Cerut de Răzvan:** „Vreau ca luck-ul pe care îl iei în joc să afecteze la EGT [...] +1 șansă pentru fiecare 10 luck în plus. Exemplu: 10 luck și pune roșu → 50% roșu, 48% negru, 1% verde."

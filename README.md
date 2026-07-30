@@ -107,6 +107,11 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-30, no EGT machines in Limbo)
+- 🐛 The casino cabinets were **not** showing up in the Nether (that was fixed earlier the same day) — they were showing up in **Limbo**. There are **two** pocket dimensions that switch the scenery off, each with its own list, and `limbo.gd::WORLD_NODES` was missing `EGTs`. Measured before the fix: **2 live, visible machines** inside Limbo, hitbox and E-key included, so you could open the casino in the middle of the 60-second trial.
+- **The rule, now written in both files:** a new generator added under `World` must be listed in `WORLD_NODES` in **`nether.gd` *and* `limbo.gd`**. The same object slipped through both lists, one after the other.
+- Still open, on purpose: `Portals` is in the Nether list but not in Limbo's, so Nether portals stay visible there. Pressing E does nothing (`nether.gd::enter()` refuses while Limbo is active), so it is dead scenery rather than a logic bug — left alone because it is a visible change that was not requested.
+
 ## Current state (2026-07-30, Luck tilts the EGT roulette)
 - ✅ **Luck earned during the run now bends the wheel**: **+1 percentage point** of win chance for the bet you placed, per **10 Luck** (`LUCK_PER` in `casino.gd`). Red goes 48.65% → 49.65% at 10 Luck, 53.65% at 50.
 - 🔑 The extra points come **only from the numbers that lose — never from the zero**. Green keeps its flat 1/37 = 2.70% no matter how lucky you are, so Luck eats into your opponent colour, not into the house edge.

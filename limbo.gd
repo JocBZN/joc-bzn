@@ -30,7 +30,11 @@ const CLOCK_SIZE := 64                          # mai mare decât cronometrul ru
 const CLOCK_COLOR := Color(1.0, 0.10, 0.10)     # roșu aprins
 
 # Nodurile care fac decorul. Sunt oprite cât ești în Limbo → „lume fără structuri".
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Chests"]
+# ⚠️ Lista asta se ține în oglindă cu cea din `nether.gd`: un generator nou pus în `World`
+# (main.tscn) trebuie trecut în AMÂNDOUĂ. Dacă lipsește dintr-una, rămâne aprins acolo și-i vezi
+# obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de două ori cu „EGTs"
+# (aparatele de cazinou, 2026-07-30): întâi uitat în `nether.gd`, apoi și aici.
+const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Chests", "EGTs"]
 # `Paths` (potecile) NU e în `World`, ci frate cu el, direct în `main.tscn` — de aia are
 # nevoie de listă separată. Exact ca în `nether.gd`.
 const ROOT_NODES := ["Paths"]
