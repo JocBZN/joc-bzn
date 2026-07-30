@@ -107,6 +107,13 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-30, Luck tilts the EGT roulette)
+- ✅ **Luck earned during the run now bends the wheel**: **+1 percentage point** of win chance for the bet you placed, per **10 Luck** (`LUCK_PER` in `casino.gd`). Red goes 48.65% → 49.65% at 10 Luck, 53.65% at 50.
+- 🔑 The extra points come **only from the numbers that lose — never from the zero**. Green keeps its flat 1/37 = 2.70% no matter how lucky you are, so Luck eats into your opponent colour, not into the house edge.
+- The rate is deliberately **not** `player.luck_bonus()` (0.4 points per Luck). That one inflates small proc chances (crit, instakill); applied on top of a ~50% bet, 50 Luck would push red to 68% and the table would stop being a roulette.
+- The bet panel now prints the real chance next to the payout — **"WIN X2 · 49.6%"** — with a decimal on purpose, so a +1 point gain does not round back to 49% and look like nothing happened.
+- Verified inside the real game, 60 000 draws per setting: measured win rates match the analytic ones to within 0.4 points for red, dozens and straight-up numbers, and green stayed at 2.70% throughout.
+
 ## Current state (2026-07-30, enemies walk around obstacles)
 - ✅ **An enemy that jams into a tree, a rock or a statue now steps aside instead of pushing into the hitbox forever.** `enemy.gd` compares the **real** per-frame displacement with the requested one; under 40% for 0.15s means it is getting nowhere, and the walk direction is rotated **80°** for 0.6s before resuming the chase. Not pathfinding, on purpose — the world is infinite and chunk-generated, and 300 enemies running A* per frame would kill the framerate.
 - The side comes from the collision normals (the tangent that points more towards the target = the short way round). Head-on, both sides are equal, so `get_instance_id() % 2` decides — arbitrary but **constant per enemy** (no jitter) and different between them (two enemies stuck on the same tree do not both go left).

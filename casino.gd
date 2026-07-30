@@ -51,6 +51,20 @@ const CASTIG_MULT := {
 # Dacă pierzi, statusul se înjumătățește — la fel pentru orice pariu.
 const PIERDERE_MULT := 0.5
 
+# --- NOROCUL la ruletă (cerut de Răzvan pe 2026-07-30) ---
+# Norocul strâns în rundă (Unusual Clover, The Office...) înclină și ruleta: +1 PUNCT PROCENTUAL
+# de șansă la pariul pus, pentru fiecare 10 puncte de noroc. Fără noroc, roșul are 18 din 37 =
+# 48,65%; cu 10 noroc are 49,65%, cu 50 de noroc 53,65%.
+#
+# 🔑 Punctele în plus se iau DOAR de la numerele care pierd, niciodată de la ZERO: verdele își
+# păstrează mereu 1/37 = 2,70%. Adică norocul îți ia din adversar, nu din avantajul casei — la
+# roșu ridică roșul și coboară negrul, exact ca în exemplul cerut (49/49/1 → 50/48/1).
+#
+# ⚠️ Rata NU e `player.luck_bonus()` (0,4 puncte pe noroc). Acolo norocul umflă șanse mici, de
+# proc (crit, instakill), unde 0,4 pe punct e mărunt. Aici s-ar aplica peste o șansă de ~50%,
+# iar 50 de noroc ar duce roșul la 68% — masa nu s-ar mai numi ruletă. De-aia are rata ei.
+const LUCK_PER := 0.001   # +0,1 puncte procentuale de șansă pe punct de noroc (10 noroc = +1%)
+
 # ---------------------------------------------------------------------------
 # GEOMETRIA MESEI, în pixelii pozei (1648×954). Toate zonele de click de mai jos sunt date în
 # acești pixeli și se transformă în ANCORE (fracții din poză), ca masa să meargă identic la
@@ -391,7 +405,10 @@ func _pune_pariu(pariu: Dictionary, r: Rect2, eticheta: String) -> void:
 	_pariu = pariu
 	_pariu_rect = r
 	_lbl_pariu.text = tr("Bet: %s") % eticheta
-	_lbl_plata.text = tr("Win x%s") % _text_plata(pariu)
+	# „Win x2  ·  49.6%" — procentul e ȘANSA REALĂ, cu norocul inclus, ca să se vadă la ce
+	# folosește el aici. Zecimala nu e moft: fără ea, +1 punct de la 10 noroc s-ar rotunji
+	# la loc în 49% și ai crede că itemul n-a făcut nimic. Procentul nu are nevoie de traducere.
+	_lbl_plata.text = "%s   ·   %.1f%%" % [tr("Win x%s") % _text_plata(pariu), _sansa(pariu) * 100.0]
 	_jeton.visible = true
 	_evid.visible = false
 	_bila.visible = false
@@ -582,8 +599,8 @@ func _spin() -> void:
 	_banner.text = ""
 	_goleste_rezultat()
 
-	# AICI se trage numărul — cinstit, înainte de orice animație: 0–36, toate la fel de probabile.
-	var n := randi() % 37
+	# AICI se trage numărul — cinstit, înainte de orice animație (fără noroc: 0–36, toate la fel).
+	var n := _trage_numarul(_pariu)
 
 	var tw := create_tween()
 	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)   # jocul e pe pauză, animația trebuie să meargă
@@ -621,6 +638,68 @@ func _arata_rezultat(n: int) -> void:
 	_se_invarte = false
 	_actualizeaza_spin()
 	_relayout()
+
+# Câte puncte procentuale de șansă în plus dă norocul strâns în rundă. `luck` pornește de la 0
+# și e ZECIMAL (The Office dă +2,5), deci bonusul curge continuu — 5 noroc dau o jumătate de
+# punct, nu zero. Norocul negativ (nu există acum, dar tot îl păstrăm cinstit) nu scade șansa.
+func _bonus_noroc() -> float:
+	var p = get_tree().get_first_node_in_group("player")
+	if p == null or not ("luck" in p):
+		return 0.0
+	return maxf(0.0, float(p.luck)) * LUCK_PER
+
+# Șansa REALĂ ca pariul `pariu` să iasă, cu tot cu noroc. Folosită și la tragere, și la afișarea
+# din panou, ca cifra scrisă acolo să fie chiar cea cu care se joacă — nu o socoteală paralelă.
+func _sansa(pariu: Dictionary) -> float:
+	var baza := 1.0 / 37.0
+	return float(_numere_castigatoare(pariu).size()) * baza + _bonus_noroc_util(pariu)
+
+# Numerele (0–36) care câștigă pariul.
+func _numere_castigatoare(pariu: Dictionary) -> Array:
+	var castig: Array = []
+	for n in 37:
+		if _castiga(pariu, n):
+			castig.append(n)
+	return castig
+
+# Bonusul care CHIAR se poate aplica: nu poți muta spre câștig mai multă probabilitate decât au
+# numerele care pierd (zero nu intră la socoteală, el rămâne mereu 1/37). Practic n-o să atingi
+# plafonul — la roșu ar trebui vreo 480 de noroc — dar fără el, un noroc absurd ar da probabilități
+# negative și tragerea ar deveni o prostie în tăcere.
+func _bonus_noroc_util(pariu: Dictionary) -> float:
+	var castig := _numere_castigatoare(pariu)
+	var cate_pierd := 36 - castig.size() + (1 if castig.has(0) else 0)
+	if castig.is_empty() or cate_pierd <= 0:
+		return 0.0
+	return minf(_bonus_noroc(), float(cate_pierd) / 37.0 * 0.99)
+
+# Trage numărul. Fără noroc, toate cele 37 au aceeași greutate. Cu noroc, mutăm puncte procentuale
+# de la numerele care PIERD (fără zero) spre cele care câștigă pariul pus — vezi LUCK_PER.
+# Suma greutăților rămâne 1, deci roata e tot o roată, doar că înclinată în favoarea ta.
+func _trage_numarul(pariu: Dictionary) -> int:
+	var baza := 1.0 / 37.0
+	var castig := _numere_castigatoare(pariu)
+	var bonus := _bonus_noroc_util(pariu)
+	if bonus <= 0.0:
+		return randi() % 37
+	var cate_pierd := 36 - castig.size() + (1 if castig.has(0) else 0)
+	var g := PackedFloat32Array()
+	g.resize(37)
+	var total := 0.0
+	for n in 37:
+		if castig.has(n):
+			g[n] = baza + bonus / float(castig.size())
+		elif n == 0:
+			g[n] = baza                                  # verdele nu se atinge niciodată
+		else:
+			g[n] = baza - bonus / float(cate_pierd)
+		total += g[n]
+	var r := randf() * total
+	for n in 37:
+		r -= g[n]
+		if r < 0.0:
+			return n
+	return 36   # doar dacă virgula mobilă ne joacă feste pe ultimul pas
 
 # Câștigă pariul dacă a ieșit numărul `n`? Zero pierde la toate pariurile exterioare — ca la
 # ruleta adevărată, ăsta e avantajul casei.

@@ -16,6 +16,33 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (norocul înclină ruleta EGT)
+
+**Cerut de Răzvan:** „Vreau ca luck-ul pe care îl iei în joc să afecteze la EGT [...] +1 șansă pentru fiecare 10 luck în plus. Exemplu: 10 luck și pune roșu → 50% roșu, 48% negru, 1% verde."
+
+**Ce s-a făcut.** `casino.gd` nu mai trage `randi() % 37`, ci `_trage_numarul(pariu)`: construiește greutăți pentru cele 37 de numere și mută **`LUCK_PER` = 0,1 puncte procentuale pe punct de noroc** (deci +1 la 10 noroc) de la numerele care PIERD spre cele care câștigă pariul pus. Suma greutăților rămâne 1 — e tot o roată, doar înclinată.
+
+**🔑 Zero-ul nu se atinge NICIODATĂ.** Verdele își păstrează 1/37 = 2,70% în orice condiții, exact ca în exemplul cerut (verdele rămâne pe loc, negrul scade). Adică norocul îți ia din adversar, nu din avantajul casei.
+
+**Rata NU e `player.luck_bonus()`** (0,4 puncte pe punct de noroc). Acolo norocul umflă șanse mici de proc (crit, instakill), unde 0,4 e mărunt; aici s-ar aplica peste ~50% și 50 de noroc ar duce roșul la 68%. De-aia cazinoul are rata lui, `LUCK_PER`.
+
+**Plafon:** nu poți muta spre câștig mai mult decât au numerele care pierd (`_bonus_noroc_util`). Practic e de neatins — la roșu ar trebui ~480 noroc — dar fără el un noroc absurd ar da greutăți negative, în tăcere.
+
+**Panoul arată acum și șansa**, nu doar plata: „WIN X2 · 49.6%". Cu zecimală intenționat — fără ea, +1 punct de la 10 noroc s-ar rotunji înapoi la 49% și ai crede că itemul n-a făcut nimic. Procentul e un număr, deci **nu cere cheie i18n nouă** (se lipește de „Win x%s", care există deja).
+
+**Măsurat în jocul real** (player real, UI reală, 60.000 de trageri per configurație):
+
+| pariu | 0 noroc | 10 noroc | 50 noroc |
+|---|---|---|---|
+| roșu | 48,50% (aștept. 48,65) | 49,75% (49,65) | 53,43% (53,65) |
+| 1st 12 | 32,58% (32,43) | 33,04% (33,43) | 37,31% (37,43) |
+| număr plin 17 | 2,60% (2,70) | 3,69% (3,70) | 7,67% (7,70) |
+| **verde** | 2,73% | 2,75% | 2,74% | ← neschimbat, cum trebuie
+
+**⚠️ Capcană de testare (m-a costat ~15 minute):** un test care instanțiază `casino.gd` cu `CASINO.new()` și un player FALS (un `Node2D` cu doar `luck`) se blochează la `open()` → `_umple_statusuri()`, care cere toate statusurile reale. Și cum Godot ține stdout în buffer până la ieșire, un blocaj arată exact ca „merge încet". Soluția: testează prin `main.tscn` (ca la testul de ocolire), cu player-ul adevărat.
+
+---
+
 ## Session log — 2026-07-30 (inamicii ocolesc obstacolele în loc să împingă în ele)
 
 **Cerut de Răzvan:** „când inamicii se blochează într-un obiect (merg încontinuu în el și se lovesc de hitbox) să facă stânga sau dreapta, nu tracking foarte complicat, doar atunci când e blocat să facă stânga sau dreapta să se pună pe traiectorie înapoi."
