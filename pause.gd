@@ -57,6 +57,9 @@ func _blocked() -> bool:
 	var go = get_tree().get_first_node_in_group("gameover_screen")
 	if go != null and go.visible:
 		return true
+	var cazinou = get_tree().get_first_node_in_group("casino")
+	if cazinou != null and cazinou.visible:
+		return true   # ESC în cazinou te scoate din cazinou, nu deschide pauza peste el
 	var boss = get_tree().get_first_node_in_group("saratalin")
 	if boss != null and boss.has_method("in_cinematic") and boss.in_cinematic():
 		return true

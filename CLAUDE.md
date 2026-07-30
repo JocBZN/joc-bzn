@@ -16,6 +16,42 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (structură nouă: aparatul EGT + ruleta „Let's go gambling")
+
+**Cerut de Răzvan:** „Vreau sa implementez o noua structura, o ai in folderul harta -> EGT -> egt. Vreau atunci cand apesi E pe structura asta se opreste jocu ca la upgrades si iti deschide o interfata noua. Interfata vreau sa scrie sus Let's go gambling. Apoi are 2 butoane sub asta, unul se numeste Gamble your stats, iar celalalt Gamble your items. Pentru Gamble your stats dupa ce apesi te baga in alt meniu unde e o Roulette Table (…) vreau ca toate numerele de la Roulette Table sa mearga. (…) poti tu sa decupezi moneda rosie si sa o folosesti atunci cand player-ul da click pe un numar. Vreau sa ai niste optiuni in dreapta de Roulette Table ca sa selectezi ce statusuri vrei sa faci gamble cu ele. Vreau sa fie pe bune codata ruleta sa mearga random."
+
+**Decis împreună înainte de scris:** miza = **„totul sau nimic"** (câștigi → statusul se dublează, pierzi → se înjumătățește, **la fel indiferent pe ce ai pariat**); „Gamble your items" = **buton gri „Coming soon"**; aparatul apare pe **2% din chunk-uri** și e **refolosibil**.
+
+**1. Aparatul (`egt.gd` + `egt.tscn` + `egts.gd`).** Aceleași convenții ca statuia/cufărul: grupul `"interactable"` (deci primește „Press E to interact" gratis din `interact_ui.gd`), regula celor **74px** de acoperire sub linia de sortare, generator pe chunk-uri determinist cu salt propriu. Se ferește de copaci, pietre **și** de statuia chunk-ului (prin `Statues.chunk_statue_pos()`, care merge și pe chunk-uri neîncărcate). `poate_invoca()` întoarce **mereu `true`** — spre deosebire de statuie și cufăr, aparatul nu se consumă.
+
+**⚠️ Scara stă pe Sprite2D, NU pe nodul rădăcină** (la cufăr e pe rădăcină). Motivul: dacă scara e pe rădăcină, `CollisionShape2D` se scalează odată cu ea și trebuie socotit invers de fiecare dată când umbli la mărimea artei. Așa, hitbox-ul rămâne în pixeli de lume.
+
+**2. Cele 3 imagini derivate (`tool_egt_assets.gd`).** Poza mare `Roulette Table.png` (1648×954) nu se folosește direct: unealta scoate din ea **`table.png`** (fundalul alb → transparent; fără asta se vedea un dreptunghi alb în jurul mesei pe fundalul întunecat), **`wheel.png`** (discul roții decupat rotund, ca să-l pot roti separat) și **`chip_red.png`** (jetonul roșu, al 4-lea din rândul de jos). Ștergerea fundalului e **flood fill din margini**, nu un test de culoare pe toată imaginea — altfel dispăreau și liniile albe ale grilei, și albul de pe jetoane.
+
+**3. Zonele de click — MĂSURATE, nu ghicite.** Am scanat poza după coloanele/rândurile de pixeli albi (liniile grilei) și de acolo au ieșit constantele din `casino.gd`: grila e `x 658→1486` (12 coloane de 69,0px) × `y 306→545` (3 rânduri de 79,67px), duzinile `y 547→623`, rândul de jos `y 626→703` (6 căsuțe egale). Fiecare zonă e un buton transparent legat prin **ancore** (fracții din poză), deci masa merge identic la orice rezoluție. Verificat pe rulare: pariul pe 17 pune jetonul fix pe căsuța lui, iar cele 6 căsuțe de jos cad exact pe 1-12 / EVEN / roșu / negru / ODD / 19-36.
+
+**4. Ruleta e cinstită.** `randi() % 37` (0–36, ruletă europeană cu un singur zero), tras **înainte** de animație. Numerele roșii din `ROSII` sunt cele adevărate și **coincid număr cu număr** cu poza.
+
+**🔑 Roata care se învârte e DECOR, și trebuie să rămână așa.** Ordinea numerelor desenate pe roată e **inventată de artist**: apare „38" (care nu există pe o ruletă), iar „29" e de două ori. Deci nu se poate opri fix pe buzunarul câștigător fără să mintă. De-aia rezultatul se anunță altfel: numărul apare în **butucul roții**, pe fundalul culorii lui, iar căsuța lui de pe masă se **încadrează cu auriu**. Dacă vreodată cineva vrea bilă care aterizează pe buzunar, trebuie întâi desenată o roată cu ordine corectă.
+
+**5. Plafoanele de la statusuri nu sunt cosmetice.** O înjumătățire fără plafon te lăsa cu **0 proiectile** (nu mai tragi deloc) sau cu **0 viață maximă** (mori pe loc) — adică jocul se termina dintr-o rotire, altceva decât „pierzi jumătate din status". Minimele: proiectile 1, max HP 10 (și `hp` se mută cu aceeași cantitate, dar nu sub 1), damage 1, damage taken 1 (altfel devii invulnerabil la atingere), viteză 60. La `Attack Speed` se cheamă **`upgrade_fire_rate()`**, nu se scrie direct în `fire_interval` — altfel cronometrul de tragere rămâne pe valoarea veche și cadența nu se schimbă.
+
+**⚠️ Statusurile pe 0 NU apar în listă.** Dublul lui 0 e tot 0, deci ar fi fost un pariu fără risc.
+
+**⚠️ Matematica pariului, ca să se știe ce s-a ales:** la „totul sau nimic", roșu/negru are 18/37 = 48,6% șansă → valoare așteptată **1,23× din status pe rotire**, adică pariul e în favoarea jucătorului. Un număr plin are 1/37 și plătește la fel, deci e strict mai prost — nimeni n-are motiv să parieze pe număr. Dacă vrei să conteze pe ce pui, schimbi `CASTIG_MULT`/`PIERDERE_MULT` în plăți pe tip de pariu.
+
+**6. ESC.** `pause.gd::_blocked()` întreabă acum și de grupul `"casino"` — altfel ESC deschidea meniul de pauză PESTE cazinou. În cazinou, ESC te duce un pas înapoi (masă → meniu → afară).
+
+**⚠️ Căsuța „1-12" de pe poză** ar trebui să scrie „1-18" (așa e pe o masă adevărată). Am lăsat-o să facă exact ce scrie pe ea, ca să nu pară că jocul trișează; e o constantă, `JOS_MAXIM`.
+
+**Traduceri:** 11 chei noi × 8 limbi; `tool_check_i18n` trece pe 203 chei. Numele pariurilor (RED/BLACK/EVEN/ODD/1st 12) rămân netraduse — sunt scrise în engleză chiar pe poza mesei.
+
+**Verificat pe rulare reală** (nu pe hârtie): aparatul apare corect în lume cu eticheta deasupra, meniul se deschide și oprește jocul, pariul pe 17 cade pe căsuța potrivită, o rotire pierzătoare a dat Damage 24 → 12 și Move Speed 230 → 115, una câștigătoare (a ieșit chiar 17) a dat 24 → 48 și 230 → 460.
+
+**Codexul NU s-a atins:** n-a apărut niciun item, nicio raritate și nicio cifră din `ARME`/`BASE` nu s-a schimbat. ⚠️ Dar dacă vreodată cazinoul ajunge să dea **iteme** („Gamble your items"), atunci codexul devine relevant.
+
+---
+
 ## Session log — 2026-07-28 (inamicii revin din cerc + sabia chiar ajunge la Saratalin)
 
 **Cerut de Răzvan:** „Vreau ca inamicii sa se spawneze in cerc, nu doar in fata playerului. E un bug la cursed sword nu da damage in saratalin decat foarte aproape"

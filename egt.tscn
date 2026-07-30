@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://egt.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://harta/EGT/egt.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_egt"]
+size = Vector2(95, 110)
+
+[node name="EGT" type="StaticBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 19)
+shape = SubResource("RectangleShape2D_egt")

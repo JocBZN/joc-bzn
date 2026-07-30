@@ -146,6 +146,21 @@ const TRAD := {
 "They just keep coming. Survive as long as you can.": ["它们源源不断。尽力活下去。", "Sie hören nicht auf. Überlebe so lange du kannst.", "No dejan de venir. Sobrevive lo máximo posible.", "Они всё идут. Держись сколько сможешь.", "Ils continuent d’arriver. Survis le plus longtemps possible.", "敵は止まらない。できるだけ長く生き延びろ。", "Nie przestają nadchodzić. Przetrwaj jak najdłużej.", "Gelmeye devam ediyorlar. Elinden geldiğince dayan."],
 "It comes down from above": ["它从天而降", "Es kommt von oben herab", "Baja desde arriba", "Он спускается сверху", "Il descend d’en haut", "上から降りてくる", "Nadchodzi z góry", "Yukarıdan iniyor"],
 
+# ---------- cazinoul EGT (casino.gd) ----------
+# Numele pariurilor (RED, BLACK, EVEN, ODD, 1st 12, 2 to 1…) NU se traduc: sunt scrise în
+# engleză chiar pe poza mesei, iar o etichetă tradusă n-ar mai avea pereche pe masă.
+"Let's go gambling": ["走，去赌一把", "Auf geht's ins Casino", "Vamos a apostar", "Идём играть", "Allons parier", "さあ、賭けよう", "Idziemy się zakładać", "Hadi kumar oynayalım"],
+"Gamble your stats": ["赌上你的属性", "Setze deine Werte", "Apuesta tus estadísticas", "Поставь характеристики", "Parie tes stats", "ステータスを賭ける", "Postaw statystyki", "İstatistiklerini oyna"],
+"Gamble your items": ["赌上你的道具", "Setze deine Items", "Apuesta tus objetos", "Поставь предметы", "Parie tes objets", "アイテムを賭ける", "Postaw przedmioty", "Eşyalarını oyna"],
+"Coming soon": ["敬请期待", "Bald verfügbar", "Próximamente", "Скоро", "Bientôt", "近日公開", "Wkrótce", "Yakında"],
+"Leave": ["离开", "Verlassen", "Salir", "Уйти", "Partir", "立ち去る", "Wyjdź", "Ayrıl"],
+"Win = x2   Lose = half": ["赢 = ×2　输 = 减半", "Sieg = x2   Verlust = Hälfte", "Ganas = x2   Pierdes = mitad", "Выигрыш = x2   Проигрыш = половина", "Gagné = x2   Perdu = moitié", "勝ち = x2　負け = 半分", "Wygrana = x2   Przegrana = połowa", "Kazan = x2   Kaybet = yarısı"],
+"Place your bet on the table": ["在桌上下注", "Setze auf den Tisch", "Haz tu apuesta en la mesa", "Сделай ставку на столе", "Place ta mise sur la table", "テーブルに賭けて", "Postaw zakład na stole", "Masaya bahsini koy"],
+"SPIN": ["旋转", "DREHEN", "GIRAR", "КРУТИТЬ", "LANCER", "スピン", "ZAKRĘĆ", "ÇEVİR"],
+"Bet: %s": ["下注：%s", "Einsatz: %s", "Apuesta: %s", "Ставка: %s", "Mise : %s", "賭け: %s", "Zakład: %s", "Bahis: %s"],
+"YOU WIN!": ["你赢了！", "GEWONNEN!", "¡GANASTE!", "ТЫ ВЫИГРАЛ!", "GAGNÉ !", "勝ち！", "WYGRANA!", "KAZANDIN!"],
+"YOU LOSE": ["你输了", "VERLOREN", "PERDISTE", "ТЫ ПРОИГРАЛ", "PERDU", "負け", "PRZEGRANA", "KAYBETTİN"],
+
 # ---------- numele upgrade-urilor ----------
 # Numele proprii (Stroh, Duridama, Hellas, Saratalin) rămân la fel în toate limbile.
 "Weird Concoction": ["奇怪的调制品", "Seltsames Gebräu", "Brebaje Raro", "Странное Варево", "Mixture Étrange", "奇妙な調合薬", "Dziwna Mikstura", "Tuhaf Karışım"],
