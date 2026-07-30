@@ -46,6 +46,33 @@ const ELECTRIC_TINT := Color(0.5, 0.85, 2.6)  # sclipire albastră electrică (T
 var _slow_time: float = 0.0   # timp rămas de slow (hold + recover); reîmprospătat cât stă în gheață
 var _player: Node2D = null    # ținut minte, nu căutat prin arbore la fiecare cadru
 
+# --- Ocolirea obstacolelor (2026-07-30) ---
+# Inamicii merg DREPT spre țintă. Când în drum le iese un copac, o piatră sau o statuie,
+# `move_and_slide()` îi lipește de ea: dacă îi lovesc din plin, alunecarea n-are încotro să-i
+# ducă și rămân împingând în hitbox la nesfârșit, pe loc. Cerut de Răzvan: când se blochează,
+# să o ia la STÂNGA sau la DREAPTA și apoi să revină pe traiectorie.
+#
+# NU e pathfinding și nici nu vrem să fie — n-avem hartă de navigație (lumea e generată în
+# chunk-uri, infinită), iar la 300 de inamici un A* pe cadru ar omorî framerate-ul. E doar
+# reflexul de „dă-te lateral": îl ținem OCOL_DURATA secunde, apoi îi dăm iar drumul spre țintă.
+# Dacă obstacolul mai e în față, se declanșează din nou — dar de data asta din alt unghi, deci
+# ocolirea înaintează pas cu pas în jurul lui în loc să-l ia de la capăt.
+const OCOL_PROGRES := 0.4              # sub 40% din pasul cerut într-un cadru = nu înaintează
+const OCOL_RABDARE := 0.15             # atâtea secunde de ne-înaintare până se hotărăște să ocolească
+const OCOL_DURATA := 0.6               # cât ține cotitura, dacă între timp nu se eliberează drumul
+const OCOL_UNGHI := deg_to_rad(80.0)   # cât cotește (90° = perfect lateral; 80 lasă și un pic de înaintare)
+const OCOL_UITARE := 1.0               # după atâtea secunde de mers curat, uită partea aleasă
+const OCOL_INSISTENTA := 2.0           # cât insistă pe o parte până s-o încerce pe cealaltă
+const OCOL_CASTIG := 40.0              # cu atâția px trebuie să se apropie de țintă ca să conteze că merge
+const OCOL_INSISTENTA_MAX := 16.0      # plafonul răbdării, ca dublarea să nu urce la infinit
+var _blocat := 0.0            # de câte secunde împinge degeaba
+var _ocol := 0.0              # cât mai are de mers pe lângă obstacol
+var _ocol_semn := 0.0         # +1 = într-o parte, -1 = în cealaltă (semnul rotației); 0 = neales
+var _ocol_total := 0.0        # de cât timp ocolește fără să se apropie de țintă
+var _ocol_dist := 0.0         # cât de departe era de țintă la ultima apropiere care a contat
+var _ocol_limita := 0.0       # câtă răbdare are pe partea asta (se dublează la fiecare întoarcere)
+var _liber := 0.0             # de câte secunde merge nestingherit (vezi OCOL_UITARE)
+
 # --- Duridama: inamic „aurit" (upgrade_45) ---
 # La 1% (× stack) când e lovit, inamicul devine AURIU: îngheață exact în cadrul în care a fost
 # lovit (animație + mișcare oprite) și primește un filtru auriu. Lovitura care-l aurește NU-i
@@ -111,8 +138,13 @@ func _physics_process(delta: float) -> void:
 	var spre := tinta.global_position - global_position
 	var directie := spre.normalized()
 	# mers (oprit la marginea player-ului, încetinit de gheață) + împins de gloanțe
-	velocity = _viteza_mers(directie, spre.length(), not charmed) + _knockback
+	var dist := spre.length()
+	var mers := _ocoleste(_viteza_mers(directie, dist, not charmed), dist, delta)
+	velocity = mers + _knockback
+	var inainte := global_position
 	move_and_slide()
+	# a înaintat cât a cerut, sau împinge degeaba într-un obstacol? (vezi OCOL_*)
+	_verifica_blocaj(mers, global_position - inainte, dist, delta)
 	_knockback = _knockback.move_toward(Vector2.ZERO, knockback_decay * delta)  # împinsul scade rapid la 0
 	# scade slow-ul și pune filtrul albastru cât timp e înghețat (dar nu în timpul unei sclipiri de lovitură)
 	if _slow_time > 0.0:
@@ -123,8 +155,13 @@ func _physics_process(delta: float) -> void:
 		anim.modulate = _tenta().lerp(_flash_color, _flash_time / _flash_dur)
 	else:
 		anim.modulate = _tenta()
-	# angle() = unghiul spre player (0 = est, crește în sensul acelor de ceas) → octant 0..7
-	var idx := wrapi(int(round(directie.angle() / (PI / 4.0))), 0, 8)
+	# angle() = unghiul spre player (0 = est, crește în sensul acelor de ceas) → octant 0..7.
+	# Cât ocolește un obstacol se uită ÎNCOTRO MERGE, nu spre țintă: altfel s-ar vedea mergând
+	# lateral cu fața la tine, ca un crab, și n-ar mai fi limpede că se dă pe lângă copac.
+	var privire := directie
+	if _ocol > 0.0 and mers.length() > 0.001:
+		privire = mers.normalized()
+	var idx := wrapi(int(round(privire.angle() / (PI / 4.0))), 0, 8)
 	# doar când chiar se schimbă direcția (ca la player): play() în fiecare cadru costă degeaba
 	if anim.animation != DIRECTII[idx]:
 		anim.play(DIRECTII[idx])
@@ -159,6 +196,100 @@ func _viteza_mers(directie: Vector2, dist: float, spre_player: bool) -> Vector2:
 		# plece amândoi în același sens. Prins de testul din 2026-07-28.
 		return Vector2.RIGHT.rotated(float(get_instance_id() % 360) * (PI / 180.0)) * speed
 	return -directie * speed
+
+# Dacă e în plină ocolire, cotește mersul cerut cu OCOL_UNGHI în partea aleasă. Altfel îl lasă
+# neatins. Când inamicul stă pe loc (a ajuns la tine), ocolirea se anulează: n-are ce ocoli.
+#
+# Tot aici stă plasa de siguranță pentru FUNDĂTURI. Partea aleasă poate să dea într-un colț
+# (două pietre aproape lipite, un obstacol în „L") și atunci inamicul ar împinge acolo la
+# nesfârșit. Măsura e simplă și cinstită: dacă în OCOL_INSISTENTA secunde de ocolit NU s-a
+# apropiat de țintă cu măcar OCOL_CASTIG px, partea aia nu duce nicăieri → o încearcă pe
+# cealaltă. Cifra 2s nu e la întâmplare: e cât îi trebuie să facă vreo 240px pe lângă obstacol,
+# adică să treacă de un copac întreg. Prima variantă schimba partea la FIECARE reblocaj, adică
+# la ~0,7s, și atunci nu apuca să iasă niciodată — se legăna pe fața obstacolului la infinit.
+func _ocoleste(mers: Vector2, dist: float, delta: float) -> Vector2:
+	if _ocol <= 0.0:
+		return mers
+	_ocol = maxf(0.0, _ocol - delta)
+	if mers.length() < 0.001:
+		_ocol = 0.0
+		return mers
+	_ocol_total += delta
+	if dist < _ocol_dist - OCOL_CASTIG:
+		_ocol_dist = dist        # chiar câștigă teren → îi mai dăm răbdare pe partea asta
+		_ocol_total = 0.0
+		_ocol_limita = OCOL_INSISTENTA
+	elif _ocol_total >= _ocol_limita:
+		_ocol_semn = -_ocol_semn  # fundătură: pe partea cealaltă
+		_ocol_total = 0.0
+		_ocol_dist = dist
+		# și cu DUBLU de răbdare. Fără dublare, un obstacol lung (un zid, nu un copac) l-ar
+		# prinde între cele două capete ale lui: 2s într-o parte nu-i ajung să-l ocolească,
+		# se întoarce, 2s nici în cealaltă, și tot așa la nesfârșit. Dublând, a treia-a patra
+		# legănare îl scoate de la orice capăt. Măsurat pe un zid de 320px: 4/7 ajungeau cu
+		# răbdare fixă, 7/7 cu dublare.
+		_ocol_limita = minf(_ocol_limita * 2.0, OCOL_INSISTENTA_MAX)
+	return mers.rotated(_ocol_semn * OCOL_UNGHI)
+
+# Compară cât s-a mișcat cu cât a cerut. Dacă a înaintat, uită blocajul. Dacă împinge degeaba
+# de mai mult de OCOL_RABDARE secunde, pornește ocolirea. Pragul e pe DEPLASAREA REALĂ, nu pe
+# „am atins ceva": inamicii ating obstacole tot timpul și alunecă frumos pe lângă ele — problema
+# e doar când alunecarea nu-i mai duce nicăieri.
+func _verifica_blocaj(mers: Vector2, deplasare: Vector2, dist: float, delta: float) -> void:
+	var cerut := mers.length() * delta
+	if cerut < 0.001:
+		_blocat = 0.0   # nu voia să meargă nicăieri (stă lângă player) → nu e blocaj
+		return
+	if deplasare.length() >= cerut * OCOL_PROGRES:
+		_blocat = 0.0
+		# A trecut de obstacol și merge curat de-o vreme? Atunci uită partea aleasă, ca
+		# la următorul copac s-o poată alege din nou pe cea scurtă.
+		if _ocol <= 0.0:
+			_liber += delta
+			if _liber >= OCOL_UITARE:
+				_ocol_semn = 0.0
+				_ocol_total = 0.0
+		return
+	_liber = 0.0
+	_blocat += delta
+	if _blocat < OCOL_RABDARE:
+		return
+	_blocat = 0.0
+	# ⚠️ Partea se alege O SINGURĂ DATĂ per obstacol și se PĂSTREAZĂ până scapă de el. Prima
+	# variantă alegea din nou la fiecare blocaj, iar dacă se lovea iar (normal: după cotitură
+	# ținta e tot dincolo de copac) alegea partea opusă „ca s-o încerce și pe aia" — rezultatul
+	# a fost un inamic care se plimba la nesfârșit în sus și-n jos pe fața obstacolului, fără
+	# să-i dea ocol niciodată. Prins de testul cu 7 inamici: 6 ajungeau, unul se legăna la
+	# infinit. Acum se ține de partea aleasă până chiar înaintează.
+	if _ocol_semn == 0.0:
+		_ocol_semn = _alege_partea(mers.normalized())
+		_ocol_total = 0.0
+		_ocol_dist = dist
+		_ocol_limita = OCOL_INSISTENTA
+	_ocol = OCOL_DURATA
+
+# Stânga sau dreapta? Adunăm normalele obstacolelor atinse la ultima alunecare: tangenta la ele
+# (normala rotită cu 90°) e „pe lângă ce", iar dintre cele două sensuri ale ei îl luăm pe cel
+# care duce mai spre țintă. Așa, dacă inamicul a nimerit copacul puțin pe stânga, îl ocolește
+# pe stânga — pe drumul scurt, nu pe cel lung.
+#
+# Când e LOVIT DIN PLIN tangenta nu ne spune nimic (normala e fix înapoi, ambele sensuri duc la
+# fel de departe). Atunci hotărăște id-ul instanței — arbitrar, dar CONSTANT pentru același inamic
+# (nu se răzgândește la fiecare cadru, deci nu tremură pe loc) și diferit de la unul la altul,
+# ca doi blocați de același copac să nu plece amândoi în aceeași parte.
+func _alege_partea(dir: Vector2) -> float:
+	var n := Vector2.ZERO
+	for i in get_slide_collision_count():
+		n += get_slide_collision(i).get_normal()
+	if n.length() > 0.001:
+		var t := n.normalized().orthogonal()
+		if t.dot(dir) < 0.0:
+			t = -t
+		if t.dot(dir) > 0.12:
+			var semn := signf(dir.cross(t))
+			if semn != 0.0:
+				return semn
+	return 1.0 if int(get_instance_id()) % 2 == 0 else -1.0
 
 # `stop_dist`, plafonat o singură dată sub raza de damage a player-ului. Vezi comentariul de la
 # `stop_dist`: dacă un inamic s-ar opri mai departe decât `contact_range`, n-ar mai putea să te

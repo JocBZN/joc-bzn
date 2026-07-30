@@ -16,6 +16,36 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (inamicii ocolesc obstacolele în loc să împingă în ele)
+
+**Cerut de Răzvan:** „când inamicii se blochează într-un obiect (merg încontinuu în el și se lovesc de hitbox) să facă stânga sau dreapta, nu tracking foarte complicat, doar atunci când e blocat să facă stânga sau dreapta să se pună pe traiectorie înapoi."
+
+**Ce s-a făcut.** `enemy.gd` a primit un reflex de ocolire (blocul `OCOL_*`). NU e pathfinding: n-avem hartă de navigație (lumea e infinită, generată în chunk-uri) și la 300 de inamici un A* pe cadru ar omorî framerate-ul. Sunt trei bucăți:
+1. **Detecția.** Compar deplasarea REALĂ dintr-un cadru cu cea cerută (`_verifica_blocaj`). Sub 40% timp de 0,15s = împinge degeaba. Pragul e pe cât s-a mișcat, nu pe „am atins ceva": inamicii ating obstacole tot timpul și alunecă frumos pe lângă ele — problema e doar când alunecarea nu-i mai duce nicăieri.
+2. **Cotitura.** Mersul se rotește cu 80° (`_ocoleste`) timp de 0,6s, apoi îi dăm iar drumul spre țintă. Dacă obstacolul mai e în față se declanșează din nou, dar din alt unghi → înaintează pas cu pas în jurul lui.
+3. **Partea.** Din normalele coliziunii: tangenta la obstacol, în sensul care duce mai spre țintă (= drumul scurt). Când e lovit DIN PLIN tangenta nu spune nimic (ambele sensuri sunt la fel), și atunci decide `get_instance_id() % 2` — arbitrar, dar constant pentru același inamic (nu tremură) și diferit între ei (doi blocați de același copac nu pleacă în aceeași parte).
+
+**Două capcane, amândouă prinse de test, amândouă meritând ținute minte:**
+- **Alegeam partea din nou la fiecare reblocaj** și, ca „să încerc și cealaltă variantă", o luam pe cea opusă. Rezultat: inamicul se legăna la nesfârșit în sus și-n jos pe fața obstacolului, fără să-i dea ocol niciodată (6/7 ajungeau, unul dansa la infinit). Corect e să se **țină de partea aleasă** până chiar înaintează (`_ocol_semn` se uită abia după `OCOL_UITARE` = 1s de mers curat).
+- Dar dacă se ține ORBEȘTE de ea, un colț înfundat îl ține pe loc la fel de bine (în testul de pădure, 10 din 20 se adunaseră în ACELAȘI buzunar). Plasa de siguranță: dacă în `OCOL_INSISTENTA` = 2s de ocolit nu s-a apropiat de țintă cu măcar 40px, partea aia nu duce nicăieri → o încearcă pe cealaltă, **cu răbdare dublă** (2s → 4s → 8s, plafonat la 16). Dublarea nu e cochetărie: pe un obstacol LUNG (un zid, nu un copac), cu răbdare fixă se prinde între cele două capete și se leagănă la infinit — 4/7 ajungeau; cu dublare, 7/7.
+
+**Măsurat, A/B pe același test** (cod vechi vs. nou):
+
+| scenariu | înainte | după |
+|---|---|---|
+| copac fix în drum, 7 inamici | 0/7 | **7/7** (~4,5s) |
+| zid de 320px, 7 inamici | 0/7 | **7/7** (~7-11s) |
+| pădure de 22 de obstacole, 20 inamici | 4/20 | **20/20** |
+| **jocul REAL, 15s** (inamici înțepeniți din total măsurători) | **12,9%** | **0,0%** |
+
+Testul din joc a rulat `main.tscn` cu player-ul făcut nemuritor din afară (`max_hp = 10_000_000`), tocmai ca să nu moară și să scrie în leaderboard-ul real — capcana din regulile de sus. „Înțepenit" = mai departe de 90px de player (deci VREA să meargă) și nu s-a clintit 2px în jumătate de secundă.
+
+**Bonus vizual:** cât ocolește, inamicul se uită ÎNCOTRO MERGE, nu spre tine — altfel s-ar vedea mergând lateral cu fața la tine, ca un crab.
+
+**Notă:** `player.tscn` apare modificat în working tree (`speed = 250`) — nu e de la mine, nimic din cod nu salvează scene; e o salvare din editorul deschis. L-am lăsat neatins, ca pe celelalte modificări necomise ale lui Răzvan.
+
+---
+
 ## Session log — 2026-07-30 (plafon la mărimea glonțului: pistol 100%, mage 250%)
 
 **Cerut de Răzvan:** „Vreau ca la pistol, bullets sa nu poata sa isi ia size up. Si la mage staff vreau sa fie o limita de 250%."
