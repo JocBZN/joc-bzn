@@ -107,6 +107,11 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-07-30, roulette projectiles behave like the item ones)
+- 🐛 Winning **Projectiles** at the roulette used to write into `player.bullet_count` — **parallel** bullets, all aimed at the same enemy. That mechanic has been dead since 2026-07-21: every item that grants an extra projectile today (Gunslinger, Twin Comets, and the one still carrying the legacy id `gloante_paralele`) feeds **`stacked_armory_stacks`** instead, which fires whole extra volleys at *other* enemies. The table was handing out something the rest of the game no longer gives.
+- `casino.gd` now does the maths on the **total** (`projectiles_total()`, the very number printed in the panel) and puts the difference into `stacked_armory_stacks`, leaving `bullet_count` at 1. `_valoare("proj")` reads the total too, so the row no longer inspects one field while editing another.
+- Verified by running it: ×2/×3/×20 wins give 1/2/19 bonus volleys with parallel bullets still at 1; a chain of wins goes 1 → 2 → 4 → 8 and losses walk it back to 1 without ever dropping below one projectile; and firing with 2 bonus volleys against 4 surrounding enemies produced **3 bullets travelling in 3 distinct directions**.
+
 ## Current state (2026-07-30, coming back from the Nether doubles the police)
 - ✅ Returning alive from the Nether now does three things: purple creatures keep spawning in the overworld (unchanged, still `nether_share` = 30% of everything that spawns, still at full Nether strength), and the **police double — both in numbers per second and in health**.
 - ⚠️ **The total spawn rate is multiplied by 2.86, not 2**, and the arithmetic is easy to get wrong (I got it wrong once). Before the Nether the police are **100%** of the stream; afterwards they are only **70%** of it. For twice as many police per second *and* creatures still at 30% of the total, the whole stream has to grow by `2 / (1 − nether_share)`. Tuned with `escaped_police_mult` (rate) and `escaped_power_mult` (health), both `@export`.

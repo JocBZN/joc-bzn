@@ -766,7 +766,7 @@ func _valoare(p, id: String) -> float:
 		"damage":    return float(p.bullet_damage)
 		"atkspeed":  return p.fire_interval
 		"crit":      return p.crit_chance
-		"proj":      return float(p.bullet_count)
+		"proj":      return float(p.projectiles_total())
 		"pierce":    return float(p.pierce)
 		"wsize":     return p.weapon_size_mult
 		"knockback": return p.knockback
@@ -814,7 +814,17 @@ func _aplica(p, id: String, f: float) -> void:
 		"crit":
 			p.crit_chance *= f
 		"proj":
-			p.bullet_count = maxi(1, _intreg(p.bullet_count, f))
+			# ⚠️ Proiectilele câștigate la ruletă trebuie să fie DE ACELAȘI FEL cu cele date de
+			# iteme (Gunslinger, Twin Comets): salve întregi trase în ALȚI inamici, adică
+			# `stacked_armory_stacks`. Până pe 2026-07-30 se scria în `bullet_count` — gloanțe
+			# PARALELE, pe lângă aceeași țintă — o mecanică pe care niciun item n-o mai dă din
+			# 2026-07-21 (vezi comentariul de la `player.bullet_count`). Ieșea altceva decât
+			# scria pe stat și altceva decât se aștepta jucătorul.
+			#
+			# Socotim pe TOTAL (`projectiles_total()` = paralele + bonus), exact numărul afișat
+			# în panou, iar diferența o punem în bonusuri. `bullet_count` rămâne 1.
+			var total := maxi(1, _intreg(p.projectiles_total(), f))
+			p.stacked_armory_stacks = maxi(0, total - p.bullet_count)
 		"pierce":
 			p.pierce = maxi(0, _intreg(p.pierce, f))
 		"wsize":

@@ -16,6 +16,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (proiectilele câștigate la ruletă sunt ca cele de la iteme)
+
+**Cerut de Răzvan:** „Cand castig la ruleta proiectile mi le pune paralele, eu vreau cum sunt si celalalte iteme de proiectile."
+
+**Bug real, nu preferință.** Cazinoul scria în `player.bullet_count` = gloanțe PARALELE, trase toate spre aceeași țintă. Mecanica aia e moartă din **2026-07-21**: niciun item n-o mai dă (vezi comentariul de la `bullet_count`), iar tot ce se numește „proiectil în plus" azi — Gunslinger, Twin Comets, chiar itemul cu id-ul vechi `gloante_paralele` — merge pe **`stacked_armory_stacks`**: salve ÎNTREGI trase în ALȚI inamici, în direcții diferite. Deci ruleta dădea altceva decât dau itemele, deși rândul din panou se numea la fel.
+
+**Ce s-a făcut.** `casino.gd::_aplica("proj")` socotește acum pe **total** (`projectiles_total()` = paralele + bonus, adică exact numărul afișat în panou) și pune diferența în `stacked_armory_stacks`; `bullet_count` rămâne 1. Și `_valoare("proj")` citește totalul, nu `bullet_count` — altfel rândul s-ar fi uitat la altceva decât modifică.
+
+**Verificat pe rulare:**
+
+| | rezultat |
+|---|---|
+| itemul din level up (+2) | paralele 1, bonus 2, total 3 |
+| câștig ×2 / ×3 / ×20 | bonus 1 / 2 / 19 — paralele rămân 1 |
+| lanț ×2 de trei ori | 1 → 2 → 4 → 8, apoi înapoi 4 → 2 → 1 la pierderi |
+| pierdere de la 1 | rămâne 1 (nu poți ajunge fără proiectile) |
+| tras cu 2 bonus, 4 inamici în jur | **3 gloanțe în 3 direcții DISTINCTE** — salve separate, nu paralele |
+
+---
+
 ## Session log — 2026-07-30 (întors din Nether = polițiști dubli, ca număr și ca viață)
 
 **Cerut de Răzvan:** „vreau sa fie la fel ca putere si spawn rate, si atunci cand vine player-ul din nether, dubleaza spawn-rateul si puterea inamicilor normali din lumea normala."
