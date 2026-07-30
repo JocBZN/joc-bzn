@@ -16,6 +16,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (plafon la mărimea glonțului: pistol 100%, mage 250%)
+
+**Cerut de Răzvan:** „Vreau ca la pistol, bullets sa nu poata sa isi ia size up. Si la mage staff vreau sa fie o limita de 250%."
+
+**Ce s-a făcut.** `player.gd` are acum `BULLET_SIZE_CAP = {"pistol": 1.0, "mage": 2.5}` și funcția **`bullet_size_scale()`**, folosită la naștere în `_spawn_one_bullet()` în locul vechiului `bullet_scale * weapon_size_scale()`. Pistolul trage un glonț mic și des — umflat de Pufferfish + Rat's Burger + Doză dublă ajungea la 742% (măsurat), adică o pată pe jumătate de ecran; acum rămâne fix la 100%. Sfera mage e AOE și oricum mare, deci poate crește, dar se oprește la 250%.
+
+**Plafonul e pe REZULTAT, nu pe stat.** Adică prinde ȘI `bullet_scale` (Doză dublă, +0,3 pe luare), nu doar `weapon_size_*`. Așa cele două cifre din cerință se citesc la fel: pistol = plafon 100%, mage = plafon 250%. Doza dublă rămâne utilă la pistol pentru cei +5 damage.
+
+**Ce NU s-a atins:** statul „Weapon Size" din panou. El e real și lucrează mai departe la **dârele de foc/gheață** (`fire_trail_size`/`frost_trail_size` × `weapon_size_scale()`), la aura stingătorului și la tăietura sabiei — se oprește doar creșterea glonțului. Efect secundar: un pistolar poate vedea „Weapon Size 464%" cu glonțul la 100%. Dacă deranjează, se schimbă textul rândului din `stat_lines()` (are nevoie de o cheie i18n nouă, fiindcă ar fi text asamblat).
+
+**Verificat pe rulare** — tabel pentru toate cele 4 arme × 6 combinații de itemuri, plus captură cu cele trei gloanțe unul lângă altul: la „Puffer ×3 + Burger ×3 + Doză ×2" (brut 742%) pistolul iese **100%**, mage-ul **250%**, stingătorul și sabia neatinse.
+
+---
+
 ## Session log — 2026-07-30 (creaturile din Nether te urmează în lumea normală)
 
 **Cerut de Răzvan:** „Dupa ce vii din nether vreau sa se spawneze inamicii de acolo si in overworld."

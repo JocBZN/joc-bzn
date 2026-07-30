@@ -100,12 +100,18 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 | Weapon | How it fires |
 |---|---|
-| **Pistol** | One bullet at the nearest enemy. Nothing else. |
-| **Mage Staff** | The same bullet, re-skinned as an animated orb, that **explodes on impact** (radius 110, damage = 60% of `bullet_damage`). |
+| **Pistol** | One bullet at the nearest enemy. Nothing else. Its bullet is **capped at 100%** — size upgrades do not grow it (`BULLET_SIZE_CAP`). |
+| **Mage Staff** | The same bullet, re-skinned as an animated orb, that **explodes on impact** (radius 110, damage = 60% of `bullet_damage`). Its orb grows with size upgrades but is **capped at 250%**. |
 | **Extinguisher** | No bullets at all — an **aura** pulses around you every `fire_interval`, hitting *every* enemy within `aura_base_radius + level × aura_growth`, for `aura_damage + 50% of bullet_damage` (15 at start). |
 | **Cursed Sword** | No bullets — a **melee slash** in the direction you're **facing** (`_facing`), hitting *every* enemy whose **body circle touches** a fixed rectangle that runs from the player out to the animation's furthest pixel, for `sword_base_damage + bullet_damage`. (Circle, not centre point, since 2026-07-28 — that is what made it useless against Saratalin.) Built on the **Firewalker model**: `sword_size` is the width in px, and the rectangle is *measured from the art* at startup, so art and hitbox cannot drift apart. Swings at the **pistol's cadence** since 2026-07-27 (the old `sword_slow_start` 1.9× handicap was removed on request). The slash animation is a **child of the player**, so it follows you (feels like the sword is always in hand), and draws **under** him. Scales with damage / crit / knockback / instakill / weapon-size upgrades. |
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
+
+## Current state (2026-07-30, bullet size is capped per weapon)
+- ✅ **The pistol's bullet no longer grows at all, and the mage orb stops at 250%.** `player.gd` gained `BULLET_SIZE_CAP = {"pistol": 1.0, "mage": 2.5}` and `bullet_size_scale()`, which `_spawn_one_bullet()` now uses instead of the raw `bullet_scale * weapon_size_scale()`. Stacked Pufferfish + Rat's Burger + Double Dose reached **742%** (measured) — half a screen of bullet.
+- The cap is applied to the **result**, not to the stat, so it also catches `bullet_scale` (Double Dose). That makes both numbers read the same way: pistol = 100% cap, mage = 250% cap. Double Dose is still worth taking on the pistol for its +5 damage.
+- The **Weapon Size** stat itself is untouched and keeps working on the **fire/frost trails**, the extinguisher aura and the sword slash — only the bullet stops growing. Side effect: a pistol player can read "Weapon Size 464%" while the bullet sits at 100%.
+- Verified by running it: all 4 weapons × 6 item combinations printed, plus a side-by-side screenshot of the three bullets.
 
 ## Current state (2026-07-30, the Nether follows you home)
 - ✅ **Come back from the Nether alive and its creatures start spawning in the overworld too.** `nether.gd` sets a public **`escaped`** flag on a voluntary exit; `spawner.gd::_scena_inamic()` reads it and makes **`nether_share` = 30%** of overworld spawns purple creatures, the rest police. The **total** enemy count is unchanged — only who they are — so the world gets sharper, not more crowded. `nether_share` is an `@export`: 0 restores the old behaviour, 1 gives the overworld nothing but creatures.

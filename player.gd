@@ -221,7 +221,8 @@ func luck_bonus() -> float:
 @export var ricochet: int = 0
 @export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
 # --- mărimea ARMEI (sprite + hitbox), comună tuturor armelor ---
-# Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui). Stingător: mărește raza aurei.
+# Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui) — dar PLAFONAT, vezi
+# `BULLET_SIZE_CAP`. Stingător: mărește raza aurei. Sabie: tăietura. Toate: dârele de foc/gheață.
 const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran (193px × 1.4 sprite × 0.1 root)
 @export var weapon_size_px: float = 0.0    # Pufferfish: +10 px adăugați la mărimea armei
 @export var weapon_size_mult: float = 1.0  # Rat's Burger: × 1.30 peste mărimea curentă
@@ -511,6 +512,23 @@ func _update_anim(directie: Vector2) -> void:
 func weapon_size_scale() -> float:
 	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult
 
+# Cât de mare iese GLONȚUL, cu plafonul armei aplicat (cerut de Răzvan pe 2026-07-30).
+# Pistolul trage un glonț mic și des: umflat de Pufferfish/Rat's Burger/Doză dublă ajungea să
+# acopere jumătate de ecran, deci rămâne fix la 100%. Sfera mage e AOE și oricum mare, așa că
+# poate crește, dar nu peste 250%. Plafonul e pe REZULTAT (bullet_scale × weapon_size_scale),
+# nu pe stat: statul „Weapon Size" rămâne cum e și continuă să lucreze la dârele de foc/gheață,
+# la aura stingătorului și la tăietura sabiei — se oprește doar creșterea glonțului.
+const BULLET_SIZE_CAP := {
+	"pistol": 1.0,
+	"mage": 2.5,
+}
+
+func bullet_size_scale() -> float:
+	var s := bullet_scale * weapon_size_scale()
+	if BULLET_SIZE_CAP.has(weapon_type):
+		s = minf(s, float(BULLET_SIZE_CAP[weapon_type]))
+	return s
+
 # Cât se înmulțește damage-ul unei lovituri, DUPĂ starea de acum: Cigarette Pack (mereu),
 # Theo's Wrath (doar sub 20% viață) și Diesel Power (cu cât mergi mai repede). Gândit ca
 # weapon_size_scale(): un factor derivat, citit la folosire, nu o valoare scrisă în player.
@@ -769,7 +787,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
 		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
 	# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus sfera mage
-	bullet.scale *= bullet_scale * weapon_size_scale()
+	bullet.scale *= bullet_size_scale()   # cu plafonul armei: pistol 100%, mage 250%
 	bullet.set_direction(dir)
 	return is_crit
 
