@@ -16,6 +16,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-07-30 (cazinoul: plăți pe tip de pariu + panoul intră în ramă)
+
+**Cerut de Răzvan:** „Nu arata foarte bine la stats la gamble, poti sa faci textul mai mic sa intre in meniu mai bine, nici butoanele nu intra bine. La win la un numar specific vreau sa fie 20x. La rosu sau negru e 2x. 1st 12, 2nd 12 si 3rd 12 vreau sa fie 3x. La toate 2 to 1 column vreau sa fie 3x. la 1-12 vreau sa fie 3x. la 19-36 vreau sa fie 3x. la even si odd vreau sa fie 2x."
+
+**1. Plățile nu mai sunt egale.** `CASTIG_MULT` era un singur număr (2.0), acum e un dicționar pe tip de pariu: **număr plin 20×**, duzini / coloane „2 to 1" / „1-12" / „19-36" **3×**, roșu/negru/par/impar **2×**. Pierderea a rămas 0,5 pentru orice pariu. `_aplica()` primește acum factorul gata calculat, nu un `bool`. Sub eticheta „Bet: 17" apare și „Win x20", ca să știi ce joci înainte să apeși.
+
+**🔑 De ce se lățea panoul peste ramă (adevărata cauză, nu fontul).** O etichetă FĂRĂ `autowrap` își impune lățimea textului ca **mărime minimă**. „Place your bet on the table" cerea **291px** într-un panou de **345,6px**, iar cu marginile de 40+40 conținutul ajungea la **371px** — adică 25px în afara ramei, și odată cu el butoanele. Fontul mai mic singur n-ar fi rezolvat-o, doar ar fi amânat-o. Reparat cu `autowrap_mode` pe etichetele lungi (pariul, subtitlul, rândurile de rezultat) și `clip_text` pe numele statusurilor.
+
+**⚠️ Marginile erau sub grosimea ramei.** `patch_margin` = 46, iar `MarginContainer` avea 40 — deci textul se urca 6px pe chenarul ornat prin construcție. Acum 56 (stânga/dreapta), 58 sus, 50 jos.
+
+**Fonturi micșorate:** titlu 22→17, subtitlu 15→12, statusuri 16→13, pariu 18→14, SPIN 23→17 (înălțime 46→38), BACK 18→15 (38→32), rândurile de rezultat 15→12.
+
+**Verificat pe rulare, în starea cea mai înghesuită** (toate statusurile bifate + rezultat afișat, care e momentul în care panoul are cel mai mult conținut): lățimea conținutului **345,6 = exact lățimea panoului**, în toate cele trei stări (gol / bifat tot / după rotire). Înainte era 371, apoi 365 după rezultat. Plățile tipărite din cod: numar→20, rosu/negru/par/impar→2, jos/sus/duzina/coloana→3.
+
+**⚠️ Ce s-a schimbat în matematică (nu era în cerință, dar merită știut):** acum TOATE pariurile sunt în favoarea jucătorului pe termen lung — număr plin 1,03×, roșu/negru 1,23×, duzină/coloană 1,31× pe rotire. Iar **„19-36" e strict mai bun decât „1-12"**: acoperă 18 numere față de 12, la aceeași plată de 3× (1,72× față de 1,31×). Vine din faptul că poza scrie „1-12" unde o masă adevărată scrie „1-18" — dacă se pune `JOS_MAXIM = 18`, perechea devine simetrică.
+
+**Traduceri:** cheia „Win = x2   Lose = half" a ieșit (nu mai e adevărată), au intrat „Lose = half the stat" și „Win x%s". `tool_check_i18n`: 204 chei, tot tradus.
+
+---
+
 ## Session log — 2026-07-30 (pietrele nu mai cresc în trunchiul copacilor)
 
 **Cerut de Răzvan:** „ti-am pus un screenshot in debugging vezi care e problema si rezolva, isi fac overlapping copacii cu pietrele" (`debugging/Screenshot 2026-07-23 182612.png` — o piatră fix în trunchiul unui copac).

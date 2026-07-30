@@ -35,8 +35,20 @@ const ACCENT := Color(0.95, 0.85, 0.55)   # auriul ramei ornate (ca în pause.gd
 const BTN_MAIN := Color("9e603f")         # umplutura butoanelor (lemn, ca în meniu)
 const BTN_SECOND := Color("594232")       # conturul lor
 
-# Cât se schimbă un status bifat. 2.0 / 0.5 = „totul sau nimic".
-const CASTIG_MULT := 2.0
+# Cât se ÎNMULȚEȘTE un status bifat dacă pariul iese — pe TIP de pariu (cerut de Răzvan pe
+# 2026-07-30; până atunci toate plăteau 2×, deci un număr plin nu avea niciun rost).
+const CASTIG_MULT := {
+	"numar": 20.0,    # număr plin — o șansă din 37
+	"rosu": 2.0,
+	"negru": 2.0,
+	"par": 2.0,
+	"impar": 2.0,
+	"jos": 3.0,       # căsuța scrisă „1-12" pe poză (vezi JOS_MAXIM)
+	"sus": 3.0,       # „19-36"
+	"duzina": 3.0,    # 1st 12 / 2nd 12 / 3rd 12
+	"coloana": 3.0,   # cele trei „2 to 1"
+}
+# Dacă pierzi, statusul se înjumătățește — la fel pentru orice pariu.
 const PIERDERE_MULT := 0.5
 
 # ---------------------------------------------------------------------------
@@ -115,6 +127,7 @@ var _bila: Label               # numărul ieșit, scris în butucul roții
 var _panou: NinePatchRect
 var _lista_stat: VBoxContainer
 var _lbl_pariu: Label
+var _lbl_plata: Label          # cât plătește pariul ales (×20, ×3, ×2)
 var _btn_spin: Button
 var _rezultat: VBoxContainer
 var _banner: Label
@@ -378,6 +391,7 @@ func _pune_pariu(pariu: Dictionary, r: Rect2, eticheta: String) -> void:
 	_pariu = pariu
 	_pariu_rect = r
 	_lbl_pariu.text = tr("Bet: %s") % eticheta
+	_lbl_plata.text = tr("Win x%s") % _text_plata(pariu)
 	_jeton.visible = true
 	_evid.visible = false
 	_bila.visible = false
@@ -402,32 +416,33 @@ func _build_panou() -> void:
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# marginile trebuie să treacă clar de grosimea ramei (patch_margin = 46), ca textul să nu se
-	# lipească de pereții chenarului
-	margin.add_theme_constant_override("margin_left", 40)
-	margin.add_theme_constant_override("margin_right", 40)
-	margin.add_theme_constant_override("margin_top", 54)
-	margin.add_theme_constant_override("margin_bottom", 46)
+	# ⚠️ Marginile trebuie să treacă de grosimea ramei (`patch_margin` = 46), altfel textul se urcă
+	# pe chenarul ornat. Erau 40, adică 6px SUB grosimea ramei — de aia se lipeau butoanele de ea.
+	margin.add_theme_constant_override("margin_left", 56)
+	margin.add_theme_constant_override("margin_right", 56)
+	margin.add_theme_constant_override("margin_top", 58)
+	margin.add_theme_constant_override("margin_bottom", 50)
 	_panou.add_child(margin)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 5)
 	margin.add_child(box)
 
 	var titlu := Label.new()
 	titlu.text = "Gamble your stats"
 	titlu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	titlu.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	titlu.add_theme_font_size_override("font_size", 22)
+	titlu.add_theme_font_size_override("font_size", 17)
 	titlu.add_theme_color_override("font_color", ACCENT)
 	titlu.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	titlu.add_theme_constant_override("outline_size", 2)
 	box.add_child(titlu)
 
 	var sub := Label.new()
-	sub.text = "Win = x2   Lose = half"
+	sub.text = "Lose = half the stat"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_font_size_override("font_size", 15)
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub.add_theme_font_size_override("font_size", 12)
 	sub.add_theme_color_override("font_color", Color(0.70, 0.70, 0.74))
 	box.add_child(sub)
 
@@ -442,14 +457,27 @@ func _build_panou() -> void:
 	_lista_stat.add_theme_constant_override("separation", 1)
 	scroll.add_child(_lista_stat)
 
+	# ⚠️ `autowrap` pe etichetele astea două nu e de frumusețe: o etichetă FĂRĂ autowrap își impune
+	# lățimea textului ca mărime MINIMĂ, iar „Place your bet on the table" cerea 291px într-un panou
+	# de 345 — împingea tot conținutul (inclusiv butoanele) cu 25px peste rama ornată.
 	_lbl_pariu = Label.new()
 	_lbl_pariu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_lbl_pariu.add_theme_font_size_override("font_size", 18)
+	_lbl_pariu.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_pariu.add_theme_font_size_override("font_size", 14)
 	_lbl_pariu.add_theme_color_override("font_color", ACCENT)
 	box.add_child(_lbl_pariu)
 
+	# cât plătește pariul ales (20× la număr plin, 3× la duzini/coloane, 2× la roșu/negru…)
+	_lbl_plata = Label.new()
+	_lbl_plata.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_plata.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_plata.add_theme_font_size_override("font_size", 13)
+	_lbl_plata.add_theme_color_override("font_color", Color(0.44, 0.86, 0.44))
+	box.add_child(_lbl_plata)
+
 	_btn_spin = _buton("SPIN", _spin)
-	_btn_spin.custom_minimum_size = Vector2(0, 46)
+	_btn_spin.custom_minimum_size = Vector2(0, 38)
+	_btn_spin.add_theme_font_size_override("font_size", 17)
 	box.add_child(_btn_spin)
 
 	_rezultat = VBoxContainer.new()
@@ -457,8 +485,8 @@ func _build_panou() -> void:
 	box.add_child(_rezultat)
 
 	var inapoi := _buton("Back", _on_back)
-	inapoi.custom_minimum_size = Vector2(0, 38)
-	inapoi.add_theme_font_size_override("font_size", 18)
+	inapoi.custom_minimum_size = Vector2(0, 32)
+	inapoi.add_theme_font_size_override("font_size", 15)
 	box.add_child(inapoi)
 
 func _on_back() -> void:
@@ -483,14 +511,15 @@ func _umple_statusuri() -> void:
 		var cb := CheckBox.new()
 		cb.text = s["nume"]
 		cb.button_pressed = _alese.has(s["id"])
-		cb.add_theme_font_size_override("font_size", 16)
+		cb.add_theme_font_size_override("font_size", 13)
 		cb.add_theme_color_override("font_color", Color(0.90, 0.90, 0.94))
 		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cb.clip_text = true   # un nume lung scurtează, nu lățește panoul peste ramă
 		cb.toggled.connect(_on_bifa.bind(s["id"]))
 		hb.add_child(cb)
 		var val := Label.new()
 		val.text = _afisare(p, s["id"])
-		val.add_theme_font_size_override("font_size", 16)
+		val.add_theme_font_size_override("font_size", 13)
 		val.add_theme_color_override("font_color", ACCENT)
 		val.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		hb.add_child(val)
@@ -514,6 +543,16 @@ func _actualizeaza_spin() -> void:
 	_btn_spin.disabled = _se_invarte or _pariu == null or _alese.is_empty()
 	if _pariu == null:
 		_lbl_pariu.text = "Place your bet on the table"
+		_lbl_plata.text = ""
+
+# Cât plătește pariul, scris scurt: „20", „3", „2" (fără „.0" degeaba).
+func _text_plata(pariu: Dictionary) -> String:
+	return ("%.1f" % _multiplicator(pariu)).trim_suffix(".0")
+
+# Multiplicatorul de CÂȘTIG al unui pariu. Necunoscut → 2×, ca să nu iasă 0 dacă cineva adaugă
+# un tip nou de pariu și uită să-l treacă în CASTIG_MULT.
+func _multiplicator(pariu: Dictionary) -> float:
+	return float(CASTIG_MULT.get(pariu["tip"], 2.0))
 
 func _reseteaza_masa() -> void:
 	_pariu = null
@@ -624,15 +663,21 @@ func _aplica_pariul(castigat: bool) -> void:
 	var p = get_tree().get_first_node_in_group("player")
 	if p == null:
 		return
+	# Câștigul depinde de PARIU (număr plin 20×, duzină/coloană 3×, roșu/negru 2×), pierderea nu:
+	# oricum ai pariat, pierzi jumătate.
+	var f: float = _multiplicator(_pariu) if castigat else PIERDERE_MULT
 	for s in STATS:
 		if not _alese.has(s["id"]):
 			continue
 		var inainte := _afisare(p, s["id"])
-		_aplica(p, s["id"], castigat)
+		_aplica(p, s["id"], f)
 		var dupa := _afisare(p, s["id"])
 		var l := Label.new()
 		l.text = "%s  %s → %s" % [tr(s["nume"]), inainte, dupa]   # tr() explicit: text asamblat
-		l.add_theme_font_size_override("font_size", 15)
+		# autowrap din același motiv ca la `_lbl_pariu`: fără el, un rând lung („Move Speed
+		# 230 → 4600") își impune lățimea și scoate tot panoul din rama ornată.
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.add_theme_font_size_override("font_size", 12)
 		l.add_theme_color_override("font_color", Color(0.44, 0.86, 0.44) if castigat else Color(0.92, 0.38, 0.36))
 		_rezultat.add_child(l)
 
@@ -672,13 +717,13 @@ func _afisare(p, id: String) -> String:
 		"dmgtaken":  return str(p.contact_damage)
 	return ""
 
-# Dublează (câștig) sau înjumătățește (pierdere) un status.
+# Înmulțește un status cu `f` — factorul vine deja calculat din `_aplica_pariul()`: la câștig e
+# plata pariului (20× / 3× / 2×), la pierdere e 0,5.
 #
 # Plafoanele de jos NU sunt cosmetice: fără ele o pierdere te poate lăsa cu 0 proiectile (nu mai
 # tragi deloc) sau cu 0 viață maximă (mori pe loc), adică jocul s-ar termina de la o rotire —
 # altceva decât „pierzi jumătate din status".
-func _aplica(p, id: String, castigat: bool) -> void:
-	var f := CASTIG_MULT if castigat else PIERDERE_MULT
+func _aplica(p, id: String, f: float) -> void:
 	match id:
 		"damage":
 			p.bullet_damage = maxi(1, _intreg(p.bullet_damage, f))
