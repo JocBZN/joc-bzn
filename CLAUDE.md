@@ -97,7 +97,7 @@ Viață fixă **16 000** (Saratalin are 10 000) și premiu **4 niveluri** (el d�
 
 **⚠️ `const float TAU` în shader = eroare de compilare** — `TAU` e deja constantă în limbajul de shader al Godot. Iar când shaderul nu compilă, sprite-ul pur și simplu nu se desenează, fără nimic în ecran; mesajul e doar în consolă.
 
-**Nu e pus încă în lume** — n-are generator și n-are `.gd`. Așteaptă tilesetul pentru dimensiunea Ender.
+**Nu e pus încă în lume** — n-are generator și n-are `.gd`. Așteaptă tilesetul pentru dimensiunea Ender. *(Rezolvat în aceeași zi: a venit tilesetul, vezi log-ul „dimensiunea ENDER" de mai sus — fântâna are acum `portal_ender.gd` și răsare unde se scufundă portalul Nether-ului.)*
 
 ---
 
