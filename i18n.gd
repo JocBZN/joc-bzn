@@ -173,7 +173,7 @@ const TRAD := {
 "Gamble your items": ["赌上你的道具", "Setze deine Items", "Apuesta tus objetos", "Поставь предметы", "Parie tes objets", "アイテムを賭ける", "Postaw przedmioty", "Eşyalarını oyna"],
 "Coming soon": ["敬请期待", "Bald verfügbar", "Próximamente", "Скоро", "Bientôt", "近日公開", "Wkrótce", "Yakında"],
 "Leave": ["离开", "Verlassen", "Salir", "Уйти", "Partir", "立ち去る", "Wyjdź", "Ayrıl"],
-"Lose = half the stat": ["输 = 属性减半", "Verlust = halber Wert", "Pierdes = la mitad", "Проигрыш = половина", "Perdu = la moitié", "負け = ステータス半分", "Przegrana = połowa", "Kaybet = yarısı"],
+"One stat per spin · Lose = half of it": ["每次只赌一个属性 · 输 = 减半", "Ein Wert pro Dreh · Verlust = die Hälfte", "Un stat por tirada · Pierdes = la mitad", "Один стат за вращение · Проигрыш = половина", "Un stat par tour · Perdu = la moitié", "1回に1ステータス · 負け = 半分", "Jeden stat na zakręcenie · Przegrana = połowa", "Her dönüşte tek stat · Kaybet = yarısı"],
 "Win x%s": ["赢 x%s", "Gewinn x%s", "Ganas x%s", "Выигрыш x%s", "Gain x%s", "勝ち x%s", "Wygrana x%s", "Kazanç x%s"],
 "Place your bet on the table": ["在桌上下注", "Setze auf den Tisch", "Haz tu apuesta en la mesa", "Сделай ставку на столе", "Place ta mise sur la table", "テーブルに賭けて", "Postaw zakład na stole", "Masaya bahsini koy"],
 "SPIN": ["旋转", "DREHEN", "GIRAR", "КРУТИТЬ", "LANCER", "スピン", "ZAKRĘĆ", "ÇEVİR"],

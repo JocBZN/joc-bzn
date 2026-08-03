@@ -16,6 +16,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-03 (ruleta EGT: un singur status pe învârtire)
+
+**Cerut de Răzvan:** „Vreau la EGT sa poti sa faci gamble doar la un stat at a time."
+
+**Ce era înainte:** `_alese` era un DICȚIONAR de bifate, iar `_aplica_pariul()` trecea prin toate. Puteai bifa Damage + Max HP + Move Speed + orice altceva și le trimiteai pe toate la aceeași învârtire — un singur zar decidea jumătate de build.
+
+**Ce s-a făcut.** `_alese := {}` a devenit `_ales := ""` (un singur id, „" = niciunul), iar bifele primesc un **`ButtonGroup` comun** — Godot le face exclusive singur și, bonus, le desenează ca butoane RADIO, deci regula se vede pe ecran, nu doar în cod. Grupul se face nou la fiecare `_umple_statusuri()`, fiindcă și bifele sunt noduri noi.
+
+**⚠️ La schimbarea bifei vin DOUĂ semnale `toggled`** (se stinge cea veche, se aprinde cea nouă) și ordinea lor nu e garantată. De aia `_on_bifa` stinge doar dacă cel care tocmai s-a stins e chiar cel reținut (`elif _ales == id`) — iese la fel indiferent care semnal vine primul. Din același motiv, sunetul de click se dă doar pe aprindere, altfel s-ar auzi dublu.
+
+**Subtitlul panoului** e acum „One stat per spin · Lose = half of it" (cheia veche, „Lose = half the stat", a fost înlocuită în `i18n.gd`, cu tot cu cele 8 traduceri).
+
+**Verificat pe rulare:** 7 statusuri în listă, toate pe același `ButtonGroup`; bifez Damage → `_ales = damage`, bifez apoi Weapon Size → `_ales = wsize` și **o singură bifă rămâne aprinsă pe ecran**; SPIN e blocat fără pariu pe masă și pornește cu pariu + status; după învârtire **exact un status s-a schimbat** (`wsize 100% → 50%`, pierdere).
+
+---
+
 ## Session log — 2026-08-03 (dimensiunea ENDER + boss-ul ei)
 
 **Cerut de Răzvan:** tilesetul pentru dimensiunea nouă (`misc_nebula.png`) plus, la întrebările mele: intrarea = **fântâna apare în lumea normală după ce-l omori pe Saratalin**; conținutul = **creaturile violete + un boss nou**, „Undead executioner puppet", cu **contur albastru închis**; ieșirea = **doar după ce omori boss-ul**.

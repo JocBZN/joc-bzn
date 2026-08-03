@@ -109,6 +109,11 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-03, the roulette takes one stat at a time)
+- ✅ **You can only gamble one stat per spin** *(Răzvan's call)*. The checkboxes in the panel share a **`ButtonGroup`**, so picking a second one drops the first — and Godot draws grouped checkboxes as **radio buttons**, so the rule reads off the screen instead of hiding in the code. `_alese` (a dictionary of ticked ids) became `_ales` (one id, `""` = none). Before this you could send Damage + Max HP + Move Speed to the same wheel: one spin decided half a build.
+- ⚠️ Switching the tick fires **two `toggled` signals** (old off, new on) in no guaranteed order, so `_on_bifa` only clears when the button that just went off is the one it remembers. The click sound plays on the "on" edge only, or a switch would click twice.
+- Verified on a run: 7 stats listed, all sharing one group; ticking a second leaves exactly **one** ticked and `_ales` on the new stat; SPIN stays disabled until there is both a table bet and a stat; after the spin **exactly one stat moved** (Weapon Size 100% → 50%).
+
 ## Current state (2026-08-03, the ENDER — a third dimension, and its boss)
 - ✅ **The Ender**, built like the Nether (`ender.gd`): no scene change, same coordinates, decor generators emptied, run clock frozen, its own **6:00** clock (blue) and its own **ENDER SWARM** at 0:00. Enemies drop **3× XP** (the Nether gives 2×). The floor is Răzvan's `misc_nebula.png` — **tiled at 256px, not the Nether's 96**: it is a starfield, not a pavement, and at 96 you could see the same patch repeat two steps away.
 - ✅ **Getting in is earned.** The well does not spawn anywhere on the map: you kill **Saratalin**, walk back out of the Nether, and **it rises out of the hole the sinking portal leaves** (`nether.gd::_deschide_fantana_ender`). One Ender per run — leaving sinks the well behind you, exactly like the Nether closing its portals.

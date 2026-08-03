@@ -128,7 +128,11 @@ var _pagina := "intro"
 var _pariu = null              # dicționarul pariului curent (vezi `_castiga`), sau null
 var _pariu_rect := Rect2()     # zona lui pe masă, în pixelii pozei (acolo se pune jetonul)
 var _evid_rect := Rect2()      # căsuța numărului ieșit (se evidențiază după învârtire)
-var _alese := {}               # id status -> true, ce e bifat în dreapta
+# Statusul bifat în dreapta — UNUL SINGUR („" = niciunul). Cerut de Răzvan pe 2026-08-03:
+# până atunci era un dicționar de bifate și puteai trimite câte statusuri voiai la aceeași
+# învârtire, adică un singur zar decidea jumătate din build. Bifele sunt ținute exclusive de
+# un `ButtonGroup` (vezi `_umple_statusuri`), deci regula se vede pe ecran, nu doar în cod.
+var _ales := ""
 var _se_invarte := false
 
 var _pag_intro: Control
@@ -456,7 +460,7 @@ func _build_panou() -> void:
 	box.add_child(titlu)
 
 	var sub := Label.new()
-	sub.text = "Lose = half the stat"
+	sub.text = "One stat per spin · Lose = half of it"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sub.add_theme_font_size_override("font_size", 12)
@@ -519,6 +523,9 @@ func _umple_statusuri() -> void:
 	var p = get_tree().get_first_node_in_group("player")
 	if p == null:
 		return
+	# Un `ButtonGroup` comun face bifele EXCLUSIVE: apeși pe alta, prima se stinge singură.
+	# Grup nou la fiecare reumplere, fiindcă și bifele sunt noduri noi.
+	var grup := ButtonGroup.new()
 	var vii := {}
 	for s in STATS:
 		if _valoare(p, s["id"]) <= 0.0:
@@ -527,7 +534,8 @@ func _umple_statusuri() -> void:
 		var hb := HBoxContainer.new()
 		var cb := CheckBox.new()
 		cb.text = s["nume"]
-		cb.button_pressed = _alese.has(s["id"])
+		cb.button_group = grup
+		cb.button_pressed = _ales == s["id"]
 		cb.add_theme_font_size_override("font_size", 13)
 		cb.add_theme_color_override("font_color", Color(0.90, 0.90, 0.94))
 		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -542,22 +550,25 @@ func _umple_statusuri() -> void:
 		hb.add_child(val)
 		_lista_stat.add_child(hb)
 	# un status care a picat pe 0 (ex. Pierce înjumătățit) nu mai există în listă → scoate-l și
-	# din bifate, altfel ai fi pariat pe ceva ce nu se mai vede
-	for id in _alese.keys():
-		if not vii.has(id):
-			_alese.erase(id)
+	# din bifat, altfel ai fi pariat pe ceva ce nu se mai vede
+	if _ales != "" and not vii.has(_ales):
+		_ales = ""
 
+# ⚠️ La schimbarea bifei, `ButtonGroup` stinge bifa veche și o aprinde pe cea nouă — deci
+# primim DOUĂ semnale, iar ordinea lor nu e garantată. De aia stingem doar dacă cel care
+# tocmai s-a stins e chiar cel reținut: așa iese la fel indiferent care semnal vine primul.
 func _on_bifa(bifat: bool, id: String) -> void:
 	if bifat:
-		_alese[id] = true
-	else:
-		_alese.erase(id)
-	Audio.play("button", -8.0, 0.0)
+		_ales = id
+	elif _ales == id:
+		_ales = ""
+	if bifat:
+		Audio.play("button", -8.0, 0.0)   # o singură dată pe schimbare, nu de două ori
 	_actualizeaza_spin()
 
-# SPIN merge doar dacă ai și pariat pe masă, și bifat cel puțin un status.
+# SPIN merge doar dacă ai și pariat pe masă, și ales statusul.
 func _actualizeaza_spin() -> void:
-	_btn_spin.disabled = _se_invarte or _pariu == null or _alese.is_empty()
+	_btn_spin.disabled = _se_invarte or _pariu == null or _ales == ""
 	if _pariu == null:
 		_lbl_pariu.text = "Place your bet on the table"
 		_lbl_plata.text = ""
@@ -590,7 +601,7 @@ func _goleste_rezultat() -> void:
 # ÎNVÂRTIREA
 # ---------------------------------------------------------------------------
 func _spin() -> void:
-	if _se_invarte or _pariu == null or _alese.is_empty():
+	if _se_invarte or _pariu == null or _ales == "":
 		return
 	_se_invarte = true
 	_btn_spin.disabled = true
@@ -746,7 +757,7 @@ func _aplica_pariul(castigat: bool) -> void:
 	# oricum ai pariat, pierzi jumătate.
 	var f: float = _multiplicator(_pariu) if castigat else PIERDERE_MULT
 	for s in STATS:
-		if not _alese.has(s["id"]):
+		if s["id"] != _ales:
 			continue
 		var inainte := _afisare(p, s["id"])
 		_aplica(p, s["id"], f)
