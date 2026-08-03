@@ -22,6 +22,7 @@
 [ext_resource type="Script" path="res://chests.gd" id="21_chests"]
 [ext_resource type="Script" path="res://egts.gd" id="22_egts"]
 [ext_resource type="Script" path="res://casino.gd" id="23_casino"]
+[ext_resource type="Script" path="res://ender.gd" id="24_ender"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -106,6 +107,9 @@ script = ExtResource("17_pause")
 
 [node name="Nether" type="CanvasLayer" parent="."]
 script = ExtResource("19_nether")
+
+[node name="Ender" type="CanvasLayer" parent="."]
+script = ExtResource("24_ender")
 
 [node name="BossBar" type="CanvasLayer" parent="."]
 script = ExtResource("20_bossbar")

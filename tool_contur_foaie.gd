@@ -16,10 +16,15 @@ extends Node
 
 const CONTUR := Color(0.72, 0.28, 1.0, 1.0)      # același mov ca la proiectile (culoarea implicită)
 const GALBEN := Color(1.0, 0.85, 0.15, 1.0)      # galbenul cheii de cufăr
+const ALBASTRU := Color(0.15, 0.27, 0.78, 1.0)   # albastru închis — Undead Executioner Puppet
 const PRAG := 0.35                               # de la ce alfa în sus considerăm că e desen
 
 # O imagine simplă (nu foaie de cadre) se pune tot aici, cu `"cadre": 1`.
 # `"culoare"` e opțional; fără el se folosește movul.
+#
+# Foile pe MAI MULTE RÂNDURI (grile) se scriu cu `"coloane"` + `"randuri"`. Fără ele se
+# presupune un singur rând, ca înainte. Celulele goale (o grilă rar iese fix plină) sunt
+# sărite și numărate în raport — acolo citești câte cadre are de fapt animația.
 const LUCRARI := [
 	{
 		# Saratalin, boss-ul Nether-ului: 3360×240 = 15 cadre de 224×240
@@ -36,12 +41,26 @@ const LUCRARI := [
 	},
 ]
 
+# Undead Executioner Puppet — boss-ul dimensiunii Ender. Toate foile au cadre de 100×100,
+# desenul e o siluetă NEAGRĂ, iar podeaua de acolo (nebuloasa) e aproape neagră: fără contur
+# nu s-ar vedea deloc. Conturul cerut de Răzvan e albastru închis.
+const PUPPET := "res://harta/Portal Ender/Undead executioner puppet/png/"
+const PUPPET_FOI := ["idle2", "attacking", "skill1", "summon", "death"]
+
 func _ready() -> void:
 	for l in LUCRARI:
-		_fa(l["sursa"], l["iesire"], int(l["cadre"]), l.get("culoare", CONTUR))
+		_fa(l["sursa"], l["iesire"], int(l["cadre"]), 1, l.get("culoare", CONTUR))
+	for nume in PUPPET_FOI:
+		var sursa: String = PUPPET + nume + ".png"
+		var img := Image.load_from_file(ProjectSettings.globalize_path(sursa))
+		if img == null:
+			print("!!! nu pot citi ", sursa)
+			continue
+		# cadrele sunt pătrate de 100px, deci grila se deduce singură din mărimea foii
+		_fa(sursa, PUPPET + nume + "_contur.png", img.get_width() / 100, img.get_height() / 100, ALBASTRU)
 	get_tree().quit()
 
-func _fa(sursa: String, iesire: String, cadre: int, culoare: Color) -> void:
+func _fa(sursa: String, iesire: String, coloane: int, randuri: int, culoare: Color) -> void:
 	var src := Image.load_from_file(ProjectSettings.globalize_path(sursa))
 	if src == null:
 		print("!!! nu pot citi ", sursa)
@@ -49,13 +68,18 @@ func _fa(sursa: String, iesire: String, cadre: int, culoare: Color) -> void:
 	src.convert(Image.FORMAT_RGBA8)
 	var w := src.get_width()
 	var h := src.get_height()
-	if w % cadre != 0:
-		print("!!! ", sursa.get_file(), ": lățimea ", w, " nu se împarte la ", cadre, " cadre")
+	if w % coloane != 0 or h % randuri != 0:
+		print("!!! ", sursa.get_file(), ": ", w, "×", h, " nu se împarte la ", coloane, "×", randuri)
 		return
-	var lat := w / cadre
-	print(sursa.get_file(), ": ", w, "×", h, " · ", cadre, " cadre de ", lat, "×", h)
-	for i in cadre:
-		_contur_cadru(src, i * lat, lat, h, i, culoare)
+	var lat := w / coloane
+	var inalt := h / randuri
+	print(sursa.get_file(), ": ", w, "×", h, " · ", coloane, "×", randuri, " cadre de ", lat, "×", inalt)
+	var pline := 0
+	for r in randuri:
+		for c in coloane:
+			if _contur_cadru(src, c * lat, r * inalt, lat, inalt, r * coloane + c, culoare):
+				pline += 1
+	print("   cadre desenate: ", pline, " din ", coloane * randuri)
 	var err := src.save_png(ProjectSettings.globalize_path(iesire))
 	if err != OK:
 		print("!!! nu pot scrie ", iesire, " (", err, ")")
@@ -65,17 +89,25 @@ func _fa(sursa: String, iesire: String, cadre: int, culoare: Color) -> void:
 # Conturul unui singur cadru. Ne uităm DOAR în interiorul ferestrei cadrului: altfel desenul
 # dintr-un cadru ar scoate contur în cadrul vecin, iar la rulare (unde cadrele sunt tăiate cu
 # AtlasTexture) ar apărea o dâră mov pe margine.
-func _contur_cadru(img: Image, x_start: int, lat: int, inalt: int, idx: int, culoare: Color) -> void:
+#
+# Întoarce `true` dacă în cadru chiar era ceva de desenat (celulele goale din grile nu sunt o
+# eroare, doar nu ajung animații).
+func _contur_cadru(img: Image, x_start: int, y_start: int, lat: int, inalt: int, idx: int, culoare: Color) -> bool:
 	# Întâi harta de „aici e desen", ca să nu conturăm conturul pe care tocmai l-am pus.
 	var plin := PackedByteArray()
 	plin.resize(lat * inalt)
 	var atinge_marginea := false
+	var gol := true
 	for y in inalt:
 		for x in lat:
-			var e_desen := img.get_pixel(x_start + x, y).a >= PRAG
+			var e_desen := img.get_pixel(x_start + x, y_start + y).a >= PRAG
 			plin[y * lat + x] = 1 if e_desen else 0
-			if e_desen and (x == 0 or y == 0 or x == lat - 1 or y == inalt - 1):
-				atinge_marginea = true
+			if e_desen:
+				gol = false
+				if x == 0 or y == 0 or x == lat - 1 or y == inalt - 1:
+					atinge_marginea = true
+	if gol:
+		return false
 	if atinge_marginea:
 		print("   ! cadrul ", idx, ": desenul atinge marginea cadrului, acolo conturul iese tăiat")
 	for y in inalt:
@@ -92,4 +124,5 @@ func _contur_cadru(img: Image, x_start: int, lat: int, inalt: int, idx: int, cul
 					if plin[ny * lat + nx] == 1:
 						vecin = true
 			if vecin:
-				img.set_pixel(x_start + x, y, culoare)
+				img.set_pixel(x_start + x, y_start + y, culoare)
+	return true

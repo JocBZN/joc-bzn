@@ -148,6 +148,23 @@ const TRAD := {
 "They just keep coming. Survive as long as you can.": ["它们源源不断。尽力活下去。", "Sie hören nicht auf. Überlebe so lange du kannst.", "No dejan de venir. Sobrevive lo máximo posible.", "Они всё идут. Держись сколько сможешь.", "Ils continuent d’arriver. Survis le plus longtemps possible.", "敵は止まらない。できるだけ長く生き延びろ。", "Nie przestają nadchodzić. Przetrwaj jak najdłużej.", "Gelmeye devam ediyorlar. Elinden geldiğince dayan."],
 "It comes down from above": ["它从天而降", "Es kommt von oben herab", "Baja desde arriba", "Он спускается сверху", "Il descend d’en haut", "上から降りてくる", "Nadchodzi z góry", "Yukarıdan iniyor"],
 
+# ---------- dimensiunea Ender (ender.gd, executioner.gd, fântâna din nether.gd) ----------
+# „Ender" rămâne nume propriu acolo unde limba nu are un echivalent firesc, exact ca „Nether".
+"THE ENDER": ["末地", "DER ENDER", "EL ENDER", "ЭНДЕР", "L’ENDER", "エンダー", "ENDER", "ENDER"],
+"Kill the Executioner to leave": ["杀死刽子手才能离开", "Töte den Henker, um zu gehen", "Mata al Verdugo para salir", "Убей Палача, чтобы уйти", "Tue le Bourreau pour sortir", "処刑人を倒して脱出", "Zabij Kata, by wyjść", "Çıkmak için Cellat’ı öldür"],
+"THE PUPPET STILL DANCES": ["傀儡还在跳舞", "DIE MARIONETTE TANZT NOCH", "LA MARIONETA SIGUE BAILANDO", "МАРИОНЕТКА ЕЩЁ ТАНЦУЕТ", "LA MARIONNETTE DANSE ENCORE", "人形はまだ踊っている", "MARIONETKA WCIĄŻ TAŃCZY", "KUKLA HÂLÂ DANS EDİYOR"],
+"The well will not open until it falls": ["它不倒下，井就不会开", "Der Brunnen öffnet sich erst, wenn sie fällt", "El pozo no se abrirá hasta que caiga", "Колодец не откроется, пока она не падёт", "Le puits ne s’ouvrira pas avant sa chute", "それが倒れるまで井戸は開かない", "Studnia nie otworzy się, póki nie padnie", "O düşmeden kuyu açılmaz"],
+"ENDER SWARM": ["末地虫潮", "ENDER-SCHWARM", "ENJAMBRE DEL ENDER", "РОЙ ЭНДЕРА", "NUÉE DE L’ENDER", "エンダースウォーム", "RÓJ ENDERU", "ENDER AKINI"],
+"The well still works. For now.": ["井还能用。暂时。", "Der Brunnen geht noch. Vorerst.", "El pozo aún funciona. Por ahora.", "Колодец ещё работает. Пока что.", "Le puits marche encore. Pour l’instant.", "井戸はまだ使える。今は。", "Studnia wciąż działa. Na razie.", "Kuyu hâlâ çalışıyor. Şimdilik."],
+"THE STRINGS ARE CUT": ["提线已断", "DIE FÄDEN SIND DURCHTRENNT", "LOS HILOS ESTÁN CORTADOS", "НИТИ ПЕРЕРЕЗАНЫ", "LES FILS SONT COUPÉS", "糸は切れた", "SZNURKI PRZECIĘTE", "İPLER KESİLDİ"],
+"Press E at the well to go back": ["在井边按 E 返回", "Am Brunnen E drücken, um zurückzukehren", "Pulsa E en el pozo para volver", "Нажми E у колодца, чтобы вернуться", "Appuie sur E au puits pour revenir", "井戸で E を押して戻る", "Naciśnij E przy studni, by wrócić", "Geri dönmek için kuyuda E’ye bas"],
+"The well is closing": ["井正在关闭", "Der Brunnen schließt sich", "El pozo se cierra", "Колодец закрывается", "Le puits se referme", "井戸が閉じていく", "Studnia się zamyka", "Kuyu kapanıyor"],
+"A WELL RISES": ["一口井升起", "EIN BRUNNEN STEIGT AUF", "SURGE UN POZO", "ПОДНИМАЕТСЯ КОЛОДЕЦ", "UN PUITS SURGIT", "井戸がせり上がる", "WYŁANIA SIĘ STUDNIA", "BİR KUYU YÜKSELİYOR"],
+"Something deeper is waiting": ["更深处有东西在等着", "Etwas Tieferes wartet", "Algo más profundo espera", "Что-то более глубокое ждёт", "Quelque chose de plus profond attend", "もっと深いところで何かが待っている", "Coś głębszego czeka", "Daha derinde bir şey bekliyor"],
+"THE PUPPET PULLS ITS STRINGS": ["傀儡拉动提线", "DIE MARIONETTE ZIEHT IHRE FÄDEN", "LA MARIONETA TIRA DE SUS HILOS", "МАРИОНЕТКА ДЁРГАЕТ ЗА НИТИ", "LA MARIONNETTE TIRE SES FILS", "人形が糸を引く", "MARIONETKA CIĄGNIE ZA SZNURKI", "KUKLA İPLERİNİ ÇEKİYOR"],
+"It calls the creatures to it": ["它把生物召唤到身边", "Sie ruft die Kreaturen zu sich", "Llama a las criaturas hacia sí", "Она зовёт тварей к себе", "Elle appelle les créatures à elle", "生き物を呼び寄せる", "Przywołuje stwory do siebie", "Yaratıkları kendine çağırıyor"],
+"UNDEAD EXECUTIONER PUPPET": ["亡灵刽子手傀儡", "UNTOTE HENKERSMARIONETTE", "MARIONETA VERDUGO NO MUERTA", "НЕЖИТЬ-МАРИОНЕТКА ПАЛАЧА", "MARIONNETTE BOURREAU MORT-VIVANTE", "アンデッドの処刑人人形", "NIEUMARŁA MARIONETKA KATA", "ÖLÜMSÜZ CELLAT KUKLASI"],
+
 # ---------- cazinoul EGT (casino.gd) ----------
 # Numele pariurilor (RED, BLACK, EVEN, ODD, 1st 12, 2 to 1…) NU se traduc: sunt scrise în
 # engleză chiar pe poza mesei, iar o etichetă tradusă n-ar mai avea pereche pe masă.

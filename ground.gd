@@ -8,11 +8,13 @@ extends Sprite2D
 @export var chunk_size: float = 512.0   # mărimea unui chunk (px) — TREBUIE să fie ca în props.gd/rocks.gd
 @export var blend_chunks: float = 1.5   # cât de soft e marginea deșertului (în chunk-uri) — mai mare = mai soft
 @export var nether_tile_size: float = 96.0   # cât de mare se vede o dală de cărămidă în Nether
+@export var ender_tile_size: float = 256.0   # cât de mare se vede o dală de nebuloasă în Ender
 
 var _mat: ShaderMaterial
 var _grass: Texture2D
 var _desert: Texture2D
 var _brick: Texture2D
+var _nebula: Texture2D
 
 func _ready() -> void:
 	add_to_group("ground")   # ca `nether.gd` să poată schimba podeaua
@@ -26,6 +28,8 @@ func _ready() -> void:
 	_desert = desert
 	if ResourceLoader.exists("res://harta/nether/Brick32.png"):
 		_brick = load("res://harta/nether/Brick32.png") as Texture2D
+	if ResourceLoader.exists("res://harta/Portal Ender/misc_nebula.png"):
+		_nebula = load("res://harta/Portal Ender/misc_nebula.png") as Texture2D
 	_mat = ShaderMaterial.new()
 	_mat.shader = shader
 	_mat.set_shader_parameter("grass_tex", grass)
@@ -65,3 +69,16 @@ func set_nether(on: bool) -> void:
 	_mat.set_shader_parameter("grass_tex", _brick if on else _grass)
 	_mat.set_shader_parameter("desert_tex", _brick if on else _desert)
 	_mat.set_shader_parameter("tile_size", nether_tile_size if on else tile_size)
+
+# Același truc, altă textură: podeaua Ender-ului e nebuloasa din `harta/Portal Ender/`.
+# Chemată din `ender.gd`. Dala se vede MULT mai mare decât cărămida (256 față de 96): e un cer
+# înstelat, nu un pavaj — la 96 s-ar vedea limpede că aceeași bucată se repetă la doi pași.
+func set_ender(on: bool) -> void:
+	if _mat == null:
+		return
+	if on and _nebula == null:
+		push_warning("Ender: lipsește harta/Portal Ender/misc_nebula.png (rulează --headless --import)")
+		return
+	_mat.set_shader_parameter("grass_tex", _nebula if on else _grass)
+	_mat.set_shader_parameter("desert_tex", _nebula if on else _desert)
+	_mat.set_shader_parameter("tile_size", ender_tile_size if on else tile_size)

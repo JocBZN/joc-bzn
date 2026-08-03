@@ -1,5 +1,6 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
+[ext_resource type="Script" path="res://portal_ender.gd" id="0_script"]
 [ext_resource type="Shader" path="res://portal_ender.gdshader" id="1_shader"]
 [ext_resource type="Texture2D" uid="uid://dubup7swvovif" path="res://harta/Portal Ender/portal ender.png" id="2_tex"]
 
@@ -16,6 +17,7 @@ shader_parameter/edge_fade = 0.88
 size = Vector2(190, 90)
 
 [node name="PortalEnder" type="StaticBody2D"]
+script = ExtResource("0_script")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture_filter = 1

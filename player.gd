@@ -478,10 +478,12 @@ func _physics_process(delta: float) -> void:
 			# pas de cărămidă în Nether, de nisip în deșert, de iarbă în pădure
 			# (pitch-ul variază singur, să nu sune identic)
 			var nether := get_tree().get_first_node_in_group("nether")
+			var ender := get_tree().get_first_node_in_group("ender")
 			var in_desert := BiomeMap.desertness_at_chunk(global_position / 512.0) >= 0.5
 			# volume balansat: fișierele au loudness diferit (sand mai tare) → offset diferit,
 			# ca pașii să sune la fel de tare pe toate terenurile (subtili, mult sub combat)
-			if nether != null and nether.active:
+			# (în Ender nu există pas propriu — împrumută sunetul de cărămidă al Nether-ului)
+			if (nether != null and nether.active) or (ender != null and ender.active):
 				Audio.play("footsteps_nether", -7.0)
 			elif in_desert:
 				Audio.play("footsteps_sand", -9.0)
@@ -1426,6 +1428,10 @@ func die() -> void:
 	var nether := get_tree().get_first_node_in_group("nether")
 	if nether != null and nether.active:
 		nether.exit_nether(false)
+	# la fel pentru Ender (a treia dimensiune) — și el îngheață dificultatea și oprește decorul
+	var ender := get_tree().get_first_node_in_group("ender")
+	if ender != null and ender.active:
+		ender.exit_ender(false)
 	# Undying Spirit: prima moarte nu e finală. Te duce în Limbo (lumea alb-negru) și,
 	# dacă reziști minutul, te întoarce aici. O SINGURĂ dată pe rundă — a doua oară
 	# `undying_used` e deja true și cazi pe Game Over-ul normal de mai jos.

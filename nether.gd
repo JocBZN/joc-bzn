@@ -285,6 +285,50 @@ func _inchide_portalurile() -> void:
 		Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 		_zguduie_camera()
 		al_nostru.intra_in_pamant()
+		_deschide_fantana_ender(al_nostru.global_position, world)
+
+# Din locul unde s-a scufundat portalul iese FÂNTÂNA ENDER — ușa spre a treia dimensiune
+# (`ender.gd`). E singurul mod de a ajunge acolo: nu se generează nicăieri pe hartă, apare
+# doar aici, o dată pe rundă, ca plată pentru Saratalin.
+#
+# O punem direct în `World`, nu într-un generator de chunk-uri: altfel ar fi ștearsă când te
+# îndepărtezi de zonă, sau golită odată cu decorul la intrarea în altă dimensiune.
+# Așteptăm cât ține scufundarea portalului (`sink_duration`), ca să se vadă schimbul: unul
+# intră în pământ, celălalt iese. Timer legat prin `connect`, nu `await` — dacă player-ul dă
+# Restart între timp, Godot rupe singur legătura către un nod șters.
+const FANTANA_ENDER := preload("res://portal_ender.tscn")
+const FANTANA_INTARZIERE := 1.1   # puțin peste `sink_duration` (1.0) din `portal.gd`
+# Anunțul vine mult mai târziu decât fântâna. Bannerul din HUD e UNUL singur și fiecare anunț
+# nou îl taie pe cel dinainte (~2,45s de la apariție până se stinge), iar la ieșirea din Nether
+# se dau deja două: „BACK" la secunda 0 și „SOMETHING FOLLOWED YOU" la 2,8. Al treilea se pune
+# la coadă, nu peste ele.
+const FANTANA_ANUNT := 4.5        # secunde DUPĂ ce apare fântâna (deci ~5,6 de la ieșire)
+
+func _deschide_fantana_ender(poz: Vector2, world: Node) -> void:
+	get_tree().create_timer(FANTANA_INTARZIERE).timeout.connect(_pune_fantana.bind(poz, world))
+
+func _pune_fantana(poz: Vector2, world: Node) -> void:
+	if world == null or not is_instance_valid(world):
+		return
+	# dacă între timp ai intrat în altă dimensiune, n-o mai punem: decorul e oprit acolo
+	if active:
+		return
+	var f := FANTANA_ENDER.instantiate()
+	world.add_child(f)
+	f.global_position = poz
+	Audio.play("teleport", TELEPORT_DB, 0.0)
+	get_tree().create_timer(FANTANA_ANUNT).timeout.connect(_anunta_fantana)
+
+func _anunta_fantana() -> void:
+	# Nici dacă te-ai întors în Nether, nici dacă ai apucat deja să COBORI în fântână — și e
+	# ușor: ea răsare fix sub picioarele tale, iar anunțul vine abia peste câteva secunde.
+	# Prins la testare pe 2026-08-03: bannerul „A WELL RISES" apărea peste ecranul Ender-ului.
+	if active:
+		return
+	var ender := get_tree().get_first_node_in_group("ender")
+	if ender != null and ender.active:
+		return
+	_announce("A WELL RISES", "Something deeper is waiting")
 
 # Nodul unui generator de decor din `World` (Props, Rocks, Portals...).
 func _generator(nume: String) -> Node:

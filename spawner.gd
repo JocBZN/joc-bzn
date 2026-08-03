@@ -185,6 +185,11 @@ func _distanta_spawn() -> float:
 # Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el ține
 # atât `active`, cât și `escaped`. Dacă lipsește (o scenă de test fără el), rămân cei normali.
 func _scena_inamic() -> PackedScene:
+	# Ender-ul (a treia dimensiune) n-are inamici proprii — nu există artă pentru ei — deci
+	# acolo curg tot creaturile violete. Se întreabă primul: în Ender nu poți fi și în Nether.
+	var e := get_tree().get_first_node_in_group("ender")
+	if e != null and e.get("active") == true:
+		return ENEMY_NETHER
 	var n := get_tree().get_first_node_in_group("nether")
 	if n == null:
 		return ENEMY
@@ -197,6 +202,12 @@ func _scena_inamic() -> PackedScene:
 # Te-ai întors VIU din Nether? Cât ești ÎNCĂ acolo nu se aplică nimic din îngroșarea de mai sus:
 # Nether-ul își are dificultatea lui (`nether.gd::_diff_time`), n-are rost să o dublăm și noi peste.
 func _scapat_din_nether() -> bool:
+	# Nici în Ender nu se aplică, din același motiv: acolo dificultatea o scrie `ender.gd`.
+	# (Și ești acolo tocmai FIINDCĂ ai scăpat din Nether, deci fără linia asta îngroșarea
+	# s-ar aplica mereu în a treia dimensiune.)
+	var e := get_tree().get_first_node_in_group("ender")
+	if e != null and e.get("active") == true:
+		return false
 	var n := get_tree().get_first_node_in_group("nether")
 	if n == null or n.get("active") == true:
 		return false

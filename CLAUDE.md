@@ -16,6 +16,51 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-03 (dimensiunea ENDER + boss-ul ei)
+
+**Cerut de Răzvan:** tilesetul pentru dimensiunea nouă (`misc_nebula.png`) plus, la întrebările mele: intrarea = **fântâna apare în lumea normală după ce-l omori pe Saratalin**; conținutul = **creaturile violete + un boss nou**, „Undead executioner puppet", cu **contur albastru închis**; ieșirea = **doar după ce omori boss-ul**.
+
+**Lanțul întreg, ca să se înțeleagă cum se leagă:** bați Saratalin în Nether → ieși viu → portalul Nether-ului se scufundă → **din locul lui răsare fântâna Ender** (`nether.gd::_deschide_fantana_ender`) → E pe ea → Ender → omori Executioner-ul → E pe fântână → înapoi în lume, iar fântâna se scufundă. **Un Ender pe rundă**, ca Nether-ul.
+
+**`ender.gd`** e frate cu `nether.gd`, nu o rescriere a lui: aceeași rețetă (nu se încarcă altă scenă, se oprește decorul, îngheață cronometrul rundei și pornește unul propriu). Diferă cifrele — 6:00 în loc de 7:00, **XP ×3** în loc de ×2, cronometru albastru — și boss-ul, care e acolo de la intrare, într-un inel de 700–1100px, cu busola pe el. **Fișier separat, cu duplicare asumată**, ca Limbo față de Nether: un strămoș comun ar fi legat trei dimensiuni cu reguli diferite într-un singur loc greu de citit.
+
+**⚠️ O SINGURĂ fântână, nu două.** Nether-ul își pune un portal NOU dincolo, fiindcă cel din lume e generat pe chunk-uri și dispare. Fântâna Ender stă direct în `World`, iar dimensiunile împart aceleași coordonate — deci ea e deja exact acolo unde aterizezi. Prima variantă (copiată de la Nether) punea o a doua fântână peste ea: **două „Press E" în același punct**, iar `interact_ui.gd` putea alege exact pe cea greșită, care n-ar fi făcut nimic. Acum `ender.gd` o împrumută: îi aprinde `retur` la intrare, i-l stinge la ieșire.
+
+**Boss-ul (`executioner.gd`)** e croit după `saratalin.gd`, cu trei deosebiri:
+- **arta e pe GRILE, nu pe un rând** — 5 foi cu cadre de 100×100 (`idle2` 8, `attacking` 13, `skill1` 12, `summon` 5, `death` 18). Feliate la rulare cu `AtlasTexture`, pe rânduri; celulele goale de la coada grilei se sar prin numărul real de cadre;
+- **lovitura pleacă pe un CADRU anume** (`CADRU_LOVITURA`, prin semnalul `frame_changed`), nu la începutul animației — altfel proiectilul iese din el înainte să se vadă că a tăiat;
+- **faza 2 n-are filmuleț.** Saratalin oprește jocul și pulsează mov; ăsta are animație de invocare în foaie, deci de la jumătate de viață **cheamă 4 creaturi** la fiecare 11s și atacă de 1,6× mai des. Se vede prin ce face, nu prin cameră.
+Viață fixă **16 000** (Saratalin are 10 000) și premiu **4 niveluri** (el dă 3) — ca să ajungi aici trebuie să-l fi bătut deja pe el. Proiectilul e ștreangul lui Saratalin colorat albastru, **placeholder** până are tăietura lui de coasă.
+
+**Conturul albastru:** `tool_contur_foaie.gd` știa doar foi pe un singur rând; acum acceptă grile (`coloane`×`randuri`) și sare celulele goale. Nu e cosmetic: silueta e **complet neagră**, iar podeaua Ender-ului e o nebuloasă aproape neagră — fără contur boss-ul ar fi o gaură în ecran. Foile lui Răzvan rămân neatinse, se scriu copii `*_contur.png`, deci unealta se poate re-rula fără să se îngroașe conturul.
+
+**Podeaua:** `ground.gd::set_ender()`, exact trucul de la Nether (aceeași textură pe ambele sloturi ale shaderului de biom). **Dala e 256, nu 96 ca la cărămidă** — e un cer înstelat, nu un pavaj; la 96 se vedea limpede că aceeași bucată se repetă la doi pași.
+
+**Cele patru locuri care întrebau „ești în Nether?" întreabă acum și de Ender:** `hud.gd` (ascunde cronometrul rundei), `player.gd` (pașii + `die()`), `spawner.gd` (ce inamic naște + să NU aplice îngroșarea de „scăpat din Nether" înăuntru, unde dificultatea o scrie `ender.gd`).
+
+**Verificat printr-o rulare reală a lui `main.tscn`**, cu lanțul întreg parcurs de o unealtă temporară:
+
+| | rezultat |
+|---|---|
+| fântâni Ender în lume înainte / după Saratalin | 0 → **1**, la 220px de player (fix unde s-a scufundat portalul) |
+| podea / dală | `grass` 64 → **`misc_nebula` 256** → înapoi `grass` 64 |
+| decor (Props/Rocks/Statues/Chests/EGTs) | 49/49/49/81/49 → **0 peste tot** → 49/49/49/81/49 |
+| `Difficulty` | frozen **true**, xp_bonus **3.0** → false, 1.0 |
+| E pe fântână cu boss-ul viu | `active` rămâne **true** (nu te lasă) |
+| la jumătate de viață | **4 creaturi chemate** = `summon_count` |
+| premiu la moartea boss-ului | nivel **1 → 5** (+4) |
+| după ieșire | fântâna s-a scufundat, lumea a revenit |
+
+**🐛 Prins la testare:** bannerul „A WELL RISES" apărea **peste ecranul Ender-ului**. Anunțul vine la ~5,6s după ieșirea din Nether (ca să nu taie „BACK" și „SOMETHING FOLLOWED YOU" — bannerul din HUD e unul singur), dar fântâna răsare **fix sub picioarele tale**, deci poți intra în ea înainte. Acum `_anunta_fantana()` verifică și grupul „ender".
+
+**Capcană de testare, nu bug:** prima rulare zicea „fântâni după: 0". Motivul: fântâna răsare unde se **scufundă un portal**, iar testul chemase `nether.enter()` direct, fără să existe vreun portal de piatră prin apropiere (1,5% din chunk-uri). Testul trebuie să pună întâi un portal real și să intre prin `portal.invoca()`.
+
+**Traduceri:** 14 chei noi în `i18n.gd` × 8 limbi (numele boss-ului de pe bară se traduce și el, e text descriptiv, nu nume propriu ca „Saratalin"). `ender.gd` și `executioner.gd` sunt acum în lista `FISIERE_UI` din `tool_check_i18n.gd`. Verificatorul zice **„TOTUL E TRADUS"** (220 chei × 8 limbi).
+
+**Ce NU s-a făcut:** creaturile mici din foile `summon*.png` (au și ele cadre, dar de mărimi amestecate — 50×100 și 50×50) n-au devenit inamici; boss-ul cheamă creaturile violete ale Nether-ului. Ender-ul n-are muzică proprie și nici pas propriu — împrumută bucla și pașii Nether-ului.
+
+---
+
 ## Session log — 2026-08-03 (portalul Ender: lichidul se învârte)
 
 **Cerut de Răzvan:** „ti-am facut un nou folder in harta, se numeste Portal Ender, ai un sprite acolo, daca poti sa animezi sa se invarta usor «lichidul» dinauntrul portalului. Vreau sa fie o noua structura si o sa iti dau dupa ce animezi lichidul un tileset sa facem dimensiunea noua «Ender»."
