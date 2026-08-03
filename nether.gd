@@ -153,6 +153,7 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	_clear_enemies()          # inamicii lumii normale nu vin cu tine
 	_set_world_enabled(false)
 	_set_ground_nether(true)
+	_set_atmosphere("nether")
 
 	# cronometrul rundei stă pe loc; tăria inamicilor o dictăm noi, din `_diff_time()`
 	Difficulty.frozen = true
@@ -196,6 +197,7 @@ func exit_nether(anunt: bool = true) -> void:
 	_clear_enemies()          # ce era pe tine în Nether nu vine cu tine
 	_set_world_enabled(true)
 	_set_ground_nether(false)
+	_set_atmosphere("")
 	Difficulty.frozen = false
 	Difficulty.mult_time_override = -1.0
 	Difficulty.xp_bonus = 1.0
@@ -494,6 +496,13 @@ func _set_ground_nether(on: bool) -> void:
 	var ground := get_tree().get_first_node_in_group("ground")
 	if ground != null and ground.has_method("set_nether"):
 		ground.set_nether(on)
+
+# Culoarea lumii + scânteile de pe ecran. Tot ce ține de „cum arată dincolo" stă într-un singur
+# loc, în `atmosphere.gd` — aici doar spunem în ce dimensiune suntem („" = lumea normală).
+func _set_atmosphere(kind: String) -> void:
+	var atm := get_tree().get_first_node_in_group("atmosphere")
+	if atm != null and atm.has_method("set_dimension"):
+		atm.set_dimension(kind)
 
 # Oprește/repornește generatoarele de decor. Nu e destul să le ascunzi: hitbox-urile ar
 # rămâne și te-ai lovi de copaci invizibili. Deci le și golim de ce au încărcat, iar `_loaded`

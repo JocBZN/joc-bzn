@@ -16,6 +16,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-03 (atmosferă pentru Nether și Ender + boss-ul Ender la 100 000 HP)
+
+**Cerut de Răzvan:** „Poti sa pui niste shadere in nether si in ender sa arate mai atmosferic? Nether trebuie sa fie asa ca iadul si Ender mai cosmic." Plus, mai devreme: bossul din Ender la 100 000 HP (`executioner.gd::max_hp`, era 16 000 — viața rămâne FIXĂ, nescalată, ca pragul fazei 2 să cadă tot la jumătate).
+
+**Atmosfera se face din DOUĂ lucruri, nu din unul.** Asta e decizia care ține tot restul:
+1. **`CanvasModulate` colorează LUMEA** (`DIM_TINT` din `atmosphere.gd`): Nether `(0.98, 0.58, 0.50)` = roșu de jar, Ender `(0.68, 0.80, 1.12)` = albastru rece, cu albastrul PESTE 1.0 (deci aprins, nu stins). Fiindcă un CanvasModulate prinde doar canvas-ul obișnuit, nu și CanvasLayer-ele, HUD-ul rămâne necolorat. **Dacă culoarea s-ar fi făcut în shaderul de pe ecran, s-ar fi înroșit și bara de viață, și XP-ul, și cronometrul.**
+2. **Un shader peste ecran** pentru mișcare: `nether_hell.gdshader` (scântei care urcă, fum, lumina cuptorului de jos, vinietă caldă) și `ender_cosmic.gdshader` (stele care clipesc pe 2 straturi cu parallax, nebuloasă care se rotește ~un tur/10 min, panglică de auroră, vinietă indigo).
+
+**Shaderele astea NU citesc ecranul**, spre deosebire de `limbo_bw.gdshader`. De aia nu deformează și nu decolorează HUD-ul de sub ele: pun doar lumină peste. Amândouă se termină cu același truc de compunere într-o singură trecere, cu amestec normal: `a = vinietă + luminozitatea luminii`, iar culoarea se împarte la `a` ca înmulțirea de la amestecare s-o aducă înapoi. Consecință acceptată: lumina tare acoperă fundalul — la scântei e chiar ce vrem, iar ceața largă are `a` mic și abia se simte.
+
+**Un singur loc de comandă:** `atmosphere.gd::set_dimension("nether" / "ender" / "")`. `nether.gd` și `ender.gd` cheamă fiecare câte o linie, lângă `_set_ground_*`. Tot ce ține de „cum arată dincolo" stă într-un fișier.
+
+**⚠️ Tween-ul de intrare/ieșire e pe `TWEEN_PAUSE_PROCESS`, nu pe implicit.** Bug prins pe captură la testare: dacă mori în Nether, `player.die()` te scoate afară — dar ecranul de Game Over pune jocul pe **pauză** în aceeași clipă, iar tween-ul obișnuit îngheța cu lumea rămasă roșie sub „YOU DIED". Aceeași capcană ar prinde și un level up luat fix la intrarea în dimensiune.
+
+**Podeaua unduiește** (`warp_*` în `biome.gdshader`): Nether valuri mici și iuți (5.5px, scală 0.018, viteză 0.9) = aer fierbinte peste cărămidă; Ender valuri mari și leneșe (46px, 0.0022, 0.16) = nebuloasa curge. Se deformează **doar UV-ul texturii, nu harta de biomuri** — în dimensiuni ambele texturi sunt aceeași (vezi `ground.gd::set_nether`), deci amestecul iese la fel oricum. `warp_amount = 0` (lumea normală) sare complet peste calcul, deci **nu costă nimic afară din dimensiuni**. Reglajele sunt `@export` în `ground.gd`, se pot mișca din Inspector.
+
+**Stratul e pe `layer = 2`** — peste lume și HUD, sub vinieta obișnuită (3), sub cronometrele dimensiunilor (4) și sub bara de boss (6). Deci cronometrul, busola și bara boss-ului rămân curate. Vinieta din shader se adună peste cea din `atmosphere.gd`, de aia e ținută mică (0.50 / 0.58).
+
+**Verificat prin rulare, cu capturi:** lumea normală înainte și după — **identică** (nicio urmă de tentă, nicio unduire) ✅; Nether roșu cu scântei și cărămidă care unduiește ✅; Ender albastru-violet, stele, boss-ul pe ecran cu bara lui necolorată ✅; moarte în Nether → Game Over fără tentă roșie (fix-ul de pauză) ✅.
+
+**Ce NU s-a făcut:** n-are buton în Settings → GRAPHICS (ar fi cerut 8 traduceri noi pentru o cheie). Dacă pe telefon se simte, acolo se leagă, lângă `vignette`/`glow`.
+
+---
+
 ## Session log — 2026-08-03 (ruleta EGT: un singur status pe învârtire)
 
 **Cerut de Răzvan:** „Vreau la EGT sa poti sa faci gamble doar la un stat at a time."

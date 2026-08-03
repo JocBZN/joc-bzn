@@ -17,6 +17,15 @@ uniform int max_size = 20;           // = MAX_SIZE din biome_map.gd
 uniform int desert_percent = 40;     // = DESERT_PERCENT din biome_map.gd
 uniform int edge_snap = 2;           // = EDGE_SNAP din biome_map.gd
 
+// --- unduirea podelei (doar în Nether / Ender) ---
+// Deformează UV-ul texturii, NU harta de biomuri: în dimensiuni ambele texturi sunt aceeași
+// (vezi ground.gd::set_nether), deci amestecul iese la fel oricum, iar lumea normală rămâne
+// exact cum era — `warp_amount = 0` înseamnă „nu face nimic".
+// `warp_amount` e în PIXELI DE LUME, ca reglajul să însemne același lucru la orice `tile_size`.
+uniform float warp_amount = 0.0;
+uniform float warp_scale = 0.004;    // cât de dese sunt valurile (1/px)
+uniform float warp_speed = 0.4;      // cât de repede curg
+
 varying vec2 world_pos;
 
 void vertex() {
@@ -51,7 +60,15 @@ float ss(float e0, float e1, float x) {
 }
 
 void fragment() {
-	vec2 uv = world_pos / tile_size;
+	vec2 wp = world_pos;
+	if (warp_amount > 0.001) {
+		float wt = TIME * warp_speed;
+		wp += vec2(
+			sin(world_pos.y * warp_scale + wt) + 0.6 * sin(world_pos.x * warp_scale * 1.7 - wt * 1.3),
+			cos(world_pos.x * warp_scale - wt * 0.9) + 0.6 * cos(world_pos.y * warp_scale * 1.4 + wt * 1.1)
+		) * warp_amount;
+	}
+	vec2 uv = wp / tile_size;
 	vec4 grass = texture(grass_tex, uv);
 	vec4 desert = texture(desert_tex, uv);
 
