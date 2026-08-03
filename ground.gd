@@ -11,12 +11,18 @@ extends Sprite2D
 @export var ender_tile_size: float = 256.0   # cât de mare se vede o dală de nebuloasă în Ender
 
 # Unduirea podelei în dimensiuni (`warp_*` din biome.gdshader; în lumea normală rămâne 0).
-# Nether: valuri MICI și IUȚI — aer fierbinte peste cărămidă.
-# Ender:  valuri MARI și LENEȘE — nebuloasa curge, nu tremură.
-@export var nether_warp: float = 5.5
+#
+# ⚠️ În NETHER e STINSĂ (0), la cererea lui Răzvan pe 2026-08-03: cărămida are linii drepte și
+# lungi, iar orice unduire pe ele se citește ca „mi se mișcă ecranul", nu ca aer fierbinte.
+# Reglajele rămân aici, ca să se poată încerca din Inspector fără să se mai scrie cod — dar
+# implicit e 0. Căldura Nether-ului se vede din scântei și din culoare, nu din podea.
+#
+# În ENDER e ținută MICĂ: nebuloasa n-are linii drepte, deci deformarea nu sare în ochi, dar
+# tot a fost tăiată de la 46 la 14 în aceeași cerere.
+@export var nether_warp: float = 0.0
 @export var nether_warp_scale: float = 0.018
 @export var nether_warp_speed: float = 0.9
-@export var ender_warp: float = 46.0
+@export var ender_warp: float = 14.0
 @export var ender_warp_scale: float = 0.0022
 @export var ender_warp_speed: float = 0.16
 
