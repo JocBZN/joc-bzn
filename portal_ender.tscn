@@ -1,0 +1,28 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Shader" path="res://portal_ender.gdshader" id="1_shader"]
+[ext_resource type="Texture2D" uid="uid://dubup7swvovif" path="res://harta/Portal Ender/portal ender.png" id="2_tex"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ender"]
+shader = ExtResource("1_shader")
+shader_parameter/liquid_center = Vector2(0.496, 0.512)
+shader_parameter/liquid_radius = Vector2(0.2, 0.105)
+shader_parameter/spin_speed = 0.05
+shader_parameter/wobble = 0.012
+shader_parameter/wobble_speed = 0.9
+shader_parameter/edge_fade = 0.88
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ender"]
+size = Vector2(190, 90)
+
+[node name="PortalEnder" type="StaticBody2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+material = SubResource("ShaderMaterial_ender")
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("2_tex")
+offset = Vector2(0, -18.166667)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_ender")

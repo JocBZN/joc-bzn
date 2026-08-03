@@ -16,6 +16,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-03 (portalul Ender: lichidul se învârte)
+
+**Cerut de Răzvan:** „ti-am facut un nou folder in harta, se numeste Portal Ender, ai un sprite acolo, daca poti sa animezi sa se invarta usor «lichidul» dinauntrul portalului. Vreau sa fie o noua structura si o sa iti dau dupa ce animezi lichidul un tileset sa facem dimensiunea noua «Ender»."
+
+**Ce s-a făcut.** `harta/Portal Ender/portal ender.png` (128×128, o fântână de piatră cu un vârtej violet) a devenit `portal_ender.tscn` — structură ca celelalte (`StaticBody2D` + `Sprite2D` la scale 2.4 cu `offset.y = -18.17`, adică regula de 74px, + `CollisionShape2D` 190×90 de reglat cu mâna) — iar lichidul se rotește dintr-un **shader**, `portal_ender.gdshader`.
+
+**De ce shader și nu cadre.** Ar fi însemnat un sprite sheet desenat de mână pentru fiecare unghi; așa rămâne un singur PNG, iar viteza se schimbă dintr-un slider.
+
+**Cum se rotește o elipsă fără să se rotească forma.** Gura fântânii e o elipsă (o rotunjime văzută din unghi). Dacă roteai UV-ul direct, se rotea și conturul, ca o roată de mașină. Shaderul aduce pixelul în „spațiul cercului" (`(UV - centru) / raze`), rotește acolo, apoi îl întinde înapoi în elipsă — exact ce face perspectiva cu un disc care se învârte pe orizontală.
+
+**Cifrele nu sunt ghicite, sunt măsurate pe pixeli** (o unealtă temporară care a scanat pixelii unde albastrul domină clar roșul și verdele): lichidul stă la x 38..89, y 52..79 → centru `(0.496, 0.512)` în UV, raze `(0.2, 0.105)`. Prima încercare, cu saturația drept criteriu, n-a mers: și piatra fântânii e albăstruie la umbră.
+
+**Marginea (`edge_fade = 0.88`):** ultimii 12% din elipsă se estompează înapoi spre imaginea originală. Fără ea, rotația ar fi tras în horă și pixeli de pe buza de piatră, și s-ar fi văzut o cusătură.
+
+**Viteza e în ROTAȚII pe secundă, nu radiani** — `spin_speed = 0.05` = o tură la 20 de secunde. Plus `wobble` ±0.012 ture (≈4°), o legănare mărginită: brațele spiralei se strâng și se lasă puțin. Legănarea trebuie să rămână mărginită — o rotație diferențiată pe rază (interiorul mai repede) ar înfășura spirala tot mai strâns, la infinit, până se face terci.
+
+**Verificat pe rulare** (fereastră, nu headless — headless randează negru): cadre la t = 1,2 s / 11,2 s / 21,2 s, vârtejul e la câte o jumătate de tură distanță, iar piatra, funia și manivela stau nemișcate.
+
+**⚠️ `const float TAU` în shader = eroare de compilare** — `TAU` e deja constantă în limbajul de shader al Godot. Iar când shaderul nu compilă, sprite-ul pur și simplu nu se desenează, fără nimic în ecran; mesajul e doar în consolă.
+
+**Nu e pus încă în lume** — n-are generator și n-are `.gd`. Așteaptă tilesetul pentru dimensiunea Ender.
+
+---
+
 ## Session log — 2026-07-30 (proiectilele câștigate la ruletă sunt ca cele de la iteme)
 
 **Cerut de Răzvan:** „Cand castig la ruleta proiectile mi le pune paralele, eu vreau cum sunt si celalalte iteme de proiectile."
