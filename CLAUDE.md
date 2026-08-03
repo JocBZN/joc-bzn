@@ -38,6 +38,14 @@ Quick rules:
 
 **Ce NU s-a făcut:** n-are buton în Settings → GRAPHICS (ar fi cerut 8 traduceri noi pentru o cheie). Dacă pe telefon se simte, acolo se leagă, lângă `vignette`/`glow`.
 
+**Fântâna Ender stă acum pe sol, în amândouă lumile** (cerut tot atunci: „pune si tu o umbra pentru portalu de ender in lumea normala si in ender in sine fa-l sa se blenduiasca mai bine cu podeaua cosmica"). Două pete la bază, ambele pe `z_index = -1`, construite în `portal_ender.gd::_construieste_talpa()` din același `ground_shadow.gd` ca la copaci:
+- **umbra** neagră — ancora din lumea normală;
+- **haloul** violet, mai lat, care respiră (tween în buclă) — el ține locul umbrei în Ender, unde podeaua e o nebuloasă aproape neagră și **negru pe negru nu se vede**. Tot acolo piatra se stinge puțin (`ender_tint`), altfel fântâna era cel mai luminos lucru de pe ecran.
+
+**⚠️ `shadow_width` e 1.02, adică PESTE lățimea siluetei, iar `shadow_shift_y` e POZITIV (+10).** Copacii au 0.60 și −6. Nu e capriciu: prima variantă a folosit cifrele lor și umbra a ieșit **complet invizibilă în joc** — fântâna e un butoi rotund, lat cât toată silueta, deci o elipsă mai îngustă îi stă întreagă ascunsă în spate. La copaci merge fiindcă umbra iese în lături de sub un trunchi subțire. **Dacă vreodată o umbră „nu apare", asta e prima verificare**, nu alfa.
+
+**Cine îi spune în ce lume e:** `ender.gd`, cu `set_cosmic(true/false)`, exact lângă locul unde îi mută `retur`. Fântâna nu se uită singură după grupul „ender" în fiecare cadru — cine îi schimbă rolul îi spune și cum să arate. Tween-ul e tot pe `TWEEN_PAUSE_PROCESS`, din același motiv ca la atmosferă. La scufundare, cele două pete se sting odată cu piatra, altfel rămânea o baltă violetă pe pământul gol.
+
 ---
 
 ## Session log — 2026-08-03 (ruleta EGT: un singur status pe învârtire)

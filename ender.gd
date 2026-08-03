@@ -136,6 +136,7 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	_player = player
 	_fantana = fantana
 	_fantana.retur = true     # de aici încolo, E pe ea înseamnă „ieși"
+	_fantana_cosmica(true)    # și își schimbă și pielea: halou violet, piatră mai stinsă
 	_elapsed = 0.0
 	_entry_diff_time = Difficulty.time
 	_swarm_announced = false
@@ -191,6 +192,7 @@ func exit_ender(anunt: bool = true) -> void:
 	# într-o stare în care „E" ar însemna ieșire dintr-o dimensiune în care nu mai ești
 	if _fantana != null and is_instance_valid(_fantana):
 		_fantana.retur = false
+		_fantana_cosmica(false)
 	_clock.visible = false
 	_arrow.visible = false
 	_dist.visible = false
@@ -363,6 +365,12 @@ func _set_ground_ender(on: bool) -> void:
 
 # Culoarea lumii + stelele de pe ecran. Ca la Nether: tot ce ține de „cum arată dincolo" stă
 # într-un singur loc, în `atmosphere.gd` — aici doar spunem în ce dimensiune suntem.
+# Fântâna e o singură bucată de artă în două lumi: pe iarbă are nevoie de umbră, pe nebuloasă
+# de lumină. `has_method` fiindcă `_fantana` e tipizat ca `Node2D` — la fel ca `_set_atmosphere`.
+func _fantana_cosmica(on: bool) -> void:
+	if _fantana != null and is_instance_valid(_fantana) and _fantana.has_method("set_cosmic"):
+		_fantana.set_cosmic(on)
+
 func _set_atmosphere(kind: String) -> void:
 	var atm := get_tree().get_first_node_in_group("atmosphere")
 	if atm != null and atm.has_method("set_dimension"):
