@@ -16,6 +16,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-03 (CELESTO: cadrele boss-ului nou din Ender)
+
+**Cerut de Răzvan:** „Ți-am pus folderu de boss în Portal Ender — se numește Celesto. Nu ai animația de la west, îi dai tu mirror la aia de la east. Să aibă conturu ăla albastru da de 1 px."
+
+**Ce e în folder:** 6 GIF-uri de mers (`Idle_v3_walking_*.gif`), 8 cadre fiecare, 128×128.
+
+**Lipseau DOUĂ direcții, nu una.** Răzvan a văzut `west`; lipsea și `north_west` (are `south_west`, dar nu și perechea de nord). Le-am făcut pe amândouă după aceeași regulă — stânga e dreapta întoarsă — deci `west ← east` și `north_west ← north_east`. Dacă voia altfel la nord-vest, acolo se schimbă.
+
+**Unealta nouă: `tool_celesto.gd`** (rulată ca scenă). Face două lucruri, în ordinea asta:
+1. **oglindește** cele două direcții lipsă, cu **recentrare**: `flip_x` întoarce toată pânza, deci un desen care nu stă fix în mijloc se mută cu dublul decalajului — în joc s-ar fi văzut boss-ul SĂRIND lateral la schimbarea direcției. Unealta măsoară conturul opac înainte/după și îl pune la loc pe aceleași coloane (aici: −3px la west, −15px la north_west). Aceeași lecție ca la `tool_mirror_grasu.gd`;
+2. pune **conturul albastru de 1px** (exact `ALBASTRU` din `tool_contur_foaie.gd`, ca să arate la fel cu boss-ul de dinainte) și scrie copiile în **`frames_contur/`**. Sursa din `frames/` rămâne neatinsă → unealta se poate re-rula fără să se îngroașe conturul.
+
+**De ce o unealtă nouă și nu o linie în `tool_contur_foaie.gd`:** ăla conturează FOI (grile de cadre într-un singur PNG), aici sunt fișiere separate, câte unul pe cadru.
+
+**Verificat pe capturi:** cele 8 direcții pe fundal de nebuloasă, conturul albastru vizibil pe toate; perechile east/west și north_east/north_west puse alături — oglindirea e corectă și numărul de pixeli de contur iese IDENTIC între sursă și oglindă (1769 și 2598), ceea ce arată că nu s-a pierdut nimic la întoarcere.
+
+**⚠️ ATENȚIE, descoperit atunci: folderul `Undead executioner puppet` NU MAI E PE DISC.** Răzvan l-a înlocuit cu Celesto. `executioner.gd` încă îl caută: nu crapă (`_build_frames` dă `push_warning` și merge mai departe), dar boss-ul Ender-ului rămâne **invizibil**, iar cum lovitura lui pleacă pe un cadru anume (prin `frame_changed`), fără cadre **nu mai atacă**. Deci Ender-ul e momentan cu un boss fantomă. **N-am comis ștergerea** — se restaurează cu `git checkout -- "harta/Portal Ender/Undead executioner puppet"` dacă a fost din greșeală. **Și Celesto NU e înlocuitor direct:** are doar mers, pe când Executioner-ul avea idle + attack + skill + summon + death.
+
+---
+
 ## Session log — 2026-08-03 (atmosferă pentru Nether și Ender + boss-ul Ender la 100 000 HP)
 
 **Cerut de Răzvan:** „Poti sa pui niste shadere in nether si in ender sa arate mai atmosferic? Nether trebuie sa fie asa ca iadul si Ender mai cosmic." Plus, mai devreme: bossul din Ender la 100 000 HP (`executioner.gd::max_hp`, era 16 000 — viața rămâne FIXĂ, nescalată, ca pragul fazei 2 să cadă tot la jumătate).
