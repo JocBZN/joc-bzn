@@ -46,7 +46,7 @@ Quick rules:
 - **arta e pe GRILE, nu pe un rând** — 5 foi cu cadre de 100×100 (`idle2` 8, `attacking` 13, `skill1` 12, `summon` 5, `death` 18). Feliate la rulare cu `AtlasTexture`, pe rânduri; celulele goale de la coada grilei se sar prin numărul real de cadre;
 - **lovitura pleacă pe un CADRU anume** (`CADRU_LOVITURA`, prin semnalul `frame_changed`), nu la începutul animației — altfel proiectilul iese din el înainte să se vadă că a tăiat;
 - **faza 2 n-are filmuleț.** Saratalin oprește jocul și pulsează mov; ăsta are animație de invocare în foaie, deci de la jumătate de viață **cheamă 4 creaturi** la fiecare 11s și atacă de 1,6× mai des. Se vede prin ce face, nu prin cameră.
-Viață fixă **16 000** (Saratalin are 10 000) și premiu **4 niveluri** (el dă 3) — ca să ajungi aici trebuie să-l fi bătut deja pe el. Proiectilul e ștreangul lui Saratalin colorat albastru, **placeholder** până are tăietura lui de coasă.
+Viață fixă **100 000** (Saratalin are 10 000) și premiu **4 niveluri** (el dă 3) — ca să ajungi aici trebuie să-l fi bătut deja pe el. Proiectilul e ștreangul lui Saratalin colorat albastru, **placeholder** până are tăietura lui de coasă.
 
 **Conturul albastru:** `tool_contur_foaie.gd` știa doar foi pe un singur rând; acum acceptă grile (`coloane`×`randuri`) și sare celulele goale. Nu e cosmetic: silueta e **complet neagră**, iar podeaua Ender-ului e o nebuloasă aproape neagră — fără contur boss-ul ar fi o gaură în ecran. Foile lui Răzvan rămân neatinse, se scriu copii `*_contur.png`, deci unealta se poate re-rula fără să se îngroașe conturul.
 

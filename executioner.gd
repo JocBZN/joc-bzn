@@ -38,9 +38,9 @@ const SLUGA := preload("res://enemy_nether.tscn")
 @export var speed: float = 74.0          # plutește, ca Saratalin, dar puțin mai iute
 # Viață FIXĂ, nescalată cu dificultatea — la fel ca la Saratalin, și din același motiv: e o
 # luptă cu bară pe ecran și cu o fază care începe fix la jumătate, deci pragul trebuie să
-# însemne același lucru la fiecare rundă. Mai mult decât Saratalin (10 000): ca să ajungi aici
-# trebuie să-l fi bătut deja pe el.
-@export var max_hp: int = 16000
+# însemne același lucru la fiecare rundă. Mult mai mult decât Saratalin (10 000): ca să ajungi
+# aici trebuie să-l fi bătut deja pe el.
+@export var max_hp: int = 100000
 @export var nume: String = "UNDEAD EXECUTIONER PUPPET"   # ce scrie deasupra barei
 @export var xp_value: int = 150          # se înmulțește cu bonusul de XP al Ender-ului
 
