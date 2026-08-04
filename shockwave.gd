@@ -16,7 +16,7 @@ var _raza: float = 0.0
 var _loviti := {}              # instance_id -> true, ca un inamic să nu încaseze de două ori
 
 func _ready() -> void:
-	z_index = -1               # pe sol: sub player și sub inamici, ca aura stingătorului
+	z_index = -1               # pe sol: sub player și sub inamici, ca tăietura sabiei
 	top_level = true           # nu se mișcă cu player-ul — valul pleacă din locul detonării și rămâne acolo
 
 func _process(delta: float) -> void:

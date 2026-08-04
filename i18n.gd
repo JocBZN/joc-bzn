@@ -54,7 +54,6 @@ const TRAD := {
 "OP START": ["强化开局", "OP-START", "INICIO OP", "ОП-СТАРТ", "DÉPART OP", "OPスタート", "START OP", "OP BAŞLANGIÇ"],
 "PISTOL": ["手枪", "PISTOLE", "PISTOLA", "ПИСТОЛЕТ", "PISTOLET", "ピストル", "PISTOLET", "TABANCA"],
 "MAGE STAFF": ["法杖", "MAGIERSTAB", "BÁCULO MÁGICO", "ПОСОХ МАГА", "BÂTON DE MAGE", "魔法の杖", "KOSTUR MAGA", "BÜYÜCÜ ASASI"],
-"EXTINGUISHER": ["灭火器", "FEUERLÖSCHER", "EXTINTOR", "ОГНЕТУШИТЕЛЬ", "EXTINCTEUR", "消火器", "GAŚNICA", "YANGIN SÖNDÜRÜCÜ"],
 "CURSED SWORD": ["诅咒之剑", "VERFLUCHTES SCHWERT", "ESPADA MALDITA", "ПРОКЛЯТЫЙ МЕЧ", "ÉPÉE MAUDITE", "呪われた剣", "PRZEKLĘTY MIECZ", "LANETLİ KILIÇ"],
 # „Celesto" e nume propriu, rămâne peste tot; se traduce doar „coasa lui"
 "CELESTO'S SCYTHE": ["塞莱斯托之镰", "CELESTOS SENSE", "GUADAÑA DE CELESTO", "КОСА ЦЕЛЕСТО", "FAUX DE CELESTO", "セレストの大鎌", "KOSA CELESTA", "CELESTO'NUN TIRPANI"],

@@ -2,7 +2,7 @@ extends Node
 
 # Setări globale + salvare pe device (leaderboard, monede, meta-progresie). Autoload "GameSettings".
 
-var weapon_type: String = "pistol"  # arma aleasă: "pistol" / "mage" / "extinguisher" / "sword" / "scythe"
+var weapon_type: String = "pistol"  # arma aleasă: "pistol" / "mage" / "sword" / "scythe"
 var character: String = "grasu"
 
 const SAVE_PATH := "user://scores.save"

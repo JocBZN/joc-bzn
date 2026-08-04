@@ -564,7 +564,7 @@ func _apply(id: String, p) -> void:
 			p.bullet_damage += 10
 			p.upgrade_fire_rate(0.85)
 		"foite":
-			# tragi mai des: +10% attack speed (merge și la gloanțe, și la pulsul stingătorului)
+			# tragi mai des: +10% attack speed (merge și la gloanțe, și la tăietură/măturat)
 			p.upgrade_fire_rate(0.90)
 		"grinder":
 			# eficiență: nivelezi mai repede (îți trebuie mai puțin XP)
@@ -628,7 +628,7 @@ func _apply(id: String, p) -> void:
 			# gloanțele împing inamicii înapoi
 			p.knockback += 250.0
 		"pufferfish":
-			# arma se umflă: +10px la sprite ȘI la hitbox (glonț / sferă mage / aura stingătorului)
+			# arma se umflă: +10px la sprite ȘI la hitbox (glonț / sferă mage / tăietură / lama coasei)
 			p.weapon_size_px += 10.0
 		"burger":
 			# arma crește cu 30% peste mărimea curentă (se compune dacă îl iei de mai multe ori)

@@ -15,8 +15,10 @@ const SFX := {
 	"mage_shoot":     "res://audio/Mage Staff Audio.wav",               # proiectilul de Mage Staff (are alt sunet decât pistolul)
 	"levelup":        "res://audio/Choose Item Menu Open - Close.wav",  # ecranul de Level Up
 	"hurt":           "res://audio/When enemy hits player.wav",         # player-ul primește damage
-	"extinguisher":   "res://audio/Extinguisher.wav",                   # pulsul stingătorului
-	"sword":          "res://audio/Cursed Sword.wav",                   # tăietura săbiei
+	# Sabia sună cu fostul sunet de STINGĂTOR: cerut de Răzvan pe 2026-08-04, odată cu scoaterea
+	# stingătorului din joc. `Cursed Sword.wav` a rămas pe disc, nefolosit — dacă vrei sunetul
+	# vechi înapoi, schimbi doar linia asta.
+	"sword":          "res://audio/Extinguisher.wav",                   # tăietura săbiei
 	"garda_attack":   "res://audio/Garda Attack.wav",                   # boss-ul Garda aruncă bastonul
 	"game_start":     "res://audio/Game Start.wav",                     # începutul unei runde
 	"game_over":      "res://audio/Game Over.wav",                      # ecranul de Game Over

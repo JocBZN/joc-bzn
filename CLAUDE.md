@@ -16,6 +16,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (STINGĂTORUL a fost scos din joc; sunetul lui trece la sabie)
+
+**Cerut de Răzvan:** „pune sunetu de la extintor la cursed sword si sterge cu totu extintoru din joc".
+
+**Sunetul:** în `audio.gd`, cheia `"sword"` arată acum spre `Extinguisher.wav`, iar cheia `"extinguisher"` a dispărut. **`Cursed Sword.wav` a rămas pe disc, nefolosit** — n-am șters-o, e sunetul lui; dacă vrea vechiul sunet înapoi, se schimbă o singură linie.
+
+**Ce a plecat, tot dintr-o bucată:**
+- `player.gd`: rândul din `ARME`, `_aura_pulse()`, `_spawn_aura_ring()`, `_build_foam_frames()`, `_make_radial_texture()`, exporturile `aura_base_radius / aura_growth / aura_damage / foam_scale`, `_aura_tex`, `_foam_frames`, ramura din `_fire()` și cea din burst;
+- `menu.gd`: rândul din `WEAPONS`; `i18n.gd`: cheia `EXTINGUISHER` (cu tot cu cele 8 traduceri);
+- de pe disc: `stingator/` (14 cadre de spumă + `.import`) și `weapons_icons/stingator.png`.
+
+**Și comentariile.** Stingătorul era pomenit ca exemplu în vreo zece locuri care n-aveau treabă cu el (`bullet.gd`, `shockwave.gd`, `levelup.gd`, plafonul de mărime, Bloody Situation, burst-ul). Toate arată acum spre sabie sau spre coasă. Un comentariu care trimite la cod inexistent e mai rău decât niciunul.
+
+**Verificat rulând o rundă cu FIECARE armă rămasă**, cu un manechin lipit de player: pistol 48, mage 90, sabie 74, coasă 45 damage încasat în 1.6s. Sunetul săbiei citește `Extinguisher.wav`, iar cheia `"extinguisher"` nu mai există. Meniul arată 4 arme, fără iconițe lipsă. Verificatorul de traduceri trece.
+
+**Codexul e actualizat și republicat**: rândul de armă a dispărut din tabelul de start, iar cele patru locuri unde stingătorul era dat ca exemplu (Aimbot, Bloody Situation, Pufferfish, nota despre proiectile pe arme de corp la corp) arată acum spre sabie/coasă. Randat întâi în Chrome headless.
+
+---
+
 ## Session log — 2026-08-04 (hitbox-ul coasei = chiar desenul ei, umflat cu 5px)
 
 **Cerut de Răzvan:** „hitboxu la scythe nu e egal cu sprite-ul in sine, poti chiar sa il faci cu 5pixeli peste sprite daca arata mai ok asa".

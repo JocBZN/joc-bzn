@@ -89,9 +89,9 @@ func aimbot_turn() -> float:
 	return aimbot_stacks * AIMBOT_TURN_PER
 
 # Bloody Situation: fiecare lovitură CRITICĂ te vindecă. +2 HP pe luare.
-# Regula: o vindecare per lovitură critică, nu per inamic atins. Contează la Stingător și la
-# sabie, care lovesc zeci de inamici cu ACELAȘI critic (unul singur rostogolit pe puls/tăietură):
-# dacă ar vindeca de fiecare inamic, un puls critic în mijlocul gloatei te-ar umple instant de viață.
+# Regula: o vindecare per lovitură critică, nu per inamic atins. Contează la sabie și la coasă,
+# care lovesc zeci de inamici cu ACELAȘI critic (unul singur rostogolit pe tăietură/tur): dacă ar
+# vindeca de fiecare inamic, o tăietură critică în mijlocul gloatei te-ar umple instant de viață.
 const BLOODY_HEAL_PER := 2
 var bloody_stacks: int = 0
 
@@ -114,7 +114,7 @@ var mankini_stacks: int = 0
 var has_undying: bool = false
 var undying_used: bool = false
 
-# --- tipul de armă (ales din meniu: pistol / mage / extinguisher / sword / scythe) ---
+# --- tipul de armă (ales din meniu: pistol / mage / sword / scythe) ---
 var weapon_type: String = "pistol"
 
 # --- FIECARE ARMĂ CU AVANTAJUL ȘI DEZAVANTAJUL EI (cerut de Răzvan, 2026-07-27) ---
@@ -124,28 +124,21 @@ var weapon_type: String = "pistol"
 #   armă             damage   pauză între lovituri   lovituri/s
 #   pistol             15           0.75               1.33
 #   mage staff         10           0.50               2.00   ← de 1.5× mai des ca pistolul
-#   extinguisher       12           0.75               1.33
 #   cursed sword       20           0.75               1.33
 #   celesto's scythe   24           0.95               1.05   ← cea mai rară, dar taie în jur
 #
+# (STINGĂTORUL a fost ȘTERS din joc pe 2026-08-04, la cererea lui Răzvan — cu tot cu aura care
+#  pulsa, spuma, iconița și cadrele ei. Sunetul lui a rămas: îl folosește acum sabia.)
+#
 # ⚠️ `damage` de aici e statul din panou (`bullet_damage`), nu neapărat cât intră în inamic:
-# stingătorul ADAUGĂ `aura_damage` + jumătate din el (10 + 6 = 16 pe puls), sabia adaugă
-# `sword_base_damage` întreg (8 + 20 = 28 pe tăietură), iar coasa `scythe_base_damage`
-# (12 + 24 = 36 pe măturat). Vezi `_aura_tick()`, tăietura sabiei și `_scythe_swing()`.
+# sabia adaugă `sword_base_damage` întreg (8 + 20 = 28 pe tăietură), iar coasa
+# `scythe_base_damage` (12 + 24 = 36 pe măturat). Vezi tăietura sabiei și `_scythe_swing()`.
 const ARME := {
 	"pistol":       {"damage": 15, "interval": 0.75},
 	"mage":         {"damage": 10, "interval": 0.50},
-	"extinguisher": {"damage": 12, "interval": 0.75},
 	"sword":        {"damage": 20, "interval": 0.75},
 	"scythe":       {"damage": 24, "interval": 0.95},
 }
-# Stingător = AURĂ: pulsează în jurul tău, mai mare cu nivelul, mai des cu cadența
-@export var aura_base_radius: float = 90.0
-@export var aura_growth: float = 12.0      # cât crește raza pe nivel
-@export var aura_damage: int = 10          # damage de bază pe puls; total = asta + 50% din bullet_damage (10 + 5 = 15 la start)
-@export var foam_scale: float = 1.25       # mărimea spumei: crește ȘI vizualul, ȘI hitbox-ul (rămân mereu egale)
-var _aura_tex: Texture2D
-var _foam_frames: SpriteFrames  # animația de spumă (rândul 6 din stingator_effects.png)
 var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol/mage)
 var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
 var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
@@ -203,14 +196,12 @@ var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s
 
 # --- COASA LUI CELESTO: mătură un cerc COMPLET în jurul tău ---
 #
-# A treia armă de corp la corp, adusă din arta boss-ului Ender (`celesto.gd` aruncă aceeași
-# lamă). Diferența față de celelalte două care lovesc în jur:
+# A doua armă de corp la corp, adusă din arta boss-ului Ender (`celesto.gd` aruncă aceeași lamă).
+# Diferența față de sabie:
 #   • SABIA taie doar ÎNAINTE, într-un dreptunghi lung — rază mare, dar trebuie să fii cu fața;
-#   • STINGĂTORUL pulsează un cerc care CREȘTE cu nivelul, dar dă damage mic (jumătate din
-#     `bullet_damage` + `aura_damage`) și lovește tot ce prinde ÎN ACEEAȘI CLIPĂ;
-#   • COASA are rază FIXĂ și scurtă, dar damage întreg (`bullet_damage + scythe_base_damage`),
-#     și lovește PE MĂSURĂ CE LAMA AJUNGE la fiecare — nu toți deodată. De aia se și vede lama
-#     rotindu-se: ce e în spatele tău încasează la sfârșitul turului, nu la început.
+#   • COASA are rază FIXĂ și scurtă, dar taie DE JUR ÎMPREJUR, și lovește PE MĂSURĂ CE LAMA
+#     AJUNGE la fiecare — nu toți deodată. De aia se și vede lama rotindu-se: ce e în spatele tău
+#     încasează la sfârșitul turului, nu la început.
 #
 # Damage-ul se fixează la începutul măturatului (ca la sabie): un tur = un damage și un critic,
 # oricât ar dura. `loviti` ține minte pe cine a prins deja turul ăsta, ca lama să nu dea de două
@@ -274,7 +265,7 @@ func luck_bonus() -> float:
 @export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
 # --- mărimea ARMEI (sprite + hitbox), comună tuturor armelor ---
 # Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui) — dar PLAFONAT, vezi
-# `BULLET_SIZE_CAP`. Stingător: mărește raza aurei. Sabie: tăietura. Toate: dârele de foc/gheață.
+# `BULLET_SIZE_CAP`. Sabie: tăietura. Coasă: lama și raza cercului. Toate: dârele de foc/gheață.
 const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran (193px × 1.4 sprite × 0.1 root)
 @export var weapon_size_px: float = 0.0    # Pufferfish: +10 px adăugați la mărimea armei
 @export var weapon_size_mult: float = 1.0  # Rat's Burger: × 1.30 peste mărimea curentă
@@ -357,7 +348,7 @@ var _quake_strength: float = 0.0
 
 func _ready() -> void:
 	add_to_group("player")
-	# arma aleasă din meniu (pistol / mage / extinguisher)
+	# arma aleasă din meniu (pistol / mage / sword / scythe)
 	weapon_type = GameSettings.weapon_type
 	_aplica_arma()  # damage-ul și cadența de bază ale armei alese — ÎNAINTE de meta
 	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
@@ -366,8 +357,6 @@ func _ready() -> void:
 	# măsoară viteza câștigată în rundă (Weird Concoction, Alex's Protection), nu ce ai cumpărat
 	# din magazin — altfel cine are Speed-ul maxat ar începe cu bonusul deja pe jumătate dat.
 	_speed_base = speed
-	_aura_tex = _make_radial_texture()   # fallback vizual pentru aura stingătorului
-	_foam_frames = _build_foam_frames()  # animația de spumă (rândul 6 din stingator_effects.png)
 	_muzzle_frames = _load_fx_frames("res://fx/muzzle", 26.0, false)
 	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
 	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
@@ -534,8 +523,8 @@ func _process(delta: float) -> void:
 const STEP_GAP := 0.3
 var _step_t := 0.0
 
-# Burst de atacuri pentru SABIE și STINGĂTOR: fiecare proiectil EXTRA (Gunslinger / Twin Comets /
-# Broken Watch) = încă o tăietură/pulsare rapidă DUPĂ prima, ca în Megabonk. Cu cât ai mai multe
+# Burst de atacuri pentru SABIE și COASĂ: fiecare proiectil EXTRA (Gunslinger / Twin Comets /
+# Broken Watch) = încă o tăietură/încă un tur, rapid DUPĂ primul, ca în Megabonk. Cu cât ai mai multe
 # proiectile, cu atât pauza dintre ele e mai mică (le dă mai repede). Gloanțele NU folosesc asta —
 # ele trag salve paralele spre inamici diferiți. Rulăm burst-ul cu un contor în _physics_process
 # (nu cu await), ca la Garda: dacă player-ul moare/schimbă scena la mijloc, nu rămâne un await agățat.
@@ -544,7 +533,7 @@ const BURST_MIN := 0.045    # pauza minimă (cât de rapid poate deveni la multe
 var _burst_left := 0        # câte atacuri mai are burst-ul curent
 var _burst_gap := 0.0       # pauza dintre ele (calculată la pornire)
 var _burst_t := 0.0         # countdown până la următorul atac din burst
-var _burst_kind := ""       # "sword", "extinguisher" sau "scythe"
+var _burst_kind := ""       # "sword" sau "scythe"
 
 func _physics_process(delta: float) -> void:
 	_tick_burst(delta)
@@ -601,7 +590,7 @@ func weapon_size_scale() -> float:
 # acopere jumătate de ecran, deci rămâne fix la 100%. Sfera mage e AOE și oricum mare, așa că
 # poate crește, dar nu peste 250%. Plafonul e pe REZULTAT (bullet_scale × weapon_size_scale),
 # nu pe stat: statul „Weapon Size" rămâne cum e și continuă să lucreze la dârele de foc/gheață,
-# la aura stingătorului și la tăietura sabiei — se oprește doar creșterea glonțului.
+# la tăietura sabiei și la lama coasei — se oprește doar creșterea glonțului.
 const BULLET_SIZE_CAP := {
 	"pistol": 1.0,
 	"mage": 2.5,
@@ -623,7 +612,7 @@ func bullet_size_scale() -> float:
 # cât scrie pe item), așa că stă tot aici, unde se adună exact.
 #
 # Se aplică pe damage-ul FINAL al lovturii, exact ca și criticul (crit_mult) — deci merge la
-# toate armele, inclusiv Stingător și Cursed Sword. Dârele de foc/gheață nu-l primesc, la fel
+# toate armele, inclusiv Cursed Sword și coasa. Dârele de foc/gheață nu-l primesc, la fel
 # cum nu primesc nici upgrade-urile obișnuite de damage.
 func damage_mult() -> float:
 	var m := 1.0 + cig_bonus  # Cigarette Pack: mereu pornit
@@ -741,7 +730,7 @@ func _raza_ecran() -> float:
 		zoom = _cam.zoom
 	return (vp / zoom).length() * 0.5 + 64.0
 
-# Câte atacuri EXTRA (peste primul) primește un burst de sabie/stingător, din upgrade-urile de
+# Câte atacuri EXTRA (peste primul) primește un burst de sabie/coasă, din upgrade-urile de
 # proiectile. Aceeași socoteală ca la gloanțe (`_fire_bullets`): Gunslinger/Twin Comets garantate
 # (`stacked_armory_stacks`) + Broken Watch pe șansă.
 func _extra_attacks() -> int:
@@ -772,17 +761,12 @@ func _tick_burst(delta: float) -> void:
 		_burst_t += _burst_gap
 		if _burst_kind == "sword":
 			_sword_swing()
-		elif _burst_kind == "extinguisher":
-			_aura_pulse()
 		elif _burst_kind == "scythe":
 			_scythe_swing()
 
 # dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:
-	if weapon_type == "extinguisher":
-		_aura_pulse()               # prima pulsare acum
-		_start_burst("extinguisher")  # proiectilele extra = pulsări rapide după ea
-	elif weapon_type == "sword":
+	if weapon_type == "sword":
 		_sword_swing()              # prima tăietură acum
 		_start_burst("sword")         # proiectilele extra = tăieturi rapide după ea
 	elif weapon_type == "scythe":
@@ -998,77 +982,6 @@ func _spawn_electric_arc(from: Vector2, to: Vector2, n_from: Node2D = null, n_to
 	a.animation_finished.connect(func() -> void:
 		_arce_vii = maxi(0, _arce_vii - 1)
 		a.queue_free())
-
-# Stingător: aură care pulsează în jurul tău. Rază = bază + nivel × creștere;
-# frecvența pulsului = fire_interval (scade cu upgrade-urile de cadență) → tot mai des.
-func _aura_pulse() -> void:
-	Audio.play("extinguisher", -10.0)  # spuma sună la FIECARE pulsare, nu doar când prinde un inamic
-	# raza aurei e și vizualul, și zona care lovește → aceeași valoare pentru amândouă (hitbox = sprite mereu)
-	var radius := (aura_base_radius + level * aura_growth + weapon_size_px) * weapon_size_mult * foam_scale
-	# aura scalează și cu upgrade-urile de damage, plus procentele de acum (Theo's / Cigarette / Diesel)
-	var dmg := int(round((aura_damage + int(bullet_damage * 0.5)) * damage_mult()))
-	var cr := roll_crit()                              # Adrenaline + Megane's Katana; peste 100% = multi-crit
-	var is_crit: bool = cr["tiers"] > 0
-	if is_crit:
-		dmg = int(round(dmg * cr["mult"]))
-	var hit := false
-	var loviti: Array[Node2D] = []   # cine a încasat pulsul → din ei pornește Thunder God (vezi jos)
-	for e in get_tree().get_nodes_in_group("enemy"):
-		var enemy := e as Node2D
-		if enemy == null:
-			continue
-		if global_position.distance_to(enemy.global_position) <= radius:
-			enemy.take_damage(dmg)
-			Fx.damage_number(enemy.global_position, dmg, is_crit)
-			if knockback > 0.0 and enemy.has_method("apply_knockback"):
-				enemy.apply_knockback((enemy.global_position - global_position).normalized() * knockback)
-			loviti.append(enemy)
-			hit = true
-	if hit:
-		if is_crit:
-			add_shake(0.35)  # zguduitură ca la gloanțele critice
-			bloody_heal()    # Bloody Situation: o vindecare per PULS critic, nu per inamic prins
-		# Thunder God / Plugged In și pe Stingător. UN SINGUR lanț pe puls, dintr-un inamic lovit la
-		# întâmplare — NU câte unul din fiecare. Aura lovește tot ce prinde deodată; un lanț de fiecare
-		# ar da N×N arcuri pe puls (10 inamici = 90 de arcuri, de câteva ori pe secundă) — și ilizibil,
-		# și greu. Un lanț per puls păstrează regula celorlalte arme: un impact = o descărcare.
-		if thunder_active_on_hit():
-			var vii := loviti.filter(func(n: Node2D) -> bool: return is_instance_valid(n))
-			if not vii.is_empty():
-				thunder_from(vii[randi() % vii.size()])
-	_spawn_aura_ring(radius)
-
-# Vizual placeholder al aurei: un nor bleu-alb care se extinde din player și se stinge.
-func _spawn_aura_ring(radius: float) -> void:
-	# preferăm animația de spumă (rândul 6); dacă nu e importată încă, cădem pe inelul gradient
-	if _foam_frames != null and _foam_frames.get_frame_count("foam") > 0:
-		var a := AnimatedSprite2D.new()
-		a.sprite_frames = _foam_frames
-		a.animation = "foam"
-		a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # pixel art clar
-		a.modulate = Color(0.8, 0.95, 1.0, 0.9)  # ușor bleu, ca spuma
-		a.z_index = -1  # sub player/inamici
-		get_parent().add_child(a)
-		a.global_position = global_position
-		a.scale = Vector2.ONE * (radius * 2.0) / 64.0  # frame 64px → diametru = 2×rază = exact hitbox-ul
-		a.play("foam")
-		a.animation_finished.connect(a.queue_free)
-		return
-	# fallback: inel gradient (dacă frame-urile nu-s încă importate de Godot)
-	if _aura_tex == null:
-		return
-	var s := Sprite2D.new()
-	s.texture = _aura_tex
-	s.modulate = Color(0.6, 0.9, 1.0, 0.5)
-	s.z_index = -1
-	get_parent().add_child(s)
-	s.global_position = global_position
-	var full := (radius * 2.0) / 256.0
-	s.scale = Vector2.ONE * full * 0.25
-	var t := create_tween()
-	t.tween_property(s, "scale", Vector2.ONE * full, 0.28)
-	t.parallel().tween_property(s, "modulate:a", 0.0, 0.32)
-	t.tween_callback(s.queue_free)
 
 # Cursed Sword: la fiecare tick pornește o tăietură. Ca în Megabonk, tăietura NU e o poză
 # înghețată: cât ține animația se rotește după privire și mătură, lovind pe unde trece.
@@ -1552,21 +1465,6 @@ func _spawn_sword_slash(dir: Vector2) -> AnimatedSprite2D:
 	a.animation_finished.connect(a.queue_free)
 	return a
 
-# Construiește animația de spumă din cele 14 frame-uri tăiate (stingator/frame_0..13.png).
-func _build_foam_frames() -> SpriteFrames:
-	var sf := SpriteFrames.new()
-	if not sf.has_animation("foam"):
-		sf.add_animation("foam")
-	sf.set_animation_loop("foam", false)
-	sf.set_animation_speed("foam", 24.0)  # 14 frame-uri la 24fps ≈ 0.58s
-	for i in 14:
-		var path := "res://stingator/frame_%d.png" % i
-		if ResourceLoader.exists(path):
-			var tex := load(path) as Texture2D
-			if tex != null:
-				sf.add_frame("foam", tex)
-	return sf
-
 # --- efecte animate din gigapack (muzzle / explozie mage / sferă mage) ---
 # Încarcă frame_0.png, frame_1.png ... dintr-un folder, într-o animație numită "fx".
 func _load_fx_frames(dir: String, fps: float, loop: bool) -> SpriteFrames:
@@ -1625,20 +1523,6 @@ func _make_mage_orb(bullet: Node) -> void:
 	orb.scale = Vector2.ONE * (mage_orb_size / float(max(fw, 1))) / parent_scale
 	bullet.add_child(orb)
 	orb.play("fx")
-
-# Textură rotundă moale (gradient radial) — placeholder pentru spumă/aură.
-func _make_radial_texture() -> GradientTexture2D:
-	var grad := Gradient.new()
-	grad.set_color(0, Color(1, 1, 1, 0.9))
-	grad.set_color(1, Color(1, 1, 1, 0.0))
-	var tex := GradientTexture2D.new()
-	tex.gradient = grad
-	tex.width = 256
-	tex.height = 256
-	tex.fill = GradientTexture2D.FILL_RADIAL
-	tex.fill_from = Vector2(0.5, 0.5)
-	tex.fill_to = Vector2(0.5, 0.0)
-	return tex
 
 func _nearest_enemy() -> Node2D:
 	var nearest: Node2D = null

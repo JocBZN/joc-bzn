@@ -41,7 +41,6 @@ const ICON_PAD := 16     # cât intră iconița în interiorul chenarului, ca s�
 var WEAPONS := [
 	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png"},
 	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png"},
-	{"id": "extinguisher", "name": "EXTINGUISHER", "icon": "res://weapons_icons/stingator.png"},
 	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png"},
 	# Iconița e arta boss-ului, luată DIN folderul lui, nu copiată în `weapons_icons/`: e aceeași
 	# lamă pe care o aruncă Celesto și pe care o învârte player-ul, deci o singură poză pe disc.
