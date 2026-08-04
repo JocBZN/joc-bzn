@@ -114,27 +114,30 @@ var mankini_stacks: int = 0
 var has_undying: bool = false
 var undying_used: bool = false
 
-# --- tipul de armă (ales din meniu: pistol / mage / extinguisher / sword) ---
+# --- tipul de armă (ales din meniu: pistol / mage / extinguisher / sword / scythe) ---
 var weapon_type: String = "pistol"
 
 # --- FIECARE ARMĂ CU AVANTAJUL ȘI DEZAVANTAJUL EI (cerut de Răzvan, 2026-07-27) ---
 # Până acum toate porneau identic (10 damage, o lovitură la 0.5s) și se deosebeau doar prin
 # FELUL în care lovesc. Acum alegi și între „rar și greu" și „des și slab":
 #
-#   armă            damage   pauză între lovituri   lovituri/s
-#   pistol            15           0.75               1.33
-#   mage staff        10           0.50               2.00   ← de 1.5× mai des ca pistolul
-#   extinguisher      12           0.75               1.33
-#   cursed sword      20           0.75               1.33
+#   armă             damage   pauză între lovituri   lovituri/s
+#   pistol             15           0.75               1.33
+#   mage staff         10           0.50               2.00   ← de 1.5× mai des ca pistolul
+#   extinguisher       12           0.75               1.33
+#   cursed sword       20           0.75               1.33
+#   celesto's scythe   24           0.95               1.05   ← cea mai rară, dar taie în jur
 #
 # ⚠️ `damage` de aici e statul din panou (`bullet_damage`), nu neapărat cât intră în inamic:
-# stingătorul ADAUGĂ `aura_damage` + jumătate din el (10 + 6 = 16 pe puls), iar sabia adaugă
-# `sword_base_damage` întreg (8 + 20 = 28 pe tăietură). Vezi `_aura_tick()` și tăietura sabiei.
+# stingătorul ADAUGĂ `aura_damage` + jumătate din el (10 + 6 = 16 pe puls), sabia adaugă
+# `sword_base_damage` întreg (8 + 20 = 28 pe tăietură), iar coasa `scythe_base_damage`
+# (12 + 24 = 36 pe măturat). Vezi `_aura_tick()`, tăietura sabiei și `_scythe_swing()`.
 const ARME := {
 	"pistol":       {"damage": 15, "interval": 0.75},
 	"mage":         {"damage": 10, "interval": 0.50},
 	"extinguisher": {"damage": 12, "interval": 0.75},
 	"sword":        {"damage": 20, "interval": 0.75},
+	"scythe":       {"damage": 24, "interval": 0.95},
 }
 # Stingător = AURĂ: pulsează în jurul tău, mai mare cu nivelul, mai des cu cadența
 @export var aura_base_radius: float = 90.0
@@ -197,6 +200,32 @@ var _sword_frame_px := Vector2(64, 55)      # mărimea unui cadru, în pixeli de
 var _sword_env := Rect2()                   # anvelopa animației (uniunea cadrelor), în pixeli de artă
 var _slashes: Array = []                    # tăieturile în curs; le rotim după privire cât se joacă
 var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s-a uitat player-ul (pt. tăietura sabiei)
+
+# --- COASA LUI CELESTO: mătură un cerc COMPLET în jurul tău ---
+#
+# A treia armă de corp la corp, adusă din arta boss-ului Ender (`celesto.gd` aruncă aceeași
+# lamă). Diferența față de celelalte două care lovesc în jur:
+#   • SABIA taie doar ÎNAINTE, într-un dreptunghi lung — rază mare, dar trebuie să fii cu fața;
+#   • STINGĂTORUL pulsează un cerc care CREȘTE cu nivelul, dar dă damage mic (jumătate din
+#     `bullet_damage` + `aura_damage`) și lovește tot ce prinde ÎN ACEEAȘI CLIPĂ;
+#   • COASA are rază FIXĂ și scurtă, dar damage întreg (`bullet_damage + scythe_base_damage`),
+#     și lovește PE MĂSURĂ CE LAMA AJUNGE la fiecare — nu toți deodată. De aia se și vede lama
+#     rotindu-se: ce e în spatele tău încasează la sfârșitul turului, nu la început.
+#
+# Damage-ul se fixează la începutul măturatului (ca la sabie): un tur = un damage și un critic,
+# oricât ar dura. `loviti` ține minte pe cine a prins deja turul ăsta, ca lama să nu dea de două
+# ori în același inamic dacă el se mișcă în jurul tău.
+const SCYTHE_ART := "res://harta/Portal Ender/Celesto/celesto throw.png"
+@export var scythe_base_damage: int = 12      # se adună la bullet_damage, ca `sword_base_damage`
+@export var scythe_radius: float = 130.0      # raza cercului măturat, în PIXELI (artă și hitbox din ea)
+@export var scythe_sweep_time: float = 0.34   # cât durează un tur complet
+@export var scythe_art_size: float = 150.0    # cât de lată e lama pe ecran, în pixeli
+@export var scythe_art_rotation: float = 0.0  # reglaj fin, dacă lama nu cade cum trebuie pe cerc
+# Aceeași nuanță ca la coasa aruncată de Celesto (`scythe.gd`): peste 1 = mai luminoasă. Lama e
+# aproape neagră, iar iarba e închisă — fără ea, arma pe care o învârți nu se vede.
+@export var scythe_tint: Color = Color(1.15, 1.05, 1.35)
+var _scythe_tex: Texture2D
+var _sweeps: Array = []                       # măturatele în curs (lama se rotește, damage-ul curge)
 
 # --- upgrade-uri de armă ---
 # --- Unusual Clover: NOROCUL. Face două lucruri complet diferite: ---
@@ -320,6 +349,9 @@ func _ready() -> void:
 	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
 	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
 	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (12 cadre)
+	# lama coasei: o singură poză, aceeași pe care o aruncă Celesto (n-are cadre, se rotește)
+	if ResourceLoader.exists(SCYTHE_ART):
+		_scythe_tex = load(SCYTHE_ART)
 	_electric_frames = _load_fx_frames("res://fx/electricity fx", 30.0, false)  # arcul de Thunder God (14 cadre)
 	_masoara_arta_sabiei()  # anvelopa animației → din ea se croiește dreptunghiul care lovește
 	# (Cursed Sword avea aici un slow de 1.9× la început. A dispărut pe 2026-07-27: Răzvan a
@@ -431,6 +463,7 @@ func _draw() -> void:
 
 func _process(delta: float) -> void:
 	_update_slashes()  # tăieturile în curs se întorc după privire și lovesc pe unde mătură
+	_update_sweeps(delta)  # coasa: lama se rotește în jurul tău și lovește pe cine ajunge
 	if sword_debug:
 		queue_redraw()  # hitbox-ul se mișcă odată cu privirea → redesenăm în fiecare cadru
 	if _cam == null:
@@ -463,7 +496,7 @@ const BURST_MIN := 0.045    # pauza minimă (cât de rapid poate deveni la multe
 var _burst_left := 0        # câte atacuri mai are burst-ul curent
 var _burst_gap := 0.0       # pauza dintre ele (calculată la pornire)
 var _burst_t := 0.0         # countdown până la următorul atac din burst
-var _burst_kind := ""       # "sword" sau "extinguisher"
+var _burst_kind := ""       # "sword", "extinguisher" sau "scythe"
 
 func _physics_process(delta: float) -> void:
 	_tick_burst(delta)
@@ -693,6 +726,8 @@ func _tick_burst(delta: float) -> void:
 			_sword_swing()
 		elif _burst_kind == "extinguisher":
 			_aura_pulse()
+		elif _burst_kind == "scythe":
+			_scythe_swing()
 
 # dispecer de tragere: fiecare tick face altceva după arma aleasă
 func _fire() -> void:
@@ -702,6 +737,9 @@ func _fire() -> void:
 	elif weapon_type == "sword":
 		_sword_swing()              # prima tăietură acum
 		_start_burst("sword")         # proiectilele extra = tăieturi rapide după ea
+	elif weapon_type == "scythe":
+		_scythe_swing()             # primul măturat acum
+		_start_burst("scythe")        # proiectilele extra = încă un tur de lamă, imediat după
 	else:
 		_fire_bullets()    # pistol / mage (trag salve paralele, nu burst)
 
@@ -1027,24 +1065,7 @@ func _sword_damage_pass(t: Dictionary) -> void:
 		if not _sword_rect_hit(dir, rect, enemy.global_position, _raza_corp(enemy)):
 			continue
 		loviti[id] = true
-		# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură).
-		# Boss-ii sunt imuni, exact ca la gloanțe (vezi nota din `bullet.gd`).
-		var ik := instakill_chance_now()
-		var kill := ik > 0.0 and not enemy.is_in_group("boss") and randf() < ik
-		var dealt := dmg
-		if kill and "hp" in enemy:
-			dealt = int(enemy.hp)
-		enemy.take_damage(dealt)
-		Fx.damage_number(enemy.global_position, dealt, is_crit or kill)
-		# Thunder God / Plugged In: sabia lovește un inamic → (mereu / cu șansă) curent spre ceilalți
-		if thunder_active_on_hit():
-			thunder_from(enemy)
-		if knockback > 0.0 and enemy.has_method("apply_knockback"):
-			# îl împingem dinspre PLAYER, nu dinspre centrul tăieturii
-			var push := (enemy.global_position - global_position).normalized()
-			if push == Vector2.ZERO:
-				push = dir  # lipit de tine: îl împingem în direcția tăieturii
-			enemy.apply_knockback(push * knockback)
+		_lovitura_melee(enemy, dmg, is_crit, dir)
 		hit = true
 	if hit and is_crit and not t["shake"]:
 		t["shake"] = true  # o singură zguduitură per tăietură, nu una pe cadru
@@ -1054,6 +1075,130 @@ func _sword_damage_pass(t: Dictionary) -> void:
 	if hit and is_crit and not t["bloody"]:
 		t["bloody"] = true
 		bloody_heal()
+
+# O lovitură de CORP LA CORP peste un inamic: instakill, damage, numărul care sare, curentul lui
+# Thunder God și knockback-ul. Comună săbiei și coasei — scrisă o dată, ca cele două să nu poată
+# ajunge cu reguli diferite (era copiată, până a apărut coasa pe 2026-08-04).
+# `dir_rezerva` = încotro îl împingem dacă e lipit de tine, adică n-are direcție proprie.
+func _lovitura_melee(enemy: Node2D, dmg: int, is_crit: bool, dir_rezerva: Vector2) -> void:
+	# Hacksaw: șansă să ucidă instant (îi scoatem toată viața dintr-o lovitură).
+	# Boss-ii sunt imuni, exact ca la gloanțe (vezi nota din `bullet.gd`).
+	var ik := instakill_chance_now()
+	var kill := ik > 0.0 and not enemy.is_in_group("boss") and randf() < ik
+	var dealt := dmg
+	if kill and "hp" in enemy:
+		dealt = int(enemy.hp)
+	enemy.take_damage(dealt)
+	Fx.damage_number(enemy.global_position, dealt, is_crit or kill)
+	# Thunder God / Plugged In: lovitura prinde un inamic → (mereu / cu șansă) curent spre ceilalți
+	if thunder_active_on_hit():
+		thunder_from(enemy)
+	if knockback > 0.0 and enemy.has_method("apply_knockback"):
+		# îl împingem dinspre PLAYER, nu dinspre centrul loviturii
+		var push := (enemy.global_position - global_position).normalized()
+		if push == Vector2.ZERO:
+			push = dir_rezerva  # lipit de tine: îl împingem în direcția loviturii
+		enemy.apply_knockback(push * knockback)
+
+# ---------- COASA LUI CELESTO ----------
+# Un tur complet de lamă în jurul player-ului. Damage-ul și criticul se fixează ACUM, la pornire,
+# ca la sabie: un tur = o lovitură pentru fiecare inamic prins, oricât ar dura turul.
+func _scythe_swing() -> void:
+	var dmg := int(round((scythe_base_damage + bullet_damage) * damage_mult()))
+	var cr := roll_crit()                             # Adrenaline + Megane's Katana; peste 100% = multi-crit
+	var is_crit: bool = cr["tiers"] > 0
+	if is_crit:
+		dmg = int(round(dmg * cr["mult"]))
+	Audio.play("sword", -4.0)   # aceeași tăietură ca la sabie: tot o lamă e
+	# Turul PORNEȘTE din spatele tău și se închide tot acolo, ca lama să treacă întâi prin fața ta:
+	# acolo te uiți și acolo ai, de obicei, inamicii.
+	var unghi0 := facing_dir().angle() - PI
+	var t := {
+		"nod": _spawn_scythe_blade(unghi0),
+		"loviti": {}, "dmg": dmg, "crit": is_crit,
+		"unghi0": unghi0, "parcurs": 0.0, "shake": false, "bloody": false,
+	}
+	_sweeps.append(t)
+
+# Raza cercului măturat. Crește cu Pufferfish/Rat's Burger, ca ORICE armă — și tot din ea iese
+# mărimea lamei, deci desenul și zona lovită nu se pot despărți.
+func _scythe_raza() -> float:
+	return scythe_radius * weapon_size_scale()
+
+# Lama: o singură poză (cea aruncată de Celesto), COPIL al player-ului → turul îl urmează dacă
+# fugi în timpul lui. `_update_sweeps` o plimbă pe cerc.
+func _spawn_scythe_blade(unghi: float) -> Sprite2D:
+	if _scythe_tex == null:
+		return null
+	var s := Sprite2D.new()
+	s.texture = _scythe_tex
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	s.modulate = scythe_tint
+	s.z_index = -1   # sub player, ca tăietura săbiei: altfel îi acoperă capul când trece prin nord
+	add_child(s)
+	var ps: float = max(scale.x, 0.001)   # player-ul e la scale 2 în main.tscn
+	s.scale = Vector2.ONE * (scythe_art_size * weapon_size_scale() / float(_scythe_tex.get_width())) / ps
+	_aseaza_lama(s, unghi, ps)
+	return s
+
+# Lama stă pe cerc, cu tăișul spre exterior, și se rotește odată cu unghiul.
+func _aseaza_lama(s: Sprite2D, unghi: float, ps: float) -> void:
+	s.position = Vector2(_scythe_raza() * 0.8, 0).rotated(unghi) / ps
+	s.rotation = unghi + PI * 0.5 + scythe_art_rotation
+
+# Rotește lama și dă damage PE MĂSURĂ CE AJUNGE la fiecare inamic — ăsta e tot rostul armei.
+#
+# Cum se decide „a ajuns la el": ținem `parcurs`, câți radiani a măturat lama de la start (crește
+# de la 0 la TAU, deci nu se poate învârti înapoi). Pentru fiecare inamic calculăm unde stă el pe
+# cerc față de unghiul de PORNIRE, adus în [0, TAU) — dacă `parcurs` a trecut de el, l-a prins.
+# Comparație de numere care doar cresc, deci nu există „a sărit peste el" la trecerea prin 360°,
+# capcana obișnuită când compari unghiuri direct.
+func _update_sweeps(delta: float) -> void:
+	if _sweeps.is_empty():
+		return
+	var ps: float = max(scale.x, 0.001)
+	var raza := _scythe_raza()
+	for i in range(_sweeps.size() - 1, -1, -1):
+		var t: Dictionary = _sweeps[i]
+		t["parcurs"] = float(t["parcurs"]) + TAU * delta / max(scythe_sweep_time, 0.01)
+		var parcurs: float = t["parcurs"]
+		var unghi0: float = t["unghi0"]
+		if is_instance_valid(t["nod"]):
+			var nod: Sprite2D = t["nod"]
+			nod.scale = Vector2.ONE * (scythe_art_size * weapon_size_scale() / float(_scythe_tex.get_width())) / ps
+			_aseaza_lama(nod, unghi0 + minf(parcurs, TAU), ps)
+		var loviti: Dictionary = t["loviti"]
+		var dmg: int = t["dmg"]
+		var is_crit: bool = t["crit"]
+		var hit := false
+		for e in get_tree().get_nodes_in_group("enemy"):
+			var enemy := e as Node2D
+			if enemy == null:
+				continue
+			var id := enemy.get_instance_id()   # ID, nu nodul: poate muri între cadre
+			if loviti.has(id):
+				continue
+			var spre: Vector2 = enemy.global_position - global_position
+			# cu raza corpului, ca la sabie: un boss mare e lovit când îl ATINGE lama
+			if spre.length() > raza + _raza_corp(enemy):
+				continue
+			# unde stă el pe cerc, socotit de la unghiul de pornire, în [0, TAU)
+			var rel := wrapf(spre.angle() - unghi0, 0.0, TAU)
+			if parcurs < rel:
+				continue
+			loviti[id] = true
+			_lovitura_melee(enemy, dmg, is_crit, spre.normalized())
+			hit = true
+		if hit and is_crit and not t["shake"]:
+			t["shake"] = true   # o singură zguduitură per tur, nu una pe cadru
+			add_shake(0.35)
+		if hit and is_crit and not t["bloody"]:
+			t["bloody"] = true
+			bloody_heal()       # Bloody Situation: o vindecare per tur critic
+		if parcurs >= TAU:
+			if is_instance_valid(t["nod"]):
+				t["nod"].queue_free()
+			_sweeps.remove_at(i)
 
 # Cât se joacă, fiecare tăietură se întoarce după privire și mai dă o trecere de damage.
 # Ăsta e „ca în Megabonk": sabia se mișcă odată cu tine, nu rămâne unde ai pornit-o.

@@ -401,6 +401,7 @@ const ARME = [
   { name: "Mage Staff",   dmg: "10", aps: "2.00/s", real: "<b>10</b> pe proiectil — tragi de 1.5× mai des" },
   { name: "Extinguisher", dmg: "12", aps: "1.33/s", real: "<b>16</b> pe puls de aură (10 + jumătate din 12)" },
   { name: "Cursed Sword", dmg: "20", aps: "1.33/s", real: "<b>28</b> pe tăietură (8 + 20)" },
+  { name: "Celesto's Scythe", dmg: "24", aps: "1.05/s", real: "<b>36</b> pe măturat (12 + 24) — un cerc complet în jurul tău" },
 ];
 
 const BASE = [
@@ -500,7 +501,7 @@ startSec.append(tabel(
   ARME.map(a => "<td style='white-space:nowrap'>" + a.name + "</td><td class='num'>" + a.dmg + "</td>" +
     "<td class='num'>" + a.aps + "</td><td>" + a.real + "</td>")));
 
-startSec.append(el("p", "sec-lede", "<b>Identic la toate patru armele</b>"));
+startSec.append(el("p", "sec-lede", "<b>Identic la toate armele</b>"));
 startSec.append(tabel(
   "<th>Status</th><th class='num' style='white-space:nowrap'>La start</th><th>Ce înseamnă</th>",
   BASE.map(b => "<td style='white-space:nowrap'>" + b.name + "</td><td class='num'>" + b.val + "</td><td>" + b.note + "</td>")));

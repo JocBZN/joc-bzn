@@ -16,6 +16,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (armă nouă: COASA LUI CELESTO, măturat 360°)
+
+**Cerut de Răzvan:** „vreau sa mai adaug o arma in joc, scythe-u lu celesto." Cum atacă a ales el, întrebat: **măturat 360° în jurul player-ului** (variantele respinse: bumerang și coase care orbitează).
+
+**Ce e:** a cincea armă (`scythe`), a treia de corp la corp. La fiecare atac, lama lui Celesto face un TUR COMPLET în jurul tău. Rază fixă și scurtă (130px), damage întreg (`bullet_damage + scythe_base_damage` = 24 + 12 = 36 la start), cadență cea mai rară din joc (0.95s → 1.05 lovituri/s).
+
+**⚠️ Lovește PE MĂSURĂ CE LAMA AJUNGE la fiecare, nu pe toți deodată** — asta e deosebirea de STINGĂTOR, care pulsează un cerc și lovește tot ce prinde în aceeași clipă. Turul pornește din SPATELE tău, ca lama să treacă întâi prin fața ta (acolo te uiți, acolo ai inamicii).
+
+**Cum se decide „a ajuns la el", fără capcana unghiurilor:** se ține `parcurs`, câți radiani a măturat lama de la start (crește de la 0 la TAU, deci doar crește). Pentru fiecare inamic se calculează unde stă pe cerc **față de unghiul de pornire**, adus în [0, TAU) cu `wrapf`. Dacă `parcurs` a trecut de el, l-a prins. Comparație între numere care doar cresc, deci nu există „a sărit peste el" la trecerea prin 360°.
+
+**Lovitura de corp la corp e acum ÎNTR-UN SINGUR LOC** (`_lovitura_melee`): instakill (Hacksaw), damage, numărul care sare, curentul lui Thunder God, knockback. Era scrisă în `_sword_damage_pass`; am scos-o afară când a apărut coasa, ca cele două să nu poată ajunge cu reguli diferite. Sabia a fost **re-verificată după mutare**: 37 damage în față, 0 în spate (corect — ea taie doar înainte).
+
+**Arta:** aceeași poză pe care o aruncă Celesto (`celesto throw.png`), și ca lamă în joc, și ca iconiță în meniu — luată direct din folderul boss-ului, nu copiată în `weapons_icons/`. E aceeași armă, deci o singură poză pe disc.
+- **Mărimea:** 150px lățime, la rază × 0.8. Prima variantă (104px, fără tentă) era aproape invizibilă pe iarbă — văzut pe captură. Acum are aceeași tentă ca proiectilul lui Celesto (`Color(1.15, 1.05, 1.35)`), fiindcă lama e aproape neagră.
+- Raza cercului crește cu Pufferfish/Rat's Burger ca orice armă, iar **din ea iese și mărimea lamei** — desenul și zona lovită nu se pot despărți.
+
+**Verificat rulând:** cu player-ul uitându-se spre EST și manechine în cele 4 zări, lovitura vine la **0.010s (vest, de unde pornește) / 0.085s / 0.171s / 0.255s**, exact sferturile turului de 0.34s. Un manechin la 400px rămâne neatins. Meniul: 5 arme, rândul are 813px pe un ecran de 1152 — încap.
+
+**⚠️ CAPCANĂ NOUĂ, prinsă pe pielea mea:** un test care schimbă ceva în `GameSettings` **doar în RAM** și apoi pornește `main.tscn` poate să-l scrie în salvarea REALĂ — jocul cheamă `_save()` de la sine, iar `_save()` scrie TOATE valorile din memorie. Așa mi-a rămas `op_start = true` în salvarea lui Răzvan de la testul de dimineață; l-am pus la loc pe `false` (monedele și scorurile intacte, verificate). Regula: în teste ori nu atingi `GameSettings` înainte să pornești jocul, ori pui valoarea înapoi ȘI salvezi.
+
+**Codexul e actualizat și republicat** (aceeași adresă): rând nou în tabelul „Ce depinde de arma aleasă" — Celesto's Scythe, 24, 1.05/s, 36 pe măturat. Cifrele NU sunt scrise de mână: rulate cu `GameSettings.upgrades` golit în RAM, ca să nu prindă magazinul permanent al lui Răzvan. Verificat întâi în Chrome headless (pagina se randează, nu e albă), fiindcă tot conținutul ei vine din JS.
+
+**i18n:** un singur text nou, „CELESTO'S SCYTHE", în 8 limbi. Verificatorul trece.
+
+---
+
 ## Session log — 2026-08-04 (umbra fântânii Ender: dungă de contact, nu baltă)
 
 **Cerut de Răzvan:** „e proasta umbra la portalu de ender", cu o captură în `debugging/`.

@@ -43,6 +43,9 @@ var WEAPONS := [
 	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png"},
 	{"id": "extinguisher", "name": "EXTINGUISHER", "icon": "res://weapons_icons/stingator.png"},
 	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png"},
+	# Iconița e arta boss-ului, luată DIN folderul lui, nu copiată în `weapons_icons/`: e aceeași
+	# lamă pe care o aruncă Celesto și pe care o învârte player-ul, deci o singură poză pe disc.
+	{"id": "scythe",       "name": "CELESTO'S SCYTHE", "icon": "res://harta/Portal Ender/Celesto/celesto throw.png"},
 ]
 
 const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
