@@ -17,6 +17,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (umbra fântânii Ender, a doua oară: inel în jurul tălpii)
+
+**Cerut de Răzvan:** „tot nu e facuta umbra bine, fa fix inconjuru ei, adica umbra trebuie pusa mai sus si mai mare", cu o captură nouă în `debugging/`.
+
+**Ce lipsea în reglajul de dinainte** (dunga de contact, `1.00` / `squash` 0.18 / `shift_y` -3): plecam de la ideea că umbra e o baltă sub un punct de sprijin, ca la copaci, și o lipeam de botul de jos al pietrei. Dar fântâna e un BUTOI: umbra ei nu e o pată, e **cercul pe care stă**, umflat puțin.
+
+**Măsurat, nu ghicit** — silueta texturii, rând cu rând, în banda de jos: talpa e o elipsă lată de ~72 px și înaltă de ~26 (marginile din lateral la `y=99`, botul din față la `y=112`). Deci turtirea ei reală e **0.36**, nu 0.18, iar centrul ei stă cu **~33 px** (în coordonatele nodului) mai sus decât `base_y`, care e chiar botul. Cifra de dinainte (`shift_y = -3`) punea centrul elipsei fix pe bot, deci toată umbra ieșea în JOS, pe iarbă — exact pata pe care o vedea el.
+
+**Ce e acum:** `shadow_width` 1.15, `shadow_squash` 0.42, `shadow_shift_y` -33. Centrul umbrei pe centrul tălpii, elipsa puțin mai mare decât ea → rămâne un inel egal în stânga, în dreapta și în față, iar partea de sus intră firesc sub piatră. Asta e „fix înconjuru ei".
+
+**`halo_scale` 1.7 → 1.5** ca haloul violet să rămână LA FEL de lat ca înainte (1.00×1.7 ≈ 1.15×1.5). E înmulțit cu `shadow_width`, deci fără corecție ar fi crescut și el cu 15% degeaba. Alfele lui n-au fost atinse.
+
+**Verificat rulând:** patru variante una lângă alta pe iarba din captura lui (cea veche + trei mărimi), apoi vechi-vs-nou pe podeaua Ender-ului, ca haloul să nu piardă din ancoră dincolo — nicio diferență în rău acolo. Scena de test a fost ștearsă.
+
+---
+
 ## Session log — 2026-08-04 (Cigarette Pack „nu dă nimic": panoul mințea, itemul mergea)
 
 **Raportat de Răzvan:** „nu merge itemu de 5% damage increase, nu iti da nimic".

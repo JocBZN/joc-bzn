@@ -111,6 +111,14 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-04, the Ender well's shadow, take two — a ring around its foot)
+- 🐛 **Reported again** ("tot nu e facuta umbra bine, fa fix inconjuru ei, adica umbra trebuie pusa mai sus si mai mare"), with a fresh screenshot in `debugging/`.
+- **What the previous pass got wrong:** it treated the shadow as a pool under a support point, the way trees work, and glued it to the bottom lip of the stone. But the well is a **barrel** — its shadow is not a smear, it is the **circle it stands on**, slightly inflated.
+- **Measured off the texture, row by row:** the foot is an ellipse ~72 px wide and ~26 px tall (side edges at `y=99`, the front lip at `y=112`). So its real squash is **0.36**, not 0.18, and its centre sits about **33 px** (node coordinates) *above* `base_y`, which is the lip itself. The old `shift_y = -3` put the ellipse's centre on that lip, so the whole shadow fell *downwards* onto the grass — precisely the stain he kept seeing.
+- **Now:** `shadow_width` 1.15, `shadow_squash` 0.42, `shadow_shift_y` -33 — centre on centre, ellipse a touch larger than the foot, leaving an even ring to the left, to the right and in front, with its top half tucking naturally under the stone.
+- **`halo_scale` 1.7 → 1.5** so the violet halo stays exactly as wide as before (1.00×1.7 ≈ 1.15×1.5); it is multiplied by `shadow_width`, so without the correction it would have grown 15% for no reason. Its alphas were left alone.
+- Verified on renders: four variants side by side on his grass colour, then old-vs-new on the Ender floor to confirm the halo does not lose its anchoring over there.
+
 ## Current state (2026-08-04, "the +5% damage item does nothing" — the panel was lying)
 - 🐛 **Reported:** "nu merge itemu de 5% damage increase, nu iti da nimic" (Cigarette Pack).
 - **The item worked.** Measured with the pistol on a dummy, crit forced to 0: **24 → 25 → 26 → 28** damage per hit across three pickups — exactly `bullet_damage × (1 + 0.05·n)`, rounded.
