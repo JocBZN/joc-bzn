@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dcx1bsgfjlvho"
+path="res://.godot/imported/Teleport.wav-68b3f6e3ed9eda260d0d1001d512a9bc.sample"
+
+[deps]
+
+source_file="res://harta/Portal Ender/Celesto/Teleport.wav"
+dest_files=["res://.godot/imported/Teleport.wav-68b3f6e3ed9eda260d0d1001d512a9bc.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

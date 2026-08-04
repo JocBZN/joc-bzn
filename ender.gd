@@ -1,10 +1,10 @@
 extends CanvasLayer
 
-# ENDER — a treia dimensiune, sora mai adâncă a Nether-ului (`nether.gd`). Intri apăsând E pe
-# FÂNTÂNA Ender (`portal_ender.gd`), care apare o singură dată pe rundă, în lumea normală, fix
-# unde s-a scufundat portalul Nether-ului după ce l-ai bătut pe Saratalin. Ieși apăsând E pe
-# copia ei care rămâne acolo unde ai aterizat — dar NUMAI după ce cade Undead Executioner
-# Puppet (`executioner.gd`). Cât trăiește el, fântâna e doar o groapă cu apă.
+# ENDER — a treia dimensiune, sora mai adâncă a Nether-ului (`nether.gd`). Intri apăsând E pe o
+# FÂNTÂNĂ Ender (`portal_ender.gd`) — apar toate după ce l-ai bătut pe Saratalin, pe locurile
+# portalurilor Nether. Ieși apăsând E pe aceeași fântână, care rămâne acolo unde ai aterizat —
+# dar NUMAI după ce cade **CELESTO** (`celesto.gd`). Cât trăiește el, fântâna e o groapă cu apă.
+# (Până pe 2026-08-04 boss-ul de aici era „Undead Executioner Puppet"; arta lui a fost înlocuită.)
 #
 # Făcut EXACT ca Nether-ul și ca Limbo: NU se încarcă altă scenă. Rămâi în aceeași lume, la
 # aceleași coordonate, dar:
@@ -21,7 +21,7 @@ extends CanvasLayer
 # Nether-ului (`enemy_nether.tscn`), aduse de `spawner.gd`, care întreabă și grupul „ender".
 
 const ENEMY := preload("res://enemy_nether.tscn")
-const BOSS := preload("res://executioner.tscn")
+const BOSS := preload("res://celesto.tscn")
 
 # --- reglaje (schimbă-le liniștit) ---
 const ENDER_TIME := 360.0       # 6:00 — cât ține faza „normală" înainte de Ender Swarm
@@ -174,7 +174,7 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	for i in BURST:
 		_spawn_one()
 
-	_announce("THE ENDER", "Kill the Executioner to leave")
+	_announce("THE ENDER", "Kill Celesto to leave")
 
 # ---------- IEȘIRE ----------
 # `anunt = true`  → ieșire VOLUNTARĂ, apăsând E pe fântâna de întoarcere.
@@ -184,7 +184,7 @@ func exit_ender(anunt: bool = true) -> void:
 	if not active:
 		return
 	if anunt and not _boss_invins:
-		_announce("THE PUPPET STILL DANCES", "The well will not open until it falls")
+		_announce("CELESTO STILL STANDS", "The well will not open until it falls")
 		Audio.play("levelup", -6.0)
 		return
 	active = false
@@ -229,12 +229,12 @@ func _process(delta: float) -> void:
 		_announce("ENDER SWARM", "The well still works. For now.")
 		Audio.play("levelup", -2.0)
 
-# Chemată de `executioner.gd` când boss-ul moare: de aici încolo fântâna te lasă să pleci.
+# Chemată de `celesto.gd` când boss-ul moare: de aici încolo fântâna te lasă să pleci.
 func boss_invins() -> void:
 	if not active or _boss_invins:
 		return
 	_boss_invins = true
-	_announce("THE STRINGS ARE CUT", "Press E at the well to go back")
+	_announce("CELESTO FALLS", "Press E at the well to go back")
 	Audio.play("levelup", -2.0)
 
 # Ai ieșit învingător → FÂNTÂNILE SE ÎNCHID PE RESTUL RUNDEI. Cea prin care ai ieșit intră în

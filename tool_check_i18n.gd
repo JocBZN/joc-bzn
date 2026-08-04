@@ -21,11 +21,11 @@ const FISIERE_UI := [
 	"res://menu.gd", "res://settings_ui.gd", "res://pause.gd", "res://gameover.gd",
 	"res://hud.gd", "res://interact_ui.gd", "res://levelup.gd", "res://player.gd",
 	"res://limbo.gd", "res://nether.gd", "res://spawner.gd", "res://summoning_portal.gd",
-	"res://ender.gd", "res://executioner.gd",
+	"res://ender.gd", "res://celesto.gd",
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [
-	"⚙", "▲", "SARATALIN", "%d", "%s", "", " ", "MAX",
+	"⚙", "▲", "SARATALIN", "CELESTO", "%d", "%s", "", " ", "MAX",
 	"keybinds", "graphics", "main", "settings", "language", "weapon", "character",
 	"leaderboard", "same", "up", "down",
 ]

@@ -26,6 +26,9 @@ const SFX := {
 	"forest_ambient":  "res://audio/Forest Ambient.wav",               # ambient de pădure (buclă, vezi mai jos)
 	"teleport":        "res://audio/Nether Audio/Teleport Sfx.wav",    # E pe portal: intrarea/ieșirea din Nether
 	"saratalin_flash": "res://audio/Nether Audio/Saratalin Flashing Purple.wav",  # UN puls mov din cinematica lui Saratalin
+	# Fișierul stă lângă ARTA lui Celesto, nu în `audio/`, fiindcă acolo l-a pus Răzvan, odată cu
+	# cadrele. Lăsat acolo dinadins: dacă re-copiază folderul boss-ului, vine și sunetul cu el.
+	"celesto_teleport": "res://harta/Portal Ender/Celesto/Teleport.wav",  # Celesto apare în spatele tău (fazele 2 și 3)
 	"enemy_hit":      "res://audio/Enemy Hit.wav",                     # un proiectil a rănit un inamic
 	"earthquake":     "res://audio/Earthquake.wav",                    # bubuitura de cutremur (vezi QUAKE_DB)
 	"key_pickup":     "res://audio/Key Pickup.wav",                    # ai călcat pe o cheie de cufăr

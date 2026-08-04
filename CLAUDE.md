@@ -16,6 +16,35 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (CELESTO e boss-ul Ender-ului: coase, bumerang, teleportări, 3 faze)
+
+**Cerut de Răzvan:** boss-ul se numește acum Celesto, apare invizibil în joc; să arunce cu coasa (`celesto throw.png`, pusă de el în folder), **unul dintre atacuri să fie o coasă aruncată în direcția OPUSĂ player-ului, care se întoarce ca un bumerang**; **part 2** — după ce-i iei un sfert de viață — se teleportează **la 8s, la 50px în spatele player-ului**, cu `Teleport.wav`; **part 3** — teleportare la 4s + o **coasă de 3× (sprite ȘI hitbox)** aruncată spre player la 10s, cu cutremur. Pragul fazei 3 (50%) și păstrarea invocărilor le-a ales el, întrebat.
+
+**De ce era invizibil:** `executioner.gd` încă încărca foile din `Undead executioner puppet/`, folder șters de pe disc pe 3 august. Nu crăpa (doar `push_warning`), deci nimic nu-l trăgea de mânecă. **`executioner.gd` și `executioner.tscn` sunt ȘTERSE**; boss-ul e acum `celesto.gd` + `celesto.tscn`, iar `ender.gd` îl încarcă pe el.
+
+**Arta:** 8 direcții × 8 cadre de mers din `Celesto/frames_contur/` (cele cu conturul albastru de 1px; `west` și `north_west` erau deja oglindite de `tool_celesto.gd` pe 3 august — mirroring-ul era făcut, legătura la cod lipsea). `SpriteFrames` se construiește **la rulare**, din fișiere separate, ca la creaturile Nether: 64 de UID-uri scrise de mână = 64 de șanse de „resource not found".
+
+**⚠️ Are DOAR mers.** Fără cadre de atac, de invocare sau de moarte. Consecințe scrise în cod: lovitura NU mai așteaptă „cadrul ei" (ca la Saratalin/Executioner), pleacă în clipa deciziei, iar boss-ul stă pe loc `pauza_atac` (0.35s) ca să se vadă că a aruncat; moartea e un tween (se stinge și se umflă), nu o foaie.
+
+**Proiectilul, `scythe.gd` + `scythe.tscn`** — o singură scenă, trei feluri, alese punând proprietăți ÎNAINTE de `add_child` (ca la `lightning.gd` — `_ready()` le citește o dată):
+- dreaptă (atacul obișnuit + cercul de 12);
+- **bumerang**: aruncată invers față de player, frânează, se oprește și se întoarce **țintind player-ul de ACUM**, nu unde era la plecare. Frânarea nu e o cifră din burtă: `a = v²/(2·rază)`, deci knob-ul rămâne „câți pixeli se duce". **Are viteza lui, 700** (nu 340): timpul până se oprește e `2·rază/viteză`, iar la 340 dusul singur dura 2,5s — armă pe care o uitai până se întoarce. La 700 → ~1,2s;
+- **uriașă**: `marime = 3.0` aplicat ÎNTR-UN SINGUR loc (`_aplica_marime`), și pe sprite, și pe forma de coliziune, ca să nu se poată desincroniza.
+
+**Teleportarea** e „în spate" față de unde se uită **PLAYER-UL** (`player.facing_dir()`), nu față de unde stă Celesto — deci dacă fugi, ți-l găsești pe urme. Sunetul e `Teleport.wav` **din folderul lui de artă**, nu din `audio/`: acolo l-a pus Răzvan, și dacă re-copiază folderul boss-ului vine și sunetul cu el (`audio.gd`, cheia `celesto_teleport`).
+
+**Fazele** (praguri în procente, ca să însemne același lucru la orice rundă): 2 sub 75%, 3 sub 50%. `_intra_in_faza3` tratează și cazul în care o lovitură uriașă sare peste faza 2 — aplică și bonusurile ei, și anunță o singură dată.
+
+**i18n:** textele boss-ului vechi (`THE PUPPET STILL DANCES`, `THE STRINGS ARE CUT`, `THE PUPPET PULLS ITS STRINGS`, `UNDEAD EXECUTIONER PUPPET`, `Kill the Executioner to leave`) au fost **înlocuite**, nu doar completate, cu cele noi (`CELESTO STILL STANDS`, `CELESTO FALLS`, `CELESTO VANISHES` + subtitlu, `CELESTO REAPS` + subtitlu, `Kill Celesto to leave`) — 8 limbi fiecare. „CELESTO" e nume propriu → e în `IGNORATE` din `tool_check_i18n.gd`, lângă „SARATALIN", iar `FISIERE_UI` arată acum spre `celesto.gd`. Verificatorul trece: *„221 chei × 8 limbi — TOTUL E TRADUS"*.
+
+**Verificat rulând jocul** (scenă de test peste `main.tscn`, ștearsă după): artă 8 direcții × 8 cadre; bumerangul pleacă la 383px de player, se duce până la 679px și **se întoarce**; teleportarea aterizează la **50,0px de player și la 0,0px de punctul din spatele lui**, se declanșează singură de la 900px și își reîncarcă cronometrul la **8,0s în faza 2 și 3,9s în faza 3**; coasa uriașă: `marime=3.0`, scale sprite 2.10 = scale hitbox 2.10 (identice), damage 45. Capturi: Celesto lângă fântână (se vede conturul albastru pe nebuloasă) și coasa uriașă în zbor lângă una normală.
+
+**⚠️ Două capcane prinse la rulare:** (1) `var x := -player.facing_dir() if ...` nu compilează — `player` e `Node2D` netipizat, deci `:=` n-are ce deduce, și **jocul nici nu pornește** (eroare de parsare, nu de rulare); tipul se scrie pe față. (2) Prima măsurătoare a teleportării a dat 19px în loc de 50: boss-ul MERGE spre tine imediat după ce aterizează, deci între teleportare și măsurătoare apucase să se apropie. Nu era bug în cod, era testul prost — se măsoară pe loc, cu apel direct.
+
+**Mărimea pe ecran:** `scale = 3.2` pe `AnimatedSprite2D` (128×128 sursă). La 2.2, cât aveam la început, arăta cât o creatură obișnuită — verificat pe captură, nu din cap.
+
+---
+
 ## Session log — 2026-08-04 (portalurile Nether DEVIN fântâni Ender după Saratalin)
 
 **Cerut de Răzvan:** „portalele de ender vreau sa se spawneze in locul celor de nether cand bati pe saratalin".
