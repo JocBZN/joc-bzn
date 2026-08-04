@@ -668,8 +668,19 @@ func stat_lines() -> Array:
 	var b = _stats_base
 	if b.is_empty():
 		return []
+	# ⚠️ Damage-ul se afișează CU procentele incluse (`damage_mult()`), nu `bullet_damage` gol.
+	# Altfel Cigarette Pack (+5% damage, mereu pornit) pare stricat: îl iei, te uiți în panou și
+	# scrie exact aceeași cifră, deși inamicii chiar încasau mai mult (raportat de Răzvan pe
+	# 2026-08-04: „nu merge itemu de 5% damage increase, nu iti da nimic"). Aceeași regulă ca la
+	# Crit și Instakill, care se arată de mult cu norocul inclus (`*_now()`): în panou scrie ce
+	# face arma ACUM, nu ce scria pe ea la începutul rundei.
+	#
+	# Theo's Wrath și Diesel Power intră și ele, dar numai când sunt aprinse (sub 20% viață,
+	# respectiv în mers) — și așa și trebuie: pe ecranul de level up stai pe loc și, de obicei,
+	# cu viața plină, deci panoul arată cinstit că acum nu-ți dau nimic.
+	var dmg_acum := int(round(bullet_damage * damage_mult()))
 	return [
-		_stat_row("Damage", bullet_damage, b["bullet_damage"], false, str(bullet_damage)),
+		_stat_row("Damage", dmg_acum, b["bullet_damage"], false, str(dmg_acum)),
 		_stat_row("Attack Speed", fire_interval, b["fire_interval"], true, "%.2f/s" % (1.0 / max(fire_interval, 0.01))),
 		# Crit și Instakill se afișează CU norocul inclus (`*_now()`), altfel panoul ar arăta
 		# 15% după ce ai luat un trifoi care ți-a dus criticul real la 17%.

@@ -109,6 +109,14 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-04, "the +5% damage item does nothing" — the panel was lying)
+- 🐛 **Reported:** "nu merge itemu de 5% damage increase, nu iti da nimic" (Cigarette Pack).
+- **The item worked.** Measured with the pistol on a dummy, crit forced to 0: **24 → 25 → 26 → 28** damage per hit across three pickups — exactly `bullet_damage × (1 + 0.05·n)`, rounded.
+- **The stats panel was the broken part.** `stat_lines()` printed the raw `bullet_damage`, and Cigarette Pack deliberately does not write into it: it is a percentage, kept in `cig_bonus` and applied inside `damage_mult()` on every hit (on purpose — +5% on top of a whole number rounds badly, 10 × 1.05 → 11, i.e. +10%, double what the card promises). So you took the item, looked at the panel, saw the same number, and concluded it did nothing.
+- ✅ **Fix:** the "Damage" row now shows `bullet_damage × damage_mult()` — exactly what lands on an enemy. It is the rule the panel already followed for Crit and Instakill, which have long been displayed with luck folded in (`*_now()`): **the panel says what the weapon does *now*, not what it said at the start of the run.** Verified: the row reads 24 → 25 → 26 → 28, digit for digit the damage dealt, with the green arrow.
+- Theo's Wrath and Diesel Power feed the same row, but only while they are lit (below 20% HP / while moving). On the level-up screen you are standing still and usually at full health, so the panel honestly shows they are giving you nothing right then — which is what their cards say.
+- **Worth remembering:** a percentage item that does not write into a stat is *invisible* in a panel that prints the raw stat. If another one appears, fold it into the row the same way rather than pushing the effect into the stat.
+
 ## Current state (2026-08-04, the Ender has its own enemy, and Celesto gets an entrance)
 - ✅ **The Ender finally has enemies of its own** (`enemy_ender.tscn`), from art Răzvan dropped in: 8 GIFs (every direction, nothing to mirror) cut into 8 × 8 frames of 124×124. They are **twice as fast as the Nether creatures** (380 vs 190) and **hit twice as hard on contact**. `spawner.gd` pours them in the Ender, `ender.gd` bursts them at the entrance, and Celesto summons them in phase 2.
 - ⚠️ **Doubling contact damage was not a tweak — the mechanic did not exist.** Until now contact damage came *only* from the player's `contact_damage` stat × difficulty, i.e. it was identical for every enemy on screen. Enemies now carry `damage_mult`, and `player._take_contact_damage` reads it **per enemy** (the arithmetic moved inside the loop). Ender creature 2.0, everything else 1.0.

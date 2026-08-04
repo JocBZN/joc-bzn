@@ -16,6 +16,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (Cigarette Pack „nu dă nimic": panoul mințea, itemul mergea)
+
+**Raportat de Răzvan:** „nu merge itemu de 5% damage increase, nu iti da nimic".
+
+**Itemul funcționa.** Măsurat cu pistolul, pe un manechin, cu criticul pus pe 0: **24 → 25 → 26 → 28** damage pe lovitură la trei luări consecutive, exact `bullet_damage × (1 + 0.05·n)` rotunjit.
+
+**Ce era stricat era PANOUL.** `stat_lines()` afișa `bullet_damage` gol, iar Cigarette Pack nu scrie în el: e procent, ținut în `cig_bonus` și aplicat în `damage_mult()` la fiecare lovitură (dinadins — +5% peste un damage ÎNTREG s-ar rotunji urât, 10 × 1.05 → 11, adică +10%). Deci luai itemul, te uitai în panou, scria aceeași cifră, și concluzia normală era „nu face nimic".
+
+**Fix:** rândul „Damage" arată acum `bullet_damage × damage_mult()`, adică fix cât intră în inamic. Aceeași regulă pe care panoul o aplica deja la Crit și Instakill, afișate de mult cu norocul inclus (`*_now()`): **în panou scrie ce face arma ACUM**, nu ce scria pe ea la începutul rundei. Verificat: panoul arată 24 → 25 → 26 → 28, cifră cu cifră aceleași ca damage-ul dat, și cu săgeata verde.
+
+Theo's Wrath și Diesel Power intră și ele în rândul ăsta, dar numai când sunt aprinse (sub 20% viață / în mers). Pe ecranul de level up stai pe loc și de obicei cu viața plină, deci panoul arată cinstit că atunci nu-ți dau nimic — ceea ce e și scris pe iteme.
+
+**De reținut pentru raportări viitoare:** un item procentual care nu scrie într-un stat e INVIZIBIL în panou dacă panoul afișează statul brut. Dacă mai apare unul, se adaugă la fel în rândul lui, nu se mută efectul în stat.
+
+---
+
 ## Session log — 2026-08-04 (inamicul Ender-ului + cinematica de intrare a lui Celesto)
 
 **Cerut de Răzvan:** „ti-am pus ce inamic vreau sa apara in ender, vreau sa fie de 2x mai rapid si sa dea damage de 2x mai mult decat cei din nether, dupa o sa apara si ei in lumea normala. Vreau ca Celesto sa aiba un cutscene cand intrii in ender, nu sa se spawneze direct, si vreau sa intre in cadru bara de hp cu numele lui asa slow cinematic."
