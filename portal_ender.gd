@@ -38,17 +38,27 @@ const GroundShadow := preload("res://ground_shadow.gd")   # aceeași umbră ca l
 # De ce amândouă: în lumea normală umbra face treaba, dar în ENDER podeaua e o nebuloasă
 # aproape neagră, iar negru pe negru nu se vede. Acolo urcă haloul, iar piatra se stinge puțin
 # (`ender_tint`) — altfel fântâna e cel mai luminos lucru de pe ecran și stă ca un abțibild.
-@export var shadow_alpha: float = 0.42        # cât de închisă e umbra în lumea normală
+@export var shadow_alpha: float = 0.45        # cât de închisă e umbra în lumea normală
 @export var shadow_alpha_ender: float = 0.30  # mai slabă dincolo: acolo doar acoperă stele
-# ⚠️ `shadow_width` e PESTE 1 (copacii au 0.60) și `shadow_shift_y` e POZITIV (ei îl au negativ).
-# Nu e o cifră aleasă din ochi: fântâna e un butoi rotund, lat cât toată silueta, așa că o elipsă
-# de 60% i-ar sta întreagă ASCUNSĂ în spate — prima variantă chiar a ieșit invizibilă în joc.
-# Ca să se vadă, trebuie să fie puțin mai lată decât piatra și împinsă sub ea. Copacii n-au
-# problema asta: acolo umbra iese în lături de sub un trunchi subțire.
-@export var shadow_width: float = 1.02        # fracție din lățimea vizibilă a fântânii
-@export var shadow_squash: float = 0.26       # turtirea: înălțime / lățime
-@export var shadow_shift_y: float = 10.0      # o urcă/coboară față de talpă
+# ⚠️ Cele trei cifre de mai jos sunt STRÂNS legate între ele, și fiecare e reglată pe capturi, nu
+# din cap (Răzvan: „e proasta umbra la portalu de ender", 2026-08-04).
+#
+# Fântâna e un butoi ROTUND, lat cât toată silueta — nu un copac cu trunchi subțire. Deci:
+#   • sub 1.0 lățime, elipsa stă ÎNTREAGĂ ascunsă în spatele pietrei (verificat: la 0.86 abia se
+#     ghicește, la 0.74 nu se mai vede deloc);
+#   • dar dacă o cobori sub talpă ca s-o scoți la vedere (cum era: `shift_y = +10`, `squash` 0.26),
+#     jumătatea de jos iese pe iarbă ca o BALTĂ mare și moale, iar fântâna pare că plutește peste
+#     o pată de murdărie. Exact asta se vedea în captura lui.
+# Reglajul care iese bine: elipsa cât piatra, TURTITĂ tare și trasă puțin ÎN SUS, ca să rămână o
+# dungă de contact lipită de baza pietrei — cea care spune „stă pe pământ", fără să murdărească
+# iarba din jur.
+@export var shadow_width: float = 1.00        # fracție din lățimea vizibilă a fântânii
+@export var shadow_squash: float = 0.18       # turtirea: înălțime / lățime
+@export var shadow_shift_y: float = -3.0      # o urcă/coboară față de talpă (minus = în sus, sub piatră)
 @export var halo_color: Color = Color(0.42, 0.32, 1.0)
+# Rămâne 0.16: la reglarea umbrei am pus una lângă alta o poză cu haloul așa și una cu el la
+# 0.09, pe aceeași iarbă, și nu se deosebesc. Deci pata mare de dinainte era a UMBREI, nu a lui —
+# iar coborât și el, s-ar fi stins degeaba și în Ender, unde chiar ține fântâna pe podea.
 @export var halo_alpha_lume: float = 0.16     # abia se simte pe iarbă
 @export var halo_alpha_ender: float = 0.55    # dincolo e el ancora
 @export var halo_scale: float = 1.7           # de câte ori e mai lat decât umbra

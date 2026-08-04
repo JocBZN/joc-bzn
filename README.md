@@ -109,6 +109,13 @@ Picked in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_re
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-04, the Ender well's shadow is a contact line, not a puddle)
+- ✅ **Fixed on report** ("e proasta umbra la portalu de ender", with a screenshot in `debugging/`). The ellipse was pushed *below* the base (`shadow_shift_y = +10`) and slightly wider than the stone, so its lower half spilled onto the grass as a big soft puddle — the well looked like it was floating over a stain. Measured on his screenshot: ~184×32 px of smear under a ~190 px well.
+- **Narrower was not the answer.** The well is a round barrel as wide as its whole silhouette — not a tree with a thin trunk — so an ellipse centred on the base hides completely behind the stone. Checked on renders: at `0.86` you can barely guess it, at `0.74` it is gone. That is why it had been shoved downwards in the first place.
+- **What it is now:** as wide as the stone (`1.00`), flatter (`squash` 0.18) and pulled slightly *up* (`shift_y = -3`) at alpha 0.45 — a contact line hugging the foot of the stone, which says "it stands on the ground" without dirtying the grass around it. It now reads like the birch shadows next to it.
+- **The violet halo was not the culprit and was left alone.** The same well was rendered with the halo at 0.16 and at 0.09 on the same grass: indistinguishable. Dimming it would only have cost the **Ender**, where the halo *is* the anchor (the floor there is a near-black nebula, and black on black is invisible).
+- Tuned on renders, not by eye-balling numbers: a throwaway scene dropped the well next to the player on grass and shot one crop per set of values (5 variants plus the halo comparison).
+
 ## Current state (2026-08-04, OP START — a test toggle in the menu corner)
 - ✅ **A third corner button, "OP", next to the flag and the gear.** It opens a page that spells out what you get — Damage 100 · Attack Speed 2.50/s · Projectiles 10 — with an ON/OFF button. The corner button itself turns **green** while it is on, so the state is readable from the main menu without opening anything.
 - **A page rather than a direct toggle**, because otherwise you would have to remember three invisible numbers, and every other corner button opens a page.

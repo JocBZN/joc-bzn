@@ -16,6 +16,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (umbra fântânii Ender: dungă de contact, nu baltă)
+
+**Cerut de Răzvan:** „e proasta umbra la portalu de ender", cu o captură în `debugging/`.
+
+**Ce era:** elipsa era împinsă SUB talpă (`shadow_shift_y = +10`) și puțin mai lată decât piatra (`1.02`, `squash` 0.26). Jumătatea ei de jos ieșea pe iarbă ca o baltă mare și moale, iar fântâna părea că plutește peste o pată de murdărie. Măsurat pe captura lui: pata avea ~184×32 px pe ecran, sub o fântână de ~190px.
+
+**De ce era împinsă acolo:** ca să se VADĂ. Fântâna e un butoi rotund, lat cât toată silueta — nu un copac cu trunchi subțire — deci o elipsă centrată pe talpă îi stă întreagă ascunsă în spate. Verificat pe capturi: la `0.86` abia se ghicește, la `0.74` nu se mai vede deloc. Deci „mai îngustă" nu era răspunsul.
+
+**Ce e acum:** elipsă cât piatra (`1.00`), TURTITĂ mai tare (`squash` 0.18) și trasă puțin ÎN SUS (`shift_y = -3`), cu alfa 0.45. Rămâne o dungă de contact lipită de baza pietrei — spune „stă pe pământ" fără să murdărească iarba. Arată ca umbra mestecenilor de lângă ea, ceea ce e și ideea.
+
+**Haloul violet NU e vinovat și n-a fost atins.** Am pus una lângă alta aceeași fântână cu haloul la 0.16 și la 0.09, pe aceeași iarbă: nu se deosebesc. Coborât degeaba, s-ar fi stins și în ENDER, unde el e ancora (podeaua e nebuloasă aproape neagră, iar negru pe negru nu se vede). Deci `halo_alpha_lume`, `halo_scale` și tot ce ține de dimensiune au rămas cum erau.
+
+**Reglat pe capturi, nu din cap:** scenă temporară care punea fântâna lângă player pe iarbă și scotea câte o poză per set de cifre (5 variante + comparația de halou), decupată în jurul ei. Fără asta, „mai mică" ar fi însemnat invizibilă și n-aș fi știut.
+
+---
+
 ## Session log — 2026-08-04 (OP START: comutator de testare în colțul meniului)
 
 **Cerut de Răzvan:** „un buton in meniu langa cel de limba si setari pentru OP Start - Vreau sa am 100 damage, 2.5 attack speed, 10 proiectile. Si sa pot sa ii dau on/off".
