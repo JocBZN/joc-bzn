@@ -1,9 +1,12 @@
 extends StaticBody2D
 
 # FÂNTÂNA ENDER — ușa spre a treia dimensiune (`ender.gd`). Sora portalului de piatră
-# (`portal.gd`), cu aceleași reguli, dar cu o singură deosebire mare: **nu o găsești umblând
-# prin lume.** Apare o singură dată pe rundă, în locul unde s-a scufundat portalul Nether-ului,
-# după ce l-ai bătut pe Saratalin și te-ai întors viu (vezi `nether.gd::_inchide_portalurile`).
+# (`portal.gd`), cu aceleași reguli, dar cu o deosebire mare: **în prima parte a rundei nu
+# există niciuna.** Apar toate deodată, după ce l-ai bătut pe Saratalin și te-ai întors viu:
+# generatorul de portaluri trece pe fântâni (`portals.gd::treci_pe_ender`), așa că fiecare loc
+# de portal Nether de pe hartă naște una — inclusiv cel de sub picioarele tale, unde tocmai
+# s-a scufundat portalul prin care ai ieșit (vezi `nether.gd::_inchide_portalurile`).
+# Cad la rândul lor când bați Undead Executioner-ul și ieși din Ender (`ender.gd`).
 #
 # Steagul `retur` spune ce face apăsarea lui E:
 #   • `retur = false` → INTRI în Ender;

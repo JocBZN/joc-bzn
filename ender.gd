@@ -135,6 +135,14 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	active = true
 	_player = player
 	_fantana = fantana
+	# O scoatem din generatorul de fântâni (`portals.gd`) și o mutăm direct în `World`: peste
+	# două rânduri golim decorul, iar golirea șterge tot ce ține de generatoare — adică ne-ar
+	# lua chiar ieșirea de sub picioare. `reparent` păstrează poziția din lume.
+	# La întoarcerea victorioasă se scufundă ea și se oprește generatorul (`_inchide_fantana`),
+	# deci nu rămâne nicio dublură pe locul ăsta.
+	var world := player.get_parent()
+	if world != null and _fantana.get_parent() != world:
+		_fantana.reparent(world)
 	_fantana.retur = true     # de aici încolo, E pe ea înseamnă „ieși"
 	_fantana_cosmica(true)    # și își schimbă și pielea: halou violet, piatră mai stinsă
 	_elapsed = 0.0
@@ -229,15 +237,29 @@ func boss_invins() -> void:
 	_announce("THE STRINGS ARE CUT", "Press E at the well to go back")
 	Audio.play("levelup", -2.0)
 
-# Ai ieșit învingător → fântâna din lume se scufundă. Un Ender pe rundă, ca Nether-ul.
+# Ai ieșit învingător → FÂNTÂNILE SE ÎNCHID PE RESTUL RUNDEI. Cea prin care ai ieșit intră în
+# pământ cu cutremur (e deja mutată în `World` de la intrare, deci se vede scufundându-se),
+# celelalte de pe hartă dispar odată cu generatorul, care nu mai naște nimic (`portals.gd`).
+# Un Ender pe rundă, ca Nether-ul — de aici încolo nu mai ai unde intra.
+#
 # Se cheamă doar de pe drumul VOLUNTAR de ieșire, care există numai după ce boss-ul a căzut.
 func _inchide_fantana() -> void:
+	var portals := _generator("Portals")
+	if portals != null and portals.has_method("opreste"):
+		portals.opreste()
 	if _fantana == null or not is_instance_valid(_fantana):
 		return
 	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 	_zguduie_camera()
 	_fantana.intra_in_pamant()
 	_fantana = null
+
+# Nodul unui generator de decor din `World` (Props, Rocks, Portals...). Ca în `nether.gd`.
+func _generator(nume: String) -> Node:
+	if _player == null or not is_instance_valid(_player):
+		return null
+	var world := _player.get_parent()
+	return world.get_node_or_null(nume) if world != null else null
 
 func _zguduie_camera() -> void:
 	if _player == null or not is_instance_valid(_player):

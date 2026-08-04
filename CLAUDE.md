@@ -16,6 +16,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (portalurile Nether DEVIN fântâni Ender după Saratalin)
+
+**Cerut de Răzvan:** „portalele de ender vreau sa se spawneze in locul celor de nether cand bati pe saratalin".
+
+**Ce era înainte:** după Saratalin, `nether.gd` ștergea toate portalurile, oprea generatorul (`oprit`) și punea **de mână O SINGURĂ** fântână în `World`, în gaura portalului scufundat. Restul rundei, harta rămânea goală.
+
+**Ce e acum:** generatorul are două vârste, iar locurile rămân aceleași.
+- `portals.gd` are `var ender := false` și `treci_pe_ender()`. `_build_chunk` alege `portal.tscn` sau `portal_ender.tscn` după steag; `treci_pe_ender()` îl aprinde și golește `_loaded`, iar `_process` reface aceleași chunk-uri la cadrul următor, cu noua față.
+- **Cheia e că poziția e deterministă și NU se uită la steag** (`chunk_portal_pos` calculează din cheia chunk-ului). Deci fiecare fântână iese fix unde stătea portalul ei — inclusiv cea de sub picioarele tale — fără nicio listă de poziții salvată.
+- `nether.gd`: `_deschide_fantana_ender/_pune_fantana` (care instanția una) au devenit `_deschide_fantanile_ender/_pune_fantanile` (care cheamă generatorul). Am păstrat doar temporizarea, `FANTANA_INTARZIERE = 1.1s` — puțin peste `sink_duration` (1.0), ca să se vadă schimbul: unul intră în pământ, altul iese acolo. `preload`-ul `FANTANA_ENDER` a plecat din `nether.gd` în `portals.gd`.
+- `ender.gd`: la ieșirea victorioasă cheamă și `portals.opreste()` — ADICĂ închiderea definitivă s-a mutat cu o dimensiune mai încolo. Alegerea e a lui Răzvan (l-am întrebat): după Executioner se închid toate, un Ender pe rundă, nu farmabil.
+
+**⚠️ Capcana care m-ar fi prins:** `ender.gd::enter()` cheamă `_set_world_enabled(false)`, care **golește generatoarele de copii** — iar fântâna e acum copilul unuia. Adică intrarea în Ender ți-ar fi șters chiar ieșirea. Rezolvat cu `reparent()` în `World` la intrare (același truc pe care `nether.gd` îl face cu portalul care se scufundă). Înainte problema nu exista: fântâna era pusă din start direct în `World`.
+
+**Anunțurile nu s-au atins** — „A WELL RISES" / „Something deeper is waiting" sunt deja traduse în 8 limbi în `i18n.gd` și rămân adevărate (fântâna din fața ta chiar răsare). Un text nou ar fi cerut 8 traduceri pentru zero câștig.
+
+**Verificat rulând jocul** (scenă de test peste `main.tscn`, ștearsă după), cu `portal_chance = 1.0` ca să intre zeci în cadru: **44 portaluri → 44 fântâni pe pozițiile identice** (capturi înainte/după, aceeași așezare), `ender=true oprit=false`; fântâna supraviețuiește intrării în Ender (`fantana inca vie? true`); după Executioner **0 interactabile**, `oprit=true`.
+
+**Notă:** boss-ul Ender-ului tot n-are cadre (folderul `Undead executioner puppet` lipsește de pe disc — vezi log-ul de pe 2026-08-03). Testul a mers oricum, `executioner.gd` doar avertizează.
+
+---
+
 ## Session log — 2026-08-03 (CELESTO: cadrele boss-ului nou din Ender)
 
 **Cerut de Răzvan:** „Ți-am pus folderu de boss în Portal Ender — se numește Celesto. Nu ai animația de la west, îi dai tu mirror la aia de la east. Să aibă conturu ăla albastru da de 1 px."

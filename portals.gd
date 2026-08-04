@@ -8,8 +8,12 @@ extends Node2D
 #
 # Diferența față de statui: `portal_chance` e 1.5% (față de 3% la statui), deci portalul
 # apare de DOUĂ ORI mai rar. Vrei să-l vezi mai des/mai rar? Schimbi doar cifra aia.
+#
+# Locurile astea servesc pe rând AMBELE dimensiuni: portaluri Nether până cade Saratalin,
+# fântâni Ender după (vezi `ender` mai jos). Cifrele de mai sus nu se schimbă odată cu ele.
 
 const PORTAL := preload("res://portal.tscn")
+const FANTANA := preload("res://portal_ender.tscn")   # ce naște chunk-ul după Saratalin
 const SEED_SALT := 0x9C4E  # sămânță proprie, ca să nu iasă la fel ca la statui/copaci/pietre
 
 @export var chunk_size: int = 512
@@ -22,9 +26,16 @@ const SEED_SALT := 0x9C4E  # sămânță proprie, ca să nu iasă la fel ca la s
 @export var tries: int = 12                 # câte poziții încearcă până renunță la fereală
 
 var _loaded := {}
-# Portalurile se închid DEFINITIV pentru runda asta după ce l-ai bătut pe Saratalin și ai
-# ieșit din Nether (vezi `nether.gd`). Cât e `true` nu mai generăm niciunul — nici în
-# chunk-urile în care ai fi ajuns abia peste zece minute.
+# Generatorul are DOUĂ vârste, iar locurile sunt aceleași în amândouă:
+#   • la început scoate portaluri Nether (`portal.tscn`);
+#   • după ce l-ai bătut pe Saratalin și ai ieșit din Nether, `nether.gd` cheamă
+#     `treci_pe_ender()` și de atunci aceleași chunk-uri scot FÂNTÂNI ENDER (`portal_ender.tscn`).
+# Fiindcă poziția e calculată determinist, fără să se uite la vârstă, fiecare fântână răsare
+# EXACT unde stătea portalul ei.
+var ender := false
+# Închiderea definitivă pentru runda asta: după ce cade și Undead Executioner-ul și ai ieșit
+# din Ender (vezi `ender.gd`). Cât e `true` nu mai generăm nimic — nici în chunk-urile în care
+# ai fi ajuns abia peste zece minute.
 var oprit := false
 var _props: Node2D = null     # nodul Props (copacii)
 var _rocks: Node2D = null     # nodul Rocks (pietrele)
@@ -109,11 +120,26 @@ func _langa_statuie(pos: Vector2, key: Vector2i) -> bool:
 				return true
 	return false
 
-# Gata cu portalurile în runda asta: nu mai generăm și ștergem tot ce e deja pe hartă.
-# Portalul prin care tocmai ai ieșit NU e printre ele — `nether.gd` îl scoate din generator
-# înainte să ne cheme, ca să apuce să intre frumos în pământ.
+# Saratalin a căzut și te-ai întors în lume: de aici încolo locurile astea nasc fântâni Ender.
+# Golim tot ce e încărcat ca să se refacă imediat, cu noua față — la cadrul următor `_process`
+# reconstruiește aceleași chunk-uri. Poziția nu se schimbă (`chunk_portal_pos` nu se uită la
+# `ender`), deci fiecare fântână iese fix unde stătea portalul ei.
+# Fântâna prin care tocmai ai ieșit din Nether NU e printre cele șterse — `nether.gd` o scoate
+# din generator înainte să ne cheme, ca să apuce să intre frumos în pământ.
+func treci_pe_ender() -> void:
+	if ender or oprit:
+		return
+	ender = true
+	_goleste()
+
+# Gata cu tot în runda asta: nu mai generăm nimic și ștergem ce e deja pe hartă. Chemată din
+# `ender.gd`, după ce ai bătut Undead Executioner-ul și ai ieșit; fântâna prin care ai ieșit
+# e și ea scoasă din generator înainte, ca să se scufunde la vedere.
 func opreste() -> void:
 	oprit = true
+	_goleste()
+
+func _goleste() -> void:
 	for key in _loaded.keys():
 		if is_instance_valid(_loaded[key]):
 			_loaded[key].queue_free()
@@ -125,7 +151,7 @@ func _build_chunk(key: Vector2i) -> Node2D:
 	add_child(container)
 	var pos := chunk_portal_pos(key)
 	if pos != Vector2.INF:
-		var s := PORTAL.instantiate()
+		var s: Node2D = (FANTANA if ender else PORTAL).instantiate()
 		s.position = pos
 		container.add_child(s)
 	return container
