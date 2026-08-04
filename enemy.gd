@@ -18,6 +18,24 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 # (vezi `player._take_contact_damage`), deci e la fel pentru orice inamic de pe ecran.
 @export var power_mult: float = 1.0
 
+# Cât de tare lovește ĂSTA la contact, față de un inamic obișnuit. Până pe 2026-08-04 damage-ul
+# de contact era IDENTIC pentru orice inamic de pe ecran (venea doar din statul `contact_damage`
+# al player-ului × dificultate), deci nu exista niciun fel de „ăsta doare mai tare". A apărut
+# odată cu creatura din ENDER, cerută „de 2x mai rapidă și cu damage dublu față de cele din
+# Nether" — vezi `player._take_contact_damage`, care înmulțește per inamic.
+@export var damage_mult: float = 1.0
+
+# Cadrele de mers, construite LA RULARE din fișiere separate: `<frames_dir>/run_<directie>_<n>.png`,
+# 8 direcții × `frames_count` cadre. Gol = animațiile vin din scenă (`sprite_frames`), ca la
+# polițiști și la creatura Nether, care au `.tres`-uri.
+#
+# De ce și așa: creatura din Ender are 64 de poze separate, iar un `.tres` scris de mână ar fi
+# însemnat 64 de UID-uri tastate, adică 64 de șanse de „resource not found" în joc. Aceeași
+# soluție ca la `celesto.gd`.
+@export var frames_dir: String = ""
+@export var frames_count: int = 8
+@export var frames_fps: float = 10.0
+
 # --- Unde se opresc, ca să nu intre peste player (2026-07-28) ---
 # `stop_dist` = distanța CENTRU-LA-CENTRU sub care inamicul nu mai înaintează spre tine: acolo
 # se ating desenele. 41 = jumătatea lățimii player-ului (15) + jumătatea lățimii polițistului
@@ -124,12 +142,41 @@ func _ready() -> void:
 	speed = speed * Difficulty.enemy_speed_mult()
 	hp = max_hp
 	add_to_group("enemy")
+	if frames_dir != "":
+		_build_frames()
 	if ResourceLoader.exists("res://xp1.tscn"):
 		_xp1 = load("res://xp1.tscn")
 	if ResourceLoader.exists("res://xp2.tscn"):
 		_xp2 = load("res://xp2.tscn")
 	if ResourceLoader.exists("res://key.tscn"):
 		_key = load("res://key.tscn")
+
+# O animație pe direcție, din poze separate. Numele animațiilor sunt exact cele din `DIRECTII`,
+# deci restul codului (care face `anim.play(DIRECTII[idx])`) nu știe și nu-i pasă de unde vin.
+#
+# ⚠️ Cadrele se încarcă o dată per POZĂ, dar `SpriteFrames` se construiește pentru FIECARE inamic
+# născut. Godot ține texturile în cache, deci pozele nu se recitesc de pe disc — se recreează doar
+# obiectul, care e ieftin. Dacă vreodată se simte la sute de inamici, se ține un singur
+# `SpriteFrames` static per folder și se dă la toți (sunt read-only).
+func _build_frames() -> void:
+	var sf := SpriteFrames.new()
+	sf.remove_animation("default")
+	var lipsa := 0
+	for d in DIRECTII:
+		sf.add_animation(d)
+		sf.set_animation_speed(d, frames_fps)
+		sf.set_animation_loop(d, true)
+		for i in frames_count:
+			var cale := "%s/run_%s_%d.png" % [frames_dir, d, i]
+			var tex := load(cale) as Texture2D
+			if tex == null:
+				lipsa += 1
+				continue
+			sf.add_frame(d, tex)
+	if lipsa > 0:
+		push_warning("Inamic: lipsesc %d cadre din %s (rulează --headless --import)" % [lipsa, frames_dir])
+	anim.sprite_frames = sf
+	anim.play(DIRECTII[2])   # south, până se hotărăște încotro merge
 
 func _physics_process(delta: float) -> void:
 	if _dying or golden:

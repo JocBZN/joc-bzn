@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://enemy.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ender"]
+radius = 14.0
+
+[node name="EnemyEnder" type="CharacterBody2D"]
+scale = Vector2(2, 2)
+collision_layer = 4
+script = ExtResource("1_script")
+speed = 380.0
+max_hp = 50
+damage_mult = 2.0
+stop_dist = 45.0
+frames_dir = "res://harta/Portal Ender/enemy ender/frames"
+frames_count = 8
+frames_fps = 12.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_ender")

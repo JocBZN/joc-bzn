@@ -1542,11 +1542,16 @@ func _take_contact_damage() -> void:
 	# Cât lovesc inamicii ACUM: `contact_damage` e statul TĂU (îl scade Vodka), iar
 	# `Difficulty.enemy_damage_mult()` e cât de duri au devenit ei cu timpul (×1 în primele
 	# 1:30, ×2 la minutul 10). Minimul de 1 ca un stat foarte bun să nu ducă damage-ul la 0.
-	var dmg := maxi(1, int(round(contact_damage * Difficulty.enemy_damage_mult())))
+	var dmg_baza := contact_damage * Difficulty.enemy_damage_mult()
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
 		if enemy == null:
 			continue
+		# ...și `damage_mult` e cât de tare lovește ĂSTA anume. Aproape toți au 1.0; creatura din
+		# Ender are 2.0. Se socotește PER INAMIC, nu o dată pentru toți, tocmai ca doi inamici
+		# diferiți lipiți de tine să te muște diferit.
+		var putere: float = float(enemy.get("damage_mult")) if enemy.get("damage_mult") != null else 1.0
+		var dmg := maxi(1, int(round(dmg_baza * putere)))
 		# Horse Mask: cât e fermecat luptă de partea ta, deci nu-ți mai face damage la contact
 		# (tu îl poți omorî în continuare — e tot inamic). Vezi enemy.charmed.
 		if "charmed" in enemy and enemy.charmed:

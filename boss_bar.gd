@@ -22,10 +22,12 @@ const C_URMA := Color(0.95, 0.55, 0.75, 0.55)     # „urma" albă-roz care răm
 
 @export var urma_viteza: float = 0.55   # cât de repede coboară urma spre viața reală (fracție/sec)
 
+var _radacina: Control     # tot blocul (nume + bare); intrarea cinematică îl mișcă pe el
 var _nume: Label
 var _bara: ProgressBar
 var _urma: ProgressBar     # a doua bară, DESUB, care coboară cu întârziere (efectul din Dark Souls)
 var _hp_max := 1.0
+var _intrare: Tween
 
 func _ready() -> void:
 	add_to_group("boss_bar")
@@ -36,6 +38,7 @@ func _ready() -> void:
 	radacina.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	radacina.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(radacina)
+	_radacina = radacina
 
 	# numele, deasupra barei
 	_nume = Label.new()
@@ -92,16 +95,52 @@ func _stil(umplere: Color, contur: Color) -> StyleBoxFlat:
 
 # ---------- ce cheamă boss-ul ----------
 func arata(nume: String, hp_max: int) -> void:
+	_opreste_intrarea()
 	_nume.text = nume
 	_hp_max = maxf(float(hp_max), 1.0)
 	_bara.value = 1.0
 	_urma.value = 1.0
+	_radacina.position.y = 0.0
+	_radacina.modulate.a = 1.0
 	visible = true
+
+# INTRARE CINEMATICĂ: bara urcă încet din afara ecranului și se aprinde odată cu numele. Cerută
+# de Răzvan pe 2026-08-04 pentru Celesto („sa intre in cadru bara de hp cu numele lui asa slow
+# cinematic"), dar scrisă general — orice boss o poate chema în loc de `arata()`.
+#
+# Se mișcă `_radacina`, nu barele: ele sunt ancorate de marginea de jos cu offset-uri fixe, iar
+# un `position` pus direct pe ele s-ar bate cu ancorele. Containerul, în schimb, e liber.
+#
+# `TWEEN_PAUSE_PROCESS` din același motiv ca `process_mode = ALWAYS` de mai sus: dacă vreodată se
+# cheamă în timp ce jocul e pe pauză (cinematici), trebuie să meargă mai departe.
+const INTRARE_DE_JOS := 90.0   # de câți pixeli mai jos pornește
+
+func arata_cinematic(nume: String, hp_max: int, durata: float = 1.6) -> void:
+	_opreste_intrarea()
+	_nume.text = nume
+	_hp_max = maxf(float(hp_max), 1.0)
+	_bara.value = 1.0
+	_urma.value = 1.0
+	_radacina.position.y = INTRARE_DE_JOS
+	_radacina.modulate.a = 0.0
+	visible = true
+	_intrare = create_tween().set_parallel(true)
+	_intrare.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_intrare.tween_property(_radacina, "position:y", 0.0, durata) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	# transparența urcă pe jumătatea a doua a drumului: bara „se materializează" pe măsură ce
+	# alunecă, nu apare întreagă din prima și apoi doar se mișcă
+	_intrare.tween_property(_radacina, "modulate:a", 1.0, durata * 0.75)
+
+func _opreste_intrarea() -> void:
+	if _intrare != null and _intrare.is_valid():
+		_intrare.kill()
 
 func set_hp(hp: int) -> void:
 	_bara.value = clampf(float(hp) / _hp_max, 0.0, 1.0)
 
 func ascunde() -> void:
+	_opreste_intrarea()
 	visible = false
 
 # Urma coboară cu întârziere spre viața reală — de aia se vede cât ai mușcat dintr-o lovitură.

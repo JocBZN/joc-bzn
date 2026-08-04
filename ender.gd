@@ -17,10 +17,11 @@ extends CanvasLayer
 # La 0:00 începe ENDER SWARM: dificultatea sare pe exponențială (ca Final Swarm-ul rundei),
 # cronometrul se face roșu și numără în sus.
 #
-# ⚠️ Ender-ul NU are inamici proprii — nu există artă pentru ei. Curg creaturile violete ale
-# Nether-ului (`enemy_nether.tscn`), aduse de `spawner.gd`, care întreabă și grupul „ender".
+# Din 2026-08-04 Ender-ul ÎȘI ARE inamicii lui (`enemy_ender.tscn`, arta pusă de Răzvan): de două
+# ori mai iuți decât creaturile Nether (380 față de 190) și cu damage dublu la contact
+# (`damage_mult = 2.0`). Îi aduce și `spawner.gd`, care întreabă grupul „ender".
 
-const ENEMY := preload("res://enemy_nether.tscn")
+const ENEMY := preload("res://enemy_ender.tscn")
 const BOSS := preload("res://celesto.tscn")
 
 # --- reglaje (schimbă-le liniștit) ---
@@ -160,8 +161,6 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	Difficulty.mult_time_override = _diff_time()
 	Difficulty.xp_bonus = XP_BONUS
 
-	_spawn_boss()
-
 	# Sunet: Ender-ul n-are muzică proprie (n-avem fișiere), deci împrumută bucla Nether-ului.
 	Audio.stop_forest_ambient()
 	Audio.play("teleport", TELEPORT_DB, 0.0)
@@ -171,10 +170,8 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	_clock.visible = true
 	_flash_screen()
 
-	for i in BURST:
-		_spawn_one()
-
 	_announce("THE ENDER", "Kill Celesto to leave")
+	_cutscene_celesto()   # boss-ul apare cu cinematică; inamicii vin după ea
 
 # ---------- IEȘIRE ----------
 # `anunt = true`  → ieșire VOLUNTARĂ, apăsând E pe fântâna de întoarcere.
@@ -345,20 +342,79 @@ func _flash_screen() -> void:
 	t.tween_property(_flash, "modulate:a", 0.0, FLASH)
 	t.tween_callback(func(): _flash.visible = false)
 
-# ---------- ajutoare ----------
-# Boss-ul te așteaptă în inelul din jurul fântânii. `sqrt` ca punctele să fie împrăștiate
-# uniform pe SUPRAFAȚĂ: cu o distanță pur aleatoare s-ar înghesui spre marginea interioară.
-func _spawn_boss() -> void:
+# ---------- CINEMATICA DE INTRARE ----------
+# Cerut de Răzvan pe 2026-08-04: „vreau ca Celesto sa aiba un cutscene cand intrii in ender, nu
+# sa se spawneze direct, si vreau sa intre in cadru bara de hp cu numele lui asa slow cinematic".
+#
+# Cum decurge, în trei bătăi:
+#   1. te uiți la o câmpie goală; Celesto SE MATERIALIZEAZĂ în fața ta, transparent → opac;
+#   2. bara lui urcă încet din marginea de jos, cu numele aprinzându-se odată cu ea;
+#   3. dispare (e teleportistul jocului — asta ȘTIE să facă) și reapare departe, în inelul lui;
+#      abia atunci curg inamicii și începe lupta.
+#
+# ⚠️ NU pune jocul pe pauză. Am ales dinadins: `_process`-ul de aici ar trebui scos de sub pauză
+# (cronometrul Ender-ului tocmai a pornit), la fel spawner-ul și dificultatea — adică trei
+# lucruri de ținut minte pentru trei secunde de spectacol. În loc de asta, liniștea vine din
+# faptul că VALUL DE INAMICI e amânat: cât ține cinematica, harta chiar e goală.
+#
+# Timpii sunt în secunde, unul după altul; schimbă-i liniștit.
+const CUT_APARE := 1.1        # cât durează materializarea lui
+const CUT_PANA_LA_BARA := 0.5 # pauză după ce s-a materializat, înainte să urce bara
+const CUT_BARA := 1.7         # cât urcă bara („slow cinematic")
+const CUT_PANA_LA_DISPARITIE := 0.9   # cât mai stă după ce bara e sus
+# ⚠️ Apare DEASUPRA ta pe ecran, nu „în direcția în care te uiți". Am încercat varianta a doua și
+# se vede pe captură de ce nu merge: dacă te uiți în jos (cum stai implicit la aterizare), el
+# cade fix peste bara care tocmai urcă din marginea de jos. Sus e curat și e oricum încadrarea
+# clasică de „apare boss-ul".
+const CUT_DISTANTA := 300.0   # la câți pixeli deasupra ta apare, cât ține cinematica
+
+func _cutscene_celesto() -> void:
 	if _player == null or _fantana == null:
 		return
 	var world := _player.get_parent()
 	if world == null:
 		return
+	_boss = BOSS.instantiate()
+	_boss.adoarme()          # ÎNAINTE de add_child: `_ready` nu mai cere bara și nu se mișcă
+	world.add_child(_boss)
+	_boss.global_position = _player.global_position + Vector2(0, -CUT_DISTANTA)
+	var anim := _boss.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+	if anim != null:
+		anim.modulate.a = 0.0
+		var t := create_tween()
+		t.tween_property(anim, "modulate:a", 1.0, CUT_APARE)
+	Audio.play("celesto_teleport", -2.0, 0.0)
+	get_tree().create_timer(CUT_APARE + CUT_PANA_LA_BARA).timeout.connect(_cutscene_bara)
+
+func _cutscene_bara() -> void:
+	if not active or _boss == null or not is_instance_valid(_boss):
+		return
+	var bara := get_tree().get_first_node_in_group("boss_bar")
+	if bara != null and bara.has_method("arata_cinematic"):
+		bara.arata_cinematic(_boss.nume, _boss.max_hp, CUT_BARA)
+	get_tree().create_timer(CUT_BARA + CUT_PANA_LA_DISPARITIE).timeout.connect(_cutscene_gata)
+
+# Ultima bătaie: dispare din fața ta și te așteaptă în inel. De aici încolo totul e ca înainte —
+# busola arată spre el, inamicii curg, lupta e a ta.
+func _cutscene_gata() -> void:
+	if not active:
+		return
+	if _boss != null and is_instance_valid(_boss):
+		Audio.play("celesto_teleport", -2.0, 0.0)
+		_boss.global_position = _loc_boss()
+		_boss.trezeste()
+	for i in BURST:
+		_spawn_one()
+
+# Unde îl așteaptă lupta: un INEL în jurul fântânii de întoarcere. Nu îți cade în brațe, dar nici
+# nu-l cauți o zi — busola te duce la el. `sqrt` ca punctele să fie împrăștiate uniform pe
+# SUPRAFAȚĂ: cu o distanță pur aleatoare s-ar înghesui spre marginea interioară.
+func _loc_boss() -> Vector2:
 	var unghi := randf() * TAU
 	var d := sqrt(lerpf(BOSS_MIN_DIST * BOSS_MIN_DIST, BOSS_MAX_DIST * BOSS_MAX_DIST, randf()))
-	_boss = BOSS.instantiate()
-	world.add_child(_boss)
-	_boss.global_position = _fantana.global_position + Vector2(cos(unghi), sin(unghi)) * d
+	return _fantana.global_position + Vector2(cos(unghi), sin(unghi)) * d
+
+# ---------- ajutoare ----------
 
 # Boss-ul se șterge singur când moare, deci aici poate fi deja liber.
 func _free_boss() -> void:

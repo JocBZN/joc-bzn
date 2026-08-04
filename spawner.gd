@@ -15,6 +15,10 @@ const ENEMY := preload("res://enemy.tscn")
 # alte cadre, viteză mult mai mare). Spawner-ul continuă să lucreze cât ești acolo — Nether-ul
 # nu-l oprește, cum face Limbo — deci el trebuie să știe de unde ia scena.
 const ENEMY_NETHER := preload("res://enemy_nether.tscn")
+# ...iar în ENDER curg ai lui: aceeași `enemy.gd`, dar de două ori mai iuți decât cei din Nether
+# (380 față de 190) și cu `damage_mult = 2.0`, adică te mușcă dublu la contact. Arta e a lui
+# Răzvan, pusă pe 2026-08-04 în `harta/Portal Ender/enemy ender/`.
+const ENEMY_ENDER := preload("res://enemy_ender.tscn")
 
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
@@ -185,11 +189,11 @@ func _distanta_spawn() -> float:
 # Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el ține
 # atât `active`, cât și `escaped`. Dacă lipsește (o scenă de test fără el), rămân cei normali.
 func _scena_inamic() -> PackedScene:
-	# Ender-ul (a treia dimensiune) n-are inamici proprii — nu există artă pentru ei — deci
-	# acolo curg tot creaturile violete. Se întreabă primul: în Ender nu poți fi și în Nether.
+	# Ender-ul (a treia dimensiune) ÎȘI ARE inamicii lui de pe 2026-08-04 (`enemy_ender.tscn`).
+	# Se întreabă primul: în Ender nu poți fi și în Nether.
 	var e := get_tree().get_first_node_in_group("ender")
 	if e != null and e.get("active") == true:
-		return ENEMY_NETHER
+		return ENEMY_ENDER
 	var n := get_tree().get_first_node_in_group("nether")
 	if n == null:
 		return ENEMY

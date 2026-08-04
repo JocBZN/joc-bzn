@@ -16,6 +16,36 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (inamicul Ender-ului + cinematica de intrare a lui Celesto)
+
+**Cerut de Răzvan:** „ti-am pus ce inamic vreau sa apara in ender, vreau sa fie de 2x mai rapid si sa dea damage de 2x mai mult decat cei din nether, dupa o sa apara si ei in lumea normala. Vreau ca Celesto sa aiba un cutscene cand intrii in ender, nu sa se spawneze direct, si vreau sa intre in cadru bara de hp cu numele lui asa slow cinematic."
+
+### Inamicul din Ender
+**Arta:** 8 GIF-uri (toate direcțiile, nimic de oglindit), tăiate cu `tool_taie_gifuri.ps1` în `harta/Portal Ender/enemy ender/frames/` — 8 direcții × 8 cadre de 124×124.
+
+**⚠️ Damage-ul de contact NU se putea dubla, pur și simplu nu exista mecanica.** Până acum venea DOAR din statul `contact_damage` al player-ului × dificultate, deci era identic pentru orice inamic de pe ecran (scrie negru pe alb în comentariul vechi din `enemy.gd`). Am adăugat `@export var damage_mult` pe inamic, iar `player._take_contact_damage` îl citește **per inamic** — socoteala s-a mutat în buclă. Creatura Ender are 2.0, restul 1.0.
+
+**Cadrele se construiesc la RULARE**, dintr-un `frames_dir` pus în scenă: 64 de poze separate ar fi însemnat un `.tres` cu 64 de UID-uri scrise de mână. Mecanismul e pe `enemy.gd`, deci îl poate folosi orice inamic viitor — inclusiv când or ajunge ăștia în lumea normală, cum a zis.
+
+**Unde apar:** `spawner.gd` îi dă în Ender (în loc de creaturile Nether), `ender.gd` îi varsă la intrare, iar Celesto îi cheamă în faza 2. Viteză 380 (Nether are 190), viață 50 ca ei.
+
+### Cinematica
+Trei bătăi, fără pauză de joc: **se materializează** deasupra ta (transparent → opac, 1.1s, cu sunetul lui de teleport) → **bara urcă încet** din marginea de jos cu numele aprinzându-se odată cu ea (1.7s) → **dispare** și reapare în inelul lui obișnuit, iar atunci curge valul de inamici și începe lupta.
+
+**De ce NU pun jocul pe pauză:** ar trebui scoase de sub pauză `_process`-ul Ender-ului (cronometrul tocmai a pornit), spawner-ul și dificultatea — trei lucruri de ținut minte pentru trei secunde de spectacol. În loc de asta, liniștea vine din faptul că **valul de 20 de inamici e amânat**: cât ține cinematica, harta chiar e goală (mai pică 2-3 din spawner-ul obișnuit, ceea ce arată bine).
+
+**`boss_bar.gd` a primit `arata_cinematic(nume, hp_max, durata)`** — scrisă general, o poate chema orice boss. Mișcă `_radacina` (containerul), NU barele: ele sunt ancorate de marginea de jos cu offset-uri fixe, iar un `position` pus direct pe ele s-ar bate cu ancorele. Transparența urcă pe 75% din drum, ca bara să se materializeze pe măsură ce alunecă, nu să apară întreagă și apoi doar să se miște.
+
+**Celesto doarme cât ține** (`adoarme()` chemat ÎNAINTE de `add_child`, altfel `_ready` apucă să ceară bara singur): nu se mișcă, nu atacă, nu-și cere bara. `trezeste()` îl pornește.
+
+**⚠️ Încadrarea a trebuit schimbată după prima captură:** îl puneam „în direcția în care te uiți", dar la aterizare te uiți implicit în JOS, deci cădea fix peste bara care tocmai urca. Acum apare DEASUPRA ta — sus e curat și e oricum încadrarea clasică de apariție de boss.
+
+**Verificat rulând:** viteză 380 vs 190 (raport exact 2.00), damage la contact **20 HP vs 10 HP** în ~1s cu același player, artă 8 direcții × 8 cadre. Cinematica, pe capturi: la 0.2s boss-ul e la 292px cu alfa 0.17 și doarme, la 1.4s e opac, la 2.6s bara alunecă (alfa 0.81, y +5), la 4.6s boss-ul e la 826px, treaz, bara sus și 24 de inamici pe hartă.
+
+**⚠️ 88 MB de sunete au venit odată cu arta.** În folderul inamicului era un „400 Sounds Pack" (800 de fișiere) din care jocul nu folosește nimic — și pe care Godot începuse deja să-l importe (400 de `.import` generate, șterse). Are acum un `.gdignore` lângă el și e trecut în `.gitignore`: rămâne pe disc, dar nu intră nici în import, nici în istoric. Dacă vrea un sunet de acolo, se copiază în `audio/` și primește o linie în `audio.gd`.
+
+---
+
 ## Session log — 2026-08-04 (STINGĂTORUL a fost scos din joc; sunetul lui trece la sabie)
 
 **Cerut de Răzvan:** „pune sunetu de la extintor la cursed sword si sterge cu totu extintoru din joc".

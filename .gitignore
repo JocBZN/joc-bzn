@@ -13,3 +13,9 @@ menu/*.mp4
 # Rămân pe disc, dar nu intră în istoric — concluzia lor ajunge oricum în CLAUDE.md.
 # Capturile PNG din debugging/ rămân în repo, alea sunt mici și utile.
 debugging/*.mp4
+
+# Pachetul de 400 de sunete venit odată cu inamicul din Ender: 88 MB, 800 de fișiere, din care
+# jocul nu folosește niciunul. Are și un `.gdignore` lângă el, ca Godot să nu-l importe — altfel
+# fiecare `--import` ar trece degeaba prin 400 de wav-uri și ar ajunge și în export.
+# Dacă vrei vreodată un sunet de acolo: îl copiezi în `audio/` și îi pui o linie în `audio.gd`.
+harta/Portal Ender/enemy ender/400 Sounds Pack/

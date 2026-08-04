@@ -34,9 +34,9 @@ const CADRE_PE_DIRECTIE := 8
 const FPS_MERS := 10.0
 
 const SCYTHE := preload("res://scythe.tscn")
-# Ce cheamă din faza 2: creaturile violete ale Nether-ului. Ender-ul nu are inamici proprii
-# (nu există artă), deci se folosesc ele — aceleași care curg oricum din `spawner.gd`.
-const SLUGA := preload("res://enemy_nether.tscn")
+# Ce cheamă din faza 2: inamicii Ender-ului, aceiași care curg oricum din `spawner.gd` cât ești
+# dincolo. (Până pe 2026-08-04 chema creaturile Nether-ului, fiindcă Ender-ul n-avea ale lui.)
+const SLUGA := preload("res://enemy_ender.tscn")
 
 @export var speed: float = 74.0          # plutește, ca Saratalin, dar puțin mai iute
 # Viață FIXĂ, nescalată cu dificultatea — la fel ca la Saratalin, și din același motiv: e o
@@ -85,6 +85,10 @@ const SLUGA := preload("res://enemy_nether.tscn")
 @export var coasa_mare_speed: float = 260.0  # mai lentă decât cele mici: se vede venind
 
 var hp: int
+# ADORMIT = născut pentru cinematica de intrare (`ender.gd::_cutscene_celesto`). Se pune din afară,
+# ÎNAINTE de `add_child`, ca `_ready()` să-l vadă: cât e true, nu se mișcă, nu atacă și nu-și cere
+# bara. `trezeste()` îl pornește.
+var _adormit := false
 var _dying := false
 var _faza := 1
 var _pauza := 0.0             # cât mai stă pe loc după o aruncare
@@ -106,9 +110,13 @@ func _ready() -> void:
 	add_to_group("enemy")         # ca gloanțele să-l lovească
 	add_to_group("boss")          # IMUN la instakill (Hacksaw) — vezi `bullet.gd`
 	add_to_group("celesto")
-	var bara := _bara()
-	if bara != null:
-		bara.arata(nume, max_hp)
+	# La INTRAREA în Ender, `ender.gd` îl naște adormit și rulează cinematica: apare din nimic,
+	# îi urcă bara pe ecran, apoi dispare la locul lui și abia atunci începe lupta. Bara o cheamă
+	# ATUNCI cinematica, nu noi — de aia sărim peste `arata()` aici.
+	if not _adormit:
+		var bara := _bara()
+		if bara != null:
+			bara.arata(nume, max_hp)
 	# nu deschide lupta cu toate atacurile deodată
 	_ring_cooldown = ring_interval * 0.5
 	_bumerang_cooldown = bumerang_interval * 0.6
@@ -142,8 +150,8 @@ func _build_frames() -> void:
 
 # ---------- luptă ----------
 func _physics_process(delta: float) -> void:
-	if _dying:
-		return
+	if _dying or _adormit:
+		return   # cât ține cinematica de intrare stă pe loc: nici pas, nici atac
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
 		return
@@ -199,6 +207,17 @@ func _physics_process(delta: float) -> void:
 # Ce animație joacă: octantul spre care merge. `angle()` dă 0 la est și crește în sensul acelor
 # de ceas → indice 0..7 în `DIRECTII`. `play()` doar când chiar se schimbă direcția (ca la
 # `enemy.gd`), altfel animația s-ar lua de la capăt în fiecare cadru și ar părea înghețată.
+# ---------- cinematica de intrare ----------
+# Chemate de `ender.gd`. `adoarme()` ÎNAINTE de `add_child` (altfel `_ready` apucă să ceară bara).
+func adoarme() -> void:
+	_adormit = true
+
+func trezeste() -> void:
+	_adormit = false
+
+func e_adormit() -> bool:
+	return _adormit
+
 func _uita_spre(dir: Vector2) -> void:
 	if dir.length() < 0.001:
 		return
