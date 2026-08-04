@@ -16,10 +16,14 @@ extends Node
 #    în joc ai vedea boss-ul SĂRIND lateral când schimbă direcția. De aia măsurăm conturul
 #    opac înainte și după și îl **recentrăm** pe aceleași coloane.
 #
-# 2. **Pune conturul ALBASTRU de 1px**, ca la Undead Executioner Puppet, și scrie copiile în
-#    `frames_contur/`. Sursa din `frames/` rămâne neatinsă, deci unealta se poate re-rula
-#    oricând fără să se îngroașe conturul (dacă ar scrie peste sursă, a doua rulare ar
-#    contura conturul).
+# 2. **Pune conturul ALBASTRU de 1px** și scrie copiile în `frames_contur/`. Sursa din `frames/`
+#    rămâne neatinsă, deci unealta se poate re-rula oricând fără să se îngroașe conturul (dacă ar
+#    scrie peste sursă, a doua rulare ar contura conturul).
+#    ⚠️ 2026-08-04: JOCUL NU MAI FOLOSEȘTE `frames_contur/`. Boss-ul se afișează la scale 3.2,
+#    deci conturul copt de 1px se vedea gros de 3 pixeli pe ecran. Acum îl desenează
+#    `contur_1px.gdshader` la rulare, în pixeli de ECRAN, iar `celesto.gd` citește `frames/`.
+#    Partea asta a uneltei a rămas doar ca să poți compara variantele; punctul 1 (oglindirea) e
+#    în continuare cel care scrie cadrele folosite în joc.
 #
 # De ce nu în `tool_contur_foaie.gd`: ăla conturează FOI (grile de cadre într-un singur PNG),
 # aici avem fișiere separate, câte unul pe cadru. Aceeași culoare și același prag, ca să arate

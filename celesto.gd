@@ -5,11 +5,15 @@ extends CharacterBody2D
 # deschide. A luat locul lui „Undead Executioner Puppet" pe 2026-08-04, când Răzvan i-a adus
 # arta nouă; foile vechi nu mai sunt pe disc.
 #
-# ARTA: 8 direcții × 8 cadre de MERS, fișiere separate, în `harta/Portal Ender/Celesto/
-# frames_contur/` (`walk_<directie>_<n>.png`, 128×128). Copiile `frames_contur/` sunt cele cu
-# CONTUR ALBASTRU de 1px, făcute de `tool_celesto.gd`: podeaua Ender-ului e o nebuloasă aproape
-# neagră, iar silueta lui e neagră — fără contur ar fi o gaură în ecran. Direcțiile `west` și
-# `north_west` sunt oglindite din perechile lor de est (recentrate, ca să nu sară lateral).
+# ARTA: 8 direcții × 8 cadre de MERS, fișiere separate, în `harta/Portal Ender/Celesto/frames/`
+# (`walk_<directie>_<n>.png`, 128×128). Direcțiile `west` și `north_west` sunt oglindite din
+# perechile lor de est de `tool_celesto.gd` (recentrate, ca să nu sară lateral la schimbarea
+# direcției).
+#
+# CONTURUL ALBASTRU (podeaua Ender-ului e o nebuloasă aproape neagră, iar silueta lui e neagră —
+# fără contur ar fi o gaură în ecran) NU mai e copt în poze: îl desenează `contur_1px.gdshader`,
+# pus pe sprite din scenă. Copt ar fi ieșit gros cât 1px ÎNMULȚIT cu scale-ul de 3.2; din shader
+# rămâne 1 pixel de ecran. De aia se citește `frames/`, nu `frames_contur/`.
 #
 # ⚠️ ARE DOAR MERS. Fără animație de atac, de invocare sau de moarte — deci, spre deosebire de
 # Saratalin și de boss-ul dinainte, aici NU se așteaptă un „cadru al loviturii": coasa pleacă
@@ -23,7 +27,7 @@ extends CharacterBody2D
 #   • FAZA 3 (sub 50%) — se teleportează la 4s și, la fiecare 10s, aruncă o COASĂ URIAȘĂ (×3 ca
 #     desen și ca hitbox) spre tine, cu cutremur.
 
-const ART := "res://harta/Portal Ender/Celesto/frames_contur/"
+const ART := "res://harta/Portal Ender/Celesto/frames/"
 # Aceeași ordine ca la `enemy.gd`: octantul 0 e estul, apoi în sensul acelor de ceas.
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 const CADRE_PE_DIRECTIE := 8

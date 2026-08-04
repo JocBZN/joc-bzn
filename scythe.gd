@@ -5,6 +5,11 @@ extends Area2D
 # trebuie cadre. Sora ștreangului lui Saratalin (`lightning.gd`), doar că aia zboară drept și
 # atât; asta știe și să se întoarcă.
 #
+# Conturul albastru de 1px vine din `contur_1px.gdshader` (pus pe sprite din scenă), același ca
+# la Celesto. Din shader, nu copt în poză, tocmai pentru coasa uriașă: un contur copt s-ar fi
+# mărit și el de trei ori odată cu `marime`, iar cele două feluri de coasă n-ar mai fi arătat a
+# aceeași armă.
+#
 # Cele trei feluri (se aleg din `celesto.gd`, punând proprietățile ÎNAINTE de `add_child`):
 #   • DREAPTĂ (implicit) — pleacă pe `direction` și merge până lovește sau expiră;
 #   • BUMERANG (`bumerang = true`) — e aruncată în direcția OPUSĂ player-ului, încetinește,

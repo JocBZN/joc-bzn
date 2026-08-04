@@ -1,6 +1,13 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://celesto.gd" id="1_script"]
+[ext_resource type="Shader" path="res://contur_1px.gdshader" id="2_contur"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_celesto"]
+shader = ExtResource("2_contur")
+shader_parameter/culoare = Color(0.15, 0.27, 0.78, 1)
+shader_parameter/grosime = 1.0
+shader_parameter/prag = 0.35
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_celesto"]
 radius = 40.0
@@ -12,6 +19,7 @@ script = ExtResource("1_script")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
+material = SubResource("ShaderMaterial_celesto")
 scale = Vector2(3.2, 3.2)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

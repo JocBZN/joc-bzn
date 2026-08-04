@@ -16,6 +16,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (conturul lui Celesto și al coasei: 1 pixel de ECRAN, din shader)
+
+**Cerut de Răzvan:** „outline-u lu celesto vreau sa fie de 1px si la atacu pe care il arunca la fel".
+
+**Era deja 1px — dar 1px DIN POZĂ.** `tool_celesto.gd` cocea conturul în PNG-uri, iar `celesto.tscn` afișează sprite-ul la `scale = 3.2`: pe ecran ieșea un chenar de 3 pixeli. Nu exista variantă de copt mai subțire (sub 1 pixel de poză nu se poate desena), deci **conturul s-a mutat din poză în shader**: `contur_1px.gdshader`, pus pe `AnimatedSprite2D` din `celesto.tscn` și pe `Sprite2D` din `scythe.tscn`. `celesto.gd` citește acum `frames/`, nu `frames_contur/` (altfel s-ar aduna 3px copți + 1px desenat).
+
+**Cum știe shaderul cât e „un pixel de ecran":** din derivata lui UV — `dFdx(UV)`/`dFdy(UV)` spun cât se schimbă UV când te muți un pixel pe ecran, chiar acolo. Deci grosimea rămâne 1px **la orice scale al sprite-ului și la orice zoom al camerei**, ceea ce rezolvă din prima și coasa uriașă din faza 3 (`marime = 3.0`): un contur copt s-ar fi mărit și el de 3 ori, iar cele două coase n-ar mai fi arătat a aceeași armă.
+
+**Nu `fwidth`**, deși ăla e reflexul: `fwidth = |dFdx| + |dFdy|`, iar coasa **se învârte în zbor** — pe diagonală suma aia e cu până la 40% mai mare decât realitatea, deci conturul s-ar fi îngroșat când se rotește. Se folosește lungimea gradientului per axă.
+
+**⚠️ `MODULATE` NU EXISTĂ în canvas shader-ul din 4.7** („Unknown identifier in expression: 'MODULATE'", prins la prima rulare). Iar în `fragment()` `COLOR` vine deja înmulțit cu textura, deci n-ai de unde să scoți modularea curată. Soluția: un `varying` setat în `vertex()` (`modulare = COLOR`), folosit apoi în `fragment()`. Contează: fără el, conturul ar fi rămas aprins peste boss-ul care se stinge la moarte (tween pe `modulate`) și n-ar fi luat flash-ul de la lovitură.
+
+**Verificat rulând** (scenă temporară, ștearsă): fereastră 1920×1080 (viewportul jocului e 1152×648, deci desenul e întins ×1,667 — dar shaderul lucrează pe fragmente, deci tot 1 pixel de fereastră iese). Pe 60 de rânduri prin Celesto: **379 de benzi de contur de exact 1px**; benzile de 6-7px sunt marginile ORIZONTALE, unde rândul de scanare merge PE LÂNGĂ contur, nu prin el. Coasa mică și cea de 3× ies la fel de subțiri (1-2px, din unghiul lamei) — adică exact ce se voia: conturul **nu** se scalează cu `marime`.
+
+**Măsurătoarea a trebuit strânsă de două ori:** „ceva albăstrui" prindea și armura lui Celesto, și tăișul coasei (benzi false de 7-8px), iar coasa are `modulate = tint` (1.15, 1.05, 1.35), deci conturul ei apare pe ecran ÎNMULȚIT cu tint-ul — comparat cu albastrul curat, ieșea zero. Se compară cu `culoare * tint`, tăiat la 1.0.
+
+**`frames_contur/` a rămas pe disc**, nefolosit de joc (unealta încă știe să-l genereze, ca să poți compara variantele). Dacă vrei, se poate șterge oricând — se reface dintr-o rulare.
+
+---
+
 ## Session log — 2026-08-04 (CELESTO e boss-ul Ender-ului: coase, bumerang, teleportări, 3 faze)
 
 **Cerut de Răzvan:** boss-ul se numește acum Celesto, apare invizibil în joc; să arunce cu coasa (`celesto throw.png`, pusă de el în folder), **unul dintre atacuri să fie o coasă aruncată în direcția OPUSĂ player-ului, care se întoarce ca un bumerang**; **part 2** — după ce-i iei un sfert de viață — se teleportează **la 8s, la 50px în spatele player-ului**, cu `Teleport.wav`; **part 3** — teleportare la 4s + o **coasă de 3× (sprite ȘI hitbox)** aruncată spre player la 10s, cu cutremur. Pragul fazei 3 (50%) și păstrarea invocărilor le-a ales el, întrebat.
