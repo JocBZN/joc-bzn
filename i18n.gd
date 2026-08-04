@@ -50,6 +50,8 @@ const TRAD := {
 "BACK": ["返回", "ZURÜCK", "VOLVER", "НАЗАД", "RETOUR", "戻る", "POWRÓT", "GERİ"],
 "SETTINGS": ["设置", "EINSTELLUNGEN", "AJUSTES", "НАСТРОЙКИ", "OPTIONS", "設定", "USTAWIENIA", "AYARLAR"],
 "LANGUAGE": ["语言", "SPRACHE", "IDIOMA", "ЯЗЫК", "LANGUE", "言語", "JĘZYK", "DİL"],
+# comutatorul de testare din colț; „OP" (overpowered) rămâne OP peste tot, e jargon de jucători
+"OP START": ["强化开局", "OP-START", "INICIO OP", "ОП-СТАРТ", "DÉPART OP", "OPスタート", "START OP", "OP BAŞLANGIÇ"],
 "PISTOL": ["手枪", "PISTOLE", "PISTOLA", "ПИСТОЛЕТ", "PISTOLET", "ピストル", "PISTOLET", "TABANCA"],
 "MAGE STAFF": ["法杖", "MAGIERSTAB", "BÁCULO MÁGICO", "ПОСОХ МАГА", "BÂTON DE MAGE", "魔法の杖", "KOSTUR MAGA", "BÜYÜCÜ ASASI"],
 "EXTINGUISHER": ["灭火器", "FEUERLÖSCHER", "EXTINTOR", "ОГНЕТУШИТЕЛЬ", "EXTINCTEUR", "消火器", "GAŚNICA", "YANGIN SÖNDÜRÜCÜ"],

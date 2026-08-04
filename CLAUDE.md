@@ -16,6 +16,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (OP START: comutator de testare în colțul meniului)
+
+**Cerut de Răzvan:** „un buton in meniu langa cel de limba si setari pentru OP Start - Vreau sa am 100 damage, 2.5 attack speed, 10 proiectile. Si sa pot sa ii dau on/off".
+
+**Ce e:** al treilea buton din colțul dreapta-sus, „OP", lângă steag și rotiță. Deschide o pagină care scrie ce primești (Damage 100 · Attack Speed 2.50/s · Projectiles 10) și are un ON/OFF. Butonul din colț se face **verde** cât e pornit, deci starea se vede din meniul principal, fără să intri.
+
+**De ce pagină și nu comutare directă din colț:** ar fi trebuit să ții minte trei cifre invizibile, iar toate celelalte butoane din colț deschid pagini. Așa se vede negru pe alb ce dă cheat-ul.
+
+**Cifrele stau în `game_settings.gd`** (`OP_DAMAGE`, `OP_ATTACK_SPEED`, `OP_PROJECTILES`), nu în `player.gd`: le citesc amândoi — meniul le AFIȘEAZĂ, player-ul le APLICĂ. Scrise în două locuri, prima reglare ar fi făcut pagina să mintă.
+
+**„2.5 attack speed" nu se poate pune direct:** player-ul lucrează cu `fire_interval`, adică PAUZA dintre atacuri. Butonul e scris în atacuri pe secundă (cum arată și panoul de statusuri din joc), iar `player.gd` întoarce cifra: `fire_interval = 1 / 2.5 = 0.4s`.
+
+**`_aplica_op_start()` SCRIE, nu adună**, și se cheamă **ULTIMUL** — după `_aplica_arma()` și `_apply_meta()`. Dacă ar aduna, rezultatul ar depinde de armă și de ce ai cumpărat din magazin, iar butonul n-ar mai însemna aceleași trei cifre de fiecare dată. Se citește o singură dată, în `_ready()`: pornit în timpul unei runde, se vede abia la următoarea — și așa și trebuie, e „OP **start**".
+
+**i18n:** singurul text nou e titlul „OP START" (8 limbi; „OP" rămâne OP peste tot, e jargon de jucători). Restul erau deja traduse: `ON`, `OFF`, `BACK`, iar numele rândurilor — `Damage`, `Attack Speed`, `Projectiles` — sunt **exact cheile din panoul de statusuri din joc**, refolosite intenționat, ca pagina să vorbească aceeași limbă cu jocul. „OP" (textul butonului) și „opstart" (cheia paginii) sunt în `IGNORATE`. Verificatorul trece: 222 chei × 8 limbi.
+
+**⚠️ Textul ON/OFF se scrie în ENGLEZĂ pe buton, nu prin `tr()`** — Godot traduce singur ce e pe un Button, inclusiv textul pus din cod. Cu `tr()` acolo ar fi ajuns în buton un text DEJA tradus, care n-ar mai fi urmat schimbarea limbii. Aceeași soluție ca la `settings_ui.gd::_on_toggle`.
+
+**Marginile butonului din colț** sunt strânse la 4px (`_sb_stramt`): cu cele obișnuite (14 lateral) rămâneau 24px din cei 52 ai butonului și „OP" ieșea tăiat. Aceeași problemă și aceeași rezolvare ca la butonul-steag.
+
+**Verificat rulând meniul și apoi o rundă:** butonul apare la (960, 16), comută OFF→ON→OFF, iar cu OP pornit player-ul raportează **damage=100, attack speed=2.50/s, proiectile=10, timer de tragere 0.4s**. Testul a apăsat de DOUĂ ori și a pus steagul direct (nu prin `set_op_start`) când a pornit runda, ca să nu scrie în salvarea reală a lui Răzvan — `set_op_start` cheamă `_save()`.
+
+---
+
 ## Session log — 2026-08-04 (conturul lui Celesto și al coasei: 1 pixel de ECRAN, din shader)
 
 **Cerut de Răzvan:** „outline-u lu celesto vreau sa fie de 1px si la atacu pe care il arunca la fel".

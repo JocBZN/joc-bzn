@@ -39,6 +39,16 @@ var glow: bool = true       # bloom-ul subtil de pe zonele luminoase
 # se vede pe loc, fără repornire.
 var language: String = "en"
 
+# --- OP START (comutatorul din colțul meniului) ---
+# Runda pornește cu statusuri de final, ca să se poată ajunge REPEDE la ce e de testat (Nether,
+# Ender, Celesto) fără 20 de minute de joc. Cifrele stau aici, nu în `player.gd`, fiindcă le
+# citesc amândoi: meniul le AFIȘEAZĂ, player-ul le APLICĂ — scrise în două locuri, ar fi ajuns
+# să mintă una pe alta după prima reglare.
+const OP_DAMAGE := 100
+const OP_ATTACK_SPEED := 2.5     # atacuri pe SECUNDĂ; `player.gd` îl întoarce în `fire_interval`
+const OP_PROJECTILES := 10
+var op_start: bool = false       # se salvează: dacă-l lași pornit, e pornit și data viitoare
+
 # --- taste (remapabile din Settings) ---
 # Acțiunile astea le creăm NOI, din cod (nu în project.godot), tocmai ca să le putem schimba din
 # meniu. Fiecare are taste implicite; dacă jucătorul alege alta, o reținem în `keybinds` și
@@ -131,6 +141,13 @@ func set_vignette(on: bool) -> void:
 func set_glow(on: bool) -> void:
 	glow = on
 	_refresh_atmosfera()
+	_save()
+
+# --- OP start ---
+# Se citește o singură dată, în `player.gd::_ready()`, deci pornirea/oprirea din meniu se vede
+# abia la runda următoare — nu în cea care rulează deja.
+func set_op_start(on: bool) -> void:
+	op_start = on
 	_save()
 
 # --- limbă ---
@@ -230,7 +247,7 @@ func _save() -> void:
 			"scores": scores, "coins": coins, "upgrades": upgrades,
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "keybinds": keybinds,
 			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
-			"language": language,
+			"language": language, "op_start": op_start,
 		})
 
 func _load() -> void:
@@ -253,5 +270,6 @@ func _load() -> void:
 		vignette = bool(data.get("vignette", vignette))
 		glow = bool(data.get("glow", glow))
 		language = String(data.get("language", language))
+		op_start = bool(data.get("op_start", op_start))
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil

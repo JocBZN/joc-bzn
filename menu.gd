@@ -96,6 +96,8 @@ var _settings_btn: Button           # roata dințată din colțul dreapta-sus (d
 var _settings_ui: SettingsUI        # blocul refolosibil de setări (volume + remapare taste)
 var _lang_btn: Button               # steagul de lângă rotiță (deschide alegerea limbii)
 var _lang_buttons := {}             # cod limbă -> butonul din panoul LANGUAGE (pentru evidențiere)
+var _op_btn: Button                 # „OP", al treilea din colț (deschide OP START)
+var _op_toggle: Button              # butonul ON/OFF din panoul OP START
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -109,6 +111,7 @@ func _ready() -> void:
 	_build_leaderboard()
 	_build_settings()
 	_build_language()
+	_build_opstart()
 	_show("main")
 	Audio.stop_forest_ambient()   # ambientul de pădure e doar în joc, nu în meniu
 	Audio.play_menu_music()
@@ -248,6 +251,7 @@ func _play_intro() -> void:
 	_main_buttons.modulate.a = 0.0
 	_settings_btn.modulate.a = 0.0
 	_lang_btn.modulate.a = 0.0
+	_op_btn.modulate.a = 0.0
 	_set_buttons_enabled(false)   # invizibile, dar tot ocupă loc — deci nu se poate da click
 
 	# layout-ul se calculează abia după un cadru; până atunci pozițiile sunt încă zero
@@ -284,6 +288,8 @@ func _play_intro() -> void:
 		.set_delay(INTRO_RISE * 0.5)
 	t2.tween_property(_lang_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
 		.set_delay(INTRO_RISE * 0.5)
+	t2.tween_property(_op_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
+		.set_delay(INTRO_RISE * 0.5)
 	await t2.finished
 	if not _intro_running: return
 
@@ -318,6 +324,7 @@ func _skip_intro() -> void:
 	_main_buttons.modulate.a = 1.0
 	_settings_btn.modulate.a = 1.0
 	_lang_btn.modulate.a = 1.0
+	_op_btn.modulate.a = 1.0
 	_title_mover.position.y = 0.0
 
 	# butoanele se activează abia din cadrul următor, ca apăsarea care a dat skip să nu
@@ -340,6 +347,8 @@ func _set_buttons_enabled(on: bool) -> void:
 		_settings_btn.disabled = not on
 	if _lang_btn != null:
 		_lang_btn.disabled = not on
+	if _op_btn != null:
+		_op_btn.disabled = not on
 
 # fundal cu gradient vertical (mov-navy închis → aproape negru) — rezervă, dacă lipsește video-ul
 func _gradient_bg() -> void:
@@ -481,6 +490,14 @@ func _build_main() -> void:
 		_lang_btn.add_theme_stylebox_override(stare, sb)
 	_panels["main"].add_child(_lang_btn)
 	_refresh_lang_button()
+
+	# al treilea din colț: cheat-ul de testare. Nu e ascuns după vreo combinație de taste —
+	# jocul e al lui Răzvan și el e cel care testează.
+	_op_btn = _corner_button(_show.bind("opstart"), 2)
+	_op_btn.text = "OP"
+	_op_btn.add_theme_font_size_override("font_size", 20)
+	_panels["main"].add_child(_op_btn)
+	_refresh_op_button()
 
 # Un buton pătrat de 52x52 lipit de colțul dreapta-sus. `pozitie` = al câtelea e, numărând de
 # la dreapta spre stânga (0 = primul din colț), ca să nu repet offset-urile la fiecare buton.
@@ -715,6 +732,94 @@ func _refresh_language_selection() -> void:
 func _refresh_lang_button() -> void:
 	if _lang_btn != null:
 		_lang_btn.icon = I18n.steag(GameSettings.language)
+
+# ---------- OP START ----------
+# Cheat de testare: runda pornește cu statusuri de final, ca să se poată ajunge repede la Nether,
+# Ender și Celesto fără să joci 20 de minute până acolo.
+#
+# E o PAGINĂ, nu un buton care comută direct din colț, din două motive: scrie negru pe alb ce
+# primești (altfel ar trebui să ții minte trei cifre), și se poartă ca toate celelalte butoane
+# din colț, care deschid pagini. Butonul „OP" din colț se face VERDE cât e pornit, deci starea
+# se vede fără să intri.
+#
+# Cifrele vin din `GameSettings` (`OP_DAMAGE`, `OP_ATTACK_SPEED`, `OP_PROJECTILES`) — aceleași pe
+# care le aplică `player.gd`. Scrise de mână aici, pagina ar fi ajuns să mintă după prima reglare.
+const OP_VERDE_BG := Color(0.10, 0.24, 0.16, 0.95)
+const OP_VERDE_BD := Color(0.4, 1.0, 0.5)
+
+func _build_opstart() -> void:
+	var box := _make_panel("opstart", "OP START")
+	box.add_child(_op_rand("Damage", str(GameSettings.OP_DAMAGE)))
+	box.add_child(_op_rand("Attack Speed", "%.2f/s" % GameSettings.OP_ATTACK_SPEED))
+	box.add_child(_op_rand("Projectiles", str(GameSettings.OP_PROJECTILES)))
+	box.add_child(_spacer(18))
+	_op_toggle = _menu_button("ON" if GameSettings.op_start else "OFF", _on_op_toggle)
+	box.add_child(_op_toggle)
+	box.add_child(_spacer(10))
+	box.add_child(_menu_button("BACK", _show.bind("main")))
+	_refresh_op_toggle()
+
+# „Damage            100" — numele se traduce (cheile există deja, sunt cele din panoul de
+# statusuri din joc), cifra nu are ce să traducă.
+func _op_rand(nume: String, valoare: String) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	var l := Label.new()
+	l.text = nume
+	l.add_theme_font_size_override("font_size", 22)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(l)
+	var v := Label.new()
+	v.text = valoare
+	v.add_theme_font_size_override("font_size", 22)
+	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	v.custom_minimum_size = Vector2(120, 0)
+	v.add_theme_color_override("font_color", OP_VERDE_BD)
+	h.add_child(v)
+	return h
+
+func _on_op_toggle() -> void:
+	GameSettings.set_op_start(not GameSettings.op_start)
+	_refresh_op_toggle()
+	_refresh_op_button()
+
+# Textul se scrie în ENGLEZĂ, ca peste tot în joc — Godot traduce singur ce e pe Button (vezi
+# `i18n.gd`), inclusiv textul pus din cod. Cu `tr()` aici ar fi ieșit invers: în buton ar fi
+# ajuns un text deja tradus, care nu s-ar mai fi schimbat la schimbarea limbii.
+func _refresh_op_toggle() -> void:
+	if _op_toggle == null:
+		return
+	var on: bool = GameSettings.op_start
+	_op_toggle.text = "ON" if on else "OFF"
+	if on:
+		_op_toggle.add_theme_stylebox_override("normal", _sb(OP_VERDE_BG, OP_VERDE_BD, 3))
+		_op_toggle.add_theme_stylebox_override("hover", _sb(OP_VERDE_BG.lightened(0.10), OP_VERDE_BD.lightened(0.10), 3))
+		_op_toggle.add_theme_stylebox_override("pressed", _sb(OP_VERDE_BG.lightened(0.20), OP_VERDE_BD.lightened(0.20), 3))
+	else:
+		_op_toggle.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
+		_op_toggle.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
+		_op_toggle.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+
+# Butonul din colț se aprinde verde cât cheat-ul e pornit — ca arma aleasă și limba activă.
+# Marginile se strâng la 6px, ca la butonul-steag: cu cele obișnuite (14 lateral) rămâneau 24px
+# din cei 52 ai butonului, iar „OP" ieșea tăiat.
+func _refresh_op_button() -> void:
+	if _op_btn == null:
+		return
+	var on: bool = GameSettings.op_start
+	var bg := OP_VERDE_BG if on else BTN_MAIN
+	var bd := OP_VERDE_BD if on else BTN_SECOND
+	_op_btn.add_theme_stylebox_override("normal", _sb_stramt(bg, bd))
+	_op_btn.add_theme_stylebox_override("hover", _sb_stramt(bg.lightened(0.10), bd.lightened(0.10)))
+	_op_btn.add_theme_stylebox_override("pressed", _sb_stramt(bg.lightened(0.20), bd.lightened(0.20)))
+	_op_btn.add_theme_color_override("font_color", OP_VERDE_BD if on else Color(0.94, 0.89, 0.82))
+
+func _sb_stramt(bg: Color, border: Color) -> StyleBoxFlat:
+	var sb := _sb(bg, border, 3)
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	return sb
 
 # ---------- SETTINGS ----------
 # Conținutul (volume + remapare taste) vine din componentul refolosibil SettingsUI, folosit și

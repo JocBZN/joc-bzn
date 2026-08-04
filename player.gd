@@ -309,6 +309,7 @@ func _ready() -> void:
 	weapon_type = GameSettings.weapon_type
 	_aplica_arma()  # damage-ul și cadența de bază ale armei alese — ÎNAINTE de meta
 	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
+	_aplica_op_start()  # cheat-ul din meniu — ULTIMUL, ca să scrie peste armă și peste meta
 	# Reperul lui Diesel Power = viteza cu care PORNEȘTI runda, luată DUPĂ META. Așa itemul
 	# măsoară viteza câștigată în rundă (Weird Concoction, Alex's Protection), nu ce ai cumpărat
 	# din magazin — altfel cine are Speed-ul maxat ar începe cu bonusul deja pe jumătate dat.
@@ -1505,6 +1506,24 @@ func upgrade_max_hp(amount: int) -> void:
 func upgrade_fire_rate(factor: float) -> void:
 	fire_interval *= factor              # factor < 1 → pauză mai mică între trageri = tragi mai des
 	fire_timer.wait_time = fire_interval
+
+# OP START — comutatorul din colțul meniului. Pornește runda cu statusuri de final, ca să se
+# poată ajunge repede la ce e de testat.
+#
+# SCRIE, nu adună: dacă ar aduna, rezultatul ar depinde de armă și de cât ai cumpărat din
+# magazin, iar butonul n-ar mai însemna aceleași trei cifre de fiecare dată. De aia se cheamă
+# DUPĂ `_aplica_arma()` și `_apply_meta()` — ce se cheamă ultimul câștigă.
+#
+# Se citește o SINGURĂ dată, aici. Pornit în timpul unei runde, nu se întâmplă nimic până la
+# următoarea — și așa și trebuie: e „OP **start**".
+func _aplica_op_start() -> void:
+	if not GameSettings.op_start:
+		return
+	bullet_damage = GameSettings.OP_DAMAGE
+	# Butonul e scris în ATACURI PE SECUNDĂ (cum arată și panoul de statusuri), dar player-ul
+	# lucrează cu pauza dintre atacuri. 2.5 atacuri/s = 0.4s pauză.
+	fire_interval = 1.0 / GameSettings.OP_ATTACK_SPEED
+	bullet_count = GameSettings.OP_PROJECTILES
 
 # Aplică upgrade-urile permanente (meta-progresie) la începutul rundei.
 func _apply_meta() -> void:

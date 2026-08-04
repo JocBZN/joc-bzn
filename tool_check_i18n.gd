@@ -25,9 +25,9 @@ const FISIERE_UI := [
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [
-	"⚙", "▲", "SARATALIN", "CELESTO", "%d", "%s", "", " ", "MAX",
+	"⚙", "▲", "OP", "SARATALIN", "CELESTO", "%d", "%s", "", " ", "MAX",
 	"keybinds", "graphics", "main", "settings", "language", "weapon", "character",
-	"leaderboard", "same", "up", "down",
+	"leaderboard", "opstart", "same", "up", "down",
 ]
 
 var _erori := 0
