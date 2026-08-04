@@ -16,6 +16,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-04 (hitbox-ul coasei = chiar desenul ei, umflat cu 5px)
+
+**Cerut de Răzvan:** „hitboxu la scythe nu e egal cu sprite-ul in sine, poti chiar sa il faci cu 5pixeli peste sprite daca arata mai ok asa".
+
+**Avea dreptate de două ori.** Prima variantă lovea tot ce era într-un CERC PLIN de rază fixă în jurul player-ului, deși lama e o secere subțire: prindea inamici lipiți de tine, pe sub lamă, și alții de dincolo de vârful ei.
+
+**Ce n-a mers, ca să nu se reîncerce:**
+1. **Bandă circulară** (rază interioară + exterioară, scoase din înălțimea anvelopei): coasa e desenată pe DIAGONALĂ, deci desenul e înalt cât toată poza și banda ieșea 0→130, adică exact cercul plin de dinainte. Zero câștig.
+2. **Dreptunghiul anvelopei, rotit cu lama** (metoda săbiei): mai bun, dar tot cuprinde cele două colțuri goale ale diagonalei — aproape dublul suprafeței. Se vedea pe captură cum chenarul roșu prinde iarbă curată.
+
+**Ce e acum: CÂMP DE DISTANȚE.** La pornire se calculează o dată, din poză, cât are fiecare pixel până la cel mai apropiat pixel DESENAT (chamfer în două treceri, cost liniar, eroare sub un pixel). Întrebarea „lovește?" devine: aduc inamicul în sistemul artei și citesc din tabel. Hitbox-ul e **chiar desenul**, umflat cu `scythe_marja` (5px, cât a cerut el) plus raza corpului inamicului. O citire per inamic per cadru.
+
+**⚠️ Și a ieșit la iveală un bug pe care nu-l vedeam:** lama era așezată după axa Y a POZEI, dar coasa e desenată pe diagonală, deci ea „arăta" cu ~40° pe lângă raza pe care mătura turul. Măsurat: inamicul din spatele tău, **de unde pornește măturatul, era prins ULTIMUL**, după un tur întreg. Acum axa se scoate din poză și lama cade de-a lungul razei.
+- Axa NU e centrul de greutate al pixelilor: la coasă el cade aproape fix în mijlocul pozei, deci direcția lui e zgomot curat — încercat, tot 40° pe lângă. E **axa principală** (matricea de împrăștiere a pixelilor, `theta = ½·atan2(2·Sxy, Sxx − Syy)`), adică direcția în care desenul e cel mai lung.
+- Sensul îl alege jumătatea cu mai mulți pixeli: la coasă lama e mai grasă decât coada, deci ea iese în afară, cum și trebuie (coada rămâne în mână).
+
+**Verificat rulând:** ordinea turului e acum cea corectă — **180° (de unde pornește) la 0.007s, 270° la 0.070s, 0° la 0.153s, 90° la 0.237s**, pe un tur de 0.34s. Vin puțin înaintea sferturilor exacte fiindcă lama are lățime: te atinge înainte să ajungă axa ei peste tine — exact ce înseamnă „hitbox după desen". Un manechin la 170px rămâne neatins; la 10, 45, 91 și 125 px, loviți.
+
+**`scythe_debug`** (ca `sword_debug`) desenează peste joc: cerc subțire = cât de departe ajunge vârful, cerc roșu gros pe fiecare inamic aflat **chiar atunci** sub lamă. N-am desenat „forma hitbox-ului" fiindcă nu e o formă geometrică, e desenul — deci se desenează rezultatul, care e oricum ce vrei să verifici.
+
+---
+
 ## Session log — 2026-08-04 (armă nouă: COASA LUI CELESTO, măturat 360°)
 
 **Cerut de Răzvan:** „vreau sa mai adaug o arma in joc, scythe-u lu celesto." Cum atacă a ales el, întrebat: **măturat 360° în jurul player-ului** (variantele respinse: bumerang și coase care orbitează).

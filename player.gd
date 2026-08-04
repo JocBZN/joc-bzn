@@ -215,17 +215,40 @@ var _facing: Vector2 = Vector2.DOWN         # ultima direcție reală în care s
 # Damage-ul se fixează la începutul măturatului (ca la sabie): un tur = un damage și un critic,
 # oricât ar dura. `loviti` ține minte pe cine a prins deja turul ăsta, ca lama să nu dea de două
 # ori în același inamic dacă el se mișcă în jurul tău.
+# HITBOX-UL SE CROIEȘTE PE DESEN, ca la sabie și la Firewalker (reclamat de Răzvan pe
+# 2026-08-04: „hitboxu la scythe nu e egal cu sprite-ul in sine"). Prima variantă lovea tot ce
+# era într-un CERC PLIN de rază fixă în jurul tău, deși lama e o secere subțire care mătură pe o
+# BANDĂ: prindea și inamici lipiți de tine, pe sub lamă, și alții de dincolo de vârful ei.
+#
+# Acum, la pornire, se măsoară din poză un CÂMP DE DISTANȚE (`_camp_distante`): pentru fiecare
+# pixel, cât are până la cea mai apropiată bucată de lamă. „Lovește?" e o singură citire din el,
+# deci hitbox-ul e chiar desenul, umflat cu `scythe_marja`. Tot din poză se scoate și AXA lamei
+# (`_masoara_axa_coasei`), ca ea să cadă de-a lungul razei. `scythe_reach` spune unde ajunge VÂRFUL,
+# iar lama se așază singură ca să iasă exact acolo. Schimbi arta, se recalculează tot.
 const SCYTHE_ART := "res://harta/Portal Ender/Celesto/celesto throw.png"
 @export var scythe_base_damage: int = 12      # se adună la bullet_damage, ca `sword_base_damage`
-@export var scythe_radius: float = 130.0      # raza cercului măturat, în PIXELI (artă și hitbox din ea)
+@export var scythe_reach: float = 130.0       # până unde ajunge VÂRFUL lamei, în pixeli
 @export var scythe_sweep_time: float = 0.34   # cât durează un tur complet
 @export var scythe_art_size: float = 150.0    # cât de lată e lama pe ecran, în pixeli
 @export var scythe_art_rotation: float = 0.0  # reglaj fin, dacă lama nu cade cum trebuie pe cerc
+# Cât iese hitbox-ul în afara desenului, de jur împrejurul benzii. Cerut de Răzvan: „poti chiar
+# sa il faci cu 5pixeli peste sprite daca arata mai ok asa" — și chiar arată: fix pe pixel, lama
+# trecea pe lângă inamici pe care ochiul îi vedea atinși.
+@export var scythe_marja: float = 5.0
 # Aceeași nuanță ca la coasa aruncată de Celesto (`scythe.gd`): peste 1 = mai luminoasă. Lama e
 # aproape neagră, iar iarba e închisă — fără ea, arma pe care o învârți nu se vede.
 @export var scythe_tint: Color = Color(1.15, 1.05, 1.35)
+# Desenează banda care lovește peste joc, ca `sword_debug`: două arce roșii (marginile hitbox-ului)
+# și o linie albă pe unde e lama acum. Cu el pornit se vede dintr-o privire dacă desenul și
+# hitbox-ul mai stau împreună.
+@export var scythe_debug: bool = false
 var _scythe_tex: Texture2D
-var _sweeps: Array = []                       # măturatele în curs (lama se rotește, damage-ul curge)
+var _scythe_px := Vector2.ZERO   # mărimea pozei, în pixeli de artă
+var _scythe_dist: PackedFloat32Array = PackedFloat32Array()   # distanța de la fiecare pixel la lamă
+var _scythe_axa := Vector2.UP     # încotro „arată" lama în poză (spre vârf)
+var _scythe_proj_max := 0.0       # cât se întinde desenul pe axa aia, spre vârf
+var _scythe_proj_min := 0.0       # ...și spre coadă
+var _sweeps: Array = []          # măturatele în curs (lama se rotește, damage-ul curge)
 
 # --- upgrade-uri de armă ---
 # --- Unusual Clover: NOROCUL. Face două lucruri complet diferite: ---
@@ -352,6 +375,7 @@ func _ready() -> void:
 	# lama coasei: o singură poză, aceeași pe care o aruncă Celesto (n-are cadre, se rotește)
 	if ResourceLoader.exists(SCYTHE_ART):
 		_scythe_tex = load(SCYTHE_ART)
+		_masoara_arta_coasei()   # din desenul ei ies și hitbox-ul, și felul cum se așază pe cerc
 	_electric_frames = _load_fx_frames("res://fx/electricity fx", 30.0, false)  # arcul de Thunder God (14 cadre)
 	_masoara_arta_sabiei()  # anvelopa animației → din ea se croiește dreptunghiul care lovește
 	# (Cursed Sword avea aici un slow de 1.9× la început. A dispărut pe 2026-07-27: Răzvan a
@@ -441,6 +465,9 @@ func start_quake(dur: float, strength: float) -> void:
 # lovește. Desenăm pe player, care e la scale 2 în main.tscn, deci împărțim tot la scara lui
 # ca să iasă pixeli reali (și liniile la grosimea cerută).
 func _draw() -> void:
+	if scythe_debug and weapon_type == "scythe":
+		_deseneaza_banda_coasei()
+		return
 	if not sword_debug or weapon_type != "sword":
 		return
 	var ps: float = max(scale.x, 0.001)
@@ -461,9 +488,30 @@ func _draw() -> void:
 	# linia albă = direcția în care te uiți
 	draw_line(Vector2.ZERO, dir * 30.0 / ps, Color(1, 1, 1, 0.5), 1.0 / ps)
 
+# Reglajul coasei. Hitbox-ul ei nu e o formă geometrică pe care s-o pot desena cu două linii — e
+# chiar desenul lamei, umflat cu `scythe_marja` —, deci desenez ce contează de fapt: CINE e prins
+# chiar acum. Fiecare inamic aflat sub lamă primește un cerc roșu. Cercul subțire e cât de departe
+# ajunge vârful. Ca la sabie, desenăm pe player, care e la scale 2, deci împărțim la scara lui.
+func _deseneaza_banda_coasei() -> void:
+	var ps: float = max(scale.x, 0.001)
+	draw_arc(Vector2.ZERO, (_scythe_banda().y + scythe_marja) / ps, 0.0, TAU, 64,
+		Color(1, 0.25, 0.25, 0.3), 1.0 / ps)
+	for t in _sweeps:
+		var u: float = float(t["unghi0"]) + minf(float(t["parcurs"]), TAU)
+		for e in get_tree().get_nodes_in_group("enemy"):
+			var enemy := e as Node2D
+			if enemy == null:
+				continue
+			var spre: Vector2 = enemy.global_position - global_position
+			if _coasa_atinge(u, spre, _raza_corp(enemy)):
+				draw_arc(spre / ps, (_raza_corp(enemy) + 4.0) / ps, 0.0, TAU, 20,
+					Color(1, 0.25, 0.25, 0.95), 2.0 / ps)
+
 func _process(delta: float) -> void:
 	_update_slashes()  # tăieturile în curs se întorc după privire și lovesc pe unde mătură
 	_update_sweeps(delta)  # coasa: lama se rotește în jurul tău și lovește pe cine ajunge
+	if scythe_debug and weapon_type == "scythe":
+		queue_redraw()   # lama se mișcă în fiecare cadru → și banda desenată
 	if sword_debug:
 		queue_redraw()  # hitbox-ul se mișcă odată cu privirea → redesenăm în fiecare cadru
 	if _cam == null:
@@ -1120,10 +1168,136 @@ func _scythe_swing() -> void:
 	}
 	_sweeps.append(t)
 
-# Raza cercului măturat. Crește cu Pufferfish/Rat's Burger, ca ORICE armă — și tot din ea iese
-# mărimea lamei, deci desenul și zona lovită nu se pot despărți.
-func _scythe_raza() -> float:
-	return scythe_radius * weapon_size_scale()
+# Măsoară o dată, la pornire, TOT ce trebuie știut despre desenul lamei: câmpul de distanțe (din
+# el iese hitbox-ul) și axa ei (din ea iese cum se așază pe cerc). Arta e sursa unică pentru desen
+# și pentru zona lovită — la fel ca `_masoara_arta_sabiei`. Schimbi poza, se recalculează tot.
+func _masoara_arta_coasei() -> void:
+	var img := _scythe_tex.get_image()
+	if img == null:
+		return
+	if img.is_compressed():
+		img.decompress()   # `get_pixel` nu merge pe o imagine comprimată
+	_scythe_px = Vector2(img.get_width(), img.get_height())
+	_scythe_dist = _camp_distante(img)
+	_masoara_axa_coasei(img)
+
+# AXA LAMEI și cât se întinde de-a lungul ei. Fără asta, lama iese strâmbă pe cerc.
+#
+# Coasa e desenată pe DIAGONALĂ în pătratul ei, deci „sus în poză" nu e același lucru cu „spre
+# vârful lamei". Prima variantă o așeza după axa Y a pozei și ieșea o nepotrivire măsurată de 39°
+# între unde SE VEDE lama și unde LOVEȘTE turul: inamicul din spatele tău, de unde pornește
+# măturatul, era prins ultimul, după un tur întreg.
+#
+# Axa o dă direcția în care desenul e cel mai LUNG (axa principală a pixelilor desenați), nu
+# centrul lor de greutate: la o coasă, greutatea cade aproape fix în mijlocul pozei, deci direcția
+# ei ar fi zgomot curat — încercat, tot 40° pe lângă. Sensul îl alege jumătatea cu mai mulți pixeli:
+# la coasă, lama e mai grasă decât coada, deci partea aia iese în afară, cum și trebuie.
+#
+# `_proj_max/min` = cât se întinde desenul pe axa asta, din care iese unde trebuie așezat sprite-ul
+# ca vârful să ajungă fix la `scythe_reach`.
+func _masoara_axa_coasei(img: Image) -> void:
+	var pixeli: Array[Vector2] = []
+	var suma := Vector2.ZERO
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a <= 0.08:
+				continue
+			var p := Vector2(x, y)
+			pixeli.append(p)
+			suma += p
+	if pixeli.is_empty():
+		return
+	var g := suma / float(pixeli.size())
+	# matricea de împrăștiere în jurul centrului de greutate
+	var sxx := 0.0
+	var syy := 0.0
+	var sxy := 0.0
+	for p in pixeli:
+		var d := p - g
+		sxx += d.x * d.x
+		syy += d.y * d.y
+		sxy += d.x * d.y
+	# unghiul axei principale a unei matrice 2×2 simetrice
+	var theta := 0.5 * atan2(2.0 * sxy, sxx - syy)
+	_scythe_axa = Vector2(cos(theta), sin(theta))
+	var c := _scythe_px * 0.5
+	var plus := 0
+	for p in pixeli:
+		if (p - g).dot(_scythe_axa) > 0.0:
+			plus += 1
+	if plus * 2 < pixeli.size():
+		_scythe_axa = -_scythe_axa   # partea grasă (lama) trebuie să iasă în afară
+	_scythe_proj_max = -INF
+	_scythe_proj_min = INF
+	for p in pixeli:
+		var proj := (p - c).dot(_scythe_axa)
+		_scythe_proj_max = maxf(_scythe_proj_max, proj)
+		_scythe_proj_min = minf(_scythe_proj_min, proj)
+
+# CÂMPUL DE DISTANȚE al lamei: pentru fiecare pixel al pozei, cât de departe e (în pixeli de artă)
+# cel mai apropiat pixel DESENAT. Se calculează o dată, la pornire.
+#
+# De ce nu un dreptunghi, ca la sabie: coasa e desenată pe DIAGONALĂ, deci dreptunghiul din jurul
+# ei ar cuprinde și cele două colțuri goale — aproape dublul suprafeței. Cu câmpul ăsta, întrebarea
+# „lovește?" devine o singură citire din tabel: „e vreun pixel de lamă mai aproape de N?". Adică
+# hitbox-ul e chiar desenul, umflat cu `scythe_marja`, fix ce a cerut Răzvan.
+#
+# Metoda e clasicul chamfer în două treceri (o dată în jos-dreapta, o dată în sus-stânga): cost
+# liniar, eroare sub un pixel — mai mult decât destul, când marja e de 5.
+func _camp_distante(img: Image) -> PackedFloat32Array:
+	const DIAG := 1.4142135624
+	var w := img.get_width()
+	var h := img.get_height()
+	var d := PackedFloat32Array()
+	d.resize(w * h)
+	var mare := float(w + h)
+	for y in h:
+		for x in w:
+			d[y * w + x] = 0.0 if img.get_pixel(x, y).a > 0.08 else mare
+	for y in h:
+		for x in w:
+			var i := y * w + x
+			var v := d[i]
+			if x > 0:
+				v = minf(v, d[i - 1] + 1.0)
+			if y > 0:
+				v = minf(v, d[i - w] + 1.0)
+				if x > 0:
+					v = minf(v, d[i - w - 1] + DIAG)
+				if x < w - 1:
+					v = minf(v, d[i - w + 1] + DIAG)
+			d[i] = v
+	for y in range(h - 1, -1, -1):
+		for x in range(w - 1, -1, -1):
+			var i := y * w + x
+			var v := d[i]
+			if x < w - 1:
+				v = minf(v, d[i + 1] + 1.0)
+			if y < h - 1:
+				v = minf(v, d[i + w] + 1.0)
+				if x < w - 1:
+					v = minf(v, d[i + w + 1] + DIAG)
+				if x > 0:
+					v = minf(v, d[i + w - 1] + DIAG)
+			d[i] = v
+	return d
+
+# Cât de mare e lama pe ecran, ca fracție din poză.
+func _scythe_scale() -> float:
+	if _scythe_px.x <= 0.0:
+		return 1.0
+	return scythe_art_size * weapon_size_scale() / _scythe_px.x
+
+# BANDA pe care o mătură lama, ca (rază_interioară, rază_exterioară) în pixeli de lume. Doar
+# pentru cercul de reglaj și pentru rapoarte — cine lovește de fapt e `_coasa_atinge`.
+func _scythe_banda() -> Vector2:
+	var s := _scythe_scale()
+	var ext: float = scythe_reach * weapon_size_scale()
+	return Vector2(max(ext - (_scythe_proj_max - _scythe_proj_min) * s, 0.0), ext)
+
+# Unde stă CENTRUL sprite-ului, ca vârful lamei să ajungă exact la `scythe_reach`.
+func _scythe_centru() -> float:
+	return scythe_reach * weapon_size_scale() - _scythe_proj_max * _scythe_scale()
 
 # Lama: o singură poză (cea aruncată de Celesto), COPIL al player-ului → turul îl urmează dacă
 # fugi în timpul lui. `_update_sweeps` o plimbă pe cerc.
@@ -1137,14 +1311,44 @@ func _spawn_scythe_blade(unghi: float) -> Sprite2D:
 	s.z_index = -1   # sub player, ca tăietura săbiei: altfel îi acoperă capul când trece prin nord
 	add_child(s)
 	var ps: float = max(scale.x, 0.001)   # player-ul e la scale 2 în main.tscn
-	s.scale = Vector2.ONE * (scythe_art_size * weapon_size_scale() / float(_scythe_tex.get_width())) / ps
+	s.scale = Vector2.ONE * _scythe_scale() / ps
 	_aseaza_lama(s, unghi, ps)
 	return s
 
 # Lama stă pe cerc, cu tăișul spre exterior, și se rotește odată cu unghiul.
 func _aseaza_lama(s: Sprite2D, unghi: float, ps: float) -> void:
-	s.position = Vector2(_scythe_raza() * 0.8, 0).rotated(unghi) / ps
-	s.rotation = unghi + PI * 0.5 + scythe_art_rotation
+	s.position = Vector2(_scythe_centru(), 0).rotated(unghi) / ps
+	s.rotation = _scythe_rotatie(unghi)
+
+# Rotația sprite-ului: exact atât cât să ducă AXA LAMEI (măsurată din poză) pe raza `unghi`.
+# `scythe_art_rotation` rămâne deasupra, ca reglaj fin cu mâna.
+func _scythe_rotatie(unghi: float) -> float:
+	return unghi - _scythe_axa.angle() + scythe_art_rotation
+
+# LOVEȘTE LAMA, chiar acum, inamicul aflat la `spre` (față de player)?
+#
+# Aici e tot răspunsul la „hitboxu nu e egal cu sprite-ul": nu întrebăm dacă inamicul e într-un
+# cerc oarecare în jurul tău, ci dacă e sub DESEN. Îl aducem în sistemul artei (mutat în centrul
+# sprite-ului, rotit invers cu rotația lui, împărțit la mărimea de pe ecran) și citim din câmpul
+# de distanțe cât are până la cel mai apropiat pixel de lamă.
+#
+# Cercul corpului, nu punctul din centru: un boss mare încasează când îl ATINGE lama.
+# `scythe_marja` (5px, cerut de Răzvan) e cât iese hitbox-ul în afara desenului — fix pe pixel,
+# lama trecea peste inamici pe care ochiul îi vedea deja atinși.
+func _coasa_atinge(unghi: float, spre: Vector2, raza_corp: float) -> bool:
+	var s := _scythe_scale()
+	if s <= 0.0 or _scythe_dist.is_empty():
+		return false
+	var centru := Vector2(_scythe_centru(), 0).rotated(unghi)
+	# din lume în pixeli de artă: mutăm în centrul sprite-ului, rotim invers, împărțim la scară
+	var local := (spre - centru).rotated(-_scythe_rotatie(unghi)) / s + _scythe_px * 0.5
+	var w := int(_scythe_px.x)
+	var h := int(_scythe_px.y)
+	# în afara pozei nu există tabel: ne oprim pe margine și adăugăm cât mai e până acolo
+	var pe_margine := Vector2(clampf(local.x, 0.0, w - 1.0), clampf(local.y, 0.0, h - 1.0))
+	var dist: float = _scythe_dist[int(pe_margine.y) * w + int(pe_margine.x)] \
+		+ pe_margine.distance_to(local)
+	return dist <= (raza_corp + scythe_marja) / s
 
 # Rotește lama și dă damage PE MĂSURĂ CE AJUNGE la fiecare inamic — ăsta e tot rostul armei.
 #
@@ -1157,7 +1361,6 @@ func _update_sweeps(delta: float) -> void:
 	if _sweeps.is_empty():
 		return
 	var ps: float = max(scale.x, 0.001)
-	var raza := _scythe_raza()
 	for i in range(_sweeps.size() - 1, -1, -1):
 		var t: Dictionary = _sweeps[i]
 		t["parcurs"] = float(t["parcurs"]) + TAU * delta / max(scythe_sweep_time, 0.01)
@@ -1165,7 +1368,7 @@ func _update_sweeps(delta: float) -> void:
 		var unghi0: float = t["unghi0"]
 		if is_instance_valid(t["nod"]):
 			var nod: Sprite2D = t["nod"]
-			nod.scale = Vector2.ONE * (scythe_art_size * weapon_size_scale() / float(_scythe_tex.get_width())) / ps
+			nod.scale = Vector2.ONE * _scythe_scale() / ps
 			_aseaza_lama(nod, unghi0 + minf(parcurs, TAU), ps)
 		var loviti: Dictionary = t["loviti"]
 		var dmg: int = t["dmg"]
@@ -1179,12 +1382,7 @@ func _update_sweeps(delta: float) -> void:
 			if loviti.has(id):
 				continue
 			var spre: Vector2 = enemy.global_position - global_position
-			# cu raza corpului, ca la sabie: un boss mare e lovit când îl ATINGE lama
-			if spre.length() > raza + _raza_corp(enemy):
-				continue
-			# unde stă el pe cerc, socotit de la unghiul de pornire, în [0, TAU)
-			var rel := wrapf(spre.angle() - unghi0, 0.0, TAU)
-			if parcurs < rel:
+			if not _coasa_atinge(unghi0 + minf(parcurs, TAU), spre, _raza_corp(enemy)):
 				continue
 			loviti[id] = true
 			_lovitura_melee(enemy, dmg, is_crit, spre.normalized())
