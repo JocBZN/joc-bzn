@@ -14,9 +14,9 @@ func _ready() -> void:
 	layer = 20                               # peste tot (inclusiv HUD și level up)
 	visible = false
 
-	# fundal întunecat peste tot ecranul
+	# fundal complet negru peste tot ecranul (opac, nu se mai vede jocul dedesubt)
 	var overlay := ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.8)
+	overlay.color = Color(0, 0, 0, 1.0)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 

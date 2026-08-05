@@ -17,6 +17,16 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (ecranul de „YOU DIED" pe fundal complet negru)
+
+**Cerut de Răzvan:** „cand scrie you died, vreau sa fie background-ul negru".
+
+Overlay-ul din `gameover.gd` era `Color(0, 0, 0, 0.8)` — se vedea jocul înghețat prin el. Acum e `Color(0, 0, 0, 1.0)`, opac. O singură linie (`gameover.gd:19`); restul ecranului (titlu roșu, statistici, butoane) neatins.
+
+**Verificat** cu o scenă de test temporară (ștearsă după): fundal magenta pe un `CanvasLayer` cu `layer = -100`, peste el ecranul de Game Over → în captură nu se mai vede niciun pixel magenta. Testul **nu** a chemat `show_gameover()`, tocmai ca să nu scrie un scor fals în `user://scores.save` (vezi regula de sus).
+
+---
+
 ## Session log — 2026-08-05 (ecran de încărcare la pornire: tot e în memorie înainte să vezi meniul)
 
 **Cerut de Răzvan:** „Sa fie un loading screen inainte sa intrii in joc (inainte si de meniu) in care sa se incarce deja toate asseturile sa nu faca lag (exemplu: toate dimensiunile si enemies)".
