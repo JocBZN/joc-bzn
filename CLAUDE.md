@@ -17,6 +17,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (hoarda monumentului curge EGAL în 10 secunde)
+
+**Cerut de Răzvan:** „Vreau sa se spawneze nu in acelasi timp ci in 10 secunde asa pe rand cat sa fie egal in 10 secunde".
+
+**Ce s-a făcut:** în `monument.gd`, `batch` (10) și `batch_gap` (0.06) au fost înlocuite cu **un singur buton, `spawn_duration = 10.0`**. Cele 103 creaturi ies acum una câte una, la `spawn_duration / 103 ≈ 0,097s` distanță.
+
+Bucla din `_scoate_hoarda` s-a rescris din „scoate un val, așteaptă, scoate alt val" în **„la fiecare cadru, întreabă câți ar fi trebuit să fie afară până acum"**. Trei lucruri se sprijină pe asta:
+- **nu se adună întârzierile.** Cu pauze înlănțuite, fiecare cadru lung se adaugă la coadă și cele 10 secunde ajung 12–13. Așa, dacă un cadru sare, următorul scoate doi și hoarda se termină tot la secunda 10;
+- **ceasul e ADUNAT din delta cadrelor și STĂ PE LOC pe pauză adevărată** (`if not get_tree().paused`). Contează mult aici: în 10 secunde de hoardă aproape sigur prinzi un nivel, iar `levelup.gd` oprește arborele. Cu ceasul de perete, cât alegeai upgrade-ul timpul curgea, iar la Resume ți se vărsa restul hoardei într-un cadru;
+- **cele 3 Gărzi sunt înfipte în șir la 1/6, 1/2 și 5/6** (≈1,6s, 5s, 8,3s): nu vin toate la început, iar prima nu mai cade peste cadrul cu alerta și cutremurul.
+
+Monumentul rămâne acum **în picioare cele 10 secunde** cât toarnă (`await _scoate_hoarda`) și abia apoi se scufundă.
+
+**Verificat prin rulare** (scenă de test temporară, ștearsă după — fără `main.tscn`, deci fără risc de scor fals în leaderboard):
+- 103 creaturi, prima la 0,02s, ultima la **9,90s**; pe secunde: **11 · 10 · 10 · 11 · 10 · 10 · 11 · 10 · 10 · 10**;
+- cel mai mare pumn într-un singur cadru: **1 creatură**;
+- Gărzile la **1,65s / 4,95s / 8,26s**;
+- **pauză simulată de 2 secunde reale la t=3s** (ca la Level Up): ceasul hoardei a rămas la 3,00, iar secunda 3 și-a primit tot cele 11 creaturi ale ei — nu s-a vărsat nimic la Resume.
+
+**⚠️ Corectură la măsurătoarea de ieri** (din log-ul de mai jos): „invocarea costă ~140ms, mai ales din simbolul de alertă" era **greșit**, și greșeala era a testului, nu a jocului. Scena de test nu trecea prin ecranul de încărcare, deci `_spawn_alert` chiar citea de pe disc cele 16 PNG-uri — dar `res://Upgrades` e în `PreloadAll.FOLDERE`, iar într-o rundă adevărată ele sunt deja în memorie. Cu `PreloadAll.porneste()` + `pas()` rulate în test înainte de măsurătoare (789 fișiere), **cel mai lung cadru al invocării e 19,5ms**, adică un cadru normal. Morala pentru data viitoare: **o scenă de test care măsoară timpi trebuie să treacă întâi prin preîncărcare**, altfel măsori încărcarea de pe disc, nu jocul.
+
+---
+
 ## Session log — 2026-08-05 (MONUMENTUL: structură nouă în lumea normală, scoate o hoardă de 103)
 
 **Cerut de Răzvan:** „ti-am bagat o noua structura in folderul harta se numeste Monument Spawner, vreau sa se spawneze in lumea normala si poti sa apesi pe el doar daca l-ai batut pe Celesto. Iti spawneaza inamici care dau drop 2x mai mult xp, dar sunt de 3x mai rapizi si dau de 3x mai mult damage fata decat cei din momentul din care dai spawn. Vreau sa fie spawnati random 100 de enemies din orice dimensiune + 3 Bossi de la statui (garda)".
@@ -25,7 +48,7 @@ Quick rules:
 - `monument.tscn` + `monument.gd` — obeliscul din `harta/Monument Spawner.png` (128×128, ca statuia; scara 2.4, arta așezată la rulare cu `ACOPERIRE_JOS = 74`, ca la statui și copaci). E în grupurile `monument` și `interactable`.
 - `monuments.gd` + nodul `Monuments` în `main.tscn` (în `World`) — generator pe chunk-uri, copia lui `statues.gd`: `monument_chance = 1%` (sub statuie 3% și portal 1.5%), sămânță proprie `0x3B10`, se ferește de copaci, pietre **și statui**. Măsurat pe 10.000 de chunk-uri: 0,94%.
 - **Încuiat până cade Celesto:** `eticheta()` întoarce „Defeat Celesto to awaken it" cât `ender.celesto_invins` e fals, iar `invoca()` refuză. Rămâne `poate_invoca() == true` ca să aibă text deasupra — aceeași soluție ca la cufărul fără cheie.
-- **Hoarda:** 100 de inamici aleși la întâmplare din toate cele patru feluri (polițist / Police Skinny / creatură Nether / creatură Ender, ponderi egale în `FELURI`) + 3 Gărzi care ies din pământ ca la statuie. Ies în valuri de 10 la 0,06s (plus o Gardă pe val), într-un inel de 620–1150px în jurul monumentului. Se nasc în `World`, NU sub monument: containerul lui de chunk se șterge când te îndepărtezi.
+- **Hoarda:** 100 de inamici aleși la întâmplare din toate cele patru feluri (polițist / Police Skinny / creatură Nether / creatură Ender, ponderi egale în `FELURI`) + 3 Gărzi care ies din pământ ca la statuie. Ies unul câte unul, în ritm egal, pe 10 secunde (vezi log-ul de mai sus), într-un inel de 620–1150px în jurul monumentului. Se nasc în `World`, NU sub monument: containerul lui de chunk se șterge când te îndepărtezi.
 - **Cele trei modificări**, față de un inamic născut ÎN ACEEAȘI CLIPĂ: `speed × 3` (pusă înainte de `add_child`, fiindcă `enemy._ready()` coace acolo viteza finală), `damage_mult × 3` (relativ — creatura din Ender rămâne dublă față de rest, deci iese 6.0) și `xp_drop_mult = 2`, un `@export` NOU în `enemy.gd`, aplicat în `_drop_xp` peste `Difficulty.xp_mult()`. Gărzile primesc și ele: viteză ×3, `damage_mult` ×3 (**`@export` nou în `garda.gd`**, implicit 1.0 → Garda de la statuie nu se schimbă), `lightning_damage` ×3 și `xp_value` ×2.
 - Monumentul se scufundă și dispare după invocare, iar `monuments.gd` **ține minte chunk-ul** (`_folosite`) ca să nu se întoarcă la reîncărcarea chunk-ului — altfel puteai farmări hoarda la nesfârșit din același loc plimbându-te 1500px și înapoi. (⚠️ Statuile N-AU apărarea asta: o statuie folosită chiar reapare dacă pleci și revii. N-am atins-o, dar merită știut.)
 - „Monuments" adăugat în `WORLD_NODES` din `nether.gd`, `ender.gd` **și** `limbo.gd`.
@@ -39,7 +62,7 @@ Quick rules:
 - Gărzile: viteză 210 (3×70), `damage_mult` 3.0, fulger 45 (3×15), XP 100 (2×50);
 - generatorul: 0,94% pe chunk, monumentul apare la 1px de locul calculat, iar după trezire **nu se mai întoarce** când pleci 30.000px și revii.
 
-**Ce nu e perfect:** invocarea costă un cadru lung (~140ms pe laptopul lui Răzvan). Vinovatul NU e hoarda: cu `enemy_count = 0` și `boss_count = 0` cadrul tot sare la ~73ms, iar fereastra de control (fără invocare) are singură vârfuri de ~60ms în scena de test. Restul îl adaugă cele 103 apariții, împrăștiate deja în 10 valuri. Dacă se simte urât în joc, cele două butoane sunt `batch` (10) și `batch_gap` (0.06) din `monument.gd`.
+**Ce nu e perfect:** invocarea costă un cadru lung, ~140ms în scena de test. ⚠️ **Cifra asta s-a dovedit falsă mai târziu în aceeași zi** — vezi log-ul „hoarda curge egal în 10 secunde": scena de test nu trecea prin ecranul de încărcare, așa că plătea de pe disc cele 16 cadre ale simbolului de alertă, pe care jocul adevărat le are deja în memorie (`res://Upgrades` e în `PreloadAll.FOLDERE`). Cu preîncărcarea pornită, cel mai lung cadru al invocării e **19,5ms**.
 
 ---
 

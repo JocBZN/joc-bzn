@@ -11,6 +11,8 @@ extends StaticBody2D
 #   · `enemy_count` (100) inamici AMESTECAȚI din toate dimensiunile — polițist, Police Skinny,
 #     creatură din Nether, creatură din Ender — indiferent unde ai ajuns cu runda;
 #   · `boss_count` (3) Gărzi, boss-ul statuii, care ies din pământ ca la invocarea normală.
+# Nu apar deodată: curg unul câte unul, în ritm egal, pe `spawn_duration` (10) secunde, iar
+# monumentul rămâne în picioare cât îi varsă și abia apoi intră în pământ.
 # Toți primesc aceleași trei modificări, față de un inamic obișnuit DIN CLIPA INVOCĂRII:
 #   · ×`xp_mult` (2) XP la moarte,   · ×`speed_mult` (3) viteză,   · ×`damage_mult_h` (3) damage.
 #
@@ -49,10 +51,9 @@ const FELURI := [
 @export var spawn_min_dist: float = 620.0
 @export var spawn_max_dist: float = 1150.0
 @export var boss_dist: float = 480.0         # Gărzile ies mai aproape, la 120° una de alta
-# Hoarda nu se naște într-un singur cadru: 100 de inamici deodată înseamnă 100 de
-# `SpriteFrames` construite la rând și o smucitură vizibilă. Îi scoatem în valuri.
-@export var batch: int = 10                  # câți apar la o bătaie
-@export var batch_gap: float = 0.06          # pauza între bătăi (secunde)
+# În cât timp iese TOATĂ hoarda. Nu apare deodată, ci se scurge unul câte unul, în ritm egal,
+# pe atâtea secunde (103 creaturi în 10s = una la ~0,097s). Scazi cifra → năvală; o crești → asediu.
+@export var spawn_duration: float = 10.0
 
 # --- Cutremur + scufundare (aceleași cifre ca la statuie, să se simtă la fel) ---
 @export var shake_strength: float = 22.0
@@ -146,9 +147,10 @@ func invoca() -> void:
 
 	# Hoarda se naște în LUME (`World`), nu sub monument: containerul de chunk al monumentului
 	# se șterge când te îndepărtezi, iar inamicii ar dispărea cu el. Aceeași grijă ca la cufăr.
-	# ⚠️ Cu `await`, nu pe lângă: hoarda iese în valuri, iar valurile sunt așteptate AICI, pe
-	# nodul monumentului. Fără el, monumentul s-ar putea elibera (`queue_free` de mai jos) în
-	# timp ce corutina lui încă are cronometre în aer, adică o funcție reluată pe un nod mort.
+	# ⚠️ Cu `await`, nu pe lângă: hoarda curge 10 secunde, iar așteptarea se face AICI, pe nodul
+	# monumentului. Fără el, monumentul ar apuca să se elibereze (`queue_free` de mai jos) în timp
+	# ce corutina lui încă are cadre în aer, adică o funcție reluată pe un nod mort. Efect
+	# secundar dorit: obeliscul stă în picioare cât toarnă și se scufundă abia la sfârșit.
 	var lume := player.get_parent() if player != null else null
 	if lume != null:
 		await _scoate_hoarda(lume)
@@ -172,30 +174,52 @@ func _anunta() -> void:
 
 # --- HOARDA ---------------------------------------------------------------------------
 
-# Hoarda curge în valuri de `batch`, nu deodată: o sută de inamici într-un singur cadru
-# înseamnă o sută de seturi de animații construite la rând, adică o smucitură vizibilă.
-# Gărzile se împart și ele, câte una pe val (fiecare își construiește 8 animații de mers, deci
-# trei odată = exact vârful pe care încercăm să-l evităm). Măsurat: cu ele grămadă, primul cadru
-# al invocării sărea la ~140ms; una pe val îl aduce la nivelul celorlalte.
+# Hoarda se scurge unul câte unul, în ritm EGAL, pe `spawn_duration` secunde (cerut de Răzvan pe
+# 2026-08-05). Toate cele 103 într-un cadru ar însemna 103 seturi de animații construite la rând,
+# adică o smucitură; și, mai important, monumentul trebuie să se simtă ca o robinet care curge,
+# nu ca un teanc aruncat în cap.
+#
+# Bucla merge din CADRU în CADRU și, de fiecare dată, întreabă „câți ar fi trebuit să fie afară
+# până acum" — nu numără pauze una după alta. Diferența contează: cu pauze înlănțuite, fiecare
+# cadru întârziat s-ar aduna la coadă și cele 10 secunde s-ar întinde la 12–13; așa, dacă un
+# cadru sare, următorul scoate doi și hoarda se termină tot la secunda 10.
+#
+# Ceasul e ADUNAT din delta cadrelor, nu citit din ceasul de perete, și stă pe loc cât jocul e
+# pe pauză adevărată. În 10 secunde de hoardă aproape sigur prinzi un nivel, iar ecranul de Level
+# Up oprește arborele (`get_tree().paused`, vezi `levelup.gd`) — cu ceasul de perete, cât alegeai
+# upgrade-ul, timpul curgea, și la Resume ți se vărsa restul hoardei într-un singur cadru.
+#
+# Cele 3 Gărzi sunt înfipte în șir la 1/6, 1/2 și 5/6 din hoardă (≈1,6s, 5s și 8,4s): nu vin toate
+# la început, iar prima nu cade peste cadrul cu alerta și cutremurul — exact vârful de care fugim.
 func _scoate_hoarda(lume: Node) -> void:
 	var centru := global_position
-	var bosi_ramasi := boss_count
-	var ramase := enemy_count
-	while ramase > 0 or bosi_ramasi > 0:
+	var total := enemy_count + boss_count
+	if total <= 0:
+		return
+	# La ce poziție din șir intră fiecare Gardă (cheie = locul, valoare = a câta e).
+	var locuri_garzi := {}
+	for k in boss_count:
+		locuri_garzi[int(floor((float(k) + 0.5) * float(total) / float(boss_count)))] = k
+	var pas := spawn_duration / float(total)   # cât ține un „loc" din șir
+	var trecut := 0.0
+	var scosi := 0
+	while scosi < total:
 		# Lumea poate dispărea sub noi cât așteptăm (moarte, restart, meniu).
 		if not is_instance_valid(lume) or not is_inside_tree():
 			return
-		if bosi_ramasi > 0:
-			var i := boss_count - bosi_ramasi
-			var unghi := TAU * (float(i) / float(maxi(1, boss_count))) + randf_range(-0.3, 0.3)
-			_naste_garda(lume, centru + Vector2(cos(unghi), sin(unghi)) * boss_dist)
-			bosi_ramasi -= 1
-		var acum := mini(batch, ramase)
-		for j in acum:
-			_naste_inamic(lume, centru + _offset_random())
-		ramase -= acum
-		if ramase > 0 or bosi_ramasi > 0:
-			await get_tree().create_timer(batch_gap).timeout
+		if not get_tree().paused:
+			trecut += get_process_delta_time()
+			var tinta := total if pas <= 0.0 else mini(total, int(floor(trecut / pas)) + 1)
+			while scosi < tinta:
+				if locuri_garzi.has(scosi):
+					var k: int = locuri_garzi[scosi]
+					var unghi := TAU * (float(k) / float(maxi(1, boss_count))) + randf_range(-0.3, 0.3)
+					_naste_garda(lume, centru + Vector2(cos(unghi), sin(unghi)) * boss_dist)
+				else:
+					_naste_inamic(lume, centru + _offset_random())
+				scosi += 1
+		if scosi < total:
+			await get_tree().process_frame
 
 # Un punct la întâmplare într-un inel în jurul monumentului: unghi uniform, rază între
 # `spawn_min_dist` și `spawn_max_dist`.
