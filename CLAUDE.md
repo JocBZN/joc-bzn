@@ -65,7 +65,7 @@ Quick rules:
 - `trade.gd` + nodul `Trade` — masa „ENDER TRADE", construită din cod ca `levelup.gd` (ramă `Menu.png`, border-uri de raritate, auriu). 3 rânduri: itemul tău ➜ ce poate deveni. Pune jocul pe pauză, ESC/Leave pleacă fără schimb, `pause.gd::_blocked()` o cunoaște (altfel ESC deschidea pauza peste ea).
 - **Registrul rundei — `player.run_items`.** Jocul NU ținea minte nimic din ce ai luat; nimeni n-avusese nevoie. Se scrie dintr-un singur loc, `levelup.gd::_apply`, deci prinde toate sursele (level up, cufere, statuia însăși). Meta și OP start NU intră — alea nu trec prin `_apply` și nici nu sunt iteme.
 - **Scara rarităților**, în `levelup.gd` lângă `RARITIES`: `SCARA_RARITATI` + `raritate_mai_sus(rar, trepte)`, plafonat la Legendary (common→rare, uncommon→epic, rare→legendary, epic→legendary, legendary→alt legendary). Plus `item_dupa_id`, `item_random_de_raritate` (sare peste Lucky Die din același motiv ca la cufăr) și `da_item(u, p)`, versiunea publică a lui `_apply`.
-- **Prețul: `Difficulty.penalty`**, un câmp nou, adunat în `_mult_time()`. `cost_dificultate = 15` secunde pe tranzacție.
+- **Prețul: `Difficulty.penalty`**, un câmp nou, adunat în `_mult_time()`. `cost_dificultate = 15` secunde pe tranzacție. **⚠️ ÎNLOCUIT în aceeași zi** — vezi log-ul „costul devine 15% ADEVĂRAT" de mai sus: astăzi e `Difficulty.trade_penalty`, un multiplicator, iar butonul se cheamă `cost_procent`. Ce urmează în intrarea asta descrie mecanica veche.
 
 **Două decizii care se văd în cod și trebuie știute:**
 1. **Penalizarea NU intră în `Difficulty.time`.** `time` e ceasul de pe ecran ȘI scorul din leaderboard: acolo, o tranzacție ți-ar fi scurtat runda cu 15 secunde și ți-ar fi umflat scorul cu 15 secunde netrăite — adică ai fi putut CUMPĂRA scor. Se adună și peste `mult_time_override`, altfel s-ar fi evaporat fix unde o cumperi (Ender-ul își rescrie override-ul la fiecare cadru).
@@ -86,7 +86,7 @@ Quick rules:
 | 9 | +2,0% | +0,7% | +2,1% | +8,8% |
 | 11 (Final Swarm) | +14,9% | +3,5% | +9,1% | +26,0% |
 
-Damage-ul e 0% în primul minut și jumătate fiindcă `enemy_damage_mult()` nu crește deloc până la `RAMP_START` (1:30) — nu e o scăpare a statuii, e curba existentă. Butonul de reglaj e `cost_dificultate` pe `ender_statue.tscn`, dacă lui Răzvan i se pare prea ieftin.
+Damage-ul e 0% în primul minut și jumătate fiindcă `enemy_damage_mult()` nu crește deloc până la `RAMP_START` (1:30) — nu e o scăpare a statuii, e curba existentă. (Tabelul ăsta e ISTORIC: cifrele lui au fost chiar motivul pentru care mecanica a trecut de la secunde la procent, în aceeași zi. Butonul de azi e `cost_procent`.)
 
 ---
 
