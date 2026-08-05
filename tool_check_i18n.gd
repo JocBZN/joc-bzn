@@ -24,11 +24,12 @@ const FISIERE_UI := [
 	"res://ender.gd", "res://celesto.gd",
 	# `monument.gd` și `chest.gd` nu desenează ei text, dar dau înapoi din `eticheta()` textul
 	# pe care îl scrie `interact_ui.gd` deasupra obiectului — deci trebuie verificat și el.
-	"res://monument.gd", "res://chest.gd",
+	"res://monument.gd", "res://chest.gd", "res://ender_statue.gd",
+	"res://trade.gd",
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [
-	"⚙", "▲", "OP", "SARATALIN", "CELESTO", "%d", "%s", "", " ", "MAX",
+	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "%d", "%s", "", " ", "MAX",
 	"keybinds", "graphics", "main", "settings", "language", "weapon", "character",
 	"leaderboard", "opstart", "same", "up", "down",
 ]

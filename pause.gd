@@ -60,6 +60,9 @@ func _blocked() -> bool:
 	var cazinou = get_tree().get_first_node_in_group("casino")
 	if cazinou != null and cazinou.visible:
 		return true   # ESC în cazinou te scoate din cazinou, nu deschide pauza peste el
+	var masa = get_tree().get_first_node_in_group("trade_menu")
+	if masa != null and masa.visible:
+		return true   # la fel la masa de schimb a statuii Ender (`trade.gd`)
 	var boss = get_tree().get_first_node_in_group("saratalin")
 	if boss != null and boss.has_method("in_cinematic") and boss.in_cinematic():
 		return true

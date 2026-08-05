@@ -17,6 +17,41 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (STATUIA ENDER: schimbi iteme, plătești în dificultate)
+
+**Cerut de Răzvan:** „Ti-am bagat si ender statue. Statuia asta se spawneaza doar in ender dimension si cand apesi pe ea deschide un meniu de trade. Iti apar 3 iteme de ale tale(random orice raritate) si cu o sageata spre dreapta ce iteme pot deveni(cu 2 raritati mai mari) - Costul pentru fiecare tranzactie este +15 difficulty (Spawn Rate mai rapid, viteza mai mare si damage mai mare)".
+
+**Ce s-a făcut:**
+- `ender_statue.tscn` + `ender_statue.gd` — călugărul din `harta/Ender Statue.png` (128×128, scara 2.4, `ACOPERIRE_JOS = 74` calculat la rulare, ca la monument). Grupurile `ender_statue` + `interactable`.
+- `ender_statues.gd` + nodul `EnderStatues` în `World` — **primul generator care merge PE DOS**: pornește stins (`visible = false`, `process_mode = 4`) și se aprinde exact cât ești în Ender. `ender.gd` are pentru asta o listă nouă, `ENDER_ONLY_NODES`, pe care o trece prin același `_toggle_generator` cu `not on`. ⚠️ NU se trece în `WORLD_NODES` — acolo ar face exact invers. `statue_chance = 6%` (măsurat 6,18%), mai des decât statuia normală (3%) fiindcă Ender-ul e gol și ține 6 minute.
+- `trade.gd` + nodul `Trade` — masa „ENDER TRADE", construită din cod ca `levelup.gd` (ramă `Menu.png`, border-uri de raritate, auriu). 3 rânduri: itemul tău ➜ ce poate deveni. Pune jocul pe pauză, ESC/Leave pleacă fără schimb, `pause.gd::_blocked()` o cunoaște (altfel ESC deschidea pauza peste ea).
+- **Registrul rundei — `player.run_items`.** Jocul NU ținea minte nimic din ce ai luat; nimeni n-avusese nevoie. Se scrie dintr-un singur loc, `levelup.gd::_apply`, deci prinde toate sursele (level up, cufere, statuia însăși). Meta și OP start NU intră — alea nu trec prin `_apply` și nici nu sunt iteme.
+- **Scara rarităților**, în `levelup.gd` lângă `RARITIES`: `SCARA_RARITATI` + `raritate_mai_sus(rar, trepte)`, plafonat la Legendary (common→rare, uncommon→epic, rare→legendary, epic→legendary, legendary→alt legendary). Plus `item_dupa_id`, `item_random_de_raritate` (sare peste Lucky Die din același motiv ca la cufăr) și `da_item(u, p)`, versiunea publică a lui `_apply`.
+- **Prețul: `Difficulty.penalty`**, un câmp nou, adunat în `_mult_time()`. `cost_dificultate = 15` secunde pe tranzacție.
+
+**Două decizii care se văd în cod și trebuie știute:**
+1. **Penalizarea NU intră în `Difficulty.time`.** `time` e ceasul de pe ecran ȘI scorul din leaderboard: acolo, o tranzacție ți-ar fi scurtat runda cu 15 secunde și ți-ar fi umflat scorul cu 15 secunde netrăite — adică ai fi putut CUMPĂRA scor. Se adună și peste `mult_time_override`, altfel s-ar fi evaporat fix unde o cumperi (Ender-ul își rescrie override-ul la fiecare cadru).
+2. **Schimbul NU ia înapoi efectul itemului dat.** Efectele se aplică o singură dată, la luare, direct peste statusuri, și nicăieri în proiect nu există „scoate itemul" — pentru jumătate din ele nici n-ar avea sens (Panic Button a explodat deja, Wine te-a vindecat deja). Deci itemul dispare din REGISTRU, nu din statusuri: schimbul e un câștig curat, plătit în dificultate. Ca să coste și puterea itemului dat, trebuie scris un „dez-aplică" pentru toate cele 50 de iteme. **Un schimb pe statuie** — fără regula asta n-ar fi existat nicio limită, fiindcă fiecare schimb îți lasă registrul la fel de mare.
+
+**Verificat prin rulare** (scenă de test peste `main.tscn` cu spawner-ul oprit → fără inamici, deci fără moarte și fără scor fals; `GameSettings` neatins):
+- registrul: gol la start, exact 7 după 7 iteme luate, „Nothing to trade" cât e gol (și masa nu se deschide);
+- generatorul: stins în lumea normală, aprins în Ender, `Props` invers; statuia la **1px** de locul calculat; rata **6,18%** pe 10.000 de chunk-uri;
+- rândurile: **+2 trepte** măsurate (Rolling Papers/Common ➜ Gunslinger/Rare), Epic ➜ Legendary la +1 (plafonul), niciodată același item înapoi;
+- schimbul: itemul dat iese din registru, cel primit intră, mărimea rămâne aceeași; `penalty` 0 → 15; `Difficulty.time` **neatins** (0,33 → 0,33); statuia consumată, masa închisă, jocul repornit, a doua apăsare nu mai face nimic;
+- penalizarea supraviețuiește unui `mult_time_override` (adică Ender-ului) și se șterge la `reset_run()`.
+
+**Cât înseamnă +15s, măsurat pe curbele din `difficulty.gd`** (spawn / viteză / damage / viață):
+| minutul | spawn | viteză | damage | viață |
+|---|---|---|---|---|
+| 1 | +5,5% | +0,9% | 0% | +8,9% |
+| 5 | +2,9% | +0,7% | +2,1% | +8,8% |
+| 9 | +2,0% | +0,7% | +2,1% | +8,8% |
+| 11 (Final Swarm) | +14,9% | +3,5% | +9,1% | +26,0% |
+
+Damage-ul e 0% în primul minut și jumătate fiindcă `enemy_damage_mult()` nu crește deloc până la `RAMP_START` (1:30) — nu e o scăpare a statuii, e curba existentă. Butonul de reglaj e `cost_dificultate` pe `ender_statue.tscn`, dacă lui Răzvan i se pare prea ieftin.
+
+---
+
 ## Session log — 2026-08-05 (hoarda monumentului curge EGAL în 10 secunde)
 
 **Cerut de Răzvan:** „Vreau sa se spawneze nu in acelasi timp ci in 10 secunde asa pe rand cat sa fie egal in 10 secunde".

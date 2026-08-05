@@ -186,6 +186,15 @@ const TRAD := {
 "Double XP. Triple speed. Triple damage.": ["双倍经验。三倍速度。三倍伤害。", "Doppelte XP. Dreifaches Tempo. Dreifacher Schaden.", "XP doble. Velocidad triple. Daño triple.", "Двойной опыт. Тройная скорость. Тройной урон.", "XP doublée. Vitesse triplée. Dégâts triplés.", "経験値2倍。速度3倍。ダメージ3倍。", "Podwójne XP. Potrójna szybkość. Potrójne obrażenia.", "İki kat XP. Üç kat hız. Üç kat hasar."],
 "Defeat Celesto to awaken it": ["击败 Celesto 才能唤醒它", "Besiege Celesto, um es zu erwecken", "Derrota a Celesto para despertarlo", "Победи Celesto, чтобы пробудить его", "Bats Celesto pour le réveiller", "セレストを倒せば目覚める", "Pokonaj Celesto, by go obudzić", "Onu uyandırmak için Celesto’yu yen"],
 
+# ---------- statuia de schimb din Ender (ender_statue.gd + trade.gd) ----------
+# „+15s difficulty" e cu %d fiindcă preţul se citeşte din `cost_dificultate` — deci textul trece
+# prin `tr()`, ca toate cele cu cifre în ele. „s" = secunde, rămâne „s" peste tot.
+"ENDER TRADE": ["ENDER 交易", "ENDER-HANDEL", "TRUEQUE ENDER", "ОБМЕН ENDER", "TROC ENDER", "エンダー交易", "HANDEL ENDER", "ENDER TAKASI"],
+"Each trade: +%ds difficulty": ["每次交易：难度 +%d 秒", "Pro Tausch: +%ds Schwierigkeit", "Cada trueque: +%ds de dificultad", "За обмен: +%dс сложности", "Chaque troc : +%ds de difficulté", "1回の交易につき難易度 +%d 秒", "Każda wymiana: +%ds trudności", "Her takas: +%ds zorluk"],
+"Nothing to trade": ["没有可交易的东西", "Nichts zu tauschen", "Nada que trocar", "Нечего менять", "Rien à troquer", "交易できる物がない", "Nie masz co wymienić", "Takas edecek bir şey yok"],
+"THE STATUE TAKES ITS PRICE": ["雕像收取了代价", "DIE STATUE FORDERT IHREN PREIS", "LA ESTATUA COBRA SU PRECIO", "СТАТУЯ БЕРЁТ СВОЮ ЦЕНУ", "LA STATUE PREND SON DÛ", "石像は代価を取った", "POSĄG BIERZE SWOJĄ CENĘ", "HEYKEL BEDELİNİ ALIR"],
+"The world grows harsher": ["世界变得更残酷了", "Die Welt wird härter", "El mundo se vuelve más duro", "Мир становится жёстче", "Le monde devient plus dur", "世界がより過酷になる", "Świat staje się surowszy", "Dünya sertleşiyor"],
+
 # ---------- cazinoul EGT (casino.gd) ----------
 # Numele pariurilor (RED, BLACK, EVEN, ODD, 1st 12, 2 to 1…) NU se traduc: sunt scrise în
 # engleză chiar pe poza mesei, iar o etichetă tradusă n-ar mai avea pereche pe masă.

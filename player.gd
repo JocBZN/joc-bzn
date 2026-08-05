@@ -169,6 +169,16 @@ const LUCK_PE_NIVEL := 1.0
 func bonus_arma(pentru: String) -> float:
 	return level * BONUS_PE_NIVEL if weapon_type == pentru else 0.0
 
+# ITEMELE STRÂNSE ÎN RUNDA ASTA, în ordinea luării (id-uri din `levelup.gd::UPGRADES`).
+#
+# E un REGISTRU, nu un inventar: efectele nu stau aici, ele s-au aplicat pe statusuri în clipa
+# luării (`levelup.gd::_apply`) și nu se mai pot desface. Lista asta e doar „ce am adunat" —
+# până pe 2026-08-05 jocul nu ținea minte NIMIC din ce ai luat, fiindcă nimeni n-avea nevoie.
+# Are nevoie statuia din Ender (`ender_statue.gd`), care îți arată itemele tale ca să le schimbi
+# pe unele mai rare. Se umple dintr-un singur loc — `_apply` —, deci prinde toate sursele:
+# level up, cufere, statuia însăși.
+var run_items: Array = []
+
 # Norocul TOTAL: cel strâns din iteme + bonusul de nivel al Mage Staff-ului. Ăsta e numărul pe
 # care trebuie să-l citească toată lumea (`luck_bonus` aici, `_norocul_meu` în `levelup.gd`,
 # panoul de statusuri) — `luck` gol e doar partea din iteme.

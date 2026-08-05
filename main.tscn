@@ -24,6 +24,8 @@
 [ext_resource type="Script" path="res://casino.gd" id="23_casino"]
 [ext_resource type="Script" path="res://ender.gd" id="24_ender"]
 [ext_resource type="Script" path="res://monuments.gd" id="25_monuments"]
+[ext_resource type="Script" path="res://ender_statues.gd" id="26_ender_statues"]
+[ext_resource type="Script" path="res://trade.gd" id="27_trade"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -83,6 +85,12 @@ script = ExtResource("22_egts")
 y_sort_enabled = true
 script = ExtResource("25_monuments")
 
+[node name="EnderStatues" type="Node2D" parent="World"]
+visible = false
+y_sort_enabled = true
+process_mode = 4
+script = ExtResource("26_ender_statues")
+
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)
 
@@ -121,3 +129,6 @@ script = ExtResource("20_bossbar")
 
 [node name="Casino" type="CanvasLayer" parent="."]
 script = ExtResource("23_casino")
+
+[node name="Trade" type="CanvasLayer" parent="."]
+script = ExtResource("27_trade")

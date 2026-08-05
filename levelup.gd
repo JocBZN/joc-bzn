@@ -468,6 +468,49 @@ func icon_path(u) -> String:
 	return p if p.begins_with("res://") else ICON_DIR + p
 
 # ---------------------------------------------------------------------------
+# SCARA RARITĂȚILOR — o urcă statuia din Ender (`ender_statue.gd`), care schimbă un item de-al
+# tău pe unul cu două trepte mai sus. Stă aici, lângă `RARITIES`, ca să existe UN SINGUR loc în
+# care se știe ordinea: dacă mâine apare o raritate nouă, se adaugă în amândouă și gata.
+# ---------------------------------------------------------------------------
+const SCARA_RARITATI := ["common", "uncommon", "rare", "epic", "legendary"]
+
+# Raritatea cu `trepte` mai sus. Se oprește la Legendary, fiindcă peste el nu mai e nimic: un
+# Epic urcă o singură treaptă, iar un Legendary rămâne Legendary (adică îl schimbi pe ALTUL).
+func raritate_mai_sus(rar: String, trepte: int) -> String:
+	var i := SCARA_RARITATI.find(rar)
+	if i < 0:
+		return rar
+	return SCARA_RARITATI[mini(i + trepte, SCARA_RARITATI.size() - 1)]
+
+# Itemul cu id-ul dat, sau `null` dacă nu există.
+func item_dupa_id(id: String):
+	for u in UPGRADES:
+		if u["id"] == id:
+			return u
+	return null
+
+# Un item la întâmplare dintr-o raritate anume. `exclude` = id-uri interzise (de obicei chiar
+# itemul pe care îl dai la schimb — n-are rost să-l primești înapoi).
+# Lucky Die iese din tragere din același motiv ca la cufăr (vezi `da_random_acum`): efectul lui
+# e „mai dă-mi o pagină de iteme la level up", iar aici nu se deschide nicio pagină.
+func item_random_de_raritate(rar: String, exclude: Array = []):
+	var pool := []
+	for u in UPGRADES:
+		if u["rar"] == rar and not exclude.has(u["id"]) and u["id"] != "lucky_die" and _e_disponibil(u):
+			pool.append(u)
+	return pool[randi() % pool.size()] if pool.size() > 0 else null
+
+# Dă un item ANUME, pe loc, fără ecran de ales — o cere statuia din Ender după schimb.
+# Trece prin `_apply`, deci intră și în registrul rundei (`player.run_items`), și ține
+# contabilitatea itemelor „unice" exact ca level up-ul și cufărul.
+func da_item(u, p) -> void:
+	if u == null or p == null:
+		return
+	_apply(u["id"], p)
+	if u.get("unic", false) and not _luate_unic.has(u["id"]):
+		_luate_unic.append(u["id"])
+
+# ---------------------------------------------------------------------------
 # UN UPGRADE LA ÎNTÂMPLARE, APLICAT PE LOC — îl cere CUFĂRUL (`chest.gd`), fără ecran de ales.
 # ---------------------------------------------------------------------------
 # Folosește ACEEAȘI tragere ca la level up (`_trage_unul`), deci rarităţile îşi păstrează
@@ -536,7 +579,13 @@ func _on_choice(index: int) -> void:
 		Audio.resume_forest_ambient()   # gata alegerea → ambientul continuă de unde a rămas
 
 # Efectele reale, tematice pe substanță. Modifică numerele cum vrei.
+#
+# Aici trec TOATE itemele, din orice sursă: level up, cufăr (`da_random_acum`), statuia din Ender.
+# De-aia registrul rundei (`player.run_items`) se scrie tot de aici — un singur loc, deci nu se
+# poate strecura un item luat pe altă ușă. Vezi comentariul de la `run_items` în `player.gd`.
 func _apply(id: String, p) -> void:
+	if p != null and "run_items" in p:
+		p.run_items.append(id)
 	match id:
 		"cocaina":
 			# stimulent puternic: viteză + cadență. Glonțul rămâne normal;

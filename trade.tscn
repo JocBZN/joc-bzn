@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://ctr4d3m3nu01"]
+
+[ext_resource type="Script" path="res://trade.gd" id="1_script"]
+
+[node name="Trade" type="CanvasLayer"]
+script = ExtResource("1_script")

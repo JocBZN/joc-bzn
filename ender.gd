@@ -49,6 +49,10 @@ const SHAKE_TIME := 0.9
 # într-o dimensiune în care n-au ce căuta.
 const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
+# Generatoare care merg PE DOS: stinse în lumea normală, aprinse doar cât ești aici. Deocamdată
+# unul singur — statuile de schimb (`ender_statues.gd`). NU au ce căuta în lista de sus: acolo
+# ar face exact invers decât trebuie. În `main.tscn` pornesc stinse (`process_mode = 4`).
+const ENDER_ONLY_NODES := ["EnderStatues"]
 
 var active := false
 
@@ -583,6 +587,9 @@ func _set_world_enabled(on: bool) -> void:
 		return
 	for n in WORLD_NODES:
 		_toggle_generator(world.get_node_or_null(n), on)
+	# ...și cele care merg invers: aprinse exact cât celelalte sunt stinse.
+	for n in ENDER_ONLY_NODES:
+		_toggle_generator(world.get_node_or_null(n), not on)
 	var root := world.get_parent()
 	if root != null:
 		for n in ROOT_NODES:

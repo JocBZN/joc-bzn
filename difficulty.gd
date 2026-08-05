@@ -69,6 +69,21 @@ var time: float = 0.0
 var frozen := false
 var mult_time_override := -1.0
 
+# --- DIFICULTATE CUMPĂRATĂ (statuia Ender, `ender_statue.gd`) ---
+# Secunde de dificultate plătite de tine, de bunăvoie: fiecare tranzacție la statuia din Ender
+# adaugă `TRADE_COST` aici. Se adună în `_mult_time()`, adică în ceasul DUPĂ CARE SE CALCULEAZĂ
+# INAMICII — nu în `time`, ceasul rundei.
+#
+# ⚠️ Diferența e tot rostul lui: `time` e ceasul de pe ecran ȘI scorul din leaderboard. Dacă
+# penalizarea intra acolo, o tranzacție ți-ar fi scurtat runda cu 15 secunde și, mai rău, ți-ar
+# fi umflat scorul cu 15 secunde pe care nu le-ai trăit — ai fi putut cumpăra scor. Așa, plătești
+# exact ce scrie pe etichetă: inamici mai mulți, mai iuți și mai tari, imediat, în orice dimensiune.
+var penalty := 0.0
+
+# Chemată de statuia Ender la fiecare schimb.
+func add_penalty(secunde: float) -> void:
+	penalty = maxf(0.0, penalty + secunde)
+
 # --- NETHER (a doua dimensiune, vezi nether.gd) ---
 # Cât XP lasă inamicii, față de normal. 1.0 în lumea obișnuită; `nether.gd` îl urcă cât ești
 # acolo (risc mai mare → răsplată mai mare) și îl pune la loc la ieșire. Nether-ul folosește
@@ -88,10 +103,15 @@ func reset_run() -> void:
 	frozen = false
 	mult_time_override = -1.0
 	xp_bonus = 1.0
+	penalty = 0.0
 
 # Timpul din care se calculează CÂT DE TARI sunt inamicii (≠ timpul afișat).
+# `penalty` se adaugă și peste `mult_time_override`, nu doar peste `time`: altfel dificultatea
+# cumpărată s-ar evapora exact acolo unde o cumperi, în Ender (care își scrie propriul override
+# la fiecare cadru — vezi `ender.gd::_process`).
 func _mult_time() -> float:
-	return mult_time_override if mult_time_override >= 0.0 else time
+	var t := mult_time_override if mult_time_override >= 0.0 else time
+	return t + penalty
 
 func _mult_is_fs() -> bool:
 	return _mult_time() >= RUN_LENGTH
