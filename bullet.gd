@@ -16,6 +16,13 @@ var explosion_frames: SpriteFrames = null  # animație de explozie (mage = viole
 var instakill_chance: float = 0.0  # șansa (0..1) să ucidă instant inamicul (Hacksaw)
 var thunder: bool = false          # Thunder God: la impact, curent electric spre inamicii din jur
 
+# Cât se ÎNVÂRTE desenul în zbor, în radiani pe secundă. 0 = stă drept, ca glonțul obișnuit, care
+# e desenat cu vârful înainte și trebuie să rămână așa. Îl folosește THROWING KNIFE: un cuțit
+# aruncat se rotește, altfel arată ca o săgeată lipită în aer.
+# ⚠️ Se învârte SPRITE-UL, nu nodul: `rotation`-ul nodului e direcția de zbor (`set_direction`),
+# citită și de urmărire, și de hitbox-ul-capsulă.
+var spin: float = 0.0
+
 # --- RICOȘEU = itemul Aussie Special ---
 # De câte ori mai poate SĂRI glonțul la alt inamic după ce a terminat de străpuns. Zero = se
 # oprește la fel ca înainte, deci fără item nimic din codul de mai jos nu se execută.
@@ -77,6 +84,10 @@ func _physics_process(delta: float) -> void:
 				direction = direction.rotated(clampf(da, -max_turn, max_turn)).normalized()
 				rotation = direction.angle() + PI / 2.0
 	global_position += direction * speed * delta
+	if spin != 0.0:
+		var spr := get_node_or_null("Sprite2D") as Node2D
+		if spr != null:
+			spr.rotation += spin * delta
 	time_left -= delta
 	if time_left <= 0:
 		queue_free()

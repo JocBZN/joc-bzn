@@ -38,13 +38,24 @@ const BORDER_NESEL := UI_DIR + "Border Common.png"  # albastru-gri = neales
 const CELULA := 132.0    # latura unei celule de armă (chenar + iconiță)
 const ICON_PAD := 16     # cât intră iconița în interiorul chenarului, ca să nu calce ornamentul
 
+# `bonus` = ce câștigă arma la FIECARE NIVEL (`player.gd::bonus_arma` / `luck_total`). Scris aici
+# ca să se și VADĂ când alegi: altfel e o mecanică pe care jucătorul n-are de unde s-o afle.
+# ⚠️ Textele astea trebuie să rămână la fel ca cifrele din `player.gd` — dacă schimbi acolo
+# `BONUS_PE_NIVEL` sau `LUCK_PE_NIVEL`, meniul minte în tăcere.
 var WEAPONS := [
-	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png"},
-	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png"},
-	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png"},
+	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png",
+		"bonus": "+1% ATTACK SPEED PER LEVEL"},
+	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png",
+		"bonus": "+1 LUCK PER LEVEL"},
+	{"id": "sword",        "name": "CURSED SWORD", "icon": "res://weapons_icons/cursed sword.png",
+		"bonus": "+1% DAMAGE PER LEVEL"},
 	# Iconița e arta boss-ului, luată DIN folderul lui, nu copiată în `weapons_icons/`: e aceeași
 	# lamă pe care o aruncă Celesto și pe care o învârte player-ul, deci o singură poză pe disc.
-	{"id": "scythe",       "name": "CELESTO'S SCYTHE", "icon": "res://harta/Portal Ender/Celesto/celesto throw.png"},
+	{"id": "scythe",       "name": "CELESTO'S SCYTHE", "icon": "res://harta/Portal Ender/Celesto/celesto throw.png",
+		"bonus": "+1% WEAPON SIZE PER LEVEL"},
+	# La fel și aici: iconița din meniu E proiectilul aruncat (`player.gd::_make_knife`).
+	{"id": "knife",        "name": "THROWING KNIFE", "icon": "res://weapons_icons/throwing knife.png",
+		"bonus": "+1% CRIT PER LEVEL"},
 ]
 
 const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
@@ -617,6 +628,10 @@ func _build_weapon() -> void:
 		_weapon_buttons.append({"buton": b, "chenar": chenar})
 		_viata(b)
 		slot.add_child(_center_label(w["name"], 18))
+		# bonusul de nivel al armei, mai mic și mai stins: e o notă, nu titlul
+		var b_lbl := _center_label(w["bonus"], 13)
+		b_lbl.add_theme_color_override("font_color", Color(0.62, 0.86, 0.62))
+		slot.add_child(b_lbl)
 	_refresh_weapon_selection()
 	box.add_child(_spacer(22))
 	box.add_child(_menu_button("BACK", _show.bind("main")))

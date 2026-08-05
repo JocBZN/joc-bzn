@@ -401,6 +401,10 @@ func _trage_raritate() -> String:
 
 func _norocul_meu() -> float:
 	var p = get_tree().get_first_node_in_group("player")
+	# `luck_total()`, nu `luck`: include și bonusul de nivel al Mage Staff-ului (+1 noroc/nivel),
+	# ca norocul armei să încline și rarităţile, nu doar șansele itemelor.
+	if p != null and p.has_method("luck_total"):
+		return float(p.luck_total())
 	return float(p.luck) if p != null and "luck" in p else 0.0
 
 # Șansele finale, după ce norocul ia de la common\uncommon și dă la rare\epic\legendary.

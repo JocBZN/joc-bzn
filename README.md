@@ -98,8 +98,21 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 | **Mage Staff** | 10 | 0.50 s | 2.00 (**1.5× the pistol**) |
 | **Cursed Sword** | 20 | 0.75 s | 1.33 |
 | **Celesto's Scythe** | 24 | 0.95 s | 1.05 (**the slowest**) |
+| **Throwing Knife** | 12 | 0.55 s | 1.82 (**the fastest**) |
 
 *(The **Extinguisher** was the fifth entry here until 2026-08-04, when it was removed from the game on request — see the section below. The sword inherited its sound.)*
+
+**Every weapon also grows with your level** *(2026-08-05)* — a bonus that is not an item and cannot be lost:
+
+| Weapon | Per-level bonus | Where it lives |
+|---|---|---|
+| **Throwing Knife** | +1% crit chance | `crit_chance_now()` |
+| **Cursed Sword** | +1% damage | `damage_mult()` |
+| **Pistol** | +1% attack speed | `fire_interval_now()` |
+| **Celesto's Scythe** | +1% weapon size | `weapon_size_scale()` |
+| **Mage Staff** | +1 Luck | `luck_total()` |
+
+Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat — it is computed at use, like `damage_mult()`: writing it in would mean subtracting the old bonus and adding the new one on every level-up, and it would break silently the first time an upgrade multiplied that stat. The knobs are `BONUS_PE_NIVEL` and `LUCK_PE_NIVEL` in `player.gd`; the strings under each weapon in **CHOOSE WEAPON** are written by hand in `menu.gd::WEAPONS` and will lie silently if you change the numbers without changing them.
 
 ⚠️ **That "damage" is the `bullet_damage` stat, not always what lands.** The sword adds `sword_base_damage` whole (8 + 20 = **28** per slash) and the scythe adds `scythe_base_damage` (12 + 24 = **36** per sweep). ⚠️ **`sword_slow_start` is gone** — the sword used to swing at 1.9× the interval; Răzvan asked for pistol cadence, so its drawback is now its reach, not its speed.
 
@@ -108,9 +121,20 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 | **Pistol** | One bullet at the nearest enemy. Nothing else. Its bullet is **capped at 100%** — size upgrades do not grow it (`BULLET_SIZE_CAP`). |
 | **Mage Staff** | The same bullet, re-skinned as an animated orb, that **explodes on impact** (radius 110, damage = 60% of `bullet_damage`). Its orb grows with size upgrades but is **capped at 250%**. |
 | **Cursed Sword** | No bullets — a **melee slash** in the direction you're **facing** (`_facing`), hitting *every* enemy whose **body circle touches** a fixed rectangle that runs from the player out to the animation's furthest pixel, for `sword_base_damage + bullet_damage`. (Circle, not centre point, since 2026-07-28 — that is what made it useless against Saratalin.) Built on the **Firewalker model**: `sword_size` is the width in px, and the rectangle is *measured from the art* at startup, so art and hitbox cannot drift apart. Swings at the **pistol's cadence** since 2026-07-27 (the old `sword_slow_start` 1.9× handicap was removed on request). The slash animation is a **child of the player**, so it follows you (feels like the sword is always in hand), and draws **under** him. Scales with damage / crit / knockback / instakill / weapon-size upgrades. |
+| **Throwing Knife** | *(2026-08-05)* The same bullet again, re-skinned as the **knife icon itself, spinning in flight** (`bullet.gd::spin` turns the *sprite*, never the node — the node's rotation is the flight direction). Not a new bullet scene: reusing `bullet.tscn` means it inherits pierce, ricochet, homing, Thunder God and Jean's Bomb for free, and there is no second place to keep up to date. No muzzle flash (there is no barrel) and it uses the sword's blade *swish* instead of the gunshot. Capped at **150%**. |
 | **Celesto's Scythe** | No bullets — the boss's own blade sweeps a **full circle around you** every `fire_interval`, for `scythe_base_damage + bullet_damage`. Short fixed reach (130 px to the tip) but it cuts on **every** side, and it hits each enemy **as the blade reaches them**, not all at once — the turn starts behind you so the blade crosses your facing first. The hitbox **is the drawing**: a distance field measured from the art at startup, grown by `scythe_marja` (5 px). The blade's axis is measured from the art too (principal axis of its pixels), so it lies along the radius instead of pointing off-angle. `scythe_debug` draws a ring on whoever is under it right now. |
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
+
+## Current state (2026-08-05, a fifth weapon — the THROWING KNIFE — and a per-level bonus for every weapon)
+- ✅ **Throwing Knife**, the fifth weapon (12 damage, 0.55 s, **1.82 hits/s — the fastest and the weakest**). The projectile is the menu icon itself, spinning as it flies; `bullet.gd` gained a **`spin`** field that turns the *sprite*, never the node, because the node's rotation is the flight direction that homing and the capsule hitbox read. It reuses `bullet.tscn` rather than getting a scene of its own, so pierce, ricochet, homing, Thunder God and Jean's Bomb all work on it with no extra code.
+- ✅ **Every weapon now gains something at every level** — not an item, not losable: knife **+1% crit**, sword **+1% damage**, pistol **+1% attack speed**, scythe **+1% weapon size**, mage **+1 Luck**. Counted from level 1 (level 12 = +12%).
+- **Nothing is stored.** Each bonus is computed at use, next to the stat it belongs to (`crit_chance_now`, `damage_mult`, `fire_interval_now`, `weapon_size_scale`, `luck_total`) — the same rule `damage_mult()` already followed. Storing it would mean subtracting the old value and adding the new one on every level-up, and it would break silently the first time an upgrade multiplied that stat.
+- **Attack speed is the exception that needs a nudge:** it lives in a `Timer`, not in a getter, so `_seteaza_cadenta()` is called on every level-up. The panel's baseline (`_stats_base["fire_interval"]`) is the *derived* value, so the pistol does not show a permanent green arrow at level 1 for a bonus you have not earned yet.
+- **Luck is the exception that is not a percent.** It is a point count, and 1% of zero is nothing, so the Mage Staff gets **+1 Luck per level**. One Luck point is worth 0.4 percentage points on every chance in the game (`LUCK_CHANCE_PER`), which lands close to the others in power. It flows through a new `luck_total()` that `luck_bonus()`, the stat panel and `levelup.gd::_norocul_meu` all read, so it tilts **rarities** too, not just item procs.
+- **The knife's crit had to bypass an old guard:** `crit_chance_now()` returns 0 flat if you own no crit item, so that Luck cannot hand you a mechanic you never picked. The weapon bonus *is* that mechanic, so it counts as owning one.
+- **Each weapon's bonus is written under its name in CHOOSE WEAPON**, in all 9 languages — otherwise it would be a mechanic the player has no way of discovering. ⚠️ Those strings are hand-written in `menu.gd::WEAPONS`: change `BONUS_PE_NIVEL` without changing them and the menu lies silently.
+- Verified by running: all five weapons at levels 1/10/20 — pistol 1.35 → 1.60 hits/s, sword ×1.01 → ×1.20 damage, scythe 101% → 120% size, mage 1 → 20 Luck, knife 1% → 20% crit, with every other weapon's numbers flat; plus a render of knives in flight and of the five-slot weapon menu.
 
 ## Current state (2026-08-05, Celesto's entrance is a real cutscene, and his creatures follow you home)
 - ✅ **The entrance cutscene was rebuilt** ("cand intrii in ender se opreste totul si se da zoom in pe el cum se teleporteaza stanga dreapta de 2-3 ori"). Five beats now: the game **freezes for real** (`get_tree().paused`) → the camera slides onto the empty spot above you and **zooms 2×** → Celesto **materialises** there → his bar **slides down** from the top edge → he **teleports left-right 3 times** inside the tight frame → he fades out, the camera pulls back, the game resumes and he waits in his ring, and only then do the enemies pour in.

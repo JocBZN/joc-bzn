@@ -17,6 +17,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (a cincea armă — THROWING KNIFE — și un bonus de nivel pentru fiecare armă)
+
+**Cerut de Răzvan:** „Bag o arma noua - throwing knife ai poza unde sunt si celelalte - vreau sa adaug o chestie pentru fiecare arma. La fiecare nivel fiecare arma are un bonus specific." (cuțit +1% crit, coasă +1% size, sabie +1% damage, pistol +1% attack speed, mage +1% luck).
+
+**1. Throwing Knife** (12 damage, 0.55s → 1,82 lovituri/s: cea mai deasă și cea mai slabă). Proiectilul e CHIAR iconița din meniu, învârtindu-se în zbor. `bullet.gd` a primit un câmp `spin` care rotește **sprite-ul**, nu nodul — `rotation`-ul nodului e direcția de zbor, citită și de urmărire, și de hitbox-ul-capsulă. **Nu are scenă proprie**: e `bullet.tscn` cu altă poză pe `Sprite2D`, exact ca sfera mage, deci primește pe gratis străpungerea, ricoșeul, urmărirea, Thunder God și Jean's Bomb. Fără fulger la țeavă (n-are țeavă) și cu șuieratul de lamă al săbiei în loc de împușcătură.
+
+**2. Bonusul de nivel al fiecărei arme.** Cuțit +1% crit, sabie +1% damage, pistol +1% attack speed, coasă +1% weapon size, mage +1 noroc. Se numără de la nivelul 1 (nivelul 12 = +12%).
+
+**Nu se scrie nimic în stat-uri** — fiecare bonus se CALCULEAZĂ la folosire, lângă statul de care ține (`crit_chance_now`, `damage_mult`, `fire_interval_now`, `weapon_size_scale`, `luck_total`), exact regula pe care o urma deja `damage_mult()`. Scris în stat ar fi însemnat să scazi bonusul vechi și să-l aduni pe cel nou la fiecare level up, și s-ar fi stricat în tăcere la primul upgrade care înmulțește statul.
+
+**Attack speed e excepția care are nevoie de un ghiont:** trăiește într-un `Timer`, nu într-un getter, deci `_seteaza_cadenta()` se cheamă la fiecare level up (și din `upgrade_fire_rate`). Reperul panoului (`_stats_base["fire_interval"]`) e valoarea DERIVATĂ, ca la `weapon_size` — altfel pistolul ar fi arătat o săgeată verde permanentă la Attack Speed, pentru un bonus pe care nu l-ai câștigat încă.
+
+**NOROCUL e excepția care nu e procent.** E un număr de puncte, iar 1% din zero e nimic — deci Mage Staff ia **+1 noroc/nivel**. Un punct de noroc face 0,4 puncte procentuale la toate șansele din joc (`LUCK_CHANCE_PER`), deci iese pe-aproape de celelalte ca putere. Trece printr-un `luck_total()` nou, citit de `luck_bonus()`, de panou ȘI de `levelup.gd::_norocul_meu` — deci înclină și **rarităţile**, nu doar șansele itemelor.
+
+**Criticul cuțitului a trebuit să treacă de o pază veche:** `crit_chance_now()` întorcea 0 sec dacă n-ai niciun item de crit, tocmai ca norocul să nu-ți strecoare o mecanică pe care n-ai ales-o. Bonusul armei ESTE acea mecanică, deci contează ca „ai una".
+
+**Bonusul se și VEDE**, scris sub numele fiecărei arme în CHOOSE WEAPON, în toate cele 9 limbi — altfel ar fi fost o mecanică despre care jucătorul n-avea de unde să afle. ⚠️ Textele sunt scrise de mână în `menu.gd::WEAPONS`: schimbi `BONUS_PE_NIVEL` fără să le schimbi și meniul minte în tăcere.
+
+**Verificat rulând:** toate cele cinci arme la nivelurile 1/10/20 — pistol 1,35 → 1,60 lovituri/s, sabie ×1,01 → ×1,20 damage, coasă 101% → 120% mărime, mage 1 → 20 noroc, cuțit 1% → 20% crit, iar la fiecare armă restul cifrelor neclintite; plus o poză cu cuțitele în zbor (se rotesc, unghiuri diferite) și una cu meniul de arme cu cinci sloturi. `tool_check_i18n` trecut.
+
+---
+
 ## Session log — 2026-08-05 (cinematica lui Celesto, refăcută: îngheț + zoom + teleportări; bara sus; creaturile lui în lumea normală)
 
 **Cerut de Răzvan:** „ca si cutscene pentru celesto, cand intrii in ender se opreste totul si se da zoom in pe el cum se teleporteaza stanga dreapta de 2-3 ori si vreau ca bara de hp si numele sa fie sus. Si vreau si inamicii de la celesto sa se spawneze in lumea normala dupa ce l-ai batut".

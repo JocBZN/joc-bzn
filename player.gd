@@ -126,6 +126,7 @@ var weapon_type: String = "pistol"
 #   mage staff         10           0.50               2.00   ← de 1.5× mai des ca pistolul
 #   cursed sword       20           0.75               1.33
 #   celesto's scythe   24           0.95               1.05   ← cea mai rară, dar taie în jur
+#   throwing knife     12           0.55               1.82   ← cea mai deasă, dar cea mai slabă
 #
 # (STINGĂTORUL a fost ȘTERS din joc pe 2026-08-04, la cererea lui Răzvan — cu tot cu aura care
 #  pulsa, spuma, iconița și cadrele ei. Sunetul lui a rămas: îl folosește acum sabia.)
@@ -138,7 +139,54 @@ const ARME := {
 	"mage":         {"damage": 10, "interval": 0.50},
 	"sword":        {"damage": 20, "interval": 0.75},
 	"scythe":       {"damage": 24, "interval": 0.95},
+	"knife":        {"damage": 12, "interval": 0.55},
 }
+
+# --- BONUSUL DE NIVEL AL FIECĂREI ARME (cerut de Răzvan pe 2026-08-05) ---
+# „La fiecare nivel fiecare armă are un bonus specific." Nu e un item și nu se poate pierde: e
+# felul în care arma pe care ai ales-o crește odată cu tine.
+#
+#   throwing knife   +1% ȘANSĂ DE CRITIC / nivel   (`crit_chance_now`)
+#   cursed sword     +1% DAMAGE / nivel            (`damage_mult`)
+#   pistol           +1% ATTACK SPEED / nivel      (`fire_interval_now`)
+#   celesto's scythe +1% WEAPON SIZE / nivel       (`weapon_size_scale`)
+#   mage staff       +1 NOROC / nivel              (`luck_total`)
+#
+# Se numără de la nivelul 1, nu de la 0: la nivelul 12 ai +12%. Nu se scriu nicăieri în stat-uri,
+# se CALCULEAZĂ la folosire (ca `damage_mult` sau `weapon_size_scale`) — altfel ar trebui scăzut
+# bonusul vechi și adunat cel nou la fiecare level up, și s-ar strica tăcut la primul upgrade
+# care înmulțește statul.
+#
+# ⚠️ NOROCUL e singurul care nu e „%": el nu e un procent, e un număr de puncte (`luck`), iar 1%
+# din el ar fi însemnat 1% din zero = nimic. Un punct de noroc valorează 0.4 puncte procentuale
+# la toate șansele din joc (`LUCK_CHANCE_PER`), deci +1 noroc/nivel iese pe-aproape de „+1%/nivel"
+# ca putere — și e comparabil cu +1% critic al cuțitului. Reglabil dintr-un singur loc, aici.
+const BONUS_PE_NIVEL := 0.01
+const LUCK_PE_NIVEL := 1.0
+
+# Bonusul armei `pentru`, la nivelul de ACUM. 0 dacă joci cu altă armă — deci fiecare loc de
+# folosire poate să-l adune fără să întrebe de două ori cu ce armă ești.
+func bonus_arma(pentru: String) -> float:
+	return level * BONUS_PE_NIVEL if weapon_type == pentru else 0.0
+
+# Norocul TOTAL: cel strâns din iteme + bonusul de nivel al Mage Staff-ului. Ăsta e numărul pe
+# care trebuie să-l citească toată lumea (`luck_bonus` aici, `_norocul_meu` în `levelup.gd`,
+# panoul de statusuri) — `luck` gol e doar partea din iteme.
+func luck_total() -> float:
+	return luck + (level * LUCK_PE_NIVEL if weapon_type == "mage" else 0.0)
+
+# Pauza REALĂ dintre lovituri: cea a armei, scurtată de bonusul de nivel al PISTOLULUI.
+# `fire_interval` rămâne statul „curat" (îl scriu arma, meta, OP start și `upgrade_fire_rate`);
+# ăsta e ce ajunge în `fire_timer` și în panou. Se ÎMPARTE, nu se scade: +10% attack speed
+# înseamnă de 1.1 ori mai multe lovituri pe secundă, nu cu 10% mai puțină pauză.
+func fire_interval_now() -> float:
+	return fire_interval / (1.0 + bonus_arma("pistol"))
+
+# Pune cadența de acum în timer. Se cheamă de fiecare dată când se schimbă `fire_interval` SAU
+# nivelul — bonusul pistolului crește cu nivelul, deci un level up trebuie să miște și timer-ul.
+func _seteaza_cadenta() -> void:
+	if fire_timer != null:
+		fire_timer.wait_time = fire_interval_now()
 var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol/mage)
 var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
 var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
@@ -251,7 +299,7 @@ const LUCK_CHANCE_PER := 0.004   # +0.4 puncte procentuale per punct de noroc (5
 var luck: float = 0.0            # ZECIMAL, nu întreg: The Office dă +2.5
 
 func luck_bonus() -> float:
-	return luck * LUCK_CHANCE_PER
+	return luck_total() * LUCK_CHANCE_PER
 
 @export var crit_chance: float = 0.0       # șansa (0..1) ca o lovitură să fie critică
 @export var crit_mult: float = 2.0         # de câte ori mai mult damage la critic
@@ -373,7 +421,9 @@ func _ready() -> void:
 	# reperul panoului de statusuri: valorile de la START, DUPĂ meta + slow-ul sabiei
 	_stats_base = {
 		"bullet_damage": float(bullet_damage),
-		"fire_interval": fire_interval,
+		# derivat, ca `weapon_size`: bonusul de nivel al pistolului e deja în el la nivelul 1,
+		# altfel panoul ar arăta o săgeată verde permanentă la Attack Speed, fără să fi luat nimic
+		"fire_interval": fire_interval_now(),
 		"crit_chance": crit_chance,
 		"bullet_count": float(bullet_count),
 		"pierce": float(pierce),
@@ -392,7 +442,7 @@ func _ready() -> void:
 	_flash_mat.set_shader_parameter("flash", 0.0)
 	anim.material = _flash_mat
 	fire_timer = Timer.new()
-	fire_timer.wait_time = fire_interval
+	fire_timer.wait_time = fire_interval_now()   # cu bonusul de nivel al pistolului inclus
 	fire_timer.timeout.connect(_fire)
 	add_child(fire_timer)
 	fire_timer.start()
@@ -583,7 +633,9 @@ func _update_anim(directie: Vector2) -> void:
 # Mărimea armei ca factor de scalare: pixelii ceruți (Pufferfish) se traduc în scară
 # raportat la glonțul de bază, apoi se aplică procentul (Rat's Burger).
 func weapon_size_scale() -> float:
-	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult
+	# Celesto's Scythe: +1% mărime pe nivel. Intră aici, în STATUL de mărime, nu doar în lama ei:
+	# așa se vede și în panou, și crește tot ce ține de „cât de mare lovești" cu coasa în mână.
+	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult * (1.0 + bonus_arma("scythe"))
 
 # Cât de mare iese GLONȚUL, cu plafonul armei aplicat (cerut de Răzvan pe 2026-07-30).
 # Pistolul trage un glonț mic și des: umflat de Pufferfish/Rat's Burger/Doză dublă ajungea să
@@ -594,6 +646,9 @@ func weapon_size_scale() -> float:
 const BULLET_SIZE_CAP := {
 	"pistol": 1.0,
 	"mage": 2.5,
+	# Cuțitul e mic și se aruncă des, ca glonțul de pistol — dar e o LAMĂ, deci are voie să
+	# crească puțin fără să pară absurd. 1.5 = cel mult jumătate mai mare decât iese din mână.
+	"knife": 1.5,
 }
 
 func bullet_size_scale() -> float:
@@ -616,6 +671,7 @@ func bullet_size_scale() -> float:
 # cum nu primesc nici upgrade-urile obișnuite de damage.
 func damage_mult() -> float:
 	var m := 1.0 + cig_bonus  # Cigarette Pack: mereu pornit
+	m += bonus_arma("sword")  # Cursed Sword: +1% damage pe nivel
 	# Theo's Wrath: doar cât ești sub pragul de viață (20% din max_hp)
 	if theo_bonus > 0.0 and hp <= int(round(max_hp * theo_hp_threshold)):
 		m += theo_bonus
@@ -635,10 +691,14 @@ func speed_ratio() -> float:
 # NU mai e plafonată la 100% — peste 100% intră multi-crit-ul (vezi roll_crit). Se citește la
 # fiecare lovitură, din același motiv ca damage_mult(): partea de la Katana se schimbă la fiecare pas.
 func crit_chance_now() -> float:
-	# fără niciun item de crit, norocul n-are ce umfla (vezi `luck_bonus`)
-	if crit_chance <= 0.0 and katana_stacks == 0:
+	# Throwing Knife: +1% șansă de critic pe nivel. E chiar avantajul armei, deci contează și ca
+	# „ai o mecanică de critic" — fără el, regula de mai jos ar întoarce 0 și cuțitul n-ar critica
+	# niciodată, oricâte niveluri ai avea.
+	var arma := bonus_arma("knife")
+	# fără niciun item de crit (și fără cuțit), norocul n-are ce umfla (vezi `luck_bonus`)
+	if crit_chance <= 0.0 and katana_stacks == 0 and arma <= 0.0:
 		return 0.0
-	var c := crit_chance + luck_bonus()
+	var c := crit_chance + arma + luck_bonus()
 	if katana_stacks > 0:
 		c += katana_per_stack * katana_stacks * speed_ratio()
 	return c
@@ -681,7 +741,9 @@ func stat_lines() -> Array:
 	var dmg_acum := int(round(bullet_damage * damage_mult()))
 	return [
 		_stat_row("Damage", dmg_acum, b["bullet_damage"], false, str(dmg_acum)),
-		_stat_row("Attack Speed", fire_interval, b["fire_interval"], true, "%.2f/s" % (1.0 / max(fire_interval, 0.01))),
+		# Attack Speed se arată CU bonusul de nivel al pistolului (`fire_interval_now`), din
+		# același motiv ca Damage și Crit: în panou scrie ce face arma ACUM.
+		_stat_row("Attack Speed", fire_interval_now(), b["fire_interval"], true, "%.2f/s" % (1.0 / max(fire_interval_now(), 0.01))),
 		# Crit și Instakill se afișează CU norocul inclus (`*_now()`), altfel panoul ar arăta
 		# 15% după ce ai luat un trifoi care ți-a dus criticul real la 17%.
 		_stat_row("Crit", crit_chance_now(), b["crit_chance"], false, "%d%%" % round(crit_chance_now() * 100.0)),
@@ -690,8 +752,9 @@ func stat_lines() -> Array:
 		_stat_row("Weapon Size", weapon_size_scale(), b["weapon_size"], false, "%d%%" % round(weapon_size_scale() * 100.0)),
 		_stat_row("Knockback", knockback, b["knockback"], false, str(int(round(knockback)))),
 		_stat_row("Instakill", instakill_chance_now(), b["instakill_chance"], false, "%.1f%%" % (instakill_chance_now() * 100.0)),
-		# fără „.0" degeaba: 2.5 rămâne „2.5", dar 5.0 se scrie „5"
-		_stat_row("Luck", luck, 0.0, false, ("%.1f" % luck).trim_suffix(".0")),
+		# Norocul se arată TOTAL (iteme + bonusul de nivel al Mage Staff-ului), ca Crit și Damage.
+		# Fără „.0" degeaba: 2.5 rămâne „2.5", dar 5.0 se scrie „5".
+		_stat_row("Luck", luck_total(), 0.0, false, ("%.1f" % luck_total()).trim_suffix(".0")),
 		_stat_row("Move Speed", speed, b["speed"], false, str(int(round(speed)))),
 		_stat_row("Max HP", max_hp, b["max_hp"], false, str(max_hp)),
 		_stat_row("HP Regen", hp_regen, b["hp_regen"], false, "%d/s" % hp_regen),
@@ -798,9 +861,13 @@ func _fire_bullets() -> void:
 	# Mage Staff are sunetul lui (un „vuiet" magic), pistolul rămâne pe Bullet.mp3.
 	if weapon_type == "mage":
 		Audio.play("mage_shoot", -12.0)
+	elif weapon_type == "knife":
+		Audio.play("sword", -9.0)   # șuieratul de lamă al săbiei; un cuțit aruncat nu bubuie
 	else:
 		Audio.play("shoot", -12.5)
-	_muzzle(global_position + dir * 34.0, dir)
+	# Fulgerul la țeavă e al armelor de FOC. Cuțitul nu are țeavă — se aruncă din mână.
+	if weapon_type != "knife":
+		_muzzle(global_position + dir * 34.0, dir)
 	# damage-ul acestei salve, cu procentele care depind de starea de acum (Theo's / Cigarette / Diesel)
 	var dmg_base := int(round(bullet_damage * damage_mult()))
 	var ex_radius := explosion_radius
@@ -870,6 +937,8 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	if weapon_type == "mage":
 		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
 		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
+	elif weapon_type == "knife":
+		_make_knife(bullet)                          # proiectil = cuțitul, învârtindu-se în zbor
 	# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus sfera mage
 	bullet.scale *= bullet_size_scale()   # cu plafonul armei: pistol 100%, mage 250%
 	bullet.set_direction(dir)
@@ -1515,6 +1584,35 @@ func _muzzle(pos: Vector2, dir: Vector2) -> void:
 		Fx.muzzle(pos)
 
 # Înlocuiește vizualul glonțului mage cu sfera magică animată (loop).
+# THROWING KNIFE: proiectilul e chiar iconița armei, care se rotește în zbor.
+#
+# Nu e o scenă nouă de glonț, ci același `bullet.tscn` cu altă poză pe `Sprite2D` — exact ca sfera
+# mage. Așa cuțitul primește pe gratis tot ce știe glonțul: străpungere, ricoșeu, urmărire,
+# Thunder God, explozia lui Jean's Bomb. O scenă separată ar fi însemnat un al doilea loc de
+# ținut la zi la fiecare item nou.
+#
+# ⚠️ Sprite-ul din scenă vine cu `rotation` și `scale` ale LUI (glonțul e desenat pe diagonală și
+# umflat 2.1×). Le scriem pe amândouă de la zero, altfel cuțitul ar apărea strâmb și uriaș.
+const KNIFE_ART := "res://weapons_icons/throwing knife.png"
+@export var knife_size: float = 38.0    # cât de lat e cuțitul pe ecran, în pixeli
+@export var knife_spin: float = 14.0    # cât de repede se învârte în zbor (radiani/s)
+
+func _make_knife(bullet: Node) -> void:
+	var spr := bullet.get_node_or_null("Sprite2D") as Sprite2D
+	if spr == null or not ResourceLoader.exists(KNIFE_ART):
+		return
+	var tex := load(KNIFE_ART) as Texture2D
+	if tex == null:
+		return
+	spr.texture = tex
+	spr.rotation = 0.0
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# Ca la sfera mage: sprite-ul e copil al glonțului (scale 0.1), deci împărțim la scara
+	# părintelui ca `knife_size` să însemne chiar pixeli pe ecran.
+	var parent_scale: float = max(bullet.scale.x, 0.001)
+	spr.scale = Vector2.ONE * (knife_size / float(max(tex.get_width(), 1))) / parent_scale
+	bullet.spin = knife_spin
+
 func _make_mage_orb(bullet: Node) -> void:
 	if _mage_orb_frames == null or _mage_orb_frames.get_frame_count("fx") == 0:
 		bullet.modulate = Color(0.7, 0.5, 1.0)  # fallback mov dacă sfera nu e importată
@@ -1723,6 +1821,10 @@ func _aplica_arma() -> void:
 
 func _level_up(cu_sunet: bool = true) -> void:
 	level += 1
+	# Bonusul de nivel al armei crește ODATĂ cu nivelul. Cele patru procente se citesc la
+	# folosire, deci se aplică singure; doar cadența trăiește într-un `Timer`, care trebuie
+	# împins de mână (vezi `_seteaza_cadenta`).
+	_seteaza_cadenta()
 	if cu_sunet:
 		Audio.play("levelup", -2.0)  # jingle de nivel nou
 	xp_to_next = int(xp_to_next * 1.2)  # pragul crește cu 20% la fiecare nivel
@@ -1748,7 +1850,7 @@ func upgrade_max_hp(amount: int) -> void:
 
 func upgrade_fire_rate(factor: float) -> void:
 	fire_interval *= factor              # factor < 1 → pauză mai mică între trageri = tragi mai des
-	fire_timer.wait_time = fire_interval
+	_seteaza_cadenta()
 
 # OP START — comutatorul din colțul meniului. Pornește runda cu statusuri de final, ca să se
 # poată ajunge repede la ce e de testat.
