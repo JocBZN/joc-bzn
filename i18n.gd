@@ -187,10 +187,12 @@ const TRAD := {
 "Defeat Celesto to awaken it": ["击败 Celesto 才能唤醒它", "Besiege Celesto, um es zu erwecken", "Derrota a Celesto para despertarlo", "Победи Celesto, чтобы пробудить его", "Bats Celesto pour le réveiller", "セレストを倒せば目覚める", "Pokonaj Celesto, by go obudzić", "Onu uyandırmak için Celesto’yu yen"],
 
 # ---------- statuia de schimb din Ender (ender_statue.gd + trade.gd) ----------
-# „+15s difficulty" e cu %d fiindcă preţul se citeşte din `cost_dificultate` — deci textul trece
-# prin `tr()`, ca toate cele cu cifre în ele. „s" = secunde, rămâne „s" peste tot.
+# Preţul e cu %d fiindcă se citeşte din `cost_procent`, deci textul trece prin `tr()` ca toate
+# cele cu cifre în ele. ⚠️ `%%` în cheie e un `%` singur pe ecran — aşa cere formatarea GDScript,
+# şi cheia din tabel trebuie scrisă EXACT ca în cod, cu două procente.
 "ENDER TRADE": ["ENDER 交易", "ENDER-HANDEL", "TRUEQUE ENDER", "ОБМЕН ENDER", "TROC ENDER", "エンダー交易", "HANDEL ENDER", "ENDER TAKASI"],
-"Each trade: +%ds difficulty": ["每次交易：难度 +%d 秒", "Pro Tausch: +%ds Schwierigkeit", "Cada trueque: +%ds de dificultad", "За обмен: +%dс сложности", "Chaque troc : +%ds de difficulté", "1回の交易につき難易度 +%d 秒", "Każda wymiana: +%ds trudności", "Her takas: +%ds zorluk"],
+"Cost: +%d%% difficulty": ["代价：难度 +%d%%", "Preis: +%d%% Schwierigkeit", "Coste: +%d%% de dificultad", "Цена: +%d%% сложности", "Coût : +%d%% de difficulté", "代償：難易度 +%d%%", "Koszt: +%d%% trudności", "Bedel: +%%%d zorluk"],
+"You can only choose one": ["你只能选择一个", "Du kannst nur eines wählen", "Solo puedes elegir uno", "Выбрать можно только одно", "Tu ne peux en choisir qu'un", "選べるのはひとつだけ", "Możesz wybrać tylko jedno", "Sadece birini seçebilirsin"],
 "Nothing to trade": ["没有可交易的东西", "Nichts zu tauschen", "Nada que trocar", "Нечего менять", "Rien à troquer", "交易できる物がない", "Nie masz co wymienić", "Takas edecek bir şey yok"],
 "THE STATUE TAKES ITS PRICE": ["雕像收取了代价", "DIE STATUE FORDERT IHREN PREIS", "LA ESTATUA COBRA SU PRECIO", "СТАТУЯ БЕРЁТ СВОЮ ЦЕНУ", "LA STATUE PREND SON DÛ", "石像は代価を取った", "POSĄG BIERZE SWOJĄ CENĘ", "HEYKEL BEDELİNİ ALIR"],
 "The world grows harsher": ["世界变得更残酷了", "Die Welt wird härter", "El mundo se vuelve más duro", "Мир становится жёстче", "Le monde devient plus dur", "世界がより過酷になる", "Świat staje się surowszy", "Dünya sertleşiyor"],

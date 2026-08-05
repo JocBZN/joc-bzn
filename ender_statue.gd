@@ -9,10 +9,10 @@ extends StaticBody2D
 # `trepte` (2) rarități mai sus. Alegi un rând și schimbul se face pe loc.
 #
 # PREȚUL nu e în bani (jocul n-are bani) și nici în viață: e în DIFICULTATE. Fiecare tranzacție
-# adaugă `TRADE_COST` (15) secunde în `Difficulty.penalty`, adică inamicii devin pe loc mai mulți,
-# mai iuți și mai tari — pentru tot restul rundei, în toate dimensiunile. Citește comentariul de
-# la `Difficulty.penalty`: se adună în ceasul INAMICILOR, nu în cel de pe ecran, tocmai ca să nu
-# poți cumpăra scor cu el.
+# înmulțește `Difficulty.trade_penalty` cu 1 + `cost_procent`/100 — adică inamicii capătă pe loc
+# cu 15% mai multă viață, damage, viteză și rată de apariție, pentru tot restul rundei, în toate
+# dimensiunile. Citește comentariul de la `Difficulty.trade_penalty`: NU atinge nici ceasul de pe
+# ecran, nici XP-ul, tocmai ca să fie un cost curat și să nu poți cumpăra scor cu el.
 #
 # ⚠️ CE NU FACE schimbul: nu-ți IA înapoi efectul itemului dat. Efectele se aplică o singură dată,
 # în clipa luării (`levelup.gd::_apply`), direct peste statusuri — nicăieri în joc nu există
@@ -34,7 +34,7 @@ extends StaticBody2D
 # --- Reglajele schimbului (le citește `trade.gd`) ---
 @export var randuri: int = 3          # câte iteme de-ale tale îți arată
 @export var trepte: int = 2           # cu câte rarități urcă itemul primit
-@export var cost_dificultate: float = 15.0   # secunde de dificultate per tranzacție
+@export var cost_procent: float = 15.0       # cu cât urcă dificultatea la fiecare schimb (%)
 
 # Cât se stinge statuia după ce a făcut schimbul (1.0 = neatinsă).
 @export var stins: float = 0.45

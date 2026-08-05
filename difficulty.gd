@@ -70,19 +70,24 @@ var frozen := false
 var mult_time_override := -1.0
 
 # --- DIFICULTATE CUMPĂRATĂ (statuia Ender, `ender_statue.gd`) ---
-# Secunde de dificultate plătite de tine, de bunăvoie: fiecare tranzacție la statuia din Ender
-# adaugă `TRADE_COST` aici. Se adună în `_mult_time()`, adică în ceasul DUPĂ CARE SE CALCULEAZĂ
-# INAMICII — nu în `time`, ceasul rundei.
+# Cât mai grei sunt inamicii fiindcă ai făcut schimburi la statuia din Ender. 1.0 = niciunul;
+# fiecare schimb ÎNMULȚEȘTE cu 1.15, adică exact cei „+15% DIFFICULTY" scriși pe meniu.
 #
-# ⚠️ Diferența e tot rostul lui: `time` e ceasul de pe ecran ȘI scorul din leaderboard. Dacă
-# penalizarea intra acolo, o tranzacție ți-ar fi scurtat runda cu 15 secunde și, mai rău, ți-ar
-# fi umflat scorul cu 15 secunde pe care nu le-ai trăit — ai fi putut cumpăra scor. Așa, plătești
-# exact ce scrie pe etichetă: inamici mai mulți, mai iuți și mai tari, imediat, în orice dimensiune.
-var penalty := 0.0
+# ⚠️ E un MULTIPLICATOR, nu secunde adăugate la ceas — și a fost invers până pe 2026-08-05 seara.
+# Motivul schimbării: meniul scrie un procent, deci procentul trebuie să fie adevărat. Cu secunde,
+# „+15" însemna +8,8% viață dar numai +2,6% spawn și +0,7% viteză (procente diferite pe fiecare
+# stat, care se mai și subțiau pe măsură ce trecea runda) — o etichetă cu „15%" ar fi fost o
+# minciună. Acum toate patru urcă la fel, cu exact cât scrie.
+#
+# NU intră în `xp_mult`: e un COST, nu un schimb de dificultate contra răsplată. Cu vechea
+# variantă pe secunde creștea și XP-ul, adică penalizarea se plătea singură pe jumătate.
+# Și nu atinge nici `time` — ceasul de pe ecran și scorul din leaderboard rămân ale tale, altfel
+# ai fi putut CUMPĂRA scor de la statuie.
+var trade_penalty := 1.0
 
-# Chemată de statuia Ender la fiecare schimb.
-func add_penalty(secunde: float) -> void:
-	penalty = maxf(0.0, penalty + secunde)
+# Chemată de `trade.gd` la fiecare schimb. `procent` = 0.15 pentru +15%.
+func add_trade_penalty(procent: float) -> void:
+	trade_penalty *= (1.0 + maxf(0.0, procent))
 
 # --- NETHER (a doua dimensiune, vezi nether.gd) ---
 # Cât XP lasă inamicii, față de normal. 1.0 în lumea obișnuită; `nether.gd` îl urcă cât ești
@@ -103,15 +108,11 @@ func reset_run() -> void:
 	frozen = false
 	mult_time_override = -1.0
 	xp_bonus = 1.0
-	penalty = 0.0
+	trade_penalty = 1.0
 
 # Timpul din care se calculează CÂT DE TARI sunt inamicii (≠ timpul afișat).
-# `penalty` se adaugă și peste `mult_time_override`, nu doar peste `time`: altfel dificultatea
-# cumpărată s-ar evapora exact acolo unde o cumperi, în Ender (care își scrie propriul override
-# la fiecare cadru — vezi `ender.gd::_process`).
 func _mult_time() -> float:
-	var t := mult_time_override if mult_time_override >= 0.0 else time
-	return t + penalty
+	return mult_time_override if mult_time_override >= 0.0 else time
 
 func _mult_is_fs() -> bool:
 	return _mult_time() >= RUN_LENGTH
@@ -158,15 +159,20 @@ func _fs_factor(double_every: float) -> float:
 func enemy_hp_mult() -> float:
 	return (1.0 + HP_PER_MIN * _lin_minutes()) \
 		* pow(HP_GROWTH_PER_MIN, _ramp_minutes()) \
-		* _fs_factor(FS_HP_DOUBLE_EVERY)
+		* _fs_factor(FS_HP_DOUBLE_EVERY) \
+		* trade_penalty
 
 # Cât de tare lovesc inamicii (contact + bilele Gărzii), față de începutul rundei.
 # 1.0 în primele 1:30, ×2 la minutul 10, apoi se dublează la fiecare 2 minute în Final Swarm.
 func enemy_damage_mult() -> float:
-	return pow(DMG_GROWTH_PER_MIN, _ramp_minutes()) * _fs_factor(FS_DMG_DOUBLE_EVERY)
+	return pow(DMG_GROWTH_PER_MIN, _ramp_minutes()) * _fs_factor(FS_DMG_DOUBLE_EVERY) * trade_penalty
 
+# ⚠️ Dificultatea cumpărată intră ÎNAINTE de plafon, deci plafonul îi rămâne deasupra: nici cu
+# toate schimburile făcute inamicii nu trec de `SPEED_CAP`. Altfel ar fi ajuns mai iuți decât tine
+# și n-ai mai fi avut ce face — exact lucrul de care plafonul există să te apere. Consecința:
+# după ce viteza a atins 2.2 (pe la 3–4 minute de Final Swarm), schimburile nu mai adaugă viteză.
 func enemy_speed_mult() -> float:
-	var m := (1.0 + SPEED_PER_MIN * _phase1_minutes()) * _fs_factor(FS_SPEED_DOUBLE_EVERY)
+	var m := (1.0 + SPEED_PER_MIN * _phase1_minutes()) * _fs_factor(FS_SPEED_DOUBLE_EVERY) * trade_penalty
 	return minf(m, SPEED_CAP)
 
 func spawn_mult() -> float:
@@ -179,7 +185,7 @@ func spawn_mult() -> float:
 		m *= SPAWN_DOUBLE_MULT
 	if _mult_is_fs():
 		m *= FS_SPAWN_JUMP * _fs_factor(FS_SPAWN_DOUBLE_EVERY)
-	return m
+	return m * trade_penalty
 
 func xp_mult() -> float:
 	# XP-ul urcă odată cu inamicii, ca să poți ține pasul cu upgrade-urile.

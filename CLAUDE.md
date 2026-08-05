@@ -17,6 +17,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (masa Ender: costul devine 15% ADEVĂRAT + meniul refăcut „spooky")
+
+**Cerut de Răzvan:** „vreau sa scrie in meniul de la statuia de ender 15% difficulty si as vrea sa arate mai spooky meniul. Nu asa friendly. Ti-am pus in folderul harta Border Statuie Ender... Vreau sa fie super profesional ca un joc deja scos pe Steam cu 100.000 de downloads. Si sa si mentioneze You can only choose one".
+
+**1. Costul e acum CHIAR 15%, nu doar scris așa.** `Difficulty.penalty` (secunde adăugate la ceasul inamicilor) a fost înlocuit cu `Difficulty.trade_penalty`, un MULTIPLICATOR care pleacă de la 1.0 și se înmulțește cu 1.15 la fiecare schimb. Motivul e că eticheta trebuie să spună adevărul: cu secunde, „+15" însemna +8,8% viață dar doar +2,6% spawn și +0,7% viteză, procente diferite pe fiecare stat, care se mai și subțiau pe măsură ce trecea runda. Un „15%" scris peste mecanica aia ar fi fost o minciună.
+- Se înmulțește în `enemy_hp_mult`, `enemy_damage_mult`, `spawn_mult` și `enemy_speed_mult`.
+- **NU** intră în `xp_mult`: e un COST. Pe varianta veche cu secunde creștea și XP-ul, adică penalizarea se plătea singură pe jumătate.
+- La viteză intră **înainte de `SPEED_CAP`**, deci plafonul rămâne deasupra: nici cu 10 schimburi inamicii nu trec de 2.2× (verificat). Consecință de știut: după ce viteza atinge plafonul (3–4 minute de Final Swarm), schimburile nu mai adaugă viteză.
+- `ender_statue.gd`: `cost_dificultate` (secunde) → `cost_procent` (15).
+
+**Măsurat:** 1 schimb = +15,0% pe toate patru; 2 = +32,2%; 3 = +52,1%. XP +0,0%, ceasul rundei neatins. Pentru comparație, vechea variantă pe secunde dădea la minutul 6 doar +8,8% viață / +2,6% spawn / +0,7% viteză — deci schimbul e acum de câteva ori mai scump, ceea ce s-a și cerut.
+
+**2. Meniul, refăcut din temelii.** Rama de lemn auriu (`Menu.png`) a plecat — ea era tot ce-l făcea prietenos. În loc, `harta/Border Statuie Ender.png`, o **planșă de 5×4 chenare de 64×64** din care `trade.gd` decupează la rulare doar celulele de care are nevoie (`_chenar`): celula (2,0) pentru rama mare, (1,2) pentru rândurile de ofertă. Fiecare chenar are și interiorul lui aproape negru, deci ține loc și de ramă, și de fundal.
+- **Text nou:** „COST: +15% DIFFICULTY" (roșu-sânge, singurul lucru de culoarea aia pe ecran) și, sub el, „You can only choose one". Amândouă traduse în cele 8 limbi. ⚠️ Cheia din `i18n.gd` e scrisă cu `%%` („Cost: +%d%% difficulty") — așa cere formatarea GDScript pentru un `%` afișat, și cheia din tabel trebuie să fie EXACT ca în cod.
+- **Feedback la mouse:** rândul neatins e tras spre cenușiu (`RAND_STINS`), cel de sub mouse revine la culoarea plină, în 0,12s. Prima variantă folosea doar transparență (0.45 → 1.0) și **pe captură nu se vedea diferența** — stacojiul iese aprins pe negru chiar și la 45%.
+- Itemul pe care îl DAI stă la 70% opacitate, cel primit la 100%: se citește direcția afacerii fără să scrie nimeni „give"/„receive".
+- Titlul respiră încet (1,3s dus, 1,3s întors), contur stacojiu în loc de negru.
+
+**Două capcane, ambele prinse pe captură de ecran, nu în cod:**
+1. **Panoul trebuie să încapă în 1152×648**, nu în rezoluția monitorului — jocul desenează la rezoluția aia și întinde imaginea (`window/stretch/mode = canvas_items`). Prima variantă avea 960×**672** și îi ieșeau colțurile de sus și de jos din ecran; se vedeau doar două linii verticale, exact ca un bug de randare. Acum 940×592, cu toate cifrele de aspect declarate ca fiind în pixeli de ecran de bază.
+2. **Nine-patch-ul întinde mijlocul laturilor, nu grosimea lor.** O celulă de 64px pusă pe un panou de 940 lăsa linii de 1px, adică o ramă desenată cu pixul. Celula se mărește acum ×`ZOOM` (2) cu vecinul cel mai apropiat înainte să devină textură, iar `patch_margin` se înmulțește la fel — linia are 2px și rama capătă greutate.
+
+---
+
 ## Session log — 2026-08-05 (statuia Ender: overlay opac + statuile în inel în jurul fântânii)
 
 **Cerut de Răzvan:** „Overlayu de l ai pus in ender nu se vede bine e cam bugat, si statuile din ender vreau sa fie la 2000 de pixeli maxim departare de portal si minim 600".
