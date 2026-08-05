@@ -25,7 +25,9 @@ Quick rules:
 
 **Scena nouă `enemy_police_skinny.tscn`** — același `enemy.gd`, fără `.tres`: folosește mecanismul `frames_dir` / `frames_count` / `frames_fps` apărut odată cu inamicul din Ender, deci zero UID-uri scrise de mână. `speed = 160` (față de 120), `max_hp = 45` (față de 30), `damage_mult = 1.3`, `frames_fps = 14` (față de 12, fiindcă aleargă).
 
-**`scale` și `stop_dist` au rămas cele ale polițistului (1.5 / 41), și asta e măsurat, nu ghicit:** desenul lui ocupă 36×61 px din pânza de 128, al polițistului 37×61 din cea de 124 — practic aceeași lățime pe ecran, deci n-are rost alt punct de oprire.
+**Mărimea, în două trepte.** Întâi a rămas cea a polițistului (`scale` 1.5, `stop_dist` 41), fiindcă desenele sunt cât se poate de egale — măsurat, nu ghicit: 36×61 px din pânza de 128 la Skinny, 37×61 din cea de 124 la polițist. Apoi Răzvan a cerut, în aceeași zi, **„fa-i pe astia cu 1.5x mai mari"** → `scale` **2.25** (1.5 × 1.5), cel mai mare inamic obișnuit din joc.
+
+**`stop_dist` 41 → 54 odată cu mărirea**, altfel desenul lui ar fi intrat peste player: lățimea pe ecran a sărut de la ~54 px la ~81, deci jumătatea lui + jumătatea player-ului (15) dă ~55. **54 e plafonul dur**, nu o rotunjire: `enemy.gd::_oprire()` taie `stop_dist` la `contact_range` (60) − `STOP_MARGINE` (6) și te avertizează în consolă, fiindcă un inamic care se oprește mai departe decât brațul player-ului n-ar mai apuca niciodată să-l lovească. Deci Skinny e la limită — dacă vreodată se mărește și mai mult, trebuie urcat întâi `contact_range`-ul player-ului.
 
 **Spawn-ul (`spawner.gd`):** funcție nouă `_politist()`, chemată în cele două locuri din `_scena_inamic()` care returnau `ENEMY`. Două butoane noi: `skinny_after` (60s) și `skinny_share` (0.35). Ca la `nether_share`, **nu se schimbă CÂȚI inamici apar, ci CINE sunt** — primul minut rămâne identic cu ce era. Se numără pe `Difficulty.time`, care stă pe loc în Limbo și în Nether, deci e chiar „un minut în lumea normală". Și, fiind polițist, intră și el în îngroșarea de după Nether (`escaped_power_mult`) — de-asta condiția de acolo a devenit `scena == ENEMY or scena == ENEMY_SKINNY`.
 
