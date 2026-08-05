@@ -22,6 +22,9 @@ const FISIERE_UI := [
 	"res://hud.gd", "res://interact_ui.gd", "res://levelup.gd", "res://player.gd",
 	"res://limbo.gd", "res://nether.gd", "res://spawner.gd", "res://summoning_portal.gd",
 	"res://ender.gd", "res://celesto.gd",
+	# `monument.gd` și `chest.gd` nu desenează ei text, dar dau înapoi din `eticheta()` textul
+	# pe care îl scrie `interact_ui.gd` deasupra obiectului — deci trebuie verificat și el.
+	"res://monument.gd", "res://chest.gd",
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [

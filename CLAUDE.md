@@ -17,6 +17,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (MONUMENTUL: structură nouă în lumea normală, scoate o hoardă de 103)
+
+**Cerut de Răzvan:** „ti-am bagat o noua structura in folderul harta se numeste Monument Spawner, vreau sa se spawneze in lumea normala si poti sa apesi pe el doar daca l-ai batut pe Celesto. Iti spawneaza inamici care dau drop 2x mai mult xp, dar sunt de 3x mai rapizi si dau de 3x mai mult damage fata decat cei din momentul din care dai spawn. Vreau sa fie spawnati random 100 de enemies din orice dimensiune + 3 Bossi de la statui (garda)".
+
+**Ce s-a făcut:**
+- `monument.tscn` + `monument.gd` — obeliscul din `harta/Monument Spawner.png` (128×128, ca statuia; scara 2.4, arta așezată la rulare cu `ACOPERIRE_JOS = 74`, ca la statui și copaci). E în grupurile `monument` și `interactable`.
+- `monuments.gd` + nodul `Monuments` în `main.tscn` (în `World`) — generator pe chunk-uri, copia lui `statues.gd`: `monument_chance = 1%` (sub statuie 3% și portal 1.5%), sămânță proprie `0x3B10`, se ferește de copaci, pietre **și statui**. Măsurat pe 10.000 de chunk-uri: 0,94%.
+- **Încuiat până cade Celesto:** `eticheta()` întoarce „Defeat Celesto to awaken it" cât `ender.celesto_invins` e fals, iar `invoca()` refuză. Rămâne `poate_invoca() == true` ca să aibă text deasupra — aceeași soluție ca la cufărul fără cheie.
+- **Hoarda:** 100 de inamici aleși la întâmplare din toate cele patru feluri (polițist / Police Skinny / creatură Nether / creatură Ender, ponderi egale în `FELURI`) + 3 Gărzi care ies din pământ ca la statuie. Ies în valuri de 10 la 0,06s (plus o Gardă pe val), într-un inel de 620–1150px în jurul monumentului. Se nasc în `World`, NU sub monument: containerul lui de chunk se șterge când te îndepărtezi.
+- **Cele trei modificări**, față de un inamic născut ÎN ACEEAȘI CLIPĂ: `speed × 3` (pusă înainte de `add_child`, fiindcă `enemy._ready()` coace acolo viteza finală), `damage_mult × 3` (relativ — creatura din Ender rămâne dublă față de rest, deci iese 6.0) și `xp_drop_mult = 2`, un `@export` NOU în `enemy.gd`, aplicat în `_drop_xp` peste `Difficulty.xp_mult()`. Gărzile primesc și ele: viteză ×3, `damage_mult` ×3 (**`@export` nou în `garda.gd`**, implicit 1.0 → Garda de la statuie nu se schimbă), `lightning_damage` ×3 și `xp_value` ×2.
+- Monumentul se scufundă și dispare după invocare, iar `monuments.gd` **ține minte chunk-ul** (`_folosite`) ca să nu se întoarcă la reîncărcarea chunk-ului — altfel puteai farmări hoarda la nesfârșit din același loc plimbându-te 1500px și înapoi. (⚠️ Statuile N-AU apărarea asta: o statuie folosită chiar reapare dacă pleci și revii. N-am atins-o, dar merită știut.)
+- „Monuments" adăugat în `WORLD_NODES` din `nether.gd`, `ender.gd` **și** `limbo.gd`.
+- i18n: 3 chei noi × 8 limbi („THE MONUMENT AWAKENS", „Double XP. Triple speed. Triple damage.", „Defeat Celesto to awaken it"). `tool_check_i18n.gd` verifică de acum și `monument.gd`, și `chest.gd` (al doilea lipsea de la început, deși are `eticheta()`).
+
+**Verificat prin rulare** (scenă de test temporară peste `main.tscn`, ștearsă după; player-ul făcut invulnerabil și cu armele oprite ca să nu moară → fără scor fals în leaderboard, și ca să nu-mi omoare hoarda cât o număr — prima măsurătoare a ieșit 88/2 exact fiindcă îi împușca):
+- 100 de inamici + 3 Gărzi, amestecate din toate cele patru feluri;
+- raportul de viteză față de un inamic normal de același fel: **3,001–3,002** pe toți;
+- `damage_mult` 3.0 la polițist, 3.9 la Skinny (1.3×3), 6.0 la Ender (2×3);
+- gemă de XP: **2 la un inamic normal, 4 la unul din hoardă**;
+- Gărzile: viteză 210 (3×70), `damage_mult` 3.0, fulger 45 (3×15), XP 100 (2×50);
+- generatorul: 0,94% pe chunk, monumentul apare la 1px de locul calculat, iar după trezire **nu se mai întoarce** când pleci 30.000px și revii.
+
+**Ce nu e perfect:** invocarea costă un cadru lung (~140ms pe laptopul lui Răzvan). Vinovatul NU e hoarda: cu `enemy_count = 0` și `boss_count = 0` cadrul tot sare la ~73ms, iar fereastra de control (fără invocare) are singură vârfuri de ~60ms în scena de test. Restul îl adaugă cele 103 apariții, împrăștiate deja în 10 valuri. Dacă se simte urât în joc, cele două butoane sunt `batch` (10) și `batch_gap` (0.06) din `monument.gd`.
+
+---
+
 ## Session log — 2026-08-05 (ecranul de „YOU DIED" pe fundal complet negru)
 
 **Cerut de Răzvan:** „cand scrie you died, vreau sa fie background-ul negru".

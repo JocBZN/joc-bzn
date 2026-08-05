@@ -1,0 +1,20 @@
+[gd_scene format=3 uid="uid://c3mn0mentspwn"]
+
+[ext_resource type="Script" path="res://monument.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://d1b4bco6y0oic" path="res://harta/Monument Spawner.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_monument"]
+size = Vector2(110, 38)
+
+[node name="Monument" type="StaticBody2D"]
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("2_tex")
+offset = Vector2(0, -25.166668)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 0.4)
+shape = SubResource("RectangleShape2D_monument")

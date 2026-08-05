@@ -25,6 +25,14 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 # Nether" — vezi `player._take_contact_damage`, care înmulțește per inamic.
 @export var damage_mult: float = 1.0
 
+# Cât XP lasă ĂSTA la moarte, față de un inamic obișnuit. 1.0 la toți cei născuți de
+# `spawner.gd`; hoarda monumentului vine cu 2.0 (vezi `monument.gd`). Se aplică în `_drop_xp`,
+# peste `Difficulty.xp_mult()` — deci e o înmulțire pe TOT ce lasă, și gema normală, și cea rară.
+#
+# ⚠️ Nu-l confunda cu `_xp_bonus`: ăla e bonusul de MOMENT (2× la moartea aurită de Duridama)
+# și se dă la `_die()`; ăsta e o însușire a inamicului, pusă înainte să intre în arbore.
+@export var xp_drop_mult: float = 1.0
+
 # Cadrele de mers, construite LA RULARE din fișiere separate: `<frames_dir>/run_<directie>_<n>.png`,
 # 8 direcții × `frames_count` cadre. Gol = animațiile vin din scenă (`sprite_frames`), ca la
 # polițiști și la creatura Nether, care au `.tres`-uri.
@@ -542,17 +550,19 @@ func _drop_xp() -> void:
 	if parent == null:
 		return
 	# XP normal (valoare de bază 1), înmulțit cu dificultatea → intake mai mare cu timpul
-	# Bonusul (2× la Duridama) se aplică DUPĂ rotunjire, ca să iasă exact dublul dropului normal —
-	# altfel, la un xp_mult ne-întreg, `round(2.6)=3` vs `round(5.2)=5` ar da un raport de 1.7, nu 2.
+	# Bonusurile (2× la Duridama, 2× la hoarda monumentului) se aplică DUPĂ rotunjire, ca să iasă
+	# exact dublul dropului normal — altfel, la un xp_mult ne-întreg, `round(2.6)=3` vs
+	# `round(5.2)=5` ar da un raport de 1.7, nu 2. Se înmulțesc între ele: un inamic al
+	# monumentului ucis aurit lasă de 4 ori cât unul obișnuit.
 	if _xp1 != null:
 		var gem := _xp1.instantiate()
-		gem.value = int(round(int(round(gem.value * Difficulty.xp_mult())) * _xp_bonus))
+		gem.value = int(round(int(round(gem.value * Difficulty.xp_mult())) * _xp_bonus * xp_drop_mult))
 		parent.add_child(gem)
 		gem.global_position = global_position
 	# XP rar (valoare de bază 10 = de 10× cât XP1), tot scalat cu dificultatea; 5% doar la dificultate mare
 	if _xp2 != null and Difficulty.xp2_unlocked() and randf() < 0.05:
 		var rare := _xp2.instantiate()
-		rare.value = int(round(int(round(rare.value * Difficulty.xp_mult())) * _xp_bonus))
+		rare.value = int(round(int(round(rare.value * Difficulty.xp_mult())) * _xp_bonus * xp_drop_mult))
 		parent.add_child(rare)
 		rare.global_position = global_position + Vector2(20, 0)
 	# CHEIE de cufăr: 0.5%, independent de restul dropului (poți primi și XP rar, și cheie).

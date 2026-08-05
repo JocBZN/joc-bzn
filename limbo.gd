@@ -34,7 +34,7 @@ const CLOCK_COLOR := Color(1.0, 0.10, 0.10)     # roșu aprins
 # (main.tscn) trebuie trecut în AMÂNDOUĂ. Dacă lipsește dintr-una, rămâne aprins acolo și-i vezi
 # obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de două ori cu „EGTs"
 # (aparatele de cazinou, 2026-07-30): întâi uitat în `nether.gd`, apoi și aici.
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Chests", "EGTs"]
+const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Chests", "EGTs", "Monuments"]
 # `Paths` (potecile) NU e în `World`, ci frate cu el, direct în `main.tscn` — de aia are
 # nevoie de listă separată. Exact ca în `nether.gd`.
 const ROOT_NODES := ["Paths"]

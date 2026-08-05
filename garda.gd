@@ -14,6 +14,13 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var anim_fps: float = 10.0     # viteza animației de mers
 @export var xp_value: int = 50         # cât XP lasă când moare (boss → mult)
 
+# Cât de tare lovește la CONTACT, față de un inamic obișnuit — îl citește `player.gd`
+# (`_take_contact_damage`) pentru fiecare inamic în parte, exact ca la `enemy.gd`. Garda
+# chemată de statuie îl lasă la 1.0; cele trei ale monumentului primesc 3.0 (`monument.gd`).
+# ⚠️ Damage-ul FULGERULUI e altă poveste — e al proiectilului, nu al contactului, și stă în
+# `lightning_damage` de mai jos.
+@export var damage_mult: float = 1.0
+
 # --- Atac de la distanță: aruncă o bilă de lightning ---
 @export var attack_range: float = 420.0    # de la ce distanță aruncă („nu foarte mare")
 @export var attack_interval: float = 2.0   # pauza între aruncări (secunde)

@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://egts.gd" id="22_egts"]
 [ext_resource type="Script" path="res://casino.gd" id="23_casino"]
 [ext_resource type="Script" path="res://ender.gd" id="24_ender"]
+[ext_resource type="Script" path="res://monuments.gd" id="25_monuments"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -77,6 +78,10 @@ script = ExtResource("21_chests")
 [node name="EGTs" type="Node2D" parent="World" unique_id=86867325]
 y_sort_enabled = true
 script = ExtResource("22_egts")
+
+[node name="Monuments" type="Node2D" parent="World" unique_id=86867326]
+y_sort_enabled = true
+script = ExtResource("25_monuments")
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
 scale = Vector2(2, 2)
