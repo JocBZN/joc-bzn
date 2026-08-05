@@ -397,22 +397,23 @@ const META = [
 // STATUSURI DE START — citite din player.gd (tabelul ARME + valorile implicite) și verificate
 // rulând jocul cu META golit, adică fără magazinul permanent.
 const ARME = [
-  { name: "Pistol",       dmg: "15", aps: "1.33/s", real: "<b>15</b> pe glonț" },
-  { name: "Mage Staff",   dmg: "10", aps: "2.00/s", real: "<b>10</b> pe proiectil — tragi de 1.5× mai des" },
-  { name: "Cursed Sword", dmg: "20", aps: "1.33/s", real: "<b>28</b> pe tăietură (8 + 20)" },
-  { name: "Celesto's Scythe", dmg: "24", aps: "1.05/s", real: "<b>36</b> pe măturat (12 + 24) — un cerc complet în jurul tău" },
+  { name: "Pistol",       dmg: "15", aps: "1.35/s", real: "<b>15</b> pe glonț", bonus: "+1% <b>Attack Speed</b>" },
+  { name: "Mage Staff",   dmg: "10", aps: "2.00/s", real: "<b>10</b> pe proiectil — tragi de 1.5× mai des", bonus: "+1 <b>Luck</b>" },
+  { name: "Cursed Sword", dmg: "20", aps: "1.33/s", real: "<b>28</b> pe tăietură (8 + 20)", bonus: "+1% <b>Damage</b>" },
+  { name: "Celesto's Scythe", dmg: "24", aps: "1.05/s", real: "<b>36</b> pe măturat (12 + 24) — un cerc complet în jurul tău", bonus: "+1% <b>Weapon Size</b>" },
+  { name: "Throwing Knife", dmg: "12", aps: "1.82/s", real: "<b>12</b> pe cuțit — cel mai des, cel mai slab", bonus: "+1% <b>Crit</b>" },
 ];
 
 const BASE = [
   { name: "Max HP", val: "100", note: "Viața de plecare. Pornești cu ea plină." },
   { name: "HP Regen", val: "0/s", note: "Nu regenerezi nimic până nu iei un upgrade sau nivel de Regen din magazin." },
-  { name: "Move Speed", val: "215", note: "Polițiștii pornesc de la 120 și se accelerează cu timpul — te ajung abia pe la minutul 12. Creaturile din Nether sunt mai rapide de la început." },
-  { name: "Crit", val: "0%", note: "Criticul face <b>×2</b> damage. Peste 100% se lovește de două ori (multi-crit)." },
+  { name: "Move Speed", val: "250", note: "Polițiștii pornesc de la 120 și se accelerează cu timpul. Police Skinny (de la minutul 1) vine cu 160, creaturile din Nether cu 190, iar cele din Ender cu 380 — pe alea nu le întreci." },
+  { name: "Crit", val: "0%", note: "Criticul face <b>×2</b> damage. Peste 100% se lovește de două ori (multi-crit). Cu <b>Throwing Knife</b> pornești de la <b>1%</b> și crește singur cu nivelul." },
   { name: "Instakill", val: "0.0%", note: "Vine doar din Hacksaw. Boșii sunt <b>imuni</b>." },
-  { name: "Luck", val: "0", note: "Înclină raritățile la level up <i>și</i> umflă șansele itemelor pe care <b>LE AI</b> (+0.4 puncte procentuale pe punct). Nu-ți dă o șansă pe care n-ai luat-o niciodată: fără un item de crit, criticul rămâne 0%." },
+  { name: "Luck", val: "0", note: "Înclină raritățile la level up <i>și</i> umflă șansele itemelor pe care <b>LE AI</b> (+0.4 puncte procentuale pe punct). Nu-ți dă o șansă pe care n-ai luat-o niciodată: fără un item de crit (sau fără Throwing Knife, care are crit din construcție), criticul rămâne 0%. Cu <b>Mage Staff</b> pornești de la <b>1</b> și crește cu un punct pe nivel." },
   { name: "Projectiles", val: "1", note: "Câte proiectile pleacă <i>garantat</i> la o salvă. Broken Watch nu intră aici — e pe șansă." },
   { name: "Pierce", val: "0", note: "Glonțul se oprește în primul inamic atins." },
-  { name: "Weapon Size", val: "100%", note: "Mărimea armei/proiectilului. O cresc Pufferfish (+px) și Rat's Burger (×%)." },
+  { name: "Weapon Size", val: "100%", note: "Mărimea armei/proiectilului. O cresc Pufferfish (+px) și Rat's Burger (×%). Cu <b>Celesto's Scythe</b> pornești de la <b>101%</b> și crește cu 1% pe nivel." },
   { name: "Knockback", val: "0", note: "Inamicii nu sunt împinși înapoi când îi lovești." },
   { name: "Damage Taken", val: "5", note: "Cât încasezi la fiecare <b>0.5 s</b> cât un inamic e mai aproape de <b>60px</b> de tine. Vodka îl scade." },
   { name: "XP → nivelul 2", val: "20", note: "Pragul crește cu <b>20%</b> la fiecare nivel (20 → 24 → 28 → …)." },
@@ -496,9 +497,14 @@ startSec.append(stHead, el("p", "sec-lede",
 
 startSec.append(el("p", "sec-lede", "<b>Ce depinde de arma aleasă</b>"));
 startSec.append(tabel(
-  "<th>Armă</th><th class='num'>Damage</th><th class='num'>Attack Speed</th><th>Ce intră de fapt în inamic</th>",
+  "<th>Armă</th><th class='num'>Damage</th><th class='num'>Attack Speed</th><th>Ce intră de fapt în inamic</th><th style='white-space:nowrap'>La fiecare nivel</th>",
   ARME.map(a => "<td style='white-space:nowrap'>" + a.name + "</td><td class='num'>" + a.dmg + "</td>" +
-    "<td class='num'>" + a.aps + "</td><td>" + a.real + "</td>")));
+    "<td class='num'>" + a.aps + "</td><td>" + a.real + "</td><td style='white-space:nowrap'>" + a.bonus + "</td>")));
+startSec.append(el("p", "sec-lede",
+  "Coloana din dreapta e <b>bonusul de nivel al armei</b>: nu e item, nu se poate pierde și nu-l alegi — " +
+  "arma pe care ai luat-o crește odată cu tine. Se numără <b>de la nivelul 1</b>, deci la nivelul 12 ai " +
+  "+12% (de-asta Pistolul scrie deja 1.35/s, nu 1.33, iar coasa 101%). La nivelul 20 vorbim de +20% " +
+  "critic, damage, attack speed sau mărime — sau +20 noroc."));
 
 startSec.append(el("p", "sec-lede", "<b>Identic la toate armele</b>"));
 startSec.append(tabel(

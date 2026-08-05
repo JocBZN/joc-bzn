@@ -37,6 +37,10 @@ Quick rules:
 
 **Verificat rulând:** toate cele cinci arme la nivelurile 1/10/20 — pistol 1,35 → 1,60 lovituri/s, sabie ×1,01 → ×1,20 damage, coasă 101% → 120% mărime, mage 1 → 20 noroc, cuțit 1% → 20% crit, iar la fiecare armă restul cifrelor neclintite; plus o poză cu cuțitele în zbor (se rotesc, unghiuri diferite) și una cu meniul de arme cu cinci sloturi. `tool_check_i18n` trecut.
 
+**CODEXUL a fost actualizat și republicat** pe același URL: rând nou pentru Throwing Knife și o coloană nouă, „La fiecare nivel", în tabelul ARME, plus notele de la Crit/Luck/Weapon Size. Cifrele s-au scos RULÂND o scenă care instanțiază player-ul cu fiecare armă și tipărește `stat_lines()`, cu `GameSettings.upgrades` golit doar în RAM (și pus la loc; am verificat cu `md5sum` că `scores.save` a rămas neatins).
+
+**⚠️ Codexul mințea de mult la Move Speed: scria 215, adevărul e 250.** 215 e valoarea implicită din `player.gd`, dar `player.tscn` o suprascrie cu 250 — deci cine citește doar scriptul ia cifra greșită. Regula pentru viitor: **statusurile de start se citesc din scena rulată, nu din `@export`-urile scriptului.** Corectat în codex.
+
 ---
 
 ## Session log — 2026-08-05 (cinematica lui Celesto, refăcută: îngheț + zoom + teleportări; bara sus; creaturile lui în lumea normală)
