@@ -52,6 +52,8 @@ const TRAD := {
 "LANGUAGE": ["语言", "SPRACHE", "IDIOMA", "ЯЗЫК", "LANGUE", "言語", "JĘZYK", "DİL"],
 # comutatorul de testare din colț; „OP" (overpowered) rămâne OP peste tot, e jargon de jucători
 "OP START": ["强化开局", "OP-START", "INICIO OP", "ОП-СТАРТ", "DÉPART OP", "OPスタート", "START OP", "OP BAŞLANGIÇ"],
+# ecranul de încărcare de la pornire (loading.gd)
+"LOADING %d%%": ["加载中 %d%%", "LADEN %d%%", "CARGANDO %d%%", "ЗАГРУЗКА %d%%", "CHARGEMENT %d%%", "読み込み中 %d%%", "ŁADOWANIE %d%%", "YÜKLENİYOR %%%d"],
 "PISTOL": ["手枪", "PISTOLE", "PISTOLA", "ПИСТОЛЕТ", "PISTOLET", "ピストル", "PISTOLET", "TABANCA"],
 "MAGE STAFF": ["法杖", "MAGIERSTAB", "BÁCULO MÁGICO", "ПОСОХ МАГА", "BÂTON DE MAGE", "魔法の杖", "KOSTUR MAGA", "BÜYÜCÜ ASASI"],
 "CURSED SWORD": ["诅咒之剑", "VERFLUCHTES SCHWERT", "ESPADA MALDITA", "ПРОКЛЯТЫЙ МЕЧ", "ÉPÉE MAUDITE", "呪われた剣", "PRZEKLĘTY MIECZ", "LANETLİ KILIÇ"],

@@ -17,6 +17,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (ecran de încărcare la pornire: tot e în memorie înainte să vezi meniul)
+
+**Cerut de Răzvan:** „Sa fie un loading screen inainte sa intrii in joc (inainte si de meniu) in care sa se incarce deja toate asseturile sa nu faca lag (exemplu: toate dimensiunile si enemies)".
+
+**`loading.tscn` e acum scena principală** (`project.godot`, `run/main_scene`), înaintea meniului: logo, bară cyan, `LOADING nn%` peste cadrul static de fundal. Se desenează din trei fișiere UȘOARE — un ecran de încărcare care ar aștepta el arta grea n-ar avea niciun rost.
+
+**`preload_all.gd` (autoload `PreloadAll`) scanează FOLDERE, nu o listă scrisă de mână.** O listă de fișiere ar fi rămas în urmă la primul PNG pus în folder; numele folderelor se schimbă mult mai rar. 788 de fișiere, ~1,9 s pe mașina asta.
+
+**⚠️ Miezul: ține REFERINȚE.** Cache-ul de resurse al lui Godot e pe referințe SLABE — o resursă pe care n-o mai ține nimeni se eliberează imediat ce se termină încărcarea și se recitește de pe disc data viitoare. Fără array-ul `_tinute`, tot ecranul ar fi fost o pierdere de timp. Verificat: după preîncărcare, `load("res://main.tscn")` durează **0 ms**.
+
+**Încărcare SINCRONĂ, cu buget de ~10 ms pe cadru — nu `load_threaded_request`.** Ambele motive sunt măsurate, nu presupuse:
+1. cu mai multe cereri în paralel, două fire ajung deodată la aceeași dependință, iar `preload()` dintr-un script care tocmai se compilează cade cu „Could not preload resource file" — și **scriptul rămâne STRICAT în cache tot restul rundei**. S-a întâmplat cu `egt.tscn` / `egts.gd`.
+2. cu o singură cerere pe rând ridici cel mult un fișier per cadru, adică 16 ms de fișier degeaba: **728 de fișiere ajungeau la ~11 s**, deși citirea lor durează sub 3.
+
+**Cele 120 de cadre de fundal ale meniului se țin DOAR până se deschide meniul.** Sunt 1920×1080 fiecare, ~70 MB de memorie de textură singure. Se preîncarcă (de-asta meniul apare instant, nu cu o proptire), dar li se dă drumul patru cadre după schimbarea scenei — moment în care le ține meniul însuși. Deci în timpul rundei nu costă nimic. **Regula: în `TEMPORARE` intră doar artă care se vede EXCLUSIV în meniu**; orice se poate cere în timpul unei runde trebuie ținut permanent. Costul total rămas: ~88 MB textură + ~17 MB RAM.
+
+**🐛 A scos la iveală două fișiere moarte:** `bullet2.tscn` și `bullet3.tscn` cer `bullets/bullet2.png` / `bullet3.png`, care nu mai sunt pe disc, iar niciun `.gd` nu le mai folosește (verificat cu grep). Sunt sărite pe nume în `IGNORATE` ca să nu umple consola cu roșu la fiecare pornire — dar ar trebui pur și simplu șterse. **Nu le-am șters eu: sunt fișierele lui.**
+
+**Verificat rulând:** poze pe parcursul încărcării (bara la 29%, apoi meniul complet, cu butoanele intrate în cadru), pornire din scena principală reală fără nicio eroare în consolă, și măsurători înainte/după (1,9 s, +17 MB RAM, +160 MB textură cât ține meniul cadrele lui, ~88 MB după).
+
+---
+
 ## Session log — 2026-08-05 (a cincea armă — THROWING KNIFE — și un bonus de nivel pentru fiecare armă)
 
 **Cerut de Răzvan:** „Bag o arma noua - throwing knife ai poza unde sunt si celelalte - vreau sa adaug o chestie pentru fiecare arma. La fiecare nivel fiecare arma are un bonus specific." (cuțit +1% crit, coasă +1% size, sabie +1% damage, pistol +1% attack speed, mage +1% luck).
