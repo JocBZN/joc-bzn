@@ -17,6 +17,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (statuia Ender: overlay opac + statuile în inel în jurul fântânii)
+
+**Cerut de Răzvan:** „Overlayu de l ai pus in ender nu se vede bine e cam bugat, si statuile din ender vreau sa fie la 2000 de pixeli maxim departare de portal si minim 600".
+
+**1. Overlay-ul.** Reprodus intrând CU ADEVĂRAT în Ender (fântână + cinematica lui Celesto) și deschizând masa acolo. Vinovatul: fundalul mesei era `alpha = 0.985`, copiat de la cazinou — iar prin acel 1,5% răzbătea **cronometrul Ender-ului**, 64px de albastru aprins cu contur de 9px, exact în capul panoului. Arăta ca un artefact de randare. Acum e **complet opac** (`alpha = 1.0`), ca ecranul de „YOU DIED". N-a fost o problemă de straturi: masa e pe 10, ceasul Ender-ului pe 4 — deci era dedesubt, doar că se vedea prin.
+
+**2. Statuile, în inel.** `ender_statues.gd` **nu mai e un generator pe chunk-uri**. Era, de câteva ore, și era unealta greșită: chunk-urile împrăștie la infinit, deci o statuie putea cădea la 30.000px de fântână, într-un loc în care nu ajungi în cele 6 minute. Cerința („minim 600, maxim 2000 de portal") e o regulă de DISTANȚĂ FAȚĂ DE UN PUNCT, deci se scrie direct: la deschiderea Ender-ului pune `numar` (3) statui într-un inel de `dist_min`–`dist_max` (600–2000) în jurul fântânii, la cel puțin `dist_intre` (520) una de alta. În plus, așa știi sigur că ai trei — filtrarea unui generator ți-ar fi dat câteodată zero.
+- `ender.gd` a primit `portal_pos()` (public), fiindcă `_fantana` e privat și generatorul are nevoie de centrul inelului.
+- Se pun O SINGURĂ dată: „am copii" e semnul, iar `_toggle_generator` îi șterge la ieșire, deci se re-armează singur.
+
+**Verificat prin rulare** (intrare reală în Ender, spawner oprit + Celesto scos → fără moarte, fără scor fals): 3 statui la 1379 / 1413 / 1750 px de fântână, la 883–2971 px una de alta; pe **500 de intrări simulate**, cea mai apropiată **602px**, cea mai depărtată **1999px**, niciuna în afara inelului. Captură de ecran cu masa deschisă în Ender: fără nicio fantomă de ceas.
+
+---
+
 ## Session log — 2026-08-05 (STATUIA ENDER: schimbi iteme, plătești în dificultate)
 
 **Cerut de Răzvan:** „Ti-am bagat si ender statue. Statuia asta se spawneaza doar in ender dimension si cand apesi pe ea deschide un meniu de trade. Iti apar 3 iteme de ale tale(random orice raritate) si cu o sageata spre dreapta ce iteme pot deveni(cu 2 raritati mai mari) - Costul pentru fiecare tranzactie este +15 difficulty (Spawn Rate mai rapid, viteza mai mare si damage mai mare)".

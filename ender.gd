@@ -300,6 +300,13 @@ func _diff_time() -> float:
 		t = maxf(t, Difficulty.RUN_LENGTH + (_elapsed - ENDER_TIME))
 	return t
 
+# Unde e fântâna prin care ai intrat (și pe unde ieși). O cere `ender_statues.gd`, ca să-și
+# așeze statuile într-un inel în jurul ei. Vector2.INF = încă nu se știe.
+func portal_pos() -> Vector2:
+	if _fantana != null and is_instance_valid(_fantana):
+		return _fantana.global_position
+	return Vector2.INF
+
 # Câte secunde mai ai până la Ender Swarm (0 după ce a început).
 func time_left() -> float:
 	return maxf(0.0, ENDER_TIME - _elapsed)

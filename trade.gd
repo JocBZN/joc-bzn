@@ -38,8 +38,11 @@ func _ready() -> void:
 	visible = false
 
 	var overlay := ColorRect.new()
-	# Aproape opac (ca la cazinou): sub 0.98 se citea cronometrul HUD-ului prin fundal.
-	overlay.color = Color(0.06, 0.05, 0.10, 0.985)   # violetul întunecat al nebuloasei
+	# COMPLET opac, nu „aproape". La 0.985 (cât are cazinoul) prin fundal răzbătea cronometrul
+	# Ender-ului — 64px de albastru aprins cu contur de 9px, chiar în capul mesei: 1,5% dintr-un
+	# text atât de mare se vede ca o fantomă și arată a bug. Aici nu e nimic de lăsat să se vadă:
+	# jocul e oprit, iar dedesubt e o nebuloasă zgomotoasă. (Aceeași alegere ca la „YOU DIED".)
+	overlay.color = Color(0.06, 0.05, 0.10, 1.0)   # violetul întunecat al nebuloasei
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 
