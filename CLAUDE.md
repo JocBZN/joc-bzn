@@ -17,6 +17,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (POLICE SKINNY — al doilea polițist, de după minutul 1)
+
+**Cerut de Răzvan:** „ti-am facut un folder in homeless directii - se numeste Police Skinny, o sa fie alt enemy putin mai rapid si mai strong decat faceless police officer in lumea normala, vreau sa se spawneze dupa ce trece 1 minut in lumea normala".
+
+**Arta:** 8 GIF-uri `Idle_running-6-frames_<directie>.gif`, 128×128 — exact convenția pe care o mănâncă `tool_taie_gifuri.ps1`. Tăiate cu el (`-Prefix run`) în 48 de PNG-uri în `homeless directii/Police Skinny/frames/`, apoi `--headless --import`, altfel nu se încarcă la rulare.
+
+**Scena nouă `enemy_police_skinny.tscn`** — același `enemy.gd`, fără `.tres`: folosește mecanismul `frames_dir` / `frames_count` / `frames_fps` apărut odată cu inamicul din Ender, deci zero UID-uri scrise de mână. `speed = 160` (față de 120), `max_hp = 45` (față de 30), `damage_mult = 1.3`, `frames_fps = 14` (față de 12, fiindcă aleargă).
+
+**`scale` și `stop_dist` au rămas cele ale polițistului (1.5 / 41), și asta e măsurat, nu ghicit:** desenul lui ocupă 36×61 px din pânza de 128, al polițistului 37×61 din cea de 124 — practic aceeași lățime pe ecran, deci n-are rost alt punct de oprire.
+
+**Spawn-ul (`spawner.gd`):** funcție nouă `_politist()`, chemată în cele două locuri din `_scena_inamic()` care returnau `ENEMY`. Două butoane noi: `skinny_after` (60s) și `skinny_share` (0.35). Ca la `nether_share`, **nu se schimbă CÂȚI inamici apar, ci CINE sunt** — primul minut rămâne identic cu ce era. Se numără pe `Difficulty.time`, care stă pe loc în Limbo și în Nether, deci e chiar „un minut în lumea normală". Și, fiind polițist, intră și el în îngroșarea de după Nether (`escaped_power_mult`) — de-asta condiția de acolo a devenit `scena == ENEMY or scena == ENEMY_SKINNY`.
+
+**Verificat rulând:** 4000 de trageri la zar pe fiecare moment → 0% skinny la 30s și la 59s, 35,4% la 61s, 34,7% la 300s; poză cu cei doi polițiști unul lângă altul (ambii cu 8 animații × 6 cadre, hp 30 vs 45, speed 120 vs 160); și `main.tscn` rulat întreg, fără nicio eroare și fără avertismentul de cadre lipsă. Scenele de test au fost șterse.
+
+---
+
 ## Session log — 2026-08-04 (umbra fântânii Ender, a doua oară: inel în jurul tălpii)
 
 **Cerut de Răzvan:** „tot nu e facuta umbra bine, fa fix inconjuru ei, adica umbra trebuie pusa mai sus si mai mare", cu o captură nouă în `debugging/`.

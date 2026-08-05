@@ -19,6 +19,11 @@ const ENEMY_NETHER := preload("res://enemy_nether.tscn")
 # (380 față de 190) și cu `damage_mult = 2.0`, adică te mușcă dublu la contact. Arta e a lui
 # Răzvan, pusă pe 2026-08-04 în `harta/Portal Ender/enemy ender/`.
 const ENEMY_ENDER := preload("res://enemy_ender.tscn")
+# În LUMEA NORMALĂ, după primul minut, printre polițiștii obișnuiți începe să se strecoare
+# „Police Skinny": același `enemy.gd`, dar mai iute (160 față de 120), mai gras (45 față de 30)
+# și lovește puțin mai tare (`damage_mult = 1.3`). Arta e a lui Răzvan, pusă pe 2026-08-05 în
+# `homeless directii/Police Skinny/`. Vezi `skinny_after` / `skinny_share` mai jos.
+const ENEMY_SKINNY := preload("res://enemy_police_skinny.tscn")
 
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
@@ -40,6 +45,20 @@ const ENEMY_ENDER := preload("res://enemy_ender.tscn")
 # mai grase (50 HP), deci lumea devine mai colțuroasă fără să devină mai aglomerată.
 # 0 = ca înainte (nu scapă niciunul), 1 = lumea normală rămâne doar cu creaturi violete.
 @export_range(0.0, 1.0) var nether_share: float = 0.30
+
+# --- Police Skinny în lumea normală (cerut pe 2026-08-05) ---
+# `skinny_after` = de la ce secundă a rundei începe să apară. 60 = după primul minut.
+# `skinny_share` = ce parte din POLIȚIȘTI sunt Skinny de atunci încolo (0.35 ≈ unul din trei).
+#
+# Ca la `nether_share`, NU se schimbă câți inamici apar, doar CINE sunt — deci primul minut
+# rămâne exact cum era, iar de la 1:00 lumea devine mai colțuroasă fără să devină mai
+# aglomerată. Se împarte doar felia de polițiști: dacă te-ai întors din Nether, creaturile
+# violete rămân tot `nether_share` din total, iar Skinny mușcă din restul.
+#
+# Se numără pe cronometrul rundei (`Difficulty.time`), care stă pe loc în Limbo și în Nether —
+# adică „un minut petrecut în LUMEA NORMALĂ", cum s-a cerut, nu un minut de ceas.
+@export var skinny_after: float = 60.0
+@export_range(0.0, 1.0) var skinny_share: float = 0.35
 
 # --- Cât de rea devine lumea după ce te-ai întors viu din Nether (cerut pe 2026-07-30) ---
 # Regula, în cuvintele lui Răzvan: „dublează spawn-rate-ul și puterea inamicilor NORMALI".
@@ -154,7 +173,8 @@ func _spawn_enemy() -> void:
 	var enemy := scena.instantiate()
 	# Polițiștii se îngrașă după ce te-ai întors din Nether; creaturile de acolo, nu — ele erau
 	# deja tari. Se pune ÎNAINTE de `add_child`, fiindcă `enemy.gd::_ready()` îl citește acolo.
-	if scena == ENEMY and _scapat_din_nether():
+	# Skinny e tot polițist, deci intră și el în îngroșare.
+	if (scena == ENEMY or scena == ENEMY_SKINNY) and _scapat_din_nether():
 		enemy.power_mult = escaped_power_mult
 	# Inamicii apar într-un con de ±`spawn_cone_deg` în jurul privirii. Cu 180 (implicit de pe
 	# 2026-07-28) conul e cercul întreg, deci te înconjoară — nu mai vin doar din față.
@@ -196,11 +216,18 @@ func _scena_inamic() -> PackedScene:
 		return ENEMY_ENDER
 	var n := get_tree().get_first_node_in_group("nether")
 	if n == null:
-		return ENEMY
+		return _politist()
 	if n.get("active") == true:
 		return ENEMY_NETHER
 	if n.get("escaped") == true and randf() < nether_share:
 		return ENEMY_NETHER
+	return _politist()
+
+# Ce fel de polițist iese acum în lumea normală: cel obișnuit sau Skinny (mai iute și mai tare).
+# Skinny apare abia după `skinny_after` secunde de rundă, ca primul minut să rămână blând.
+func _politist() -> PackedScene:
+	if Difficulty.time >= skinny_after and randf() < skinny_share:
+		return ENEMY_SKINNY
 	return ENEMY
 
 # Te-ai întors VIU din Nether? Cât ești ÎNCĂ acolo nu se aplică nimic din îngroșarea de mai sus:
