@@ -218,6 +218,11 @@ func trezeste() -> void:
 func e_adormit() -> bool:
 	return _adormit
 
+# Sclipirea albastră de teleportare, cerută din AFARĂ. În cinematica de intrare teleportările le
+# dă `ender.gd` (boss-ul e adormit, deci nu se mută singur), dar semnul vizual e tot al lui.
+func puf() -> void:
+	_puf()
+
 func _uita_spre(dir: Vector2) -> void:
 	if dir.length() < 0.001:
 		return

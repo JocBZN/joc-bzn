@@ -60,6 +60,16 @@ const ENEMY_SKINNY := preload("res://enemy_police_skinny.tscn")
 @export var skinny_after: float = 60.0
 @export_range(0.0, 1.0) var skinny_share: float = 0.35
 
+# --- Creaturile Ender-ului în lumea normală, după ce cade Celesto (cerut pe 2026-08-05) ---
+# Exact tiparul lui `nether_share`, o treaptă mai sus: îl bați pe boss-ul din a treia dimensiune
+# și de atunci încolo slugile lui te urmează acasă. Steagul e `ender.gd::celesto_invins`, care —
+# spre deosebire de `_boss_invins` — NU se stinge la ieșirea din Ender.
+#
+# ⚠️ Ține-l mic. Creaturile Ender-ului sunt cei mai duri inamici obișnuiți din joc: 380 viteză
+# (peste 3× polițistul) și damage dublu la contact. La 0.15 sunt un pericol pe care îl vezi
+# venind; la 0.4 lumea normală nu mai e lume normală.
+@export_range(0.0, 1.0) var ender_share: float = 0.15
+
 # --- Cât de rea devine lumea după ce te-ai întors viu din Nether (cerut pe 2026-07-30) ---
 # Regula, în cuvintele lui Răzvan: „dublează spawn-rate-ul și puterea inamicilor NORMALI".
 # Creaturile din Nether NU intră în dublare — ele rămân exact cum sunt dincolo (50 HP de bază
@@ -215,12 +225,16 @@ func _scena_inamic() -> PackedScene:
 	if e != null and e.get("active") == true:
 		return ENEMY_ENDER
 	var n := get_tree().get_first_node_in_group("nether")
-	if n == null:
-		return _politist()
-	if n.get("active") == true:
+	if n != null and n.get("active") == true:
 		return ENEMY_NETHER
-	if n.get("escaped") == true and randf() < nether_share:
+	# --- de aici încolo suntem în LUMEA NORMALĂ ---
+	if n != null and n.get("escaped") == true and randf() < nether_share:
 		return ENEMY_NETHER
+	# ...iar dacă ai ucis vreodată în runda asta pe Celesto, printre ei se strecoară și creaturile
+	# lui. Se întreabă DUPĂ Nether, deci cele două felii nu se calcă: Ender-ul ia `ender_share`
+	# din ce a rămas, nu din tot.
+	if e != null and e.get("celesto_invins") == true and randf() < ender_share:
+		return ENEMY_ENDER
 	return _politist()
 
 # Ce fel de polițist iese acum în lumea normală: cel obișnuit sau Skinny (mai iute și mai tare).

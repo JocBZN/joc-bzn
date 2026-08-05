@@ -69,6 +69,12 @@ var _entry_diff_time := 0.0  # în ce secundă a rundei ai intrat
 var _swarm_announced := false
 var _boss_invins := false    # cât e `false`, fântâna de întoarcere nu te lasă să pleci
 
+# PUBLIC, și NU se stinge la ieșire: „l-ai bătut pe Celesto măcar o dată în runda asta".
+# `_boss_invins` de mai sus se resetează la fiecare intrare (el ține ușa închisă); ăsta rămâne
+# aprins pe tot restul rundei, fiindcă îl citește `spawner.gd`: după ce boss-ul cade, creaturile
+# lui încep să curgă și în LUMEA NORMALĂ (cerut pe 2026-08-05). Sora lui e `nether.gd::escaped`.
+var celesto_invins := false
+
 func _ready() -> void:
 	add_to_group("ender")
 	layer = 4   # ca Nether-ul: peste lume, sub textul de interacțiune
@@ -170,8 +176,10 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	_clock.visible = true
 	_flash_screen()
 
-	_announce("THE ENDER", "Kill Celesto to leave")
-	_cutscene_celesto()   # boss-ul apare cu cinematică; inamicii vin după ea
+	# ⚠️ Anunțul „THE ENDER" NU se dă aici, ci la capătul cinematicii (`_cutscene_gata`). Bannerul
+	# HUD-ului e un tween al unui nod pauzabil: pornit acum, ar îngheța la jumătatea „pop"-ului
+	# și ar sta așa, pe jumătate transparent, peste tot filmulețul.
+	_cutscene_celesto()   # boss-ul apare cu cinematică; inamicii și anunțul vin după ea
 
 # ---------- IEȘIRE ----------
 # `anunt = true`  → ieșire VOLUNTARĂ, apăsând E pe fântâna de întoarcere.
@@ -212,6 +220,11 @@ func exit_ender(anunt: bool = true) -> void:
 func _process(delta: float) -> void:
 	if not active:
 		return
+	# Cât ține cinematica de intrare suntem pe `PROCESS_MODE_ALWAYS` (ca să meargă tween-urile),
+	# deci ajungem aici DEȘI jocul e înghețat. Ieșim: cronometrul Ender-ului n-are ce să curgă
+	# în secundele alea, altfel ai plăti filmulețul din cele 6 minute.
+	if _cut_activ:
+		return
 	# Ai murit în Ender → ieșim curat, fără anunț. `player.die()` ne scoate el înainte;
 	# asta e plasa de siguranță.
 	if _player == null or not is_instance_valid(_player) or _player.dead:
@@ -231,6 +244,7 @@ func boss_invins() -> void:
 	if not active or _boss_invins:
 		return
 	_boss_invins = true
+	celesto_invins = true   # de aici încolo creaturile lui apar și în lumea normală
 	_announce("CELESTO FALLS", "Press E at the well to go back")
 	Audio.play("levelup", -2.0)
 
@@ -343,30 +357,50 @@ func _flash_screen() -> void:
 	t.tween_callback(func(): _flash.visible = false)
 
 # ---------- CINEMATICA DE INTRARE ----------
-# Cerut de Răzvan pe 2026-08-04: „vreau ca Celesto sa aiba un cutscene cand intrii in ender, nu
-# sa se spawneze direct, si vreau sa intre in cadru bara de hp cu numele lui asa slow cinematic".
+# Cerută de Răzvan pe 2026-08-04 („vreau ca Celesto sa aiba un cutscene cand intrii in ender, nu
+# sa se spawneze direct, si vreau sa intre in cadru bara de hp cu numele lui asa slow cinematic")
+# și REFĂCUTĂ pe 2026-08-05: „cand intrii in ender se opreste totul si se da zoom in pe el cum se
+# teleporteaza stanga dreapta de 2-3 ori si vreau ca bara de hp si numele sa fie sus".
 #
-# Cum decurge, în trei bătăi:
-#   1. te uiți la o câmpie goală; Celesto SE MATERIALIZEAZĂ în fața ta, transparent → opac;
-#   2. bara lui urcă încet din marginea de jos, cu numele aprinzându-se odată cu ea;
-#   3. dispare (e teleportistul jocului — asta ȘTIE să facă) și reapare departe, în inelul lui;
-#      abia atunci curg inamicii și începe lupta.
+# Cum decurge, în cinci bătăi:
+#   1. jocul ÎNGHEAȚĂ și camera intră pe locul gol de deasupra ta, strângând zoom-ul;
+#   2. Celesto SE MATERIALIZEAZĂ acolo, transparent → opac;
+#   3. bara lui coboară încet din marginea de sus, cu numele aprinzându-se odată cu ea;
+#   4. se teleportează STÂNGA-DREAPTA de `CUT_SARITURI` ori, în cadrul strâns — camera stă pe
+#      loc, el clipește dintr-o parte în alta, ca să se vadă că ăsta e trucul lui;
+#   5. se stinge, camera iese, jocul repornește, el te așteaptă departe în inel și abia atunci
+#      curg inamicii.
 #
-# ⚠️ NU pune jocul pe pauză. Am ales dinadins: `_process`-ul de aici ar trebui scos de sub pauză
-# (cronometrul Ender-ului tocmai a pornit), la fel spawner-ul și dificultatea — adică trei
-# lucruri de ținut minte pentru trei secunde de spectacol. În loc de asta, liniștea vine din
-# faptul că VALUL DE INAMICI e amânat: cât ține cinematica, harta chiar e goală.
+# ⚠️ Pauza e ADEVĂRATĂ (`get_tree().paused`), cu aceleași trei precauții ca la cinematica lui
+# Saratalin (`saratalin.gd::_cinematica_faza2`, citește-o întâi — ăsta e același tipar):
+#   • ne punem NOI pe `PROCESS_MODE_ALWAYS`, altfel tween-urile create aici ar sta și ele;
+#   • `Fx` e autoload ALWAYS (numerele de damage) → îl trecem pe „pauzabil" cât ține treaba;
+#   • `position_smoothing` al camerei se face în procesarea ei internă, care NU merge pe pauză —
+#     lăsat pornit, camera ar rămâne blocată tot filmulețul.
+# Și boss-ul primește ALWAYS: e adormit (`_physics_process` iese din prima), dar sclipirea lui
+# albastră de teleportare e un tween al LUI, care altfel ar îngheța la mijloc, în albastru.
+#
+# `_cut_activ` ține `_process`-ul nostru mut: cronometrul Ender-ului NU trebuie să curgă în
+# secundele astea, altfel ai pierde din cele 6 minute uitându-te la un filmuleț.
 #
 # Timpii sunt în secunde, unul după altul; schimbă-i liniștit.
 const CUT_APARE := 1.1        # cât durează materializarea lui
-const CUT_PANA_LA_BARA := 0.5 # pauză după ce s-a materializat, înainte să urce bara
-const CUT_BARA := 1.7         # cât urcă bara („slow cinematic")
-const CUT_PANA_LA_DISPARITIE := 0.9   # cât mai stă după ce bara e sus
+const CUT_PANA_LA_BARA := 0.5 # pauză după ce s-a materializat, înainte să coboare bara
+const CUT_BARA := 1.7         # cât coboară bara („slow cinematic")
+const CUT_PANA_LA_SARITURI := 0.5   # cât se uită la tine înainte să înceapă să sară
+const CUT_SARITURI := 3       # de câte ori se teleportează stânga-dreapta
+const CUT_SARE_LAT := 170.0   # câți pixeli în lateral sare de fiecare dată
+const CUT_SARE_PAUZA := 0.42  # cât stă într-un capăt înainte să sară în celălalt
+const CUT_ZOOM := 2.0         # de câte ori strânge camera pe el
+const CUT_ZOOM_IN := 0.7      # cât durează apropierea
+const CUT_ZOOM_OUT := 0.6     # ...și depărtarea la loc
+const CUT_STINGE := 0.35      # cât durează dispariția lui de la final
 # ⚠️ Apare DEASUPRA ta pe ecran, nu „în direcția în care te uiți". Am încercat varianta a doua și
 # se vede pe captură de ce nu merge: dacă te uiți în jos (cum stai implicit la aterizare), el
-# cade fix peste bara care tocmai urcă din marginea de jos. Sus e curat și e oricum încadrarea
-# clasică de „apare boss-ul".
+# cade fix peste banda de sus. Sus e curat și e oricum încadrarea clasică de „apare boss-ul".
 const CUT_DISTANTA := 300.0   # la câți pixeli deasupra ta apare, cât ține cinematica
+
+var _cut_activ := false      # cât e true, `_process` stă (cronometrul Ender-ului nu curge)
 
 func _cutscene_celesto() -> void:
 	if _player == null or _fantana == null:
@@ -377,32 +411,114 @@ func _cutscene_celesto() -> void:
 	_boss = BOSS.instantiate()
 	_boss.adoarme()          # ÎNAINTE de add_child: `_ready` nu mai cere bara și nu se mișcă
 	world.add_child(_boss)
-	_boss.global_position = _player.global_position + Vector2(0, -CUT_DISTANTA)
+	_boss.process_mode = Node.PROCESS_MODE_ALWAYS   # ca sclipirile lui să meargă pe pauză
+	var centru := _player.global_position + Vector2(0, -CUT_DISTANTA)
+	_boss.global_position = centru
 	var anim := _boss.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
 	if anim != null:
 		anim.modulate.a = 0.0
-		var t := create_tween()
-		t.tween_property(anim, "modulate:a", 1.0, CUT_APARE)
+
+	# --- 1) îngheț total ---
+	_cut_activ = true
+	var mod_vechi := process_mode
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	get_tree().paused = true
+	var fx_vechi := Fx.process_mode
+	Fx.process_mode = Node.PROCESS_MODE_PAUSABLE
+	if _player.fire_timer != null:
+		_player.fire_timer.stop()
+	var cam := _player.get_node_or_null("Camera2D") as Camera2D
+	var zoom_vechi := Vector2.ONE
+	var offset_vechi := Vector2.ZERO
+	var neted_vechi := false
+	if cam != null:
+		zoom_vechi = cam.zoom
+		offset_vechi = cam.offset
+		neted_vechi = cam.position_smoothing_enabled
+		cam.position_smoothing_enabled = false
+
+	# --- 2) camera intră pe locul lui, iar el se materializează acolo ---
 	Audio.play("celesto_teleport", -2.0, 0.0)
-	get_tree().create_timer(CUT_APARE + CUT_PANA_LA_BARA).timeout.connect(_cutscene_bara)
+	var t := _cut_tween()
+	t.set_parallel(true)
+	# Bătaia de bază, care ține tween-ul viu chiar dacă n-ar exista nici camera, nici sprite-ul.
+	# ⚠️ Un `Tween` fără nicio comandă se anulează singur și NU-și mai trimite `finished` — adică
+	# `await`-ul de mai jos ar aștepta la nesfârșit, cu jocul înghețat. Merită linia asta.
+	t.tween_interval(CUT_APARE)
+	if cam != null:
+		t.tween_property(cam, "offset", centru - _player.global_position, CUT_ZOOM_IN) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		t.tween_property(cam, "zoom", zoom_vechi * CUT_ZOOM, CUT_ZOOM_IN) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if anim != null:
+		t.tween_property(anim, "modulate:a", 1.0, CUT_APARE)
+	await t.finished
 
-func _cutscene_bara() -> void:
-	if not active or _boss == null or not is_instance_valid(_boss):
-		return
-	var bara := get_tree().get_first_node_in_group("boss_bar")
-	if bara != null and bara.has_method("arata_cinematic"):
-		bara.arata_cinematic(_boss.nume, _boss.max_hp, CUT_BARA)
-	get_tree().create_timer(CUT_BARA + CUT_PANA_LA_DISPARITIE).timeout.connect(_cutscene_gata)
+	# --- 3) bara coboară din marginea de sus ---
+	await _cut_asteapta(CUT_PANA_LA_BARA)
+	if is_instance_valid(_boss):
+		var bara := get_tree().get_first_node_in_group("boss_bar")
+		if bara != null and bara.has_method("arata_cinematic"):
+			bara.arata_cinematic(_boss.nume, _boss.max_hp, CUT_BARA)
+	await _cut_asteapta(CUT_BARA + CUT_PANA_LA_SARITURI)
 
-# Ultima bătaie: dispare din fața ta și te așteaptă în inel. De aici încolo totul e ca înainte —
-# busola arată spre el, inamicii curg, lupta e a ta.
+	# --- 4) stânga-dreapta, în cadrul strâns ---
+	# Camera NU îl urmărește: stă pe `centru`, iar el clipește în stânga și în dreapta ei. Dacă
+	# l-ar urma, saltul n-ar mai fi vizibil deloc — ar părea că lumea se mișcă, nu el.
+	for i in CUT_SARITURI:
+		var semn := 1.0 if i % 2 == 0 else -1.0
+		if is_instance_valid(_boss):
+			_boss.global_position = centru + Vector2(semn * CUT_SARE_LAT, 0.0)
+			Audio.play("celesto_teleport", -2.0, 0.0)
+			if _boss.has_method("puf"):
+				_boss.puf()
+		await _cut_asteapta(CUT_SARE_PAUZA)
+
+	# --- 5) se stinge, camera iese, jocul repornește ---
+	Audio.play("celesto_teleport", -2.0, 0.0)
+	if anim != null:
+		await _cut_tween().tween_property(anim, "modulate:a", 0.0, CUT_STINGE).finished
+	if cam != null:
+		var t2 := _cut_tween()
+		t2.set_parallel(true)
+		t2.tween_property(cam, "offset", offset_vechi, CUT_ZOOM_OUT) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		t2.tween_property(cam, "zoom", zoom_vechi, CUT_ZOOM_OUT) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		await t2.finished
+		cam.position_smoothing_enabled = neted_vechi
+
+	Fx.process_mode = fx_vechi
+	if _player != null and is_instance_valid(_player) and _player.fire_timer != null:
+		_player.fire_timer.start()
+	get_tree().paused = false
+	process_mode = mod_vechi
+	_cut_activ = false
+	if is_instance_valid(_boss) and anim != null:
+		anim.modulate.a = 1.0
+	_cutscene_gata()
+
+# Tween care merge CU JOCUL PE PAUZĂ. E creat pe noi (suntem ALWAYS cât ține cinematica), iar
+# `TWEEN_PAUSE_PROCESS` o spune pe față, ca să nu depindă de starea nodului dacă se schimbă.
+func _cut_tween() -> Tween:
+	return create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+
+# Pauză care curge pe pauză. `create_timer` are `process_always = true` implicit, dar aici se
+# vede intenția — dacă vreodată devine `false`, cinematica ar rămâne blocată pentru totdeauna,
+# CU JOCUL ÎNGHEȚAT. Merită scris pe față.
+func _cut_asteapta(secunde: float) -> void:
+	await get_tree().create_timer(secunde, true).timeout
+
+# Ultima bătaie: te așteaptă în inel. De aici încolo totul e ca înainte — busola arată spre el,
+# inamicii curg, lupta e a ta.
 func _cutscene_gata() -> void:
 	if not active:
 		return
 	if _boss != null and is_instance_valid(_boss):
-		Audio.play("celesto_teleport", -2.0, 0.0)
+		_boss.process_mode = Node.PROCESS_MODE_INHERIT   # înapoi sub pauza normală a jocului
 		_boss.global_position = _loc_boss()
 		_boss.trezeste()
+	_announce("THE ENDER", "Kill Celesto to leave")
 	for i in BURST:
 		_spawn_one()
 

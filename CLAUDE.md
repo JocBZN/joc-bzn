@@ -17,6 +17,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-05 (cinematica lui Celesto, refăcută: îngheț + zoom + teleportări; bara sus; creaturile lui în lumea normală)
+
+**Cerut de Răzvan:** „ca si cutscene pentru celesto, cand intrii in ender se opreste totul si se da zoom in pe el cum se teleporteaza stanga dreapta de 2-3 ori si vreau ca bara de hp si numele sa fie sus. Si vreau si inamicii de la celesto sa se spawneze in lumea normala dupa ce l-ai batut".
+
+**1. Cinematica (`ender.gd`), cinci bătăi:** îngheț real (`get_tree().paused`) → camera intră pe locul gol de deasupra ta și strânge zoom-ul ×2 → Celesto se materializează acolo → bara COBOARĂ din marginea de sus → se teleportează stânga-dreapta de 3 ori în cadrul strâns → se stinge, camera iese, jocul repornește, el te așteaptă în inel și abia atunci curg inamicii.
+
+**Camera NU îl urmărește la sărituri** — stă pe centru, el clipește în stânga și în dreapta ei. Dacă l-ar urma, s-ar vedea lumea mișcându-se, nu el; teleportarea ar dispărea din cadru.
+
+**Îngheț: același tipar ca la `saratalin.gd::_cinematica_faza2`** (citește-o întâi, e referința). Trei precauții, toate obligatorii: nodul Ender pe `PROCESS_MODE_ALWAYS` (altfel îi stau tween-urile), `Fx` coborât pe `PAUSABLE` (e autoload ALWAYS, altfel plutesc numere de damage peste cadrul înghețat), `position_smoothing` al camerei stins (se calculează în procesarea EI, care nu merge pe pauză → camera ar rămâne blocată). **Plus una nouă: și BOSS-ul primește ALWAYS** — e adormit, dar sclipirea lui albastră de teleportare e un tween al lui și ar îngheța la mijloc, în albastru. La final îi pun `INHERIT` la loc.
+
+**Două capcane de pauză, ambele cu jocul înghețat ca preț al greșelii:**
+- un `Tween` FĂRĂ nicio comandă se anulează singur și nu-și mai trimite `finished` → `await`-ul ar aștepta la nesfârșit. De-asta prima bătaie are un `tween_interval` de siguranță, chiar dacă lipsesc camera și sprite-ul.
+- `_cut_activ` ține `_process`-ul nostru mut: suntem ALWAYS, deci am fi ajuns acolo DEȘI jocul e pe pauză, și cronometrul Ender-ului ar fi curs în timpul filmulețului — adică ai fi plătit spectacolul din cele 6 minute.
+
+**Anunțul „THE ENDER" a fost mutat la CAPĂTUL cinematicii.** Bannerul HUD-ului e un tween al unui nod pauzabil: pornit la intrare, îngheța la jumătatea „pop"-ului și rămânea așa, pe jumătate transparent, peste tot filmulețul.
+
+**2. Bara de boss e SUS (`boss_bar.gd`), pentru TOȚI boșii, nu doar Celesto.** `DE_JOS` → `DE_SUS = 96`, ancorele de sus, iar intrarea cinematică coboară în loc să urce. **Numele stă SUB bară**, nu deasupra: sus-centru e deja ocupat de cronometrul rundei (44px de la y=14) și de al Ender-ului (64px de la y=8), care coboară până pe la y≈85. Dacă mai adaugi ceva sus-centru, verifică-le pe toate trei — se suprapun în tăcere.
+
+**3. Creaturile Ender-ului în lumea normală (`spawner.gd`).** Exact tiparul lui `nether_share`: `ender.gd` aprinde un `celesto_invins` PUBLIC care — spre deosebire de `_boss_invins`, care doar ține fântâna închisă — **nu se stinge la ieșire**, iar `_scena_inamic()` îl citește și face `ender_share` (0.15) din spawn-urile lumii normale creaturi Ender. Ținut mic dinadins: sunt cei mai duri inamici obișnuiți din joc (380 viteză, damage dublu). Felia Ender se ia DUPĂ cea Nether, ca cele două să nu se bată pe aceiași inamici.
+
+**Verificat rulând:** opt poze pe parcursul cinematicii (harta chiar goală și înghețată cât ține, zoom-ul, bara sus cu numele sub ea, ambele capete ale săriturilor, inamicii abia după); și 4000 de trageri la zar înainte/după uciderea boss-ului — 0% creaturi Ender înainte, 15,2% după, cu raportul polițist/Skinny neatins dedesubt.
+
+**⚠️ Capcană de TESTARE, m-a prins pe loc:** dacă montezi `main.tscn` ca fiu al unui nod de test pus pe `PROCESS_MODE_ALWAYS`, tot jocul moștenește ALWAYS și `get_tree().paused` nu mai oprește nimic — primele poze arătau inamici alergând „pe pauză". Nodul de test n-are nevoie de ALWAYS: `create_timer(..., true)` și `RenderingServer.frame_post_draw` reiau corutina oricum.
+
+---
+
 ## Session log — 2026-08-05 (POLICE SKINNY — al doilea polițist, de după minutul 1)
 
 **Cerut de Răzvan:** „ti-am facut un folder in homeless directii - se numeste Police Skinny, o sa fie alt enemy putin mai rapid si mai strong decat faceless police officer in lumea normala, vreau sa se spawneze dupa ce trece 1 minut in lumea normala".

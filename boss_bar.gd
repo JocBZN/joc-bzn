@@ -1,8 +1,16 @@
 extends CanvasLayer
 
-# Bara de viață a boss-ului, în stilul Dark Souls: o bandă lată și subțire jos pe ecran,
-# cu numele deasupra ei. Apare când boss-ul e chemat, dispare când moare (sau când e
-# scos din scenă, ex. ieși din Nether).
+# Bara de viață a boss-ului: o bandă lată și subțire SUS pe ecran, cu numele sub ea.
+# Apare când boss-ul e chemat, dispare când moare (sau când e scos din scenă, ex. ieși din Nether).
+#
+# **Sus, nu jos, de pe 2026-08-05** („vreau ca bara de hp si numele sa fie sus"). Era jos, în
+# stilul Dark Souls, dar cinematica de intrare a lui Celesto ține camera strânsă pe el în
+# jumătatea de sus a ecranului, iar bara rămânea singură tocmai la celălalt capăt.
+#
+# ⚠️ Numele stă SUB bară, nu deasupra ei ca înainte: sus-centru e deja ocupat de cronometrul
+# rundei (`hud.gd`, 44px de la y=14) și de cel al Ender-ului (`ender.gd`, 64px de la y=8), care
+# coboară până pe la y≈85. De-acolo pornește `DE_SUS`. Dacă mai urci ceva sus-centru, verifică-le
+# pe toate trei — se suprapun în tăcere, nimic nu te avertizează.
 #
 # O folosește `saratalin.gd`. E scrisă general (`arata(nume, hp_max)`), deci dacă mai apare
 # un boss cu bară — Garda, de exemplu — o poate chema la fel, fără să schimbi nimic aici.
@@ -13,7 +21,7 @@ extends CanvasLayer
 
 const LATIME := 0.56          # cât din lățimea ecranului ocupă bara (0..1)
 const INALTIME := 20.0        # grosimea barei, în pixeli
-const DE_JOS := 74.0          # cât de sus stă față de marginea de jos
+const DE_SUS := 96.0          # de la ce înălțime începe bara (sub cele două cronometre)
 
 const C_FUNDAL := Color(0.06, 0.04, 0.06, 0.85)   # golul din spatele barei
 const C_CONTUR := Color(0.55, 0.47, 0.36)         # rama, auriu-șters ca în Dark Souls
@@ -40,15 +48,14 @@ func _ready() -> void:
 	add_child(radacina)
 	_radacina = radacina
 
-	# numele, deasupra barei
+	# numele, SUB bară (bara ocupă [DE_SUS, DE_SUS+INALTIME]; deasupra ei sunt cronometrele)
 	_nume = Label.new()
 	_nume.anchor_left = 0.5
 	_nume.anchor_right = 0.5
-	_nume.anchor_top = 1.0
-	_nume.anchor_bottom = 1.0
-	# DEASUPRA barei, nu peste ea: bara ocupă [-DE_JOS-INALTIME, -DE_JOS]
-	_nume.offset_top = -DE_JOS - INALTIME - 42.0
-	_nume.offset_bottom = -DE_JOS - INALTIME - 8.0
+	_nume.anchor_top = 0.0
+	_nume.anchor_bottom = 0.0
+	_nume.offset_top = DE_SUS + INALTIME + 6.0
+	_nume.offset_bottom = DE_SUS + INALTIME + 40.0
 	_nume.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_nume.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_nume.add_theme_font_size_override("font_size", 24)
@@ -68,10 +75,10 @@ func _fa_bara(parinte: Control, culoare: Color, cu_fundal: bool) -> ProgressBar:
 	var b := ProgressBar.new()
 	b.anchor_left = 0.5 - LATIME * 0.5
 	b.anchor_right = 0.5 + LATIME * 0.5
-	b.anchor_top = 1.0
-	b.anchor_bottom = 1.0
-	b.offset_top = -DE_JOS - INALTIME
-	b.offset_bottom = -DE_JOS
+	b.anchor_top = 0.0
+	b.anchor_bottom = 0.0
+	b.offset_top = DE_SUS
+	b.offset_bottom = DE_SUS + INALTIME
 	b.show_percentage = false
 	b.min_value = 0.0
 	b.max_value = 1.0
@@ -104,16 +111,16 @@ func arata(nume: String, hp_max: int) -> void:
 	_radacina.modulate.a = 1.0
 	visible = true
 
-# INTRARE CINEMATICĂ: bara urcă încet din afara ecranului și se aprinde odată cu numele. Cerută
+# INTRARE CINEMATICĂ: bara COBOARĂ încet din afara ecranului și se aprinde odată cu numele. Cerută
 # de Răzvan pe 2026-08-04 pentru Celesto („sa intre in cadru bara de hp cu numele lui asa slow
 # cinematic"), dar scrisă general — orice boss o poate chema în loc de `arata()`.
 #
-# Se mișcă `_radacina`, nu barele: ele sunt ancorate de marginea de jos cu offset-uri fixe, iar
+# Se mișcă `_radacina`, nu barele: ele sunt ancorate de marginea de sus cu offset-uri fixe, iar
 # un `position` pus direct pe ele s-ar bate cu ancorele. Containerul, în schimb, e liber.
 #
 # `TWEEN_PAUSE_PROCESS` din același motiv ca `process_mode = ALWAYS` de mai sus: dacă vreodată se
 # cheamă în timp ce jocul e pe pauză (cinematici), trebuie să meargă mai departe.
-const INTRARE_DE_JOS := 90.0   # de câți pixeli mai jos pornește
+const INTRARE_DE_SUS := 90.0   # de câți pixeli mai SUS pornește (deci intră coborând)
 
 func arata_cinematic(nume: String, hp_max: int, durata: float = 1.6) -> void:
 	_opreste_intrarea()
@@ -121,7 +128,7 @@ func arata_cinematic(nume: String, hp_max: int, durata: float = 1.6) -> void:
 	_hp_max = maxf(float(hp_max), 1.0)
 	_bara.value = 1.0
 	_urma.value = 1.0
-	_radacina.position.y = INTRARE_DE_JOS
+	_radacina.position.y = -INTRARE_DE_SUS
 	_radacina.modulate.a = 0.0
 	visible = true
 	_intrare = create_tween().set_parallel(true)
