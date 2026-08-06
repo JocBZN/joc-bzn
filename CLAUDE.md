@@ -17,6 +17,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-06 (Celesto îngheață din profil în cinematică + fântâna chiar se stinge)
+
+**Cerut de Răzvan:** „vreau la cutscene-u lu celesto sa fie freeze frame si vreau sa nu se uite in sud … cand e telepotat in partea dreapta sa se uite spre west … cand e in partea stanga sa se uite spre east. Si well-ul cand se inchide vreau sa aiba un fade pana la 0% opacity".
+
+**1. Freeze frame în cinematică.** `celesto.gd` are acum `ingheata_spre(dir)` / `ingheata_lateral(la_dreapta)`: pune animația direcției cerute, sare pe cadrul `CUT_CADRU` (0) și dă `anim.pause()` — deci stă, nu mai merge pe loc. `_ready()` îl naște deja înghețat pe „west" dacă e adormit (înainte pornea `south`, adică se uita fix la tine), iar `ender.gd::_cutscene_celesto` îi dă direcția la fiecare salt: **dreapta → `west`, stânga → `east`**, mereu spre mijlocul cadrului.
+- ⚠️ **`trezeste()` repornește animația EXPLICIT** (`anim.play(anim.animation)`). `_uita_spre()` cheamă `play()` doar când se SCHIMBĂ direcția — dacă prima direcție de mers după cinematică era chiar cea înghețată, boss-ul ar fi alunecat pe hartă ca o statuie. Verificat: după cinematică `playing=true` și cadrul chiar curge (0 → 4 în 0,4s).
+- Verificat rulând, cu poziții tipărite: `dx=+170 → anim=west`, `dx=-170 → anim=east`, `playing=false`, `frame=0` pe toată durata.
+
+**2. Fântâna Ender se stinge la închidere — și de ce nu se stingea deloc până acum.** `intra_in_pamant()` cerea de mult `modulate:a → 0` în paralel cu scufundarea, dar **nu se vedea nimic**: `portal_ender.gdshader` își citește singur textura și scrie `COLOR` peste, deci culoarea care intra în `fragment()` (textură × modulate) era aruncată. Fântâna cobora **opacă** și pierea dintr-o bucată la `queue_free`. Din același motiv nu se aplica nici `ender_tint`-ul din `set_cosmic()` — piatra n-a fost niciodată stinsă în Ender, deși README-ul zicea că e.
+- Shaderul are acum două uniforme: **`tint`** (culoarea, pentru Ender) și **`fade`** (opacitatea, pentru scufundare). Două, nu unul cu alfa cu tot, fiindcă la ieșire se animă în ACELAȘI timp din locuri diferite (`set_cosmic(false)` 0,8s și `intra_in_pamant()` 1,0s) — pe o singură proprietate, tween-urile s-ar fi călcat pe picioare.
+- ⚠️ **Materialul se duplică în `_ready()`**: e o sub-resursă a scenei, adică ACELAȘI obiect în toate fântânile de pe hartă. Fără copie, stinsul uneia le-ar fi stins pe toate.
+- ⚠️ **Nu pune `COLOR = c * COLOR`**: `COLOR` intră în `fragment()` DEJA înmulțit cu textura, deci s-ar aplica de două ori (verificat pe pixeli: iese vizibil mai închisă). Iar `MODULATE` **nu există** în Godot 4.7 la `canvas_item` — shaderul nu compilează.
+- Verificat pe drumul adevărat (intrare în Ender → boss „căzut" → `exit_ender`): în Ender `tint=(0.8, 0.84, 1.0)`, la ieșire `fade` 1.0 → 0.74 → 0.49 → 0.24 → nod șters, cu culoarea revenind la alb în paralel, fără să se bată cap în cap. Pe captură fântâna e o fantomă la 750ms.
+
+**Capcană de test:** ca să prinzi ieșirea din Ender, ieși **imediat** după cinematică (~6,5s). Lăsat mai mult, player-ul moare în valul de la intrare, iar moartea iese singură din Ender — nu mai ai ce închide (și scrie și în leaderboard-ul real: am șters scorul fals de 2 secunde).
+
+---
+
 ## Session log — 2026-08-06 (Nether-ul, mai luminos)
 
 **Cerut de Răzvan:** „e cam intunecat in nether fa sa fie putin mai luminos".

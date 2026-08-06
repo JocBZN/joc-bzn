@@ -480,6 +480,10 @@ func _cutscene_celesto() -> void:
 		var semn := 1.0 if i % 2 == 0 else -1.0
 		if is_instance_valid(_boss):
 			_boss.global_position = centru + Vector2(semn * CUT_SARE_LAT, 0.0)
+			# Freeze frame, din profil, uitându-se spre mijlocul cadrului: în dreapta → spre
+			# vest, în stânga → spre est. Cerut de Răzvan pe 2026-08-06 („sa nu se uite in sud").
+			if _boss.has_method("ingheata_lateral"):
+				_boss.ingheata_lateral(semn > 0.0)
 			Audio.play("celesto_teleport", -2.0, 0.0)
 			if _boss.has_method("puf"):
 				_boss.puf()

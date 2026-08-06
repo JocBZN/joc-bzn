@@ -76,7 +76,27 @@ var _fade_tween: Tween
 
 func _ready() -> void:
 	add_to_group("interactable")   # de aici vine textul „Press E to interact" (`interact_ui.gd`)
+	_material_propriu()
 	_construieste_talpa()
+
+# Piatra fântânii se stinge și se colorează prin `shader_parameter/tint`, NU prin `modulate`
+# (vezi comentariul din `portal_ender.gdshader`: shaderul își citește singur textura, deci
+# `modulate` n-are niciun efect pe ea).
+# ⚠️ Materialul e o sub-resursă a scenei, adică ACELAȘI obiect în toate fântânile de pe hartă.
+# Fără copia asta, stinsul uneia le-ar stinge pe toate — iar pe hartă sunt mai multe deodată.
+func _material_propriu() -> void:
+	var sprite := get_node_or_null("Sprite2D") as Sprite2D
+	if sprite == null or sprite.material == null:
+		return
+	sprite.material = sprite.material.duplicate()
+	var m := sprite.material as ShaderMaterial
+	# scrise o dată aici: un tween nu poate porni de la un parametru necitit (`null`)
+	m.set_shader_parameter("tint", Color(1, 1, 1, 1))
+	m.set_shader_parameter("fade", 1.0)
+
+func _mat() -> ShaderMaterial:
+	var sprite := get_node_or_null("Sprite2D") as Sprite2D
+	return sprite.material as ShaderMaterial if sprite != null else null
 
 # Haloul se adaugă ÎNAINTEA umbrei: amândouă sunt pe `z_index = -1`, deci le desparte ordinea
 # din arbore, iar umbra trebuie să cadă PESTE lumină (întâi bate lumina, apoi vine contactul).
@@ -125,12 +145,13 @@ func set_cosmic(on: bool) -> void:
 	if _umbra != null:
 		_fade_tween.tween_property(_umbra, "modulate:a",
 			shadow_alpha_ender if on else shadow_alpha, fade_dimensiune)
-	var sprite := get_node_or_null("Sprite2D") as Sprite2D
-	if sprite != null:
-		# doar RGB — alfa rămâne a lui, ca scufundarea să și-o poată anima liniștită
+	var m := _mat()
+	if m != null:
+		# doar culoarea — stinsul e pe `fade`, propriul lui parametru, ca scufundarea să și-l
+		# poată anima liniștită chiar dacă se întâmplă în aceeași clipă (vezi shaderul)
 		var c := ender_tint if on else Color(1, 1, 1)
-		c.a = sprite.modulate.a
-		_fade_tween.tween_property(sprite, "modulate", c, fade_dimensiune)
+		c.a = 1.0
+		_fade_tween.tween_property(m, "shader_parameter/tint", c, fade_dimensiune)
 
 # Fântâna nu se consumă — intri și ieși de câte ori vrei, cât ține runda.
 func poate_invoca() -> bool:
@@ -161,7 +182,14 @@ func intra_in_pamant() -> void:
 	var t := sprite.create_tween()
 	t.set_ease(Tween.EASE_IN)
 	t.tween_property(sprite, "position:y", sprite.position.y + sink_depth, sink_duration)
-	t.parallel().tween_property(sprite, "modulate:a", 0.0, sink_duration)
+	# Stinsul până la 0% (cerut de Răzvan pe 2026-08-06). Merge pe `shader_parameter/fade`,
+	# nu pe `modulate:a` — cu `modulate` fântâna cobora OPACĂ și pierea dintr-o bucată la
+	# `queue_free`, fiindcă shaderul îl ignoră (vezi `portal_ender.gdshader`).
+	var m := _mat()
+	if m != null:
+		t.parallel().tween_property(m, "shader_parameter/fade", 0.0, sink_duration)
+	else:
+		t.parallel().tween_property(sprite, "modulate:a", 0.0, sink_duration)
 	# umbra și haloul se sting odată cu ea — altfel ar rămâne o pată pe pământul gol
 	for pata in [_umbra, _halou]:
 		if pata != null and is_instance_valid(pata):

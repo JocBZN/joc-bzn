@@ -28,6 +28,21 @@ uniform float wobble_speed = 0.9;
 // Banda dinspre margine rămâne pe loc, ca să nu apară o cusătură la buza de piatră.
 uniform float edge_fade : hint_range(0.5, 1.0) = 0.88;
 
+// Culoarea cu care se înmulțește TOT (piatră + lichid), și, SEPARAT, opacitatea ei.
+// Sunt două uniforme, nu unul cu alfa cu tot, fiindcă se animă în ACELAȘI timp din locuri
+// diferite: la ieșirea din Ender `set_cosmic(false)` readuce culoarea la alb (0,8s) exact
+// când `intra_in_pamant()` stinge fântâna (1,0s). Pe o singură proprietate, cele două
+// tween-uri s-ar călca pe picioare și stinsul ar sări înapoi la opac.
+// ⚠️ De ce un uniform și nu `modulate`-ul nodului: shaderul își citește SINGUR textura și scrie
+// `COLOR` peste, deci culoarea care intră aici (textură × modulate) e aruncată — `modulate` pe o
+// fântână nu are absolut niciun efect. Din cauza asta stingerea de la scufundare nu se vedea
+// (fântâna cobora opacă și pierea dintr-o bucată), iar `ender_tint`-ul din `set_cosmic` nu se
+// aplica. Cine vrea s-o stingă sau s-o coloreze, animă `shader_parameter/tint` — vezi
+// `portal_ender.gd`. NU pune `COLOR = c * COLOR`: `COLOR` intră aici DEJA înmulțit cu textura,
+// deci s-ar aplica de două ori (verificat pe pixeli, iese vizibil mai închisă).
+uniform vec4 tint : source_color = vec4(1.0);
+uniform float fade : hint_range(0.0, 1.0) = 1.0;   // 1 = întreagă, 0 = stinsă de tot
+
 void fragment() {
 	vec4 c = texture(TEXTURE, UV);
 
@@ -43,5 +58,6 @@ void fragment() {
 		c = mix(c, liquid, mask * liquid.a);
 	}
 
-	COLOR = c;
+	COLOR = c * tint;
+	COLOR.a *= fade;
 }

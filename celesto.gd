@@ -33,6 +33,13 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 const CADRE_PE_DIRECTIE := 8
 const FPS_MERS := 10.0
 
+# --- cinematica de intrare (`ender.gd::_cutscene_celesto`) ---
+# Acolo NU merge pe loc: stă pe un singur cadru („freeze frame"), din profil. Când sare în
+# dreapta cadrului se uită spre stânga și invers — deci mereu spre mijloc, niciodată spre tine.
+const CUT_DIR_DREAPTA := "west"   # e în DREAPTA ecranului → se uită spre vest
+const CUT_DIR_STANGA := "east"    # e în STÂNGA ecranului → se uită spre est
+const CUT_CADRU := 0              # pe ce cadru din mers îngheață
+
 const SCYTHE := preload("res://scythe.tscn")
 # Ce cheamă din faza 2: inamicii Ender-ului, aceiași care curg oricum din `spawner.gd` cât ești
 # dincolo. (Până pe 2026-08-04 chema creaturile Nether-ului, fiindcă Ender-ul n-avea ale lui.)
@@ -122,7 +129,13 @@ func _ready() -> void:
 	_bumerang_cooldown = bumerang_interval * 0.6
 	_summon_cooldown = summon_interval * 0.5
 	_build_frames()
-	anim.play(DIRECTII[2])        # south, până se hotărăște încotro merge
+	if _adormit:
+		# Cinematica de intrare îl vrea ÎNGHEȚAT și din PROFIL (cerut de Răzvan pe 2026-08-06:
+		# „freeze frame … si sa nu se uite in sud"). `ender.gd` îi dă direcția la fiecare salt;
+		# asta e doar poza de start, aceeași cu primul salt, ca să nu se întoarcă degeaba.
+		ingheata_spre(CUT_DIR_DREAPTA)
+	else:
+		anim.play(DIRECTII[2])    # south, până se hotărăște încotro merge
 	if ResourceLoader.exists("res://xp1.tscn"):
 		_xp1 = load("res://xp1.tscn")
 
@@ -214,6 +227,11 @@ func adoarme() -> void:
 
 func trezeste() -> void:
 	_adormit = false
+	# ⚠️ Repornim animația EXPLICIT. După cinematică rămâne pe cadrul înghețat, iar `_uita_spre`
+	# cheamă `play()` doar când se SCHIMBĂ direcția — dacă prima direcție de mers e chiar cea în
+	# care a înghețat, ar rămâne o statuie care alunecă pe hartă.
+	if anim != null and anim.sprite_frames != null:
+		anim.play(anim.animation)
 
 func e_adormit() -> bool:
 	return _adormit
@@ -222,6 +240,22 @@ func e_adormit() -> bool:
 # dă `ender.gd` (boss-ul e adormit, deci nu se mută singur), dar semnul vizual e tot al lui.
 func puf() -> void:
 	_puf()
+
+# FREEZE FRAME pentru cinematică: se uită într-o direcție și STĂ, pe un singur cadru — nu merge
+# pe loc. Chemată de `ender.gd` la fiecare salt: sare în dreapta → se uită spre WEST, sare în
+# stânga → spre EAST, deci mereu spre mijlocul cadrului și niciodată spre tine (sud).
+# `pause()` (nu `stop()`) ca să rămână pe cadrul cerut; repornirea o face `trezeste()`.
+func ingheata_lateral(la_dreapta: bool) -> void:
+	ingheata_spre(CUT_DIR_DREAPTA if la_dreapta else CUT_DIR_STANGA)
+
+func ingheata_spre(dir_nume: String, cadru: int = CUT_CADRU) -> void:
+	if anim == null or anim.sprite_frames == null:
+		return
+	if not anim.sprite_frames.has_animation(dir_nume):
+		return
+	anim.animation = dir_nume
+	anim.frame = mini(cadru, anim.sprite_frames.get_frame_count(dir_nume) - 1)
+	anim.pause()
 
 func _uita_spre(dir: Vector2) -> void:
 	if dir.length() < 0.001:
