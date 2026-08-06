@@ -17,6 +17,59 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-06 (LIMBO: inamici pe bune, fără portaluri, și te dă înapoi în dimensiunea în care ai murit)
+
+**Cerut de Răzvan:** „în limbo nu sunt inamicii destul de op, vreau să aibă spawn-rate-ul, viteza și damage-ul la fel ca cei cu un minut înainte să intre player-ul în limbo — se calculează pe loc. Vreau să nu apară portalul de ender în limbo. Și atunci când ieși din limbo te dă fix din locul unde ai murit (dacă ai murit în lumea normală acolo, dacă în nether acolo, dacă în ender acolo). Când revii din limbo sau orice altă dimensiune nu vreau să se reseteze lucrurile deja folosite în lumea normală."
+
+Patru cereri, patru bug-uri de fond. Merită citite separat, fiindcă niciunul nu e „o cifră prea mică".
+
+### 1. De ce erau inamicii din Limbo blânzi — DOUĂ cauze, nu una
+
+**(a) Ceasul greșit.** `limbo.gd` pornea de la `Difficulty.time - 60`. Dar `Difficulty.time` e ceasul RUNDEI, iar el e ÎNGHEȚAT din secunda în care intri în Nether sau în Ender (`Difficulty.frozen`). Deci dacă mureai la minutul 4 din Nether, dificultatea reală era `intrare + 240`, iar Limbo îți dădea `intrare - 60` — cu minute bune înapoi, inamici de început de rundă. Acum pleacă de la `Difficulty.mult_time()` (accesor public nou în `difficulty.gd`, întoarce `_mult_time()`), adică din dificultatea pe care o SIMȚEAI când ai murit.
+
+**(b) Ritmul fix.** Ăsta era cel mai gras. Limbo oprește spawner-ul și își năștea singur inamicii, cu un firicel FIX: `TRICKLE = 1.4`, adică 0,7 inamici/secundă, indiferent de minut. Afară, la minutul 5, curg ~4,2/s. Acum ritmul vine din `spawner.gd::rata_curenta()` — funcție scoasă din `_spawn_tick`, ca formula (inclusiv corecția `2/(1−nether_share)` de după Nether, greșită o dată deja) să trăiască într-un singur loc. Limbo adună fracții de inamic în `_spawn_acc`, nu numără pauze: la rate mari un cadru poate datora 3-4 inamici.
+
+**Și felul inamicilor**, tot de la spawner (`scena_inamic()`, public nou): mori în Nether → creaturi Nether, în Ender → creaturile lui Celesto, în lumea normală → polițiști cu amestecul de Skinny/scăpați de la momentul ăla. Merge fiindcă dimensiunea rămâne `active` cât e suspendată (vezi mai jos).
+
+Viteza și damage-ul n-au avut nevoie de nimic: `enemy.gd` coace viteza din `Difficulty.enemy_speed_mult()` la `_ready`, iar damage-ul se citește la fiecare mușcătură — amândouă trec prin `_mult_time()`, deci s-au aliniat singure odată ce ceasul a devenit corect.
+
+### 2. Portalul de Ender în Limbo
+
+`WORLD_NODES` din `limbo.gd` NU avea `"Portals"` — singura listă din trei (`nether.gd`, `ender.gd`, `limbo.gd`) căreia îi lipsea. Deci generatorul rămânea aprins și-ți răsăreau portaluri Nether și fântâni Ender în câmpia alb-negru. Adăugat. **Asta e a treia oară** când un generator lipsește dintr-o listă și nimic nu te avertizează (înainte: „EGTs", de două ori, pe 2026-07-30).
+
+### 3. Te dă înapoi ÎN DIMENSIUNEA în care ai murit
+
+Până acum `player.die()` ÎNCHIDEA Nether-ul/Ender-ul (`exit_nether(false)`) și abia apoi chema Limbo. Adică minutul de Limbo îți mânca portalul de întoarcere, structura de invocare, boss-ul la viața pe care i-o lăsaseși și cele 7 (sau 6) minute — iar la ieșire te trezeai în lumea normală. Acum e invers: **Limbo întreabă primul**, iar dacă te prinde, pune dimensiunea **PE PAUZĂ** în loc s-o închidă.
+
+`nether.gd` și `ender.gd` au primit `suspenda()` / `reia()` + un `_suspendat` care le face `_process`-ul mut. Cât ești în Limbo: ceasul lor stă (`_elapsed` nu curge), nu mai rescriu `mult_time_override` (e al Limbo-ului), podeaua și atmosfera trec pe neutru, iar ieșirea lor (portalul Nether / fântâna Ender), structura de invocare, statuile de schimb din Ender și boss-ul sunt **ascunse, nu șterse**.
+
+**Trei capcane rezolvate pe drum:**
+- **Boss-ul ar fi fost măturat.** Saratalin și Celesto sunt în grupul `"enemy"` — exact grupul pe care îl golește `limbo.gd::_clear_enemies()`. Un boss adus la jumătate de viață ar fi dispărut, iar portalul nu s-ar mai fi deschis NICIODATĂ. Soluție: `remove_from_group("enemy")` cât e parcat, `add_to_group` la reluare.
+- **„Press E" în aer.** Portalul ascuns rămâne în grupul `"interactable"`, deci `interact_ui.gd` ți-ar fi scris „Press E to interact" peste câmpia alb-negru — și ai fi ieșit din Limbo prin el. Adăugat un filtru `is_visible_in_tree()` acolo (nu `visible`: statuile Ender sunt ascunse de pe părintele lor).
+- **Decorul lumii normale s-ar fi aprins peste Nether.** La ieșirea din Limbo, `_set_world_enabled(true)` era necondiționat. Acum e `_set_world_enabled(_dimensiune == null)`.
+
+Ca să nu rămână nimic ascuns dacă mori a doua oară în Limbo, `exit_nether` / `exit_ender` cheamă `reia()` din prima linie când sunt suspendate.
+
+### 4. Ce ai folosit deja în lumea normală NU se mai reface
+
+Intrarea în ORICE dimensiune golește toate generatoarele (`_toggle_generator` șterge copiii și `_loaded`), iar la ieșire ele se refac de la zero. Deci un cufăr deschis se întorcea închis, o statuie invocată se întorcea în picioare — la fiecare drum în Nether, dar și la o simplă plimbare de `load_radius` chunk-uri. Adică upgrade-uri câte chei ai și Gardă după Gardă din același loc.
+
+`chests.gd` și `statues.gd` au primit tiparul care exista deja în `monuments.gd`: un dicționar `_folosite` + `marcheaza_folosit(pos)`, chemat de `chest.gd::invoca()` și `statue.gd::invoca()`. **Cheia e POZIȚIA rotunjită, nu chunk-ul** — la cufere chunk-ul ar fi fost greșit, fiindcă lada se pune lângă poteca chunk-ului, iar o potecă lungă iese din el, deci lada poate cădea în alt chunk decât cel care a generat-o. EGT-ul nu intră: el e refolosibil prin design.
+
+### Verificat RULÂND (`test_limbo.tscn`, temporar, șters după)
+
+Patru scenarii, toate verzi de două ori la rând:
+- **lumea normală**: dificultate 240 din 300 · Portals oprit ȘI golit · zero obiecte interactibile vizibile · **rata măsurată 4,42 inamici/s față de 4,24 cerut** (cu tunul player-ului oprit, ca să nu moară nimeni în timpul măsurătorii) · întoarcere la ±1px.
+- **Nether**: `active && _suspendat` · dificultate 440,4 = 500,4 − 60 · portal ascuns · inamicii = `enemy_nether.tscn` · la ieșire ceasul Nether-ului a stat pe loc (200,10 → 200,38, adică doar cadrele de tranziție) · `xp_bonus` înapoi la 2,0 · decorul lumii rămas stins.
+- **Ender**: statuile de schimb stinse dar NEȘTERSE (3 → 3) · Celesto scos din `"enemy"` · la întoarcere viu cu **hp neatins** (100000 → 100000) · fântâna vizibilă iar · `xp_bonus` 3,0.
+- **cufere/statui**: cu un **martor** — golesc și regenerez FĂRĂ să marchez → obiectul se întoarce; marchez → nu se mai întoarce. Fără martor, „nu s-a întors" ar fi putut însemna doar că regenerarea n-a apucat să ruleze.
+
+Plus o captură de ecran: fântână Ender lângă player în lumea normală → mori → în Limbo câmpia e goală, alb-negru, cu 38 de inamici pe tine și **zero** fântâni.
+
+**De știut la testare:** dacă player-ul apucă să urce în nivel, ecranul de Level Up pune arborele pe `paused` și generatoarele nu mai construiesc nimic — m-a costat două rulări până am văzut `paused=true`.
+
+---
+
 ## Session log — 2026-08-06 (Adrenaline: +15% → +7% crit)
 
 **Cerut de Răzvan:** „Adrenaline vreau sa aiba doar +7 crit chance".

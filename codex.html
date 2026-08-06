@@ -302,7 +302,7 @@ const ITEMS = [
     warn: "Merge cu orice armă · nu pe boss" },
   { id: "undying_spirit", name: "Undying Spirit", icon: "upgrade_41.png", rar: "legendary", isNew: true,
     game: "Second chance",
-    eff: "Prima moarte nu te termină: ajungi în <b>LIMBO</b> — lume goală, alb-negru — cu <b>jumătate din viață</b> și un val de inamici pe tine. Reziști <b>1:00</b> și te întorci exact unde ai murit, cu inamicii de acolo <b>șterși</b>. Odată luat, <b>iese din listă</b> pentru toată runda — nu se stivuiește, deci a doua luare ar fi fost un Legendary irosit.",
+    eff: "Prima moarte nu te termină: ajungi în <b>LIMBO</b> — lume goală, alb-negru, fără copaci, cufere sau portaluri — cu <b>jumătate din viață</b> și un val de inamici pe tine. Reziști <b>1:00</b> și te întorci exact unde ai murit, <b>și în dimensiunea în care ai murit</b> (lumea normală, Nether sau Ender), cu inamicii de acolo <b>șterși</b>. Odată luat, <b>iese din listă</b> pentru toată runda — nu se stivuiește, deci a doua luare ar fi fost un Legendary irosit.",
     warn: "Nu mai apare după ce l-ai luat · mori în Limbo = Game Over" },
 
   { id: "seringa", name: "Last Resort", icon: "upgrade_35.png", rar: "uncommon", isNew: true,
@@ -437,7 +437,7 @@ const SYN = [
   { title: "Cum se adună Norocul", accent: "var(--gold)",
     body: "<b>The Office</b> (+2.5) · <b>Unusual Clover</b> (+5) · <b>Royal Flush</b> (+10) se stivuiesc între ele. Fiecare punct ia <b>0.5%</b> de la common și uncommon și îl împarte <b>2:2:1</b> spre rare/epic/legendary, plus <b>+0.4%</b> la șansele itemelor pe care le ai. Toate trei = <b>17.5 noroc</b> → C 31.25 · U 26.25 · R 22 · E 14.5 · L 6, iar un crit de 7% devine <b>14%</b>. Șansele pe care le atinge norocul: <b>crit</b>, <b>instakill</b> (Rusty / Doctor's Hacksaw), <b>Broken Watch</b>, <b>Plugged In</b>, <b>Horse Mask</b> și <b>Borat's Mankini</b> — <b>Duridama nu</b>, aurirea rămâne 1% pe stack oricât noroc ai. <b>Norocul nu-ți dă o șansă pe care n-ai luat-o</b>: fără Adrenaline criticul rămâne 0." },
   { title: "Limbo nu e o a doua viață", accent: "var(--gold)",
-    body: "<b>Undying Spirit</b> nu se stack-uiește: a doua luare NU-ți dă a doua salvare. Inamicii din Limbo au dificultatea de <b>acum un minut</b>, nu cea curentă — deci cu cât mori mai târziu, cu atât e mai blând față de runda ta. Cronometrul rundei stă pe loc acolo (minutul nu-ți crește scorul)." },
+    body: "<b>Undying Spirit</b> nu se stack-uiește: a doua luare NU-ți dă a doua salvare. Inamicii din Limbo au dificultatea de <b>acum un minut</b> — viață, viteză, damage <b>și ritm de apariție</b> — socotită din dificultatea pe care o simțeai când ai murit, nu din ceasul rundei: mori la minutul 4 din Nether, primești Nether de minutul 3, cu creaturile lui, nu polițiști de la început de rundă. Cronometrul rundei stă pe loc acolo (minutul nu-ți crește scorul), iar dimensiunea în care ai murit te așteaptă pe pauză: portal, boss și ceasul ei rămân exact cum le-ai lăsat." },
   { title: "Capcana Panic Button", accent: "var(--gold)",
     body: "Se declanșează cât ești pe <b>PAUZĂ</b> (la level up), deci nu te scoate niciodată dintr-o încercuire — practic îți dă doar XP-ul de pe ecran. Ține minte CÂND îl iei." },
   { title: "Farmecul nu se propagă în lanț", accent: "var(--magenta)",

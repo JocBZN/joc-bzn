@@ -72,6 +72,7 @@ var _elapsed := 0.0          # de câte secunde ești în Ender
 var _entry_diff_time := 0.0  # în ce secundă a rundei ai intrat
 var _swarm_announced := false
 var _boss_invins := false    # cât e `false`, fântâna de întoarcere nu te lasă să pleci
+var _suspendat := false      # ești în Limbo, murit AICI — vezi `suspenda()`
 
 # PUBLIC, și NU se stinge la ieșire: „l-ai bătut pe Celesto măcar o dată în runda asta".
 # `_boss_invins` de mai sus se resetează la fiecare intrare (el ține ușa închisă); ăsta rămâne
@@ -192,6 +193,10 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 func exit_ender(anunt: bool = true) -> void:
 	if not active:
 		return
+	# Ai murit în Limbo, iar Limbo ne ținea pe pauză → ne trezim întâi (vezi `suspenda`), ca
+	# ieșirea de mai jos să găsească fântâna și boss-ul la locul lor, nu ascunse.
+	if _suspendat:
+		reia()
 	if anunt and not _boss_invins:
 		_announce("CELESTO STILL STANDS", "The well will not open until it falls")
 		Audio.play("levelup", -6.0)
@@ -222,7 +227,7 @@ func exit_ender(anunt: bool = true) -> void:
 		_inchide_fantana()
 
 func _process(delta: float) -> void:
-	if not active:
+	if not active or _suspendat:
 		return
 	# Cât ține cinematica de intrare suntem pe `PROCESS_MODE_ALWAYS` (ca să meargă tween-urile),
 	# deci ajungem aici DEȘI jocul e înghețat. Ieșim: cronometrul Ender-ului n-are ce să curgă
@@ -251,6 +256,87 @@ func boss_invins() -> void:
 	celesto_invins = true   # de aici încolo creaturile lui apar și în lumea normală
 	_announce("CELESTO FALLS", "Press E at the well to go back")
 	Audio.play("levelup", -2.0)
+
+# ---------- PAUZĂ CÂT EȘTI ÎN LIMBO ----------
+# Identic cu `nether.gd::suspenda()` — citește comentariul lung de acolo. Diferențele Ender-ului:
+# ieșirea e chiar fântâna prin care ai intrat (nu un portal nou), boss-ul e al nostru (`_boss`),
+# iar statuile de schimb (`ENDER_ONLY_NODES`) merg pe dos față de restul decorului, deci trebuie
+# stinse de mână — dar FĂRĂ să le golim: altfel cele la care ai făcut deja schimb s-ar naște din
+# nou la întoarcere, adică exact resetarea pe care Răzvan a cerut să n-o mai facem.
+func suspenda() -> void:
+	if not active or _suspendat:
+		return
+	_suspendat = true
+	_set_ground_ender(false)
+	_set_atmosphere("")
+	_set_ender_only(false)
+	Difficulty.xp_bonus = 1.0      # bonusul e al Ender-ului, nu al Limbo-ului
+	_clock.visible = false
+	_arrow.visible = false
+	_dist.visible = false
+	_arata_obiect(_fantana, false)
+	_park_boss(true)
+	_bara_boss(false)
+
+func reia() -> void:
+	if not _suspendat:
+		return
+	_suspendat = false
+	_set_ground_ender(true)
+	_set_atmosphere("ender")
+	_set_ender_only(true)
+	Difficulty.frozen = true
+	Difficulty.mult_time_override = _diff_time()
+	Difficulty.xp_bonus = XP_BONUS
+	_clock.visible = true
+	_update_clock()
+	_arata_obiect(_fantana, true)
+	_park_boss(false)
+	_bara_boss(true)
+
+# Statuile de schimb: stinse cât ești în Limbo, aprinse la loc când te întorci. `false` pe al
+# treilea argument = NU le golim de copii, deci inelul de statui rămâne exact cum l-ai lăsat.
+func _set_ender_only(on: bool) -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+	var world := _player.get_parent()
+	if world == null:
+		return
+	for n in ENDER_ONLY_NODES:
+		_toggle_generator(world.get_node_or_null(n), on, false)
+
+# Ascunde/arată un obiect din lume. `PROCESS_MODE_DISABLED` îi scoate și corpul din spațiul de
+# fizică (`CollisionObject2D.disable_mode` e „remove" implicit), deci nu te lovești de o fântână
+# invizibilă cât ești în Limbo.
+func _arata_obiect(n: Node2D, on: bool) -> void:
+	if n == null or not is_instance_valid(n):
+		return
+	n.visible = on
+	n.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+
+# Celesto, cât ești în Limbo. Îl scoatem din grupul „enemy" fiindcă exact ăla e grupul pe care îl
+# mătură `limbo.gd::_clear_enemies()` — fără asta, boss-ul adus la jumătate de viață ar dispărea,
+# iar fântâna n-ar mai avea cum să se deschidă vreodată.
+func _park_boss(parcat: bool) -> void:
+	if _boss == null or not is_instance_valid(_boss):
+		return
+	if parcat:
+		_boss.remove_from_group("enemy")
+	else:
+		_boss.add_to_group("enemy")
+	_arata_obiect(_boss, not parcat)
+
+func _bara_boss(on: bool) -> void:
+	var bara := get_tree().get_first_node_in_group("boss_bar")
+	if bara == null:
+		return
+	if not on or _boss == null or not is_instance_valid(_boss):
+		if bara.has_method("ascunde"):
+			bara.ascunde()
+		return
+	if bara.has_method("arata"):
+		bara.arata(_boss.nume, _boss.max_hp)
+		bara.set_hp(_boss.hp)
 
 # Ai ieșit învingător → FÂNTÂNILE SE ÎNCHID PE RESTUL RUNDEI. Cea prin care ai ieșit intră în
 # pământ cu cutremur (e deja mutată în `World` de la intrare, deci se vede scufundându-se),
@@ -606,12 +692,15 @@ func _set_world_enabled(on: bool) -> void:
 		for n in ROOT_NODES:
 			_toggle_generator(root.get_node_or_null(n), on)
 
-func _toggle_generator(node: Node, on: bool) -> void:
+# `goleste` = și ștergem ce a încărcat generatorul. Implicit da (asta vrei la intrarea/ieșirea
+# din dimensiune). `false` doar la pauza de Limbo (`_set_ender_only`), unde generatorul trebuie
+# doar stins pe moment, cu tot cu ce are deja în el.
+func _toggle_generator(node: Node, on: bool, goleste: bool = true) -> void:
 	if node == null:
 		return
 	node.visible = on
 	node.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
-	if not on:
+	if not on and goleste:
 		for c in node.get_children():
 			c.queue_free()
 		if node.get("_loaded") != null:

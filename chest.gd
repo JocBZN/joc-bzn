@@ -85,6 +85,16 @@ func invoca() -> void:
 	if not GameSettings.foloseste_cheie():
 		return
 	_deschis = true
+	# `chests.gd` ține minte locul, ca lada să NU se întoarcă închisă când chunk-ul se descarcă și
+	# se regenerează — se întâmplă și dacă te îndepărtezi și revii, și la fiecare intrare/ieșire
+	# din Nether, Ender sau Limbo (ele golesc toate generatoarele). Fără asta, o singură ladă
+	# plus o plimbare însemna upgrade-uri la nesfârșit, câte chei aveai. Același tipar ca la
+	# monument (`monument.gd` → `monuments.gd::marcheaza_folosit`).
+	var gen := get_parent()
+	while gen != null and not gen.has_method("marcheaza_folosit"):
+		gen = gen.get_parent()
+	if gen != null:
+		gen.marcheaza_folosit(global_position)
 	var spr := $AnimatedSprite2D as AnimatedSprite2D
 	Audio.play("chest_open", open_db, 0.0)   # capacul, fix pe apăsarea tastei (fără variație de ton)
 	spr.animation_finished.connect(_capac_ridicat)

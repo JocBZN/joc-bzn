@@ -1774,9 +1774,24 @@ func take_damage(amount: int) -> void:
 func die() -> void:
 	if dead:
 		return
-	# Ai murit în Nether → ieși ÎNTÂI din dimensiune (lumea, podeaua și dificultatea se pun la
-	# loc), abia apoi urmează drumul normal de mai jos. Altfel Limbo ar reporni decorul peste
-	# podeaua de cărămidă, iar cele două s-ar călca reciproc pe `mult_time_override`.
+	# Undying Spirit: prima moarte nu e finală. Te duce în Limbo (lumea alb-negru) și,
+	# dacă reziști minutul, te întoarce aici. O SINGURĂ dată pe rundă — a doua oară
+	# `undying_used` e deja true și cazi pe Game Over-ul normal de mai jos.
+	#
+	# ⚠️ Se întreabă ÎNAINTEA ieșirii din dimensiune, și e invers față de cum a fost până pe
+	# 2026-08-06. Atunci Nether-ul/Ender-ul se închideau primele, deci un minut de Limbo îți
+	# mânca portalul, boss-ul și ceasul dimensiunii, iar la întoarcere te trezeai în lumea
+	# normală. Acum Limbo le pune el pe pauză (`suspenda()`) și te dă înapoi fix de unde ai
+	# murit, cum a cerut Răzvan. Dacă Limbo NU te prinde, dimensiunea se închide ca înainte,
+	# mai jos.
+	if has_undying and not undying_used:
+		var limbo := get_tree().get_first_node_in_group("limbo")
+		if limbo != null and not limbo.active:
+			undying_used = true
+			limbo.enter(self)
+			return
+	# Moarte adevărată. Ai murit în Nether → ieși ÎNTÂI din dimensiune (lumea, podeaua și
+	# dificultatea se pun la loc), abia apoi ecranul de Game Over.
 	var nether := get_tree().get_first_node_in_group("nether")
 	if nether != null and nether.active:
 		nether.exit_nether(false)
@@ -1784,15 +1799,6 @@ func die() -> void:
 	var ender := get_tree().get_first_node_in_group("ender")
 	if ender != null and ender.active:
 		ender.exit_ender(false)
-	# Undying Spirit: prima moarte nu e finală. Te duce în Limbo (lumea alb-negru) și,
-	# dacă reziști minutul, te întoarce aici. O SINGURĂ dată pe rundă — a doua oară
-	# `undying_used` e deja true și cazi pe Game Over-ul normal de mai jos.
-	if has_undying and not undying_used:
-		var limbo := get_tree().get_first_node_in_group("limbo")
-		if limbo != null and not limbo.active:
-			undying_used = true
-			limbo.enter(self)
-			return
 	dead = true
 	var screen := get_tree().get_first_node_in_group("gameover_screen")
 	if screen != null:

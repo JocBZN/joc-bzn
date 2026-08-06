@@ -73,6 +73,7 @@ var _elapsed := 0.0          # de câte secunde ești în Nether
 var _entry_diff_time := 0.0  # în ce secundă a rundei ai intrat (de acolo pleacă dificultatea)
 var _swarm_announced := false
 var _boss_invins := false    # cât e `false`, portalul de întoarcere nu te lasă să pleci
+var _suspendat := false      # ești în Limbo, murit AICI — vezi `suspenda()`
 
 func _ready() -> void:
 	add_to_group("nether")
@@ -187,6 +188,10 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 func exit_nether(anunt: bool = true) -> void:
 	if not active:
 		return
+	# Ai murit în Limbo, iar Limbo ne ținea pe pauză → ne trezim întâi, ca ieșirea de mai jos să
+	# găsească totul la locul lui (portal, boss, generatoare) și să nu lase nimic ascuns în lume.
+	if _suspendat:
+		reia()
 	# Nu pleci până nu cade Saratalin. Structura care îl cheamă e undeva în inelul din jurul
 	# portalului; busola te duce la ea (vezi `_tinta_busola`).
 	if anunt and not _boss_invins:
@@ -234,7 +239,7 @@ func _scapatii_acum() -> void:
 	_announce("SOMETHING FOLLOWED YOU", "Nether creatures now roam the world")
 
 func _process(delta: float) -> void:
-	if not active:
+	if not active or _suspendat:
 		return
 	# Ai murit în Nether (sau player-ul nu mai există) → ieșim curat, fără anunț.
 	# În mod normal `player.die()` ne scoate el înainte; asta e plasa de siguranță.
@@ -249,6 +254,90 @@ func _process(delta: float) -> void:
 		_swarm_announced = true
 		_announce("NETHER SWARM", "The portal still works. For now.")
 		Audio.play("levelup", -2.0)
+
+# ---------- PAUZĂ CÂT EȘTI ÎN LIMBO ----------
+# Ai murit AICI și ai avut „Undying Spirit". Până pe 2026-08-06 asta însemna ieșire forțată din
+# Nether (`player.die()` chema `exit_nether(false)` înainte de Limbo), deci minutul de Limbo îți
+# mânca portalul, structura de invocare, boss-ul și cele 7 minute — iar la întoarcere te trezeai
+# în lumea normală. Răzvan a cerut să te dea „fix din locul unde ai murit: dacă în Nether, acolo".
+#
+# Deci nu mai IEȘIM, ci ne PUNEM PE PAUZĂ: `active` rămâne aprins (HUD-ul și `spawner.gd` se uită
+# la el), dar `_process` tace — adică `_elapsed` stă pe loc, ceasul nu curge și nu mai rescriem
+# `Difficulty.mult_time_override`, care de-acum e al Limbo-ului. Tot ce ține de „cum arată aici"
+# se stinge, ca Limbo să rămână câmpia lui alb-negru; `reia()` pune totul înapoi.
+#
+# Muzica NU se atinge dinadins: Limbo n-are melodie proprie, iar bucla Nether-ului sub filtrul
+# alb-negru sună exact a ce e — limbul locului în care ai murit.
+func suspenda() -> void:
+	if not active or _suspendat:
+		return
+	_suspendat = true
+	_set_ground_nether(false)
+	_set_atmosphere("")
+	Difficulty.xp_bonus = 1.0      # bonusul e al Nether-ului, nu al Limbo-ului
+	_clock.visible = false
+	_arrow.visible = false
+	_dist.visible = false
+	# Portalul de întoarcere și structura de invocare stau direct în `World`, deci golirea
+	# generatoarelor (Limbo) nu le atinge — le ascundem noi, altfel ar pluti în Limbo, cu tot cu
+	# „Press E to interact" (`interact_ui.gd` se uită acum la `is_visible_in_tree`).
+	_arata_obiect(_return_portal, false)
+	_arata_obiect(_summon_portal, false)
+	_park_boss(true)
+	_bara_boss(false)
+
+func reia() -> void:
+	if not _suspendat:
+		return
+	_suspendat = false
+	_set_ground_nether(true)
+	_set_atmosphere("nether")
+	# Dificultatea e din nou a noastră, exact de unde a rămas: `_elapsed` n-a curs în Limbo.
+	Difficulty.frozen = true
+	Difficulty.mult_time_override = _diff_time()
+	Difficulty.xp_bonus = XP_BONUS
+	_clock.visible = true
+	_update_clock()
+	_arata_obiect(_return_portal, true)
+	_arata_obiect(_summon_portal, true)
+	_park_boss(false)
+	_bara_boss(true)
+
+# Ascunde/arată un obiect din lume. `PROCESS_MODE_DISABLED` îi scoate și corpul din spațiul de
+# fizică (`CollisionObject2D.disable_mode` e „remove" implicit), deci nu te lovești de un portal
+# invizibil cât ești în Limbo.
+func _arata_obiect(n: Node2D, on: bool) -> void:
+	if n == null or not is_instance_valid(n):
+		return
+	n.visible = on
+	n.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
+
+# Saratalin, cât ești în Limbo. Îl scoatem din grupul „enemy" fiindcă exact ăla e grupul pe care
+# îl mătură `limbo.gd::_clear_enemies()` la intrare și la ieșire — fără linia asta, boss-ul pe
+# care îl aveai la jumătate de viață ar dispărea pur și simplu, iar portalul n-ar mai avea cum
+# să se deschidă vreodată.
+func _park_boss(parcat: bool) -> void:
+	var boss := get_tree().get_first_node_in_group("saratalin") as Node2D
+	if boss == null:
+		return
+	if parcat:
+		boss.remove_from_group("enemy")
+	else:
+		boss.add_to_group("enemy")
+	_arata_obiect(boss, not parcat)
+
+func _bara_boss(on: bool) -> void:
+	var bara := get_tree().get_first_node_in_group("boss_bar")
+	if bara == null:
+		return
+	var boss := get_tree().get_first_node_in_group("saratalin")
+	if not on or boss == null or not is_instance_valid(boss):
+		if bara.has_method("ascunde"):
+			bara.ascunde()
+		return
+	if bara.has_method("arata"):
+		bara.arata(boss.nume, boss.max_hp)
+		bara.set_hp(boss.hp)
 
 # L-ai bătut pe Saratalin și te-ai întors în lume → PORTALURILE SE ÎNCHID PE RESTUL RUNDEI,
 # dar locul lor nu rămâne gol: îl iau FÂNTÂNILE ENDER. Cel prin care tocmai ai ieșit intră în

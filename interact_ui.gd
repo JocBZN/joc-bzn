@@ -80,6 +80,13 @@ func _tinta_cea_mai_apropiata() -> Node2D:
 	for s in get_tree().get_nodes_in_group("interactable"):
 		if not is_instance_valid(s) or not s.poate_invoca():
 			continue
+		# Ce nu se vede nu se poate folosi. Cât ești în Limbo, dimensiunea în care ai murit e pusă
+		# pe pauză, iar ieșirea ei (portalul Nether / fântâna Ender) și statuile de schimb sunt
+		# doar ASCUNSE, nu șterse — fără linia asta ți-ar scrie „Press E to interact" în aer, peste
+		# câmpia alb-negru, și ai fi putut ieși din Limbo prin ele.
+		# `is_visible_in_tree`, nu `visible`: statuile Ender sunt ascunse de pe părintele lor.
+		if not s.is_visible_in_tree():
+			continue
 		var d: float = player.global_position.distance_to(s.global_position)
 		if d <= s.interact_range and d < best_d:
 			best_d = d

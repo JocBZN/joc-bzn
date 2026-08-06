@@ -116,6 +116,16 @@ func invoca() -> void:
 		return
 	_summoned = true
 
+	# `statues.gd` ține minte locul, ca statuia să NU se întoarcă în picioare când chunk-ul se
+	# descarcă și se regenerează — se întâmplă la o simplă plimbare, dar și la fiecare
+	# intrare/ieșire din Nether, Ender sau Limbo (ele golesc toate generatoarele). Fără asta,
+	# aceeași statuie îți dădea Gardă după Gardă. Același tipar ca la monument și la cufăr.
+	var gen := get_parent()
+	while gen != null and not gen.has_method("marcheaza_folosit"):
+		gen = gen.get_parent()
+	if gen != null:
+		gen.marcheaza_folosit(global_position)
+
 	# 1) simbol de alertă deasupra statuii
 	_spawn_alert(global_position + Vector2(0, _statue_top_y()))
 

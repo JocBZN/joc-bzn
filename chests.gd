@@ -25,6 +25,16 @@ const SEED_SALT := 0xC4E5  # sămânță proprie → cufărul nu urmează tiparu
 @export var tries: int = 8                # câte laturi de potecă încercăm până renunțăm la cufăr
 
 var _loaded := {}
+# Cuferele DESCHISE, ținute minte pe toată runda (ca la `monuments.gd::_folosite`). Fără ele, un
+# cufăr golit se întorcea închis de fiecare dată când chunk-ul lui se descărca și se regenera —
+# adică dacă te îndepărtai `load_radius` chunk-uri și reveneai, sau dacă intrai și ieșeai dintr-o
+# dimensiune (Nether/Ender/Limbo golesc TOATE generatoarele). Cerut de Răzvan pe 2026-08-06:
+# „când revii din limbo sau orice altă dimensiune nu vreau să se reseteze lucrurile deja folosite".
+#
+# Cheia e POZIȚIA rotunjită, nu chunk-ul: cufărul se pune lângă poteca chunk-ului, iar o potecă
+# lungă iese din el, deci cufărul poate cădea în alt chunk decât cel care l-a generat — cu cheia
+# de chunk am fi stins cufărul greșit. Poziția, în schimb, e deterministă și e chiar a lui.
+var _folosite := {}
 var _paths: Node = null   # nodul Paths (pathways.gd) — el știe unde sunt tile-urile potecilor
 var _rocks: Node2D = null # nodul Rocks — ca să nu înfigem cufărul într-o piatră
 var _cutie := Rect2()     # mărimea reală a cufărului, măsurată o dată (vezi `_cutie_cufar`)
@@ -144,12 +154,23 @@ func _langa_piatra(pos: Vector2) -> bool:
 					return true
 	return false
 
+# Chemată de `chest.gd` când cufărul e deschis: de aici încolo locul ăsta rămâne gol.
+# Primește poziția din LUME (cufărul nu-și știe locul în generator), noi o aducem la noi acasă.
+func marcheaza_folosit(pos_lume: Vector2) -> void:
+	_folosite[_cheie(to_local(pos_lume))] = true
+
+# Poziția, rotunjită la pixel întreg. Rotunjim ca să nu depindem de virgulele mobile: aceeași
+# sămânță dă același `float` de fiecare dată, dar drumul dus-întors prin `global_position` poate
+# pierde ultimul bit, iar un dicționar nu iartă nici atât.
+func _cheie(p: Vector2) -> Vector2i:
+	return Vector2i(p.round())
+
 func _build_chunk(key: Vector2i) -> Node2D:
 	var container := Node2D.new()
 	container.y_sort_enabled = true
 	add_child(container)
 	var pos := chunk_chest_pos(key)
-	if pos != Vector2.INF:
+	if pos != Vector2.INF and not _folosite.has(_cheie(pos)):
 		var c := CHEST.instantiate()
 		c.position = pos
 		container.add_child(c)

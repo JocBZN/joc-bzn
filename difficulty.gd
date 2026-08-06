@@ -114,6 +114,13 @@ func reset_run() -> void:
 func _mult_time() -> float:
 	return mult_time_override if mult_time_override >= 0.0 else time
 
+# Același lucru, dar PUBLIC. Îl cere `limbo.gd`: „inamicii de acum un minut" înseamnă un minut
+# înainte de dificultatea pe care o SIMȚEAI când ai murit, nu de `time`. Diferența e uriașă dacă
+# ai murit în Nether sau în Ender: acolo `time` e înghețat de la intrare, deci `time - 60` te-ar
+# fi trimis cu minute bune înapoi, în Limbo cu inamici de început de rundă.
+func mult_time() -> float:
+	return _mult_time()
+
 func _mult_is_fs() -> bool:
 	return _mult_time() >= RUN_LENGTH
 

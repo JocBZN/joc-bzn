@@ -19,6 +19,14 @@ const SEED_SALT := 0x57A7  # ca să nu iasă aceleași numere ca la copaci/pietr
 @export var tries: int = 12               # câte poziții încearcă până renunță la fereală
 
 var _loaded := {}
+# Statuile de la care ai chemat deja Garda, ținute minte pe toată runda (ca la
+# `monuments.gd::_folosite` și `chests.gd`). Fără ele, o statuie folosită se întorcea în picioare
+# de fiecare dată când chunk-ul ei se descărca și se regenera — la o plimbare de `load_radius`
+# chunk-uri, sau la orice intrare/ieșire din Nether, Ender și Limbo, care golesc toate
+# generatoarele. Adică boss (și XP-ul lui) la nesfârșit, din același loc. Cerut de Răzvan pe
+# 2026-08-06: „când revii din limbo sau orice altă dimensiune nu vreau să se reseteze lucrurile
+# deja folosite în lumea normală".
+var _folosite := {}
 var _props: Node2D = null   # nodul Props, ca să știm unde sunt copacii
 var _rocks: Node2D = null   # nodul Rocks — statuile se feresc și de pietre, nu doar de copaci
 
@@ -89,12 +97,21 @@ func _langa_piatra(pos: Vector2, key: Vector2i) -> bool:
 					return true
 	return false
 
+# Chemată de `statue.gd` la invocare: de aici încolo locul ăsta rămâne gol.
+# Primește poziția din LUME (statuia nu-și știe locul în generator), noi o aducem la noi acasă.
+func marcheaza_folosit(pos_lume: Vector2) -> void:
+	_folosite[_cheie(to_local(pos_lume))] = true
+
+# Poziția, rotunjită la pixel întreg — vezi comentariul din `chests.gd::_cheie`.
+func _cheie(p: Vector2) -> Vector2i:
+	return Vector2i(p.round())
+
 func _build_chunk(key: Vector2i) -> Node2D:
 	var container := Node2D.new()
 	container.y_sort_enabled = true
 	add_child(container)
 	var pos := chunk_statue_pos(key)
-	if pos != Vector2.INF:
+	if pos != Vector2.INF and not _folosite.has(_cheie(pos)):
 		var s := STATUE.instantiate()
 		s.position = pos
 		container.add_child(s)

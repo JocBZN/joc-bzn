@@ -154,13 +154,26 @@ func _process(_delta: float) -> void:
 		_announce("FINAL SWARM", "They just keep coming. Survive as long as you can.")
 		Audio.play("levelup", -2.0)
 
-# La fiecare tick calculăm din nou cât de deasă e ploaia de inamici.
-func _spawn_tick() -> void:
-	# câți inamici pe secundă ar trebui să apară acum
+# Câți inamici pe secundă ar trebui să curgă ACUM, la dificultatea de acum.
+#
+# E scoasă din `_spawn_tick` ca s-o poată folosi și `limbo.gd`: acolo spawner-ul e OPRIT (Limbo
+# își naște singur inamicii), dar de pe 2026-08-06 trebuie să-i scoată în EXACT același ritm ca
+# lumea de acum un minut. Un singur loc unde trăiește formula — inclusiv corecția aia de
+# 2/(1−nether_share), pe care am greșit-o o dată deja (vezi comentariul de la `escaped_*`).
+func rata_curenta() -> float:
 	var rate := (1.0 / spawn_interval) * Difficulty.spawn_mult()
 	if _scapat_din_nether():
 		# de două ori mai mulți polițiști, cu creaturile tot la `nether_share` din total
 		rate *= escaped_police_mult / maxf(0.01, 1.0 - nether_share)
+	return rate
+
+# Ce fel de inamic naște lumea acum — PUBLIC, tot pentru Limbo (vezi `_scena_inamic`).
+func scena_inamic() -> PackedScene:
+	return _scena_inamic()
+
+# La fiecare tick calculăm din nou cât de deasă e ploaia de inamici.
+func _spawn_tick() -> void:
+	var rate := rata_curenta()
 	var interval := 1.0 / rate
 	var batch := 1
 	# dacă ritmul cerut e mai rapid decât poate bate timer-ul, compensăm scoțând
