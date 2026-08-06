@@ -594,12 +594,21 @@ var _burst_left := 0        # câte atacuri mai are burst-ul curent
 var _burst_gap := 0.0       # pauza dintre ele (calculată la pornire)
 var _burst_t := 0.0         # countdown până la următorul atac din burst
 var _burst_kind := ""       # "sword" sau "scythe"
+var _ground: Node = null    # podeaua, ținută minte: o întrebăm în FIECARE cadru de fizică unde e marginea
 
 func _physics_process(delta: float) -> void:
 	_tick_burst(delta)
 	var directie := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = directie * speed
 	move_and_slide()
+	# Marginea Nether-ului / Ender-ului: te oprești pe buza gropii. NU e un zid de coliziune —
+	# un StaticBody în cerc ar fi însemnat un al doilea adevăr despre unde e marginea, iar podeaua
+	# (`ground.gd`) îl are deja pe primul, fiindcă tot ea o și desenează. În lumea normală și în
+	# Limbo `in_margine` întoarce punctul neatins, deci linia asta nu costă nimic acolo.
+	if _ground == null or not is_instance_valid(_ground):
+		_ground = get_tree().get_first_node_in_group("ground")
+	if _ground != null and _ground.has_method("in_margine"):
+		global_position = _ground.in_margine(global_position)
 	if directie != Vector2.ZERO:
 		_facing = directie.normalized()  # reținem direcția reală de privire (pt. tăietura sabiei)
 		_update_anim(directie)

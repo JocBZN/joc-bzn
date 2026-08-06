@@ -26,6 +26,16 @@ uniform float warp_amount = 0.0;
 uniform float warp_scale = 0.004;    // cât de dese sunt valurile (1/px)
 uniform float warp_speed = 0.4;      // cât de repede curg
 
+// --- MARGINEA LUMII: groapa (doar în Nether / Ender) ---
+// Podeaua se stinge spre NEGRU pe ultimii `void_fade` pixeli dinaintea lui `void_radius`, iar
+// dincolo rămâne negru plin — adică groapa fără fund, ca în Minecraft. `void_radius = 0` (implicit)
+// înseamnă „lumea n-are margine" și fragmentul sare complet peste calcul: lumea normală și Limbo
+// nu plătesc nimic. Cifrele le scrie `ground.gd`, care ține și zidul — vezi acolo de ce amândouă
+// stau în același loc.
+uniform vec2 void_center = vec2(0.0);
+uniform float void_radius = 0.0;
+uniform float void_fade = 700.0;
+
 varying vec2 world_pos;
 
 void vertex() {
@@ -99,4 +109,11 @@ void fragment() {
 		}
 	}
 	COLOR = mix(grass, desert, d);
+
+	// Groapa. ⚠️ Măsurăm pe `world_pos`, NU pe `wp` (poziția unduită): unduirea din Ender ar face
+	// buza gropii să se legene, iar zidul care te oprește stă pe loc — s-ar vedea limpede că
+	// marginea desenată și marginea adevărată nu sunt aceeași.
+	if (void_radius > 0.5) {
+		COLOR.rgb *= 1.0 - ss(void_radius - void_fade, void_radius, distance(world_pos, void_center));
+	}
 }

@@ -210,7 +210,14 @@ func _spawn_enemy() -> void:
 	var offset := Vector2(cos(unghi), sin(unghi)) * _distanta_spawn()
 	# în World (Y-sortat), la fel ca player-ul, ca să fie acoperit corect de copaci
 	player.get_parent().add_child(enemy)
-	enemy.global_position = player.global_position + offset
+	# Nether-ul și Ender-ul au un capăt (vezi `ground.gd`). Când te plimbi pe lângă buză, conul de
+	# spawn cade jumătate în gol — `loc_in_margine` îl oglindește, deci inamicul vine dinspre lume,
+	# nu de peste prăpastie. În lumea normală întoarce punctul neatins.
+	var poz := player.global_position + offset
+	var ground := get_tree().get_first_node_in_group("ground")
+	if ground != null and ground.has_method("loc_in_margine"):
+		poz = ground.loc_in_margine(player.global_position, poz)
+	enemy.global_position = poz
 
 # De la ce distanță apar. Niciodată mai aproape decât colțul ecranului + `spawn_margin`, ca să
 # nu-i vezi materializându-se. Zona vizibilă o citim din transformarea camerei

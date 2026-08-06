@@ -17,6 +17,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-06 (Nether-ul și Ender-ul au un CAPĂT: groapa de la 3000px)
+
+**Cerut de Răzvan:** „poate să fie finite nether și ender ca să găsești statuile mai ușor? Gradient spre negru ca să simuleze o groapă infinită ca în Minecraft — să fie undeva la 3000 de pixeli de spawn."
+
+Un disc de rază `3000` în jurul PORTALULUI prin care ai intrat (nu în jurul tău): acolo e și ieșirea, deci „spawn" și „centrul lumii" sunt același punct. Podeaua se stinge în negru pe ultimii 700px, iar dincolo e negru plin.
+
+**⚠️ Decizia care contează: raza stă ÎNTR-UN SINGUR LOC, `ground.gd`.** Marginea are două fețe — cum ARATĂ (`biome.gdshader`) și unde TE OPREȘTE (`player.gd`) — și amândouă întreabă podeaua. Dacă `player.gd` ar fi avut propriul `3000`, prima schimbare a uneia din ele le-ar fi despărțit fără să crape nimic: ai fi mers pe negru, sau te-ai fi oprit în aer, pe podea încă vizibilă. De-aia zidul NU e un `StaticBody` în cerc, ci un `clamp` după `move_and_slide`.
+
+- `biome.gdshader`: `void_center` / `void_radius` / `void_fade`. `void_radius = 0` (implicit) = fragmentul sare peste tot calculul — lumea normală și Limbo nu plătesc nimic și rămân infinite.
+  - ⚠️ Distanța se măsoară pe `world_pos`, **nu** pe `wp` (poziția unduită de `warp`): altfel buza gropii s-ar legăna în Ender, iar zidul stă pe loc — s-ar vedea că marginea desenată și cea adevărată nu-s aceeași.
+- `ground.gd`: `MARGINE_RAZA` (3000) + `MARGINE_FADE` (700), `set_margine()` / `opreste_margine()`, `in_margine()` (pentru player) și `loc_in_margine()` (pentru spawn-uri).
+- `nether.gd` / `ender.gd`: `_margine(on)`, chemat din **exact aceleași patru locuri** ca `set_nether`/`set_ender` — intrare, ieșire, `suspenda()`, `reia()`. Cât ești în Limbo marginea e stinsă: Limbo e altă lume, cu podeaua lui.
+  - ⚠️ În Nether se aprinde DUPĂ `_spawn_return_portal`, nu odată cu podeaua: până atunci portalul nu există, iar centrul ar fi ieșit `(0,0)` — adică groapa ar fi căzut la zeci de mii de pixeli, într-un colț pe care nu-l vezi. S-ar fi văzut doar ca „marginea nu apare".
+- `spawner.gd`: când te plimbi pe buză, conul de spawn cade jumătate în gol. `loc_in_margine` **oglindește** punctul față de player (inamicul vine dinspre lume, la aceeași distanță de tine, deci tot din afara ecranului) și abia dacă nici așa nu iese îl trage pe margine.
+
+**Verificat rulând**, Ender și Nether: rază 3000 cu centrul la **0,0px** de portal; aruncat la 9849px și din alt colț → **exact 3000,0** de fiecare dată; **0,000px** mișcare parazită când ești înăuntru (la 1500); statuile de schimb la 882–1920px și structura lui Saratalin la 936px, deci bine în interior; rază 0 după ieșire, 0 cât Nether-ul e suspendat (Limbo) și 3000 înapoi după `reia()`.
+- **Martorul care contează:** o captură din CENTRU, fără urmă de negru, lângă una de pe buză. Dacă groapa ar fi fost legată de ecran și nu de lume, cele două ar fi ieșit identice — asta e greșeala clasică la un shader de podea, și doar martorul o prinde.
+
+---
+
 ## Session log — 2026-08-06 (cinematica lui Celesto: intră din dreapta, sare imediat, dispare fără fade)
 
 **Cerut de Răzvan:** „vreau ca Celesto în animația de la început să înceapă în partea dreaptă direct, să nu fie în mijloc, și să înceapă direct să se teleporteze fără să aștepte, un interval așa de 1 secundă–0.5 secunde, vezi tu ce arată mai profesional. Și la final când se aude teleportarea nu vreau să își ia fade out, vreau doar să dispară de pe ecran că e mai profesional așa."

@@ -165,6 +165,7 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	_clear_enemies()          # inamicii lumii normale nu vin cu tine
 	_set_world_enabled(false)
 	_set_ground_ender(true)
+	_margine(true)            # de aici încolo lumea are un capăt, centrat pe fântână
 	_set_atmosphere("ender")
 
 	# cronometrul rundei stă pe loc; tăria inamicilor o dictăm noi, din `_diff_time()`
@@ -205,6 +206,7 @@ func exit_ender(anunt: bool = true) -> void:
 	_clear_enemies()
 	_set_world_enabled(true)
 	_set_ground_ender(false)
+	_margine(false)
 	_set_atmosphere("")
 	Difficulty.frozen = false
 	Difficulty.mult_time_override = -1.0
@@ -268,6 +270,7 @@ func suspenda() -> void:
 		return
 	_suspendat = true
 	_set_ground_ender(false)
+	_margine(false)                # Limbo n-are margine: e altă lume, cu podeaua lui
 	_set_atmosphere("")
 	_set_ender_only(false)
 	Difficulty.xp_bonus = 1.0      # bonusul e al Ender-ului, nu al Limbo-ului
@@ -283,6 +286,7 @@ func reia() -> void:
 		return
 	_suspendat = false
 	_set_ground_ender(true)
+	_margine(true)
 	_set_atmosphere("ender")
 	_set_ender_only(true)
 	Difficulty.frozen = true
@@ -677,6 +681,20 @@ func _set_ground_ender(on: bool) -> void:
 	var ground := get_tree().get_first_node_in_group("ground")
 	if ground != null and ground.has_method("set_ender"):
 		ground.set_ender(on)
+
+# Marginea lumii: Ender-ul se termină la `ground.gd::MARGINE_RAZA` de fântâna prin care ai intrat,
+# iar dincolo podeaua se stinge în negru. Raza și oprirea player-ului stau amândouă în `ground.gd`
+# — noi spunem doar UNDE e centrul. Spre deosebire de Nether, aici fântâna se știe din primul rând
+# al lui `enter()`, deci marginea poate merge chiar lângă podea.
+func _margine(on: bool) -> void:
+	var ground := get_tree().get_first_node_in_group("ground")
+	if ground == null or not ground.has_method("set_margine"):
+		return
+	var centru := portal_pos()
+	if on and centru != Vector2.INF:
+		ground.set_margine(centru)
+	else:
+		ground.opreste_margine()
 
 # Culoarea lumii + stelele de pe ecran. Ca la Nether: tot ce ține de „cum arată dincolo" stă
 # într-un singur loc, în `atmosphere.gd` — aici doar spunem în ce dimensiune suntem.

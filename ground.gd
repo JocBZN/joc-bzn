@@ -26,6 +26,25 @@ extends Sprite2D
 @export var ender_warp_scale: float = 0.0022
 @export var ender_warp_speed: float = 0.16
 
+# --- MARGINEA LUMII: groapa din Nether / Ender ---
+# Cerut de Răzvan pe 2026-08-06: „poate să fie finite nether și ender ca să găsești statuile mai
+# ușor? Gradient spre negru ca să simuleze o groapă infinită ca în Minecraft — să fie undeva la
+# 3000 de pixeli de spawn."
+#
+# ⚠️ De ce stau AICI și zidul, și negreala: sunt același lucru văzut din două părți. Marginea
+# desenată o face `biome.gdshader` (podeaua asta), iar oprirea o cere `player.gd` tot de aici
+# (`in_margine`). Dacă raza ar fi scrisă și în `player.gd`, s-ar putea despărți la prima
+# schimbare — ai fi mers pe negru, sau te-ai fi oprit în aer, pe podea încă vizibilă.
+#
+# Discul e centrat pe PORTALUL prin care ai intrat, nu pe tine: acolo e și ieșirea, deci „spawn"
+# și „centrul lumii" sunt același punct. Statuile de schimb ale Ender-ului stau într-un inel de
+# 600–2000 (`ender_statues.gd`), adică bine înăuntru — de-aia se și găsesc acum.
+const MARGINE_RAZA := 3000.0    # cât de departe de portal se termină lumea
+const MARGINE_FADE := 700.0     # pe câți pixeli se stinge podeaua spre negru, până la margine
+
+var margine_raza := 0.0         # 0 = fără margine (lumea normală și Limbo sunt tot infinite)
+var margine_centru := Vector2.ZERO
+
 var _mat: ShaderMaterial
 var _grass: Texture2D
 var _desert: Texture2D
@@ -107,3 +126,45 @@ func _set_warp(on: bool, amount: float, scale: float, speed: float) -> void:
 	_mat.set_shader_parameter("warp_amount", amount if on else 0.0)
 	_mat.set_shader_parameter("warp_scale", scale)
 	_mat.set_shader_parameter("warp_speed", speed)
+
+# ---------- MARGINEA (groapa) ----------
+# Chemate din `nether.gd` / `ender.gd`, din exact aceleași patru locuri ca `set_nether`/`set_ender`:
+# intrare, ieșire, `suspenda()` și `reia()`. Cât ești în Limbo marginea e stinsă — Limbo e altă
+# lume, cu podeaua lui, iar o groapă din Nether desenată peste câmpia alb-negru n-ar avea sens.
+func set_margine(centru: Vector2, raza: float = MARGINE_RAZA) -> void:
+	margine_centru = centru
+	margine_raza = raza
+	_scrie_margine()
+
+func opreste_margine() -> void:
+	margine_raza = 0.0
+	_scrie_margine()
+
+func _scrie_margine() -> void:
+	if _mat == null:
+		return
+	_mat.set_shader_parameter("void_center", margine_centru)
+	_mat.set_shader_parameter("void_radius", margine_raza)
+	_mat.set_shader_parameter("void_fade", MARGINE_FADE)
+
+# Punctul adus înapoi în lume. Player-ul se OPREȘTE pe buză (nu e împins înapoi și nu cade):
+# `player.gd` o cheamă după `move_and_slide`.
+func in_margine(p: Vector2) -> Vector2:
+	if margine_raza <= 0.0:
+		return p
+	var d := p - margine_centru
+	if d.length() <= margine_raza:
+		return p
+	return margine_centru + d.normalized() * margine_raza
+
+# Loc de spawn care sigur cade în lume, nu în gol. Dacă cel cerut e peste margine îl OGLINDIM
+# față de player — adică inamicul vine dinspre interior, nu de peste prăpastie, și rămâne la
+# aceeași distanță de tine (deci tot dincolo de marginea ecranului, nu materializat în față).
+# Abia dacă nici oglinditul nu e bun îl tragem pe buză.
+func loc_in_margine(referinta: Vector2, poz: Vector2) -> Vector2:
+	if margine_raza <= 0.0 or margine_centru.distance_to(poz) <= margine_raza:
+		return poz
+	var oglindit := referinta * 2.0 - poz
+	if margine_centru.distance_to(oglindit) <= margine_raza:
+		return oglindit
+	return in_margine(poz)

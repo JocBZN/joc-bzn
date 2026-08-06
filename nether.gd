@@ -164,6 +164,7 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	# portalul de întoarcere, fix pe locul celui prin care ai intrat. Stă direct în `World`
 	# (nu în `Portals`), ca golirea generatorului să nu-l șteargă.
 	_spawn_return_portal(portal_pos)
+	_margine(true)            # de aici încolo lumea are un capăt, centrat pe portalul de mai sus
 
 	# Sunet: ambientul de pădure se oprește (nu mai ești în pădure), muzica lumii e pusă
 	# deoparte și pornește sky-lines în buclă. `TELEPORT_DB` = whoosh-ul de trecere.
@@ -202,6 +203,7 @@ func exit_nether(anunt: bool = true) -> void:
 	_clear_enemies()          # ce era pe tine în Nether nu vine cu tine
 	_set_world_enabled(true)
 	_set_ground_nether(false)
+	_margine(false)
 	_set_atmosphere("")
 	Difficulty.frozen = false
 	Difficulty.mult_time_override = -1.0
@@ -273,6 +275,7 @@ func suspenda() -> void:
 		return
 	_suspendat = true
 	_set_ground_nether(false)
+	_margine(false)                # Limbo n-are margine: e altă lume, cu podeaua lui
 	_set_atmosphere("")
 	Difficulty.xp_bonus = 1.0      # bonusul e al Nether-ului, nu al Limbo-ului
 	_clock.visible = false
@@ -291,6 +294,7 @@ func reia() -> void:
 		return
 	_suspendat = false
 	_set_ground_nether(true)
+	_margine(true)
 	_set_atmosphere("nether")
 	# Dificultatea e din nou a noastră, exact de unde a rămas: `_elapsed` n-a curs în Limbo.
 	Difficulty.frozen = true
@@ -583,6 +587,22 @@ func _set_ground_nether(on: bool) -> void:
 	var ground := get_tree().get_first_node_in_group("ground")
 	if ground != null and ground.has_method("set_nether"):
 		ground.set_nether(on)
+
+# Marginea lumii: Nether-ul se termină la `ground.gd::MARGINE_RAZA` de portalul de întoarcere,
+# iar dincolo podeaua se stinge în negru. Raza și oprirea player-ului stau amândouă în `ground.gd`
+# — noi spunem doar UNDE e centrul. Aprinsă din aceleași patru locuri ca podeaua de cărămidă.
+#
+# ⚠️ Se aprinde DUPĂ `_spawn_return_portal`, nu odată cu podeaua: până atunci portalul nu există,
+# iar centrul ar fi ieșit (0,0) — adică groapa ar fi căzut la zeci de mii de pixeli de tine, într-un
+# colț al lumii pe care nu-l vezi niciodată. Se vedea doar ca „marginea nu apare", greu de prins.
+func _margine(on: bool) -> void:
+	var ground := get_tree().get_first_node_in_group("ground")
+	if ground == null or not ground.has_method("set_margine"):
+		return
+	if on and _return_portal != null and is_instance_valid(_return_portal):
+		ground.set_margine(_return_portal.global_position)
+	else:
+		ground.opreste_margine()
 
 # Culoarea lumii + scânteile de pe ecran. Tot ce ține de „cum arată dincolo" stă într-un singur
 # loc, în `atmosphere.gd` — aici doar spunem în ce dimensiune suntem („" = lumea normală).
