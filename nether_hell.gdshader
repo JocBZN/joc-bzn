@@ -14,8 +14,8 @@ render_mode blend_mix, unshaded;
 uniform float amount : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 ember_color : source_color = vec3(1.0, 0.52, 0.16);   // scânteile
 uniform vec3 smoke_color : source_color = vec3(0.62, 0.09, 0.02);  // fumul + jarul de dedesubt
-uniform vec3 vignette_color : source_color = vec3(0.07, 0.0, 0.0); // marginile (roșu aproape negru)
-uniform float vignette_strength : hint_range(0.0, 1.0) = 0.50;
+uniform vec3 vignette_color : source_color = vec3(0.13, 0.02, 0.02); // marginile (roșu foarte închis)
+uniform float vignette_strength : hint_range(0.0, 1.0) = 0.28;
 uniform float ember_density : hint_range(0.0, 2.0) = 1.3;          // cât de multe scântei
 uniform float furnace_strength : hint_range(0.0, 1.0) = 0.30;      // lumina care bate de jos
 

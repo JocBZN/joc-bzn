@@ -32,7 +32,7 @@ const DIM_SHADERS := {
 # podeaua Ender-ului e deja aproape neagră, iar inamicii trebuie să rămână vizibili.
 const DIM_TINT := {
 	"": Color(1.0, 1.0, 1.0),
-	"nether": Color(0.98, 0.58, 0.50),
+	"nether": Color(1.05, 0.80, 0.72),
 	"ender": Color(0.68, 0.80, 1.12),
 }
 const DIM_FADE := 0.8         # în câte secunde intră/iese atmosfera (fulgerul de teleportare ține 0.45)
