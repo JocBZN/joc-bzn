@@ -281,7 +281,7 @@ const TRAD := {
 "Freezing Trail": ["冰冻足迹", "Frostige Spur", "Rastro Helado", "Ледяной След", "Traînée Glaçante", "氷の軌跡", "Mroźny Ślad", "Donduran İz"],
 "+2 projectiles": ["+2 弹丸", "+2 Geschosse", "+2 proyectiles", "+2 снаряда", "+2 projectiles", "+2 弾", "+2 pociski", "+2 mermi"],
 "Bullets pierce +1 enemy": ["子弹多穿透 1 个敌人", "Geschosse durchdringen +1 Gegner", "Las balas atraviesan +1 enemigo", "Пули пробивают +1 врага", "Les balles transpercent +1 ennemi", "弾が敵を+1体貫通", "Pociski przebijają +1 wroga", "Mermiler +1 düşman deler"],
-"+15% Crit chance": ["+15% 暴击率", "+15% Kritchance", "+15% Prob. crítico", "+15% шанс крита", "+15% Chance de critique", "+15% クリティカル率", "+15% Szansa na kryt", "+15% Kritik şansı"],
+"+7% Crit chance": ["+7% 暴击率", "+7% Kritchance", "+7% Prob. crítico", "+7% шанс крита", "+7% Chance de critique", "+7% クリティカル率", "+7% Szansa na kryt", "+7% Kritik şansı"],
 "Bigger Projectiles +5 damage": ["更大的弹丸 +5 伤害", "Größere Geschosse +5 Schaden", "Proyectiles más grandes +5 daño", "Снаряды больше +5 урон", "Projectiles plus gros +5 dégâts", "弾が大きくなる +5 ダメージ", "Większe pociski +5 obrażeń", "Daha büyük mermi +5 hasar"],
 "Bullets knock enemies back": ["子弹击退敌人", "Geschosse stoßen Gegner zurück", "Las balas empujan a los enemigos", "Пули отбрасывают врагов", "Les balles repoussent les ennemis", "弾が敵を吹き飛ばす", "Pociski odrzucają wrogów", "Mermiler düşmanları geri iter"],
 "+10 Weapon size": ["+10 武器大小", "+10 Waffengröße", "+10 Tamaño de arma", "+10 размер оружия", "+10 Taille d’arme", "+10 武器サイズ", "+10 Rozmiar broni", "+10 Silah boyutu"],

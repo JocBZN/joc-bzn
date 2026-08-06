@@ -33,7 +33,7 @@ var UPGRADES := [
 	{"id": "frostwalker", "nume": "Frostwalker", "icon": "upgrade_11.png", "rar": "epic", "desc": "Freezing Trail"},
 	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+2 projectiles"},
 	{"id": "strapungere", "nume": "Drill", "icon": "upgrade_16.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
-	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+15% Crit chance"},
+	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+7% Crit chance"},
 	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger Projectiles +5 damage"},
 	{"id": "recul", "nume": "Knockback Stick", "icon": "upgrade_22.png", "rar": "uncommon", "desc": "Bullets knock enemies back"},
 	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+10 Weapon size"},
@@ -668,11 +668,11 @@ func _apply(id: String, p) -> void:
 			# glonțul trece prin încă un inamic înainte să dispară
 			p.pierce += 1
 		"critic":
-			# +15% șansă de CRIT. (Criticul înmulțește damage-ul cu crit_mult = 2×, de aici venea
+			# +7% șansă de CRIT. (Criticul înmulțește damage-ul cu crit_mult = 2×, de aici venea
 			# vechea formulare „damage dublu" — dar e crit, se cumulează cu Megane's Katana și îl
 			# umflă Norocul.) NU mai e plafonat la 100%: peste 100% intră multi-crit-ul
 			# (vezi player.roll_crit) — 200% garantează ×4, 300% ×8 etc.
-			p.crit_chance += 0.15
+			p.crit_chance += 0.07
 		"glont_mare":
 			# gloanțe mai mari (hitbox + sprite) și puțin mai puternice
 			p.bullet_scale += 0.3

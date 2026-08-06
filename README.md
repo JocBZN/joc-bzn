@@ -132,6 +132,12 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-06, Adrenaline rebalanced: +15% → +7% crit)
+- ✅ **Adrenaline now gives `+7%` crit chance per pick** instead of +15% (`levelup.gd`, id `critic`). Nothing else about it changed: it is still flat crit, still additive per pick, still uncapped (multi-crit past 100%), still stacks with **Megane's Katana** and is still raised by **Luck**.
+- 🔤 **The card text is the i18n key**, so `"+15% Crit chance"` was renamed to `"+7% Crit chance"` in `i18n.gd` and all 8 translations renumbered — a rename without that leaves the other 8 languages showing the raw English key. `tool_check_i18n.tscn` passes (238 keys × 8 languages, everything translated).
+- 📖 **Codex updated and republished** — the card, and the Luck note, where 17.5 Luck now takes a 7% crit to **14%** (it was 15% → 22%).
+- 🔬 Verified by running: crit 0 → 0.07 → 0.14 → 0.21 over three picks, and a screenshot of the real level-up menu showing **ADRENALINE / +7% CRIT CHANCE** under the Rare border.
+
 ## Current state (2026-08-05, the ENDER STATUE — trade your items, pay in difficulty)
 - ✅ **A structure that exists in only one dimension.** `ender_statue.tscn` is placed by `EnderStatues` / `ender_statues.gd` — a generator that is off in the overworld and on only while `ender.active`, the mirror image of every other one. `ender.gd` drives it through the new `ENDER_ONLY_NODES` list, using the same toggle that empties the world.
 - 📍 **Three of them, in a 600–2000 px ring around the well you came through**, placed the moment the Ender opens. Measured over 500 simulated entries: nearest 602 px, farthest 1999 px, never one outside the ring.

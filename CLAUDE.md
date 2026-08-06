@@ -17,6 +17,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-06 (Adrenaline: +15% → +7% crit)
+
+**Cerut de Răzvan:** „Adrenaline vreau sa aiba doar +7 crit chance".
+
+**Schimbat în trei locuri, fiindcă numărul apare în trei:**
+1. `levelup.gd` — efectul real, `p.crit_chance += 0.07` (era `0.15`), plus `desc` și comentariul.
+2. `i18n.gd` — **descrierea E cheia de traducere**. Am redenumit cheia `"+15% Crit chance"` → `"+7% Crit chance"` și am renumerotat toate cele 8 traduceri. Dacă schimbi doar `levelup.gd`, cheia nu mai există în tabel și **celelalte 8 limbi afișează textul englezesc brut**, fără nicio eroare. `tool_check_i18n.tscn` prinde exact asta — rulat, „✔ TOTUL E TRADUS" (238 chei × 8 limbi).
+3. `codex.html` + republicare pe același URL — cardul, ȘI nota despre Noroc, unde 17,5 noroc duce acum un crit de 7% la **14%** (scria 15% → 22%).
+
+**Mecanica NU s-a atins:** rămâne crit fix, aditiv la fiecare luare, neplafonat (multi-crit peste 100%), se adună cu Megane's Katana și îl umflă Norocul.
+
+**Verificat rulând**, nu doar citind codul: `crit_chance` 0 → 0.07 → 0.14 → 0.21 la trei luări, traducerile ies corect (`+7% Kritchance`, `+7% クリティカル率`, `+7% шанс крита`), și o captură din meniul REAL de level up cu **ADRENALINE / +7% CRIT CHANCE** în chenarul Rare. Scenele de test (`test_adrenaline*.gd/.tscn`) au fost șterse după.
+
+---
+
 ## Session log — 2026-08-06 (Celesto îngheață din profil în cinematică + fântâna chiar se stinge)
 
 **Cerut de Răzvan:** „vreau la cutscene-u lu celesto sa fie freeze frame si vreau sa nu se uite in sud … cand e telepotat in partea dreapta sa se uite spre west … cand e in partea stanga sa se uite spre east. Si well-ul cand se inchide vreau sa aiba un fade pana la 0% opacity".
