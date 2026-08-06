@@ -459,14 +459,21 @@ func _flash_screen() -> void:
 # și REFĂCUTĂ pe 2026-08-05: „cand intrii in ender se opreste totul si se da zoom in pe el cum se
 # teleporteaza stanga dreapta de 2-3 ori si vreau ca bara de hp si numele sa fie sus".
 #
-# Cum decurge, în cinci bătăi:
+# Cum decurge, în patru bătăi:
 #   1. jocul ÎNGHEAȚĂ și camera intră pe locul gol de deasupra ta, strângând zoom-ul;
-#   2. Celesto SE MATERIALIZEAZĂ acolo, transparent → opac;
-#   3. bara lui coboară încet din marginea de sus, cu numele aprinzându-se odată cu ea;
-#   4. se teleportează STÂNGA-DREAPTA de `CUT_SARITURI` ori, în cadrul strâns — camera stă pe
-#      loc, el clipește dintr-o parte în alta, ca să se vadă că ăsta e trucul lui;
-#   5. se stinge, camera iese, jocul repornește, el te așteaptă departe în inel și abia atunci
-#      curg inamicii.
+#   2. Celesto SE MATERIALIZEAZĂ în DREAPTA cadrului (nu în mijloc), transparent → opac, iar bara
+#      lui coboară din marginea de sus ÎN ACELAȘI TIMP — nu una după alta;
+#   3. după `CUT_PANA_LA_SARITURI` (o clipă, nu o pauză) începe să se teleporteze STÂNGA-DREAPTA
+#      de `CUT_SARITURI` ori, în cadrul strâns — camera stă pe loc, el clipește dintr-o parte în
+#      alta, ca să se vadă că ăsta e trucul lui;
+#   4. DISPARE dintr-un cadru în altul, odată cu sunetul de teleportare, camera iese, jocul
+#      repornește, el te așteaptă departe în inel și abia atunci curg inamicii.
+#
+# Refăcută pe 2026-08-06, cerut de Răzvan („sa inceapa in partea dreapta direct sa nu fie in mijloc
+# si sa inceapa direct sa se teleporteze fara sa astepte… la final… nu vreau sa isi ia fade out,
+# vreau doar sa dispara de pe ecran"). Înainte stătea 2,7 secunde nemișcat în mijloc înainte de
+# primul salt, fiindcă bara cobora ABIA DUPĂ ce se materializa — de acolo venea așteptarea. Acum
+# cele două curg suprapus, iar bara termină de coborât fix când începe să sară.
 #
 # ⚠️ Pauza e ADEVĂRATĂ (`get_tree().paused`), cu aceleași trei precauții ca la cinematica lui
 # Saratalin (`saratalin.gd::_cinematica_faza2`, citește-o întâi — ăsta e același tipar):
@@ -482,16 +489,14 @@ func _flash_screen() -> void:
 #
 # Timpii sunt în secunde, unul după altul; schimbă-i liniștit.
 const CUT_APARE := 1.1        # cât durează materializarea lui
-const CUT_PANA_LA_BARA := 0.5 # pauză după ce s-a materializat, înainte să coboare bara
-const CUT_BARA := 1.7         # cât coboară bara („slow cinematic")
-const CUT_PANA_LA_SARITURI := 0.5   # cât se uită la tine înainte să înceapă să sară
+const CUT_BARA := 1.7         # cât coboară bara („slow cinematic"), în paralel cu materializarea
+const CUT_PANA_LA_SARITURI := 0.6   # cât stă în dreapta, deja opac, înainte de PRIMUL salt
 const CUT_SARITURI := 3       # de câte ori se teleportează stânga-dreapta
 const CUT_SARE_LAT := 170.0   # câți pixeli în lateral sare de fiecare dată
 const CUT_SARE_PAUZA := 0.42  # cât stă într-un capăt înainte să sară în celălalt
 const CUT_ZOOM := 2.0         # de câte ori strânge camera pe el
 const CUT_ZOOM_IN := 0.7      # cât durează apropierea
 const CUT_ZOOM_OUT := 0.6     # ...și depărtarea la loc
-const CUT_STINGE := 0.35      # cât durează dispariția lui de la final
 # ⚠️ Apare DEASUPRA ta pe ecran, nu „în direcția în care te uiți". Am încercat varianta a doua și
 # se vede pe captură de ce nu merge: dacă te uiți în jos (cum stai implicit la aterizare), el
 # cade fix peste banda de sus. Sus e curat și e oricum încadrarea clasică de „apare boss-ul".
@@ -509,8 +514,14 @@ func _cutscene_celesto() -> void:
 	_boss.adoarme()          # ÎNAINTE de add_child: `_ready` nu mai cere bara și nu se mișcă
 	world.add_child(_boss)
 	_boss.process_mode = Node.PROCESS_MODE_ALWAYS   # ca sclipirile lui să meargă pe pauză
+	# `centru` rămâne ținta CAMEREI (mijlocul cadrului), dar EL apare în DREAPTA ei — fix în capătul
+	# în care ar fi sărit oricum primul. Așa primul salt e o mișcare adevărată, nu un „puf" pe loc.
 	var centru := _player.global_position + Vector2(0, -CUT_DISTANTA)
-	_boss.global_position = centru
+	_boss.global_position = centru + Vector2(CUT_SARE_LAT, 0.0)
+	# Se materializează deja întors spre mijlocul cadrului (din dreapta → spre vest), ca la fiecare
+	# salt. Fără linia asta ar apărea uitându-se spre sud, adică fix spre tine.
+	if _boss.has_method("ingheata_lateral"):
+		_boss.ingheata_lateral(true)
 	var anim := _boss.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
 	if anim != null:
 		anim.modulate.a = 0.0
@@ -534,8 +545,14 @@ func _cutscene_celesto() -> void:
 		neted_vechi = cam.position_smoothing_enabled
 		cam.position_smoothing_enabled = false
 
-	# --- 2) camera intră pe locul lui, iar el se materializează acolo ---
+	# --- 2) camera intră, el se materializează în dreapta, bara coboară peste toate ---
 	Audio.play("celesto_teleport", -2.0, 0.0)
+	# Bara pornește ODATĂ cu el, nu după. NU o așteptăm (`arata_cinematic` își are tween-ul ei, care
+	# merge singur în paralel): CUT_BARA e cât coboară ea, nu cât stăm noi. Coborârea ei de 1,7s se
+	# termină aproape fix când el dă primul salt (1,1 + 0,6), deci nu se pierde nimic din ea.
+	var bara := get_tree().get_first_node_in_group("boss_bar")
+	if bara != null and bara.has_method("arata_cinematic"):
+		bara.arata_cinematic(_boss.nume, _boss.max_hp, CUT_BARA)
 	var t := _cut_tween()
 	t.set_parallel(true)
 	# Bătaia de bază, care ține tween-ul viu chiar dacă n-ar exista nici camera, nici sprite-ul.
@@ -551,19 +568,16 @@ func _cutscene_celesto() -> void:
 		t.tween_property(anim, "modulate:a", 1.0, CUT_APARE)
 	await t.finished
 
-	# --- 3) bara coboară din marginea de sus ---
-	await _cut_asteapta(CUT_PANA_LA_BARA)
-	if is_instance_valid(_boss):
-		var bara := get_tree().get_first_node_in_group("boss_bar")
-		if bara != null and bara.has_method("arata_cinematic"):
-			bara.arata_cinematic(_boss.nume, _boss.max_hp, CUT_BARA)
-	await _cut_asteapta(CUT_BARA + CUT_PANA_LA_SARITURI)
-
-	# --- 4) stânga-dreapta, în cadrul strâns ---
-	# Camera NU îl urmărește: stă pe `centru`, iar el clipește în stânga și în dreapta ei. Dacă
-	# l-ar urma, saltul n-ar mai fi vizibil deloc — ar părea că lumea se mișcă, nu el.
+	# --- 3) stânga-dreapta, în cadrul strâns ---
+	# Doar o clipă cât să se vadă că e acolo, apoi sare. Camera NU îl urmărește: stă pe `centru`,
+	# iar el clipește în stânga și în dreapta ei. Dacă l-ar urma, saltul n-ar mai fi vizibil deloc —
+	# ar părea că lumea se mișcă, nu el.
+	await _cut_asteapta(CUT_PANA_LA_SARITURI)
 	for i in CUT_SARITURI:
-		var semn := 1.0 if i % 2 == 0 else -1.0
+		# ⚠️ Primul salt e spre STÂNGA (`-1` pe `i == 0`), fiindcă s-a materializat în dreapta. Cu
+		# semnele invers, primul „salt" l-ar muta exact unde era deja: sunet și sclipire, dar el
+		# nemișcat — exact impresia de așteptare pe care o scoatem de aici.
+		var semn := -1.0 if i % 2 == 0 else 1.0
 		if is_instance_valid(_boss):
 			_boss.global_position = centru + Vector2(semn * CUT_SARE_LAT, 0.0)
 			# Freeze frame, din profil, uitându-se spre mijlocul cadrului: în dreapta → spre
@@ -575,10 +589,16 @@ func _cutscene_celesto() -> void:
 				_boss.puf()
 		await _cut_asteapta(CUT_SARE_PAUZA)
 
-	# --- 5) se stinge, camera iese, jocul repornește ---
+	# --- 4) DISPARE, camera iese, jocul repornește ---
+	# FĂRĂ fade, cerut de Răzvan pe 2026-08-06 („cand se aude teleportarea nu vreau sa isi ia fade
+	# out, vreau doar sa dispara de pe ecran"). Are dreptate: ceva care se stinge lent se citește ca
+	# „moare", nu ca „a plecat". Acum sunetul și dispariția cad în ACELAȘI cadru, exact ca la
+	# saltul dintr-un capăt în celălalt de mai sus — doar că de data asta nu mai reapare.
+	# ⚠️ `modulate:a`, nu `visible`: sclipirea albastră (`puf`) de la ultimul salt e un tween pe
+	# `modulate` al lui, iar el rămâne în lume și după cinematică. Alpha e ce restaurăm mai jos.
 	Audio.play("celesto_teleport", -2.0, 0.0)
 	if anim != null:
-		await _cut_tween().tween_property(anim, "modulate:a", 0.0, CUT_STINGE).finished
+		anim.modulate.a = 0.0
 	if cam != null:
 		var t2 := _cut_tween()
 		t2.set_parallel(true)

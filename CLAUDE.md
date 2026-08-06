@@ -17,6 +17,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-06 (cinematica lui Celesto: intră din dreapta, sare imediat, dispare fără fade)
+
+**Cerut de Răzvan:** „vreau ca Celesto în animația de la început să înceapă în partea dreaptă direct, să nu fie în mijloc, și să înceapă direct să se teleporteze fără să aștepte, un interval așa de 1 secundă–0.5 secunde, vezi tu ce arată mai profesional. Și la final când se aude teleportarea nu vreau să își ia fade out, vreau doar să dispară de pe ecran că e mai profesional așa."
+
+Tot în `ender.gd::_cutscene_celesto`. Trei schimbări, dar cea care se simte cel mai tare nu e niciuna dintre cele cerute pe față:
+
+1. **Apare în DREAPTA, nu în mijloc.** `_boss.global_position = centru + Vector2(CUT_SARE_LAT, 0)`. `centru` rămâne ținta CAMEREI — el e descentrat în cadru, camera nu.
+   - ⚠️ **Semnele saltului trebuiau inversate** (`-1` pe `i == 0`, nu `+1`). Cu ele nemodificate, primul „salt" l-ar fi pus exact unde era deja: sunet + sclipire albastră, dar el nemișcat — adică fix senzația de așteptare pe care o scoteam.
+   - Și primește `ingheata_lateral(true)` ÎNAINTE de materializare, altfel apărea uitându-se spre sud (spre tine) și abia la primul salt intra în profil.
+2. **Așteptarea de la început.** Cauza reală nu era o constantă prea mare, ci **ordinea**: bara de HP cobora ABIA DUPĂ ce se materializa el (`await` pe `CUT_BARA + CUT_PANA_LA_SARITURI`), deci 0,5 + 1,7 + 0,5 = **2,7 s** în care stătea nemișcat. Acum `arata_cinematic` e chemat ODATĂ cu materializarea și **nu e așteptat** (are tween-ul lui, merge în paralel): rămâne doar `CUT_PANA_LA_SARITURI = 0.6`. Coborârea barei (1,7 s) se termină aproape fix când el dă primul salt (1,1 + 0,6 = 1,7) — deci nu s-a pierdut nimic din „slow cinematic"-ul cerut în august 4.
+   - `CUT_PANA_LA_BARA` a dispărut. `CUT_BARA` a rămas, dar acum înseamnă „cât coboară ea", nu „cât stăm noi".
+3. **Fără fade la final.** `tween_property(anim, "modulate:a", 0.0, CUT_STINGE)` → `anim.modulate.a = 0.0`, într-un singur cadru, odată cu sunetul. `CUT_STINGE` a dispărut. Alpha, nu `visible`: sclipirea albastră (`puf`) e un tween pe `modulate` al lui, iar el rămâne în lume și după cinematică — alpha e ce restaurăm la capăt.
+
+**Verificat rulând** (scenă temporară peste `main.tscn`, cu capturi și cu poziția lui logată cadru cu cadru, față de mijlocul cadrului):
+- `dx=+170` din primul cadru (dreapta), `ecran_x=695` din 1152 — pe ecran, nu tăiat de margine;
+- alpha 0 → 1,00 în 1,11 s (materializarea), primul salt la **1,71 s** = 1,11 + 0,60, exact cât trebuie;
+- saltul: `-170` → `+170` → `-170`, deci stânga-dreapta-stânga, pornind din dreapta;
+- **`alpha 0.98 → 0.00` într-un singur cadru** la final — înainte ar fi coborât în trepte, ca la materializare (se vede în log-ul de urcare: ~30 de trepte);
+- total până iese camera: **3,58 s** (înainte ~6,6 s).
+- Capturi: `shot_apare` (dreapta, opac, întors spre mijloc, bara jos și plină), `shot_salt1` (albastru aprins, în capătul celălalt), `shot_disparut` (nicio urmă de el, nici măcar o siluetă pe jumătate transparentă).
+
+---
+
 ## Session log — 2026-08-06 (LIMBO: inamici pe bune, fără portaluri, și te dă înapoi în dimensiunea în care ai murit)
 
 **Cerut de Răzvan:** „în limbo nu sunt inamicii destul de op, vreau să aibă spawn-rate-ul, viteza și damage-ul la fel ca cei cu un minut înainte să intre player-ul în limbo — se calculează pe loc. Vreau să nu apară portalul de ender în limbo. Și atunci când ieși din limbo te dă fix din locul unde ai murit (dacă ai murit în lumea normală acolo, dacă în nether acolo, dacă în ender acolo). Când revii din limbo sau orice altă dimensiune nu vreau să se reseteze lucrurile deja folosite în lumea normală."
