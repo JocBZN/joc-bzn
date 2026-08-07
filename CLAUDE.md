@@ -17,6 +17,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-07 (EGT: TRADE-UP CONTRACT + tot cazinoul în chenarele de aramă)
+
+**Cerut de Răzvan:** „Adaugă la EGT și partea de gamble your items. Ți-am pus și un border ca să poți să faci tot meniul super profesional ca un joc cu 1 milion de copii vândute (Border EGT). La Gamble Your Items vreau să fie ca un trade-up de CS:GO — iei 3 iteme de le ai și poți să le transformi într-un item cu o calitate mai mare (gen uncommon → rare) și nu vezi ce îți pică până faci trade-up-ul."
+
+**Ecranul 3 din `casino.gd`, „TRADE-UP CONTRACT".** Pui 3 iteme de ACEEAȘI raritate (`TU_CATE`) și primești unul cu o treaptă mai sus. Regulile:
+- Prima alegere BLOCHEAZĂ raritatea — celelalte se sting singure în inventar. Regula se vede pe ecran, nu doar în cod (același principiu ca `ButtonGroup`-ul de la ruletă).
+- **Legendary nu poate fi urcat**: `raritate_mai_sus` l-ar da tot Legendary, deci ai schimba 3 pe 1 în pierdere curată. Itemele legendare apar în listă, dar stinse.
+- **Cutia premiului arată RARITATEA, nu itemul.** Raritatea o hotărăști tu prin ce bagi, deci a o ascunde ar fi minciună, nu suspans. Itemul se vede abia după tragere.
+- **Premiul se trage CINSTIT, înainte de animație** — exact ca numărul de la ruletă (`_spin`). Perindarea de ~18 iconițe care încetinește (`TU_PASI` / `TU_PAS_START` / `TU_PAS_FACTOR`, ~2s) e decor. Dacă rezultatul s-ar alege la sfârșit n-ar fi nicio deosebire vizibilă, dar codul ar fi unul în care se POATE trișa.
+- Tween cu `TWEEN_PAUSE_PROCESS`, fiindcă jocul e înghețat cât ești în cazinou.
+
+**⚠️ DE CE COSTĂ DIFICULTATE (`TU_COST_PROCENT`, +10%), deși dai 3 iteme pe 1.** Fiindcă efectele NU se iau înapoi: ca peste tot în joc (vezi `ender_statue.gd`), un item se aplică o dată, la luare, direct pe statusuri, iar jumătate din ele nici n-ar putea fi anulate (Panic Button a explodat deja, Wine te-a vindecat deja). Din cele 3 iteme pleacă doar RÂNDUL din `player.run_items`, nu și ce ți-au dat — adică trade-up-ul e câștig curat, și fără preț ar fi buton de „mai dă-mi". Același mecanism ca la statuia Ender (`Difficulty.add_trade_penalty`), doar mai mic: acolo urci 2 trepte, aici una. **Îl vrei gratis? `TU_COST_PROCENT = 0`.**
+
+**⚠️ Ordinea la aplicare** (`_aterizeaza`): scoatem cele 3 rânduri din registru în ordine **DESCRESCĂTOARE** (ștergi întâi indicele mic și toți ceilalți se mută cu unu sub tine) și abia apoi `da_item`, fiindcă el ADAUGĂ în aceeași listă. Aceeași grijă ca la `trade.gd::_alege`.
+
+**Aspectul, tot meniul.** `harta/EGT/Border EGT.png` e o planșă 5×4 de chenare de 64×64, exact ca `Border Statuie Ender.png` — deci merg aceleași unelte: `_chenar` decupează celula, o mărește ×2 cu nearest (nine-patch-ul întinde doar MIJLOCUL laturii, iar o celulă de 64 pe un panou de 1010 lăsa linii de 1px) și o dă unui `NinePatchRect`. Celulele: (2,0) panou, (1,2) slot, (3,2) cutia premiului. **⚠️ Nu folosi (0,1) și (0,3): au pătrate ALBE în colțuri.** `Menu.png` a plecat din panoul mesei de ruletă, `ACCENT` s-a mutat de pe auriu pe arama artei (#C67650, scoasă numărând pixelii planșei), butoanele au devenit piatră închisă cu muchie de aramă.
+
+**Verificat rulând**, cu inventar fabricat: 12 iteme → alegi 3 rare → contract plin cu chenar EPIC pe cutie și „?" → tragere → **Panic Button (epic)**, registru 12 → 10, `trade_penalty` 1.00 → 1.10; al doilea contract pornește imediat; click pe altă raritate cât una e blocată = ignorat; click pe legendary = ignorat; 30 de iteme în **turcă** (cele mai lungi propoziții) → nimic nu iese din chenar, inventarul se derulează; 3 iteme din care nu se poate face set → „You need 3 items of the same rarity". `tool_check_i18n` trece: **245 de chei × 8 limbi**, 7 chei noi.
+
+⚠️ Panoul are 566px înălțime, nu 596: la un singur rând de iteme tot restul se ducea în `ScrollContainer` și rămânea o gaură între iteme și butoane. Sub ~560 nu se poate coborî — atât cere conținutul cu o subtitrare ruptă pe două rânduri.
+
+---
+
 ## Session log — 2026-08-07 (cerul Ender-ului, refăcut: liniile drepte erau HASH-UL, nu shaderul)
 
 **Cerut de Răzvan:** „nu îmi plac liniile astea albastre din render de la shader. poți să faci să fie mai premium? ca un joc care are 100.000 de copii vândute pe Steam" (+ captura din `debugging/`).

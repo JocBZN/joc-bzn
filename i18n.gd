@@ -213,6 +213,15 @@ const TRAD := {
 "YOU WIN!": ["你赢了！", "GEWONNEN!", "¡GANASTE!", "ТЫ ВЫИГРАЛ!", "GAGNÉ !", "勝ち！", "WYGRANA!", "KAZANDIN!"],
 "YOU LOSE": ["你输了", "VERLOREN", "PERDISTE", "ТЫ ПРОИГРАЛ", "PERDU", "負け", "PRZEGRANA", "KAYBETTİN"],
 
+# ---------- trade-up contract, tot în cazinou (casino.gd, „Gamble your items") ----------
+"TRADE-UP CONTRACT": ["汰换合同", "TAUSCH-VERTRAG", "CONTRATO DE MEJORA", "КОНТРАКТ ОБМЕНА", "CONTRAT D'ÉCHANGE", "トレードアップ契約", "KONTRAKT WYMIANY", "TAKAS SÖZLEŞMESİ"],
+"Three of the same rarity become one of the next": ["三个同稀有度的道具换一个更高稀有度的", "Drei gleicher Seltenheit werden eines der nächsten", "Tres de la misma rareza se vuelven uno de la siguiente", "Три предмета одной редкости становятся одним следующей", "Trois de la même rareté deviennent un de la suivante", "同じレアリティ3つが1つ上のレアリティ1つになる", "Trzy tej samej rzadkości dają jeden wyższej", "Aynı nadirlikten üç tanesi bir üst nadirlikten bir tane olur"],
+"You do not see what you get until you pull": ["拉下手柄之前你看不到会得到什么", "Du siehst erst nach dem Ziehen, was du bekommst", "No ves lo que te toca hasta que tiras", "Ты не увидишь, что выпадет, пока не потянешь", "Tu ne vois ce que tu obtiens qu'après avoir tiré", "引くまで何が出るかは見えない", "Nie zobaczysz, co dostaniesz, dopóki nie pociągniesz", "Çekene kadar ne alacağını göremezsin"],
+"YOUR ITEMS": ["你的道具", "DEINE ITEMS", "TUS OBJETOS", "ТВОИ ПРЕДМЕТЫ", "TES OBJETS", "所持アイテム", "TWOJE PRZEDMIOTY", "EŞYALARIN"],
+"TRADE UP": ["汰换", "TAUSCHEN", "MEJORAR", "ОБМЕНЯТЬ", "ÉCHANGER", "トレードアップ", "WYMIEŃ", "TAKAS ET"],
+"Pick 3 items of the same rarity": ["选择 3 个同稀有度的道具", "Wähle 3 Items derselben Seltenheit", "Elige 3 objetos de la misma rareza", "Выбери 3 предмета одной редкости", "Choisis 3 objets de la même rareté", "同じレアリティのアイテムを3つ選ぶ", "Wybierz 3 przedmioty tej samej rzadkości", "Aynı nadirlikten 3 eşya seç"],
+"You need 3 items of the same rarity": ["你需要 3 个同稀有度的道具", "Du brauchst 3 Items derselben Seltenheit", "Necesitas 3 objetos de la misma rareza", "Нужно 3 предмета одной редкости", "Il te faut 3 objets de la même rareté", "同じレアリティのアイテムが3つ必要", "Potrzebujesz 3 przedmiotów tej samej rzadkości", "Aynı nadirlikten 3 eşyaya ihtiyacın var"],
+
 # ---------- numele upgrade-urilor ----------
 # Numele proprii (Stroh, Duridama, Hellas, Saratalin) rămân la fel în toate limbile.
 "Weird Concoction": ["奇怪的调制品", "Seltsames Gebräu", "Brebaje Raro", "Странное Варево", "Mixture Étrange", "奇妙な調合薬", "Dziwna Mikstura", "Tuhaf Karışım"],

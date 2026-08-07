@@ -7,11 +7,28 @@ extends CanvasLayer
 # nodul are `PROCESS_MODE_ALWAYS`. ESC te întoarce un pas înapoi (de la masă la meniu, din meniu
 # afară din cazinou).
 #
-# Două ecrane:
-#   1. „Let's go gambling" + Gamble your stats / Gamble your items (al doilea încă nu e făcut).
+# Trei ecrane:
+#   1. „Let's go gambling" + Gamble your stats / Gamble your items.
 #   2. MASA DE RULETĂ: poza din `harta/EGT/Roulette Table.png`, cu zone de click peste FIECARE
 #      număr și peste toate pariurile exterioare (roșu/negru, par/impar, duzini, coloane).
 #      În dreapta bifezi ce statusuri bagi în joc.
+#   3. TRADE-UP CONTRACT (2026-08-07): dai 3 iteme de ACEEAȘI raritate și primești unul cu o
+#      treaptă mai sus, pe care NU-L VEZI până nu tragi. Vezi secțiunea lui, mai jos.
+#
+# ---------------------------------------------------------------------------
+# CUM ARATĂ (refăcut pe 2026-08-07: „ca un joc cu 1 milion de copii vândute")
+# ---------------------------------------------------------------------------
+# Tot meniul stă acum în chenarele de aramă ale lui Răzvan din `harta/EGT/Border EGT.png` — o
+# PLANȘĂ de 5×4 chenare de 64×64, din care tăiem la rulare doar celulele care ne trebuie
+# (`_chenar`). Fiecare chenar are și interiorul lui aproape negru, deci ține loc și de ramă, și
+# de fundal. Rama de lemn auriu (`Menu.png`) a plecat din panoul mesei din același motiv pentru
+# care plecase și de la masa Ender: ea era tot ce făcea ecranul „prietenos".
+#
+# Regulile de croială, aceleași ca la `trade.gd` (citește acolo motivele pe larg):
+#   · o singură culoare de accent (arama artei) și una de text (os), nimic altceva;
+#   · ierarhie pe mărime, nu pe culoare: titlu 46 → secțiune 22 → ajutor 15;
+#   · butoanele sunt piatră întunecată cu muchie de aramă, nu lemn cald;
+#   · titlul respiră încet (2.6s dus-întors) — cât să pară viu, nu cât să distragă.
 #
 # MIZA (cerută de Răzvan pe 2026-07-30): „totul sau nimic". Câștigi → fiecare status bifat se
 # DUBLEAZĂ. Pierzi → se ÎNJUMĂTĂȚEȘTE. La fel indiferent pe ce ai pariat: un număr plin plătește
@@ -31,9 +48,29 @@ const TABLE_TEX := "res://harta/EGT/table.png"
 const WHEEL_TEX := "res://harta/EGT/wheel.png"
 const CHIP_TEX := "res://harta/EGT/chip_red.png"
 
-const ACCENT := Color(0.95, 0.85, 0.55)   # auriul ramei ornate (ca în pause.gd / levelup.gd)
-const BTN_MAIN := Color("9e603f")         # umplutura butoanelor (lemn, ca în meniu)
-const BTN_SECOND := Color("594232")       # conturul lor
+# --- rama de meniu (planșa lui Răzvan, pusă în joc pe 2026-08-07) ---
+const SHEET := "res://harta/EGT/Border EGT.png"
+const CELULA := 64          # cât are o celulă din planșă
+# ⚠️ Celula se MĂREȘTE de ZOOM ori (vecinul cel mai apropiat, deci rămâne pixel art curat) înainte
+# să ajungă textură: nine-patch-ul întinde doar MIJLOCUL laturilor, nu și grosimea lor, iar o
+# celulă de 64px pusă pe un panou de 1000 lăsa linii de 1px — un chenar desenat cu pixul.
+const ZOOM := 2
+# Ce chenar din planșă folosim (coloană, rând), numărate de la 0 din stânga-sus.
+const CH_PANOU := Vector2i(2, 0)     # colțuri în spirală + linie dublă — panoul mare
+const CH_SLOT := Vector2i(1, 2)      # chenar subțire cu colțuri mici — un slot de item
+const CH_PREMIU := Vector2i(3, 2)    # octogon cu spirale — cutia premiului
+# ⚠️ NU folosi celulele (0,1) și (0,3): au pătrate ALBE în colțuri (sunt marcaje de planșă).
+
+# Culorile scoase din artă: arama chenarelor (cea mai deasă nuanță din PNG e #C37450) plus un os
+# pentru text. `ACCENT` era auriul vechi din `Menu.png` — schimbat aici o dată, se schimbă peste
+# tot în cazinou, fiindcă tot fișierul îl citește de aici.
+const ACCENT := Color8(198, 118, 80)        # arama aprinsă
+const ACCENT_CLAR := Color8(222, 152, 116)  # aceeași, luminată (evidențieri)
+const ACCENT_STINS := Color8(116, 62, 42)   # aceeași, dată în întuneric (contururi, muchii stinse)
+const OS_ALB := Color8(232, 224, 214)           # alb-os, pentru titluri și nume
+const CENUSA := Color8(150, 142, 138)       # gri stins, pentru textul de ajutor
+const BTN_MAIN := Color8(26, 22, 28)        # umplutura butoanelor: piatră întunecată
+const BTN_SECOND := ACCENT_STINS            # muchia lor
 
 # Cât se ÎNMULȚEȘTE un status bifat dacă pariul iese — pe TIP de pariu (cerut de Răzvan pe
 # 2026-07-30; până atunci toate plăteau 2×, deci un număr plin nu avea niciun rost).
@@ -124,6 +161,41 @@ const STATS := [
 ]
 
 # ---------------------------------------------------------------------------
+# TRADE-UP CONTRACT — „Gamble your items" (cerut de Răzvan pe 2026-08-07)
+# ---------------------------------------------------------------------------
+# Regula, ca la CS:GO: pui `TU_CATE` (3) iteme de ACEEAȘI raritate și primești UNUL cu o treaptă
+# mai sus. Nu vezi ce pică până nu tragi — vezi doar RARITATEA premiului, fiindcă ea e decisă de
+# ce ai băgat tu. Itemul câștigat se trage CINSTIT, înainte de orice animație (exact ca numărul
+# de la ruletă, `_spin`); rularea de iconițe de deasupra e doar spectacol.
+#
+# ⚠️ Legendary NU poate fi urcat: peste el nu mai e nimic, deci `raritate_mai_sus` l-ar da tot
+# Legendary și ai schimba 3 pe 1 în pierdere curată. Itemele legendare apar în listă, dar stinse.
+#
+# ⚠️⚠️ DE CE COSTĂ DIFICULTATE, deși ai dat 3 iteme pe 1. Fiindcă efectele NU se iau înapoi:
+# ca peste tot în joc (vezi `ender_statue.gd` și README), un item se aplică o dată, la luare,
+# direct pe statusuri, iar jumătate din ele nici n-ar putea fi anulate (Panic Button a explodat
+# deja, Wine te-a vindecat deja). Deci din cele 3 iteme pleacă doar RÂNDUL din registru, nu și
+# ce ți-au dat — adică un trade-up e câștig curat, și fără un preț ar fi buton de „mai dă-mi".
+# Prețul e același mecanism ca la statuia Ender (`Difficulty.add_trade_penalty`), doar mai mic:
+# acolo urci 2 trepte, aici una. **Vrei-l gratis? Pune `TU_COST_PROCENT` pe 0** — atât.
+const TU_CATE := 3                  # câte iteme intră într-un contract
+const TU_COST_PROCENT := 10.0       # cu cât urcă dificultatea un trade-up (0 = gratis)
+const TU_PASI := 18                 # câte iconițe se perindă la dezvăluire
+const TU_PAS_START := 0.035         # cât stă prima (secunde)
+const TU_PAS_FACTOR := 1.12         # cu cât încetinește la fiecare pas (≈2s în total)
+
+const PANOU_IT_W := 1010.0          # ⚠️ în pixeli de ECRAN DE BAZĂ (1152×648) — vezi trade.gd
+# 566, nu 596: la un inventar de 12 iteme (adică un singur rând) tot restul de înălțime se ducea
+# în ScrollContainer și rămânea o gaură de o palmă între iteme și butoane. Sub ~560 nu se poate
+# coborî — atât cere conținutul, iar o subtitrare ruptă pe două rânduri (turca, germana) ar urca
+# altfel peste chenar.
+const PANOU_IT_H := 566.0
+const SLOT_IT := 92.0               # latura unui slot de intrare
+const SLOT_PREMIU := 108.0          # latura cutiei de premiu
+const CELULA_IT := 62.0             # latura unei iconițe din inventar
+const GRILA_COL := 12               # câte iteme pe un rând de inventar
+
+# ---------------------------------------------------------------------------
 var _pagina := "intro"
 var _pariu = null              # dicționarul pariului curent (vezi `_castiga`), sau null
 var _pariu_rect := Rect2()     # zona lui pe masă, în pixelii pozei (acolo se pune jetonul)
@@ -150,6 +222,19 @@ var _btn_spin: Button
 var _rezultat: VBoxContainer
 var _banner: Label
 
+# --- trade-up ---
+var _pag_iteme: Control
+var _sheet: Image = null       # planșa de chenare, citită o singură dată
+var _sel := []                 # ce indici din `player.run_items` sunt puși în contract
+var _rar_blocata := ""         # raritatea impusă de prima alegere ("" = niciuna încă)
+var _rula := false             # cât se perindă iconițele la dezvăluire
+var _sloturi := []             # cele TU_CATE sloturi de intrare: {"icon", "border"}
+var _premiu := {}              # cutia premiului: {"icon", "border", "semn", "nume", "rar", "box"}
+var _grila: GridContainer
+var _lbl_stare: Label
+var _lbl_cost_it: Label
+var _btn_tradeup: Button
+
 func _ready() -> void:
 	add_to_group("casino")
 	process_mode = Node.PROCESS_MODE_ALWAYS   # merge și când jocul e pe pauză
@@ -164,6 +249,7 @@ func _ready() -> void:
 
 	_build_intro()
 	_build_masa()
+	_build_iteme()
 	_arata_pagina("intro")
 	get_viewport().size_changed.connect(_relayout)
 
@@ -180,8 +266,8 @@ func open() -> void:
 	Audio.play("levelup", -4.0, 0.0)
 
 func _inchide() -> void:
-	if _se_invarte:
-		return                     # nu pleca din mijlocul unei învârtiri
+	if _se_invarte or _rula:
+		return                     # nu pleca din mijlocul unei învârtiri / dezvăluiri
 	visible = false
 	get_tree().paused = false
 	Audio.resume_forest_ambient()
@@ -195,6 +281,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _pagina == "masa":
 		if not _se_invarte:
 			_arata_pagina("intro")
+	elif _pagina == "iteme":
+		if not _rula:            # nu pleca din mijlocul unei dezvăluiri
+			_arata_pagina("intro")
 	else:
 		_inchide()
 
@@ -202,9 +291,12 @@ func _arata_pagina(care: String) -> void:
 	_pagina = care
 	_pag_intro.visible = (care == "intro")
 	_pag_masa.visible = (care == "masa")
+	_pag_iteme.visible = (care == "iteme")
 	if care == "masa":
 		_reseteaza_masa()
 		_relayout()
+	elif care == "iteme":
+		_reseteaza_iteme()
 
 # ---------------------------------------------------------------------------
 # ECRANUL 1 — „Let's go gambling"
@@ -215,44 +307,62 @@ func _build_intro() -> void:
 	_pag_intro.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_pag_intro)
 
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_pag_intro.add_child(center)
+	# Panoul din planșa de chenare, centrat. Nu mai e text plutind pe un ecran negru: alegerea
+	# stă într-o cutie, ca la orice meniu comercial.
+	var pw := 620.0
+	var ph := 430.0
+	var panel := _cadru(CH_PANOU, 16)
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -pw / 2.0
+	panel.offset_right = pw / 2.0
+	panel.offset_top = -ph / 2.0
+	panel.offset_bottom = ph / 2.0
+	_pag_intro.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 46)
+	margin.add_theme_constant_override("margin_right", 46)
+	margin.add_theme_constant_override("margin_top", 40)
+	margin.add_theme_constant_override("margin_bottom", 34)
+	panel.add_child(margin)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
+	box.add_theme_constant_override("separation", 12)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(box)
+	margin.add_child(box)
 
 	var titlu := Label.new()
 	titlu.text = "Let's go gambling"
 	titlu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	titlu.add_theme_font_size_override("font_size", 54)
-	titlu.add_theme_color_override("font_color", ACCENT)
-	titlu.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	titlu.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	titlu.add_theme_font_size_override("font_size", 46)
+	titlu.add_theme_color_override("font_color", OS_ALB)
+	# contur de ARAMĂ, nu negru: la un titlu alb pe negru ține loc de aureolă și leagă textul de
+	# rama artei, fără shader și fără font nou (același truc ca la `trade.gd`).
+	titlu.add_theme_color_override("font_outline_color", ACCENT_STINS)
 	titlu.add_theme_constant_override("outline_size", 6)
 	box.add_child(titlu)
-	box.add_child(_spatiu(24))
+	# respiră încet, ca reclama unui aparat de bani
+	var puls := create_tween().set_loops()
+	puls.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	puls.tween_property(titlu, "modulate:a", 0.74, 1.3).set_trans(Tween.TRANS_SINE)
+	puls.tween_property(titlu, "modulate:a", 1.0, 1.3).set_trans(Tween.TRANS_SINE)
+
+	box.add_child(_linie(300.0, 12))
+	box.add_child(_spatiu(6))
 
 	box.add_child(_buton("Gamble your stats", _on_stats))
+	box.add_child(_buton("Gamble your items", _on_items))
 
-	# „Gamble your items" încă nu e făcut: butonul există, dar e gri și nu face nimic.
-	var b_items := _buton("Gamble your items", Callable())
-	b_items.disabled = true
-	box.add_child(b_items)
-
-	var curand := Label.new()
-	curand.text = "Coming soon"
-	curand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	curand.add_theme_font_size_override("font_size", 17)
-	curand.add_theme_color_override("font_color", Color(0.62, 0.62, 0.66))
-	box.add_child(curand)
-
-	box.add_child(_spatiu(18))
+	box.add_child(_spatiu(10))
 	box.add_child(_buton("Leave", _inchide))
 
 func _on_stats() -> void:
 	_arata_pagina("masa")
+
+func _on_items() -> void:
+	_arata_pagina("iteme")
 
 # ---------------------------------------------------------------------------
 # ECRANUL 2 — MASA DE RULETĂ
@@ -279,8 +389,8 @@ func _build_masa() -> void:
 	_evid = Panel.new()
 	_evid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1.0, 0.9, 0.3, 0.28)
-	sb.border_color = Color(1.0, 0.9, 0.3)
+	sb.bg_color = Color(ACCENT_CLAR.r, ACCENT_CLAR.g, ACCENT_CLAR.b, 0.30)
+	sb.border_color = ACCENT_CLAR
 	sb.set_border_width_all(4)
 	sb.set_corner_radius_all(4)
 	_evid.add_theme_stylebox_override("panel", sb)
@@ -425,24 +535,20 @@ func _pune_pariu(pariu: Dictionary, r: Rect2, eticheta: String) -> void:
 # PANOUL DIN DREAPTA — ce statusuri bagi în joc
 # ---------------------------------------------------------------------------
 func _build_panou() -> void:
-	_panou = NinePatchRect.new()
-	_panou.texture = load(MENU_UI_DIR + "Menu.png")
-	_panou.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_panou.patch_margin_left = 46
-	_panou.patch_margin_right = 46
-	_panou.patch_margin_top = 46
-	_panou.patch_margin_bottom = 46
+	# Rama de lemn auriu (`Menu.png`) a plecat de aici pe 2026-08-07, odată cu restul meniului:
+	# ea era tot ce mai făcea ecranul „prietenos". Acum e același chenar de aramă ca peste tot.
+	_panou = _cadru(CH_PANOU, 16)
 	_panou.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 	_pag_masa.add_child(_panou)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# ⚠️ Marginile trebuie să treacă de grosimea ramei (`patch_margin` = 46), altfel textul se urcă
-	# pe chenarul ornat. Erau 40, adică 6px SUB grosimea ramei — de aia se lipeau butoanele de ea.
-	margin.add_theme_constant_override("margin_left", 56)
-	margin.add_theme_constant_override("margin_right", 56)
-	margin.add_theme_constant_override("margin_top", 58)
-	margin.add_theme_constant_override("margin_bottom", 50)
+	# ⚠️ Marginile trebuie să treacă de grosimea ramei desenate (16px de celulă × ZOOM = 32),
+	# altfel textul se urcă pe chenarul ornat.
+	margin.add_theme_constant_override("margin_left", 40)
+	margin.add_theme_constant_override("margin_right", 40)
+	margin.add_theme_constant_override("margin_top", 40)
+	margin.add_theme_constant_override("margin_bottom", 36)
 	_panou.add_child(margin)
 
 	var box := VBoxContainer.new()
@@ -464,7 +570,7 @@ func _build_panou() -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sub.add_theme_font_size_override("font_size", 12)
-	sub.add_theme_color_override("font_color", Color(0.70, 0.70, 0.74))
+	sub.add_theme_color_override("font_color", CENUSA)
 	box.add_child(sub)
 
 	# lista de statusuri, într-un ScrollContainer ca să încapă mereu, oricâte ar fi
@@ -537,7 +643,7 @@ func _umple_statusuri() -> void:
 		cb.button_group = grup
 		cb.button_pressed = _ales == s["id"]
 		cb.add_theme_font_size_override("font_size", 13)
-		cb.add_theme_color_override("font_color", Color(0.90, 0.90, 0.94))
+		cb.add_theme_color_override("font_color", OS_ALB)
 		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cb.clip_text = true   # un nume lung scurtează, nu lățește panoul peste ramă
 		cb.toggled.connect(_on_bifa.bind(s["id"]))
@@ -628,7 +734,7 @@ func _arata_rezultat(n: int) -> void:
 	_bila.text = str(n)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = culoare
-	sb.border_color = Color(0.95, 0.85, 0.55)
+	sb.border_color = ACCENT_CLAR
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(999)
 	_bila.add_theme_stylebox_override("normal", sb)
@@ -869,6 +975,508 @@ func _intreg(v: int, f: float) -> int:
 	return int(floor(float(v) * f))
 
 # ---------------------------------------------------------------------------
+# ECRANUL 3 — TRADE-UP CONTRACT („Gamble your items")
+# ---------------------------------------------------------------------------
+func _build_iteme() -> void:
+	_pag_iteme = Control.new()
+	_pag_iteme.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pag_iteme.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_pag_iteme)
+
+	var panel := _cadru(CH_PANOU, 16)
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -PANOU_IT_W / 2.0
+	panel.offset_right = PANOU_IT_W / 2.0
+	panel.offset_top = -PANOU_IT_H / 2.0
+	panel.offset_bottom = PANOU_IT_H / 2.0
+	_pag_iteme.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 44)
+	margin.add_theme_constant_override("margin_right", 44)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_bottom", 26)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	margin.add_child(box)
+
+	var titlu := Label.new()
+	titlu.text = "TRADE-UP CONTRACT"
+	titlu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	titlu.add_theme_font_size_override("font_size", 34)
+	titlu.add_theme_color_override("font_color", OS_ALB)
+	titlu.add_theme_color_override("font_outline_color", ACCENT_STINS)
+	titlu.add_theme_constant_override("outline_size", 6)
+	box.add_child(titlu)
+
+	box.add_child(_linie(420.0, 10))
+
+	var sub := Label.new()
+	sub.text = "Three of the same rarity become one of the next"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub.add_theme_font_size_override("font_size", 16)
+	sub.add_theme_color_override("font_color", CENUSA)
+	_contur(sub)
+	box.add_child(sub)
+
+	var secret := Label.new()
+	secret.text = "You do not see what you get until you pull"
+	secret.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	secret.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	secret.add_theme_font_size_override("font_size", 15)
+	secret.add_theme_color_override("font_color", ACCENT)
+	_contur(secret)
+	box.add_child(secret)
+
+	box.add_child(_spatiu(10))
+
+	# rândul contractului: [slot][slot][slot]  ➜  [cutia premiului]
+	var contract := HBoxContainer.new()
+	contract.alignment = BoxContainer.ALIGNMENT_CENTER
+	contract.add_theme_constant_override("separation", 10)
+	contract.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(contract)
+
+	_sloturi.clear()
+	for i in TU_CATE:
+		contract.add_child(_fa_slot())
+
+	var sageata := Label.new()
+	sageata.text = "➜"
+	sageata.custom_minimum_size = Vector2(70, 0)
+	sageata.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sageata.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	sageata.add_theme_font_size_override("font_size", 34)
+	sageata.add_theme_color_override("font_color", ACCENT)
+	sageata.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_contur(sageata)
+	contract.add_child(sageata)
+
+	contract.add_child(_fa_premiu())
+
+	box.add_child(_spatiu(8))
+
+	_lbl_stare = Label.new()
+	_lbl_stare.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_stare.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_stare.add_theme_font_size_override("font_size", 17)
+	_lbl_stare.add_theme_color_override("font_color", OS_ALB)
+	_contur(_lbl_stare)
+	box.add_child(_lbl_stare)
+
+	_lbl_cost_it = Label.new()
+	_lbl_cost_it.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_cost_it.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_cost_it.add_theme_font_size_override("font_size", 15)
+	_lbl_cost_it.add_theme_color_override("font_color", Color8(206, 74, 60))
+	_contur(_lbl_cost_it)
+	box.add_child(_lbl_cost_it)
+
+	box.add_child(_spatiu(8))
+
+	var cap := Label.new()
+	cap.text = "YOUR ITEMS"
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cap.add_theme_font_size_override("font_size", 15)
+	cap.add_theme_color_override("font_color", ACCENT_CLAR)
+	_contur(cap)
+	box.add_child(cap)
+
+	# Inventarul, într-un ScrollContainer: la 30 de iteme n-ar încăpea altfel, iar panoul TREBUIE
+	# să rămână de mărime fixă (vezi PANOU_IT_H — 1152×648 e tot ecranul pe care îl avem).
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 110)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+
+	_grila = GridContainer.new()
+	_grila.columns = GRILA_COL
+	_grila.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_grila.add_theme_constant_override("h_separation", 6)
+	_grila.add_theme_constant_override("v_separation", 6)
+	scroll.add_child(_grila)
+
+	box.add_child(_spatiu(8))
+
+	var jos := HBoxContainer.new()
+	jos.alignment = BoxContainer.ALIGNMENT_CENTER
+	jos.add_theme_constant_override("separation", 14)
+	box.add_child(jos)
+	_btn_tradeup = _buton("TRADE UP", _trade_up)
+	_btn_tradeup.custom_minimum_size = Vector2(260, 46)
+	_btn_tradeup.add_theme_font_size_override("font_size", 20)
+	jos.add_child(_btn_tradeup)
+	var inapoi := _buton("Back", _on_back_iteme)
+	inapoi.custom_minimum_size = Vector2(180, 46)
+	inapoi.add_theme_font_size_override("font_size", 18)
+	jos.add_child(inapoi)
+
+func _on_back_iteme() -> void:
+	if not _rula:
+		_arata_pagina("intro")
+
+# Un slot de intrare: chenar de aramă gol, în care aterizează iconița itemului ales.
+func _fa_slot() -> Control:
+	var cell := Control.new()
+	cell.custom_minimum_size = Vector2(SLOT_IT, SLOT_IT)
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var cadru := _cadru(CH_SLOT, 14)
+	cadru.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cadru.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(cadru)
+
+	var border := TextureRect.new()      # chenarul de RARITATE al itemului pus înăuntru
+	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	border.offset_left = 9
+	border.offset_top = 9
+	border.offset_right = -9
+	border.offset_bottom = -9
+	border.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	border.stretch_mode = TextureRect.STRETCH_SCALE
+	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(border)
+
+	var icon := TextureRect.new()
+	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	icon.offset_left = 20
+	icon.offset_top = 20
+	icon.offset_right = -20
+	icon.offset_bottom = -20
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(icon)
+
+	_sloturi.append({"icon": icon, "border": border})
+	return cell
+
+# Cutia premiului: același tipar, dar cu chenarul ornat și cu un „?" cât timp nu știi ce e.
+func _fa_premiu() -> Control:
+	var wrap := VBoxContainer.new()
+	wrap.alignment = BoxContainer.ALIGNMENT_CENTER
+	wrap.add_theme_constant_override("separation", 2)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var cell := Control.new()
+	cell.custom_minimum_size = Vector2(SLOT_PREMIU, SLOT_PREMIU)
+	cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# pivotul în centru: la aterizare cutia „pocnește" (scale 1.3 → 1.0), iar fără pivot ar sări
+	# din colțul stâng-sus în loc să crească din mijloc
+	cell.pivot_offset = Vector2(SLOT_PREMIU, SLOT_PREMIU) * 0.5
+	wrap.add_child(cell)
+
+	var cadru := _cadru(CH_PREMIU, 14)
+	cadru.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cadru.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(cadru)
+
+	var border := TextureRect.new()
+	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	border.offset_left = 11
+	border.offset_top = 11
+	border.offset_right = -11
+	border.offset_bottom = -11
+	border.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	border.stretch_mode = TextureRect.STRETCH_SCALE
+	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(border)
+
+	var icon := TextureRect.new()
+	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	icon.offset_left = 24
+	icon.offset_top = 24
+	icon.offset_right = -24
+	icon.offset_bottom = -24
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(icon)
+
+	var semn := Label.new()
+	semn.text = "?"
+	semn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	semn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	semn.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	semn.add_theme_font_size_override("font_size", 50)
+	semn.add_theme_color_override("font_color", ACCENT)
+	semn.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	semn.add_theme_constant_override("outline_size", 5)
+	semn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(semn)
+
+	var rar := Label.new()
+	rar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rar.add_theme_font_size_override("font_size", 14)
+	rar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_contur(rar)
+	wrap.add_child(rar)
+
+	var nume := Label.new()
+	nume.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nume.custom_minimum_size = Vector2(190, 0)
+	nume.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nume.add_theme_font_size_override("font_size", 16)
+	nume.add_theme_color_override("font_color", OS_ALB)
+	nume.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_contur(nume)
+	wrap.add_child(nume)
+
+	_premiu = {"box": cell, "icon": icon, "border": border, "semn": semn, "rar": rar, "nume": nume}
+	return wrap
+
+# ---------------------------------------------------------------------------
+# TRADE-UP: starea ecranului
+# ---------------------------------------------------------------------------
+func _reseteaza_iteme() -> void:
+	_sel.clear()
+	_rar_blocata = ""
+	_rula = false
+	_umple_grila()
+	_actualizeaza_contract()
+
+# Inventarul se REDESENEAZĂ întreg la fiecare click. Sunt câteva zeci de iconițe și jocul e pe
+# pauză, deci nu costă nimic — în schimb scapă de toată contabilitatea „ce celulă trebuie stinsă
+# acum", care e exact locul unde se strecoară bug-urile de interfață.
+func _umple_grila() -> void:
+	for c in _grila.get_children():
+		_grila.remove_child(c)
+		c.queue_free()
+	var p = get_tree().get_first_node_in_group("player")
+	var lu = get_tree().get_first_node_in_group("levelup_menu")
+	if p == null or lu == null or not ("run_items" in p):
+		return
+	for i in p.run_items.size():
+		var u = lu.item_dupa_id(String(p.run_items[i]))
+		if u == null:
+			continue
+		_grila.add_child(_celula_item(i, u, lu))
+
+func _celula_item(idx: int, u, lu) -> Control:
+	var rar := String(u.get("rar", "common"))
+	var ales: bool = _sel.has(idx)
+	var poate := ales or _poate_alege(rar)
+
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(CELULA_IT, CELULA_IT)
+	b.flat = true
+	b.tooltip_text = String(u["nume"])
+	for stare in ["normal", "hover", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(stare, StyleBoxEmpty.new())
+
+	var border := TextureRect.new()
+	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	border.texture = load(MENU_UI_DIR + String(lu.RARITIES.get(rar, lu.RARITIES["common"])["border"]))
+	border.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	border.stretch_mode = TextureRect.STRETCH_SCALE
+	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(border)
+
+	var icon := TextureRect.new()
+	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	icon.offset_left = 9
+	icon.offset_top = 9
+	icon.offset_right = -9
+	icon.offset_bottom = -9
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = load(lu.icon_path(u))
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(icon)
+
+	# Cele trei stări se citesc din OPACITATE, nu din culori noi: itemul PUS ÎN CONTRACT e aproape
+	# transparent (a plecat de aici, e sus în slot), cel pe care nu-l poți alege acum e tras spre
+	# cenușiu, restul stau la putere plină. Nimic desenat peste artă.
+	if ales:
+		b.modulate = Color(1, 1, 1, 0.22)
+	elif not poate:
+		b.modulate = Color(0.52, 0.50, 0.52, 0.55)
+	b.disabled = not poate
+	b.pressed.connect(_click_item.bind(idx, rar))
+	return b
+
+# Poate intra în contract un item de raritatea `rar`?
+func _poate_alege(rar: String) -> bool:
+	if _rula or _sel.size() >= TU_CATE:
+		return false
+	if rar == "legendary":
+		return false                      # peste Legendary nu mai e nimic — vezi capul secțiunii
+	return _rar_blocata == "" or _rar_blocata == rar
+
+func _click_item(idx: int, rar: String) -> void:
+	if _rula:
+		return
+	if _sel.has(idx):
+		_sel.erase(idx)
+		if _sel.is_empty():
+			_rar_blocata = ""             # ai golit contractul → orice raritate e iar liberă
+	else:
+		if not _poate_alege(rar):
+			return
+		_sel.append(idx)
+		_rar_blocata = rar
+	Audio.play("button", -7.0, 0.0)
+	_umple_grila()
+	_actualizeaza_contract()
+
+# Redesenează sloturile, cutia premiului, textul de stare și butonul.
+# `pastreaza_premiu` = tocmai ai câștigat ceva și vrem să rămână pe ecran, nu să revină la „?".
+func _actualizeaza_contract(pastreaza_premiu := false) -> void:
+	var lu = get_tree().get_first_node_in_group("levelup_menu")
+	var p = get_tree().get_first_node_in_group("player")
+
+	for i in _sloturi.size():
+		var s: Dictionary = _sloturi[i]
+		if lu != null and p != null and i < _sel.size():
+			var u = lu.item_dupa_id(String(p.run_items[int(_sel[i])]))
+			if u != null:
+				s["border"].texture = load(MENU_UI_DIR + String(lu.RARITIES.get(String(u.get("rar", "common")), lu.RARITIES["common"])["border"]))
+				s["icon"].texture = load(lu.icon_path(u))
+				continue
+		s["border"].texture = null
+		s["icon"].texture = null
+
+	if not pastreaza_premiu:
+		_premiu["icon"].texture = null
+		_premiu["semn"].visible = true
+		_premiu["nume"].text = ""
+		_premiu["box"].scale = Vector2.ONE
+		# Chenarul cutiei arată RARITATEA pe care o vei primi, chiar dacă nu vezi itemul: raritatea
+		# o hotărăști tu prin ce bagi, deci a o ascunde ar fi minciună, nu suspans.
+		if lu != null and _rar_blocata != "":
+			var tinta: String = lu.raritate_mai_sus(_rar_blocata, 1)
+			var r: Dictionary = lu.RARITIES.get(tinta, lu.RARITIES["common"])
+			_premiu["border"].texture = load(MENU_UI_DIR + String(r["border"]))
+			_premiu["rar"].text = String(r["nume"])
+			_premiu["rar"].add_theme_color_override("font_color", r["color"])
+		else:
+			_premiu["border"].texture = null
+			_premiu["rar"].text = ""
+
+	var gata := _sel.size() == TU_CATE
+	_btn_tradeup.disabled = _rula or not gata
+	if not _rula:
+		if gata:
+			_lbl_stare.text = ""
+		elif _are_set_posibil():
+			_lbl_stare.text = "Pick 3 items of the same rarity"
+		else:
+			_lbl_stare.text = "You need 3 items of the same rarity"
+	_lbl_cost_it.text = "" if TU_COST_PROCENT <= 0.0 else tr("Cost: +%d%% difficulty") % int(round(TU_COST_PROCENT))
+
+# Există măcar o raritate (în afară de Legendary) din care ai TU_CATE bucăți? Doar ca să știm ce
+# text de ajutor scriem — „alege 3" n-are sens dacă n-ai din ce.
+func _are_set_posibil() -> bool:
+	var p = get_tree().get_first_node_in_group("player")
+	var lu = get_tree().get_first_node_in_group("levelup_menu")
+	if p == null or lu == null or not ("run_items" in p):
+		return false
+	var cate := {}
+	for id in p.run_items:
+		var u = lu.item_dupa_id(String(id))
+		if u == null:
+			continue
+		var r := String(u.get("rar", "common"))
+		if r == "legendary":
+			continue
+		cate[r] = int(cate.get(r, 0)) + 1
+		if int(cate[r]) >= TU_CATE:
+			return true
+	return false
+
+# ---------------------------------------------------------------------------
+# TRADE-UP: tragerea
+# ---------------------------------------------------------------------------
+func _trade_up() -> void:
+	if _rula or _sel.size() != TU_CATE:
+		return
+	var p = get_tree().get_first_node_in_group("player")
+	var lu = get_tree().get_first_node_in_group("levelup_menu")
+	if p == null or lu == null:
+		return
+	var tinta: String = lu.raritate_mai_sus(_rar_blocata, 1)
+	# ⚠️ AICI se trage premiul — CINSTIT, înainte de orice animație, exact ca numărul de la ruletă
+	# (`_spin`). Perindarea de iconițe de mai jos e decor: dacă rezultatul s-ar alege la sfârșit,
+	# n-ar exista nicio deosebire vizibilă, dar codul ar fi unul în care se POATE trișa.
+	var castig = lu.item_random_de_raritate(tinta)
+	if castig == null:
+		_lbl_stare.text = "You need 3 items of the same rarity"   # raritatea de sus e goală (toate luate)
+		return
+
+	_rula = true
+	_btn_tradeup.disabled = true
+	_premiu["semn"].visible = true
+	_umple_grila()                       # celulele se sting: nu se mai poate umbla la contract
+	Audio.play("chest_open", -5.0, 0.0)
+
+	# Perindarea: iconițe la întâmplare din raritatea premiului, tot mai rar, ca la un aparat de
+	# bani care se oprește. Tween, nu `_process`, ca să meargă și cu jocul pe pauză.
+	var tw := create_tween()
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	var pas := TU_PAS_START
+	for i in TU_PASI:
+		tw.tween_callback(_perinda.bind(lu.item_random_de_raritate(tinta), lu))
+		tw.tween_interval(pas)
+		pas *= TU_PAS_FACTOR
+	tw.tween_callback(_aterizeaza.bind(castig, p, lu))
+
+func _perinda(u, lu) -> void:
+	if u == null:
+		return
+	_premiu["semn"].visible = false
+	_premiu["icon"].texture = load(lu.icon_path(u))
+	Audio.play("key_pickup", -16.0, 0.0)
+
+func _aterizeaza(castig, p, lu) -> void:
+	if not is_instance_valid(p) or not is_instance_valid(lu):
+		_rula = false
+		return
+	# ⚠️ Scoatem cele TU_CATE rânduri din registru în ordine DESCRESCĂTOARE: ștergi întâi indicele
+	# mic și toți ceilalți se mută cu unu sub tine. Și abia DUPĂ aia dăm itemul nou, fiindcă
+	# `da_item` ADAUGĂ în aceeași listă (prin `_apply`) — aceeași grijă ca la `trade.gd::_alege`.
+	var idx := _sel.duplicate()
+	idx.sort()
+	idx.reverse()
+	for i in idx:
+		var k := int(i)
+		if k >= 0 and k < p.run_items.size():
+			p.run_items.remove_at(k)
+	lu.da_item(castig, p)
+	if TU_COST_PROCENT > 0.0:
+		Difficulty.add_trade_penalty(TU_COST_PROCENT / 100.0)
+
+	var r: Dictionary = lu.RARITIES.get(String(castig.get("rar", "common")), lu.RARITIES["common"])
+	_premiu["semn"].visible = false
+	_premiu["icon"].texture = load(lu.icon_path(castig))
+	_premiu["border"].texture = load(MENU_UI_DIR + String(r["border"]))
+	_premiu["rar"].text = String(r["nume"])
+	_premiu["rar"].add_theme_color_override("font_color", r["color"])
+	_premiu["nume"].text = String(castig["nume"])
+	Audio.play("chest_anim", -3.0, 0.0)
+
+	# pocnetul de la aterizare — cât să se simtă că s-a oprit, nu cât să sară cutia din panou
+	var pop := create_tween()
+	pop.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_premiu["box"].scale = Vector2(1.3, 1.3)
+	pop.tween_property(_premiu["box"], "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	_sel.clear()
+	_rar_blocata = ""
+	_rula = false
+	_umple_grila()
+	_actualizeaza_contract(true)   # premiul rămâne pe ecran până alegi altceva
+	_lbl_stare.text = ""
+
+# ---------------------------------------------------------------------------
 # AȘEZAREA ÎN PAGINĂ (merge la orice rezoluție)
 # ---------------------------------------------------------------------------
 func _relayout() -> void:
@@ -913,18 +1521,69 @@ func _aseaza_suprapuse(s: float) -> void:
 		_evid.size = _evid_rect.size * s
 
 # ---------------------------------------------------------------------------
-# HELPERE de interfață (aceeași croială ca butoanele din meniul de pauză)
+# CĂRĂMIZILE DE ASPECT (aceleași ca la `trade.gd` — citește acolo de ce arată așa)
 # ---------------------------------------------------------------------------
+# Un chenar din planșă, gata de întins (nine-patch). Celula se decupează la rulare din PNG și se
+# face textură proprie: `NinePatchRect` vrea o textură întreagă, iar un `AtlasTexture` nu e de
+# încredere aici. `margine` = câți pixeli din margine NU se întind (colțurile ornamentate).
+func _cadru(celula: Vector2i, margine: int) -> NinePatchRect:
+	var np := NinePatchRect.new()
+	np.texture = _chenar(celula)
+	np.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	np.patch_margin_left = margine * ZOOM
+	np.patch_margin_right = margine * ZOOM
+	np.patch_margin_top = margine * ZOOM
+	np.patch_margin_bottom = margine * ZOOM
+	return np
+
+func _chenar(celula: Vector2i) -> ImageTexture:
+	if _sheet == null:
+		var tex := load(SHEET) as Texture2D
+		if tex == null:
+			return null
+		_sheet = tex.get_image()
+	var bucata := _sheet.get_region(Rect2i(celula.x * CELULA, celula.y * CELULA, CELULA, CELULA))
+	bucata.resize(CELULA * ZOOM, CELULA * ZOOM, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(bucata)
+
+# Linia subțire de sub titlu. Se stinge spre capete (trei bucăți cu alfa diferit), ca să nu arate
+# ca o bară trasă cu rigla peste artă.
+func _linie(latime: float, inaltime: int) -> Control:
+	var wrap := Control.new()
+	wrap.custom_minimum_size = Vector2(0, inaltime)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hb := HBoxContainer.new()
+	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 0)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(hb)
+	for a in [0.15, 0.55, 0.15]:
+		var r := ColorRect.new()
+		r.color = Color(ACCENT.r, ACCENT.g, ACCENT.b, a)
+		r.custom_minimum_size = Vector2(latime / 3.0, 2)
+		r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hb.add_child(r)
+	return wrap
+
+func _contur(lbl: Label) -> void:
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	lbl.add_theme_constant_override("outline_size", 3)
+
+# Butoanele: piatră întunecată cu muchie de aramă, nu lemnul cald de dinainte.
 func _buton(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(320, 54)
-	b.add_theme_font_size_override("font_size", 23)
-	b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+	b.custom_minimum_size = Vector2(320, 52)
+	b.add_theme_font_size_override("font_size", 22)
+	b.add_theme_color_override("font_color", OS_ALB)
+	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
+	b.add_theme_color_override("font_disabled_color", Color8(96, 90, 92))
 	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND))
-	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10)))
-	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20)))
-	b.add_theme_stylebox_override("disabled", _sb(BTN_MAIN.darkened(0.45), BTN_SECOND.darkened(0.35)))
+	b.add_theme_stylebox_override("hover", _sb(Color8(42, 30, 30), ACCENT))
+	b.add_theme_stylebox_override("pressed", _sb(Color8(56, 36, 32), ACCENT_CLAR))
+	b.add_theme_stylebox_override("disabled", _sb(BTN_MAIN.darkened(0.35), BTN_SECOND.darkened(0.5)))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	if cb.is_valid():
 		b.pressed.connect(func(): Audio.play("button", -3.0, 0.0))
@@ -935,8 +1594,8 @@ func _sb(bg: Color, border: Color) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.border_color = border
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(10)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(2)   # colțuri aproape drepte: pixel art, nu material design
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
 	sb.content_margin_top = 6
