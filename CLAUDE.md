@@ -52,7 +52,9 @@ Quick rules:
 **2. De ce nu intra itemul bine în căsuță.** Chenarul de raritate era pus cu offset-uri ghicite (9 și 11), dar rama desenată e de altă grosime la fiecare celulă. **Măsurată din planșă**, nu ghicită (scanare de la centru spre margini după prima schimbare de culoare): celula (1,2) are **6px** de ramă, (3,2) are **8px**, ×`ZOOM` → 12 și 16. Acum:
 - `SLOT_LAT = 116` — **aceeași latură la toate patru**;
 - `CONTINUT = SLOT_LAT - 2*RAMA_PREMIU = 84` — chenarul de raritate e la fel de mare peste tot, adică exact cât încape în cea mai strâmtă dintre rame. La sloturi rămân 4px de joc de fiecare parte, dar acolo e fundalul închis al ramei (#201E26), aceeași culoare — nu se vede.
-- iconița: `CONTINUT - 2*ICON_MARGINE`, cu `ICON_MARGINE = 13` (~14%, cât ține rama pictată a chenarului de raritate, ca în inventar).
+- iconița: `CONTINUT - 2*ICON_MARGINE`, cu `ICON_MARGINE = 11` (~15%, cât ține rama pictată a chenarului de raritate, ca în inventar).
+
+**⚠️ A doua rundă, tot atunci: „fac overlap cu celălalt border".** Prima variantă avea `CONTINUT = SLOT_LAT - 2*RAMA_PREMIU`, adică chenarul de raritate umplea EXACT golul ramei de aramă și se lipea de muchia ei interioară — cele două rame desenate se citeau ca una singură, groasă și murdară. Leacul e `JOC_CHENAR = 7`: **două rame au nevoie de aer între ele ca să se vadă că-s două.** `CONTINUT` a scăzut de la 84 la 70, `ICON_MARGINE` de la 13 la 11, „?"-ul din cutia premiului de la 50 la 38 (umplea chenarul micșorat), iar „X"-ul de scoatere se aliniază acum cu colțul CONȚINUTULUI, `(SLOT_LAT - CONTINUT) / 2`, nu cu al ramei — altfel ar fi plutit în golul proaspăt făcut. Inventarul de jos n-a fost atins: acolo nu există a doua ramă peste care să se calce.
 
 **3. Scoaterea din contract.** Mergea deja (al doilea click pe iconița din inventar), dar la `modulate.a = 0.22` itemul ales arăta MORT și nimeni nu ghicea că se poate apăsa. Acum:
 - itemul ales stă la **0.4**, iar stingerea se pune pe ARTĂ (border + icon), nu pe buton — `modulate` se moștenește la copii, deci un „X" pe un buton la 0.4 ar fi fost la fel de greu de văzut ca itemul de sub el;

@@ -204,10 +204,16 @@ const SLOT_LAT := 116.0
 const RAMA_SLOT := 6 * ZOOM
 const RAMA_PREMIU := 8 * ZOOM
 # Chenarul de raritate + iconița sunt la fel de mari în toate patru: cât încape în cea mai strâmtă,
-# adică în cutia premiului. La sloturi rămâne 4px de joc de fiecare parte, dar acolo e fundalul
+# adică în cutia premiului. La sloturi rămâne mai mult joc de fiecare parte, dar acolo e fundalul
 # închis al ramei (#201E26), aceeași culoare — deci golul nu se vede, iar itemele se văd egale.
-const CONTINUT := SLOT_LAT - 2.0 * RAMA_PREMIU
-const ICON_MARGINE := 13.0          # cât ține rama pictată a chenarului de raritate (~14%, ca în inventar)
+#
+# ⚠️ `JOC_CHENAR` = cât rămâne GOL între rama de aramă și chenarul de raritate. Fără el (adică
+# `CONTINUT = SLOT_LAT - 2*RAMA_PREMIU`) chenarul de raritate se lipea exact de muchia interioară
+# a aramei și cele două rame se citeau ca una singură, groasă și murdară — „fac overlap cu celălalt
+# border" (Răzvan, 2026-08-07). Două rame desenate au nevoie de aer între ele ca să se vadă că-s două.
+const JOC_CHENAR := 7.0
+const CONTINUT := SLOT_LAT - 2.0 * (RAMA_PREMIU + JOC_CHENAR)
+const ICON_MARGINE := 11.0          # cât ține rama pictată a chenarului de raritate (~15%, ca în inventar)
 const CELULA_IT := 62.0             # latura unei iconițe din inventar
 const GRILA_COL := 12               # câte iteme pe un rând de inventar
 
@@ -1175,7 +1181,8 @@ func _fa_slot(poz: int) -> Control:
 
 	var c := _continut(cell)             # chenarul de RARITATE + iconița, la fel ca la premiu
 
-	var x := _semn_scoate(RAMA_SLOT + 2.0, 20.0)
+	# „X"-ul se aliniază cu colțul CONȚINUTULUI, nu cu al ramei: stă pe item, nu în golul dintre rame
+	var x := _semn_scoate((SLOT_LAT - CONTINUT) * 0.5, 20.0)
 	x.visible = false
 	cell.add_child(x)
 
@@ -1265,7 +1272,7 @@ func _fa_premiu() -> Control:
 	semn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	semn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	semn.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	semn.add_theme_font_size_override("font_size", 50)
+	semn.add_theme_font_size_override("font_size", 38)   # cât să încapă în `CONTINUT`, nu să-l umple
 	semn.add_theme_color_override("font_color", ACCENT)
 	semn.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	semn.add_theme_constant_override("outline_size", 5)
