@@ -13,8 +13,14 @@ class_name SettingsUI
 # Își prinde singur tasta apăsată în _input când e în modul remapare. Nu are nevoie de altceva
 # din exterior; citește/scrie totul prin autoload-ul GameSettings.
 
-const BTN_MAIN := Color("9e603f")     # umplutura butonului (lemn, ca în meniu)
-const BTN_SECOND := Color("594232")   # conturul
+# Paleta e ACEEAȘI ca în `menu.gd` și `casino.gd` (arama chenarelor din `Border EGT.png`) —
+# blocul ăsta se vede și în meniul principal, și în pauză, deci n-are voie să aibă stilul lui.
+const ACCENT := Color8(198, 118, 80)
+const ACCENT_CLAR := Color8(222, 152, 116)
+const ACCENT_STINS := Color8(116, 62, 42)
+const OS_ALB := Color8(232, 224, 214)
+const BTN_MAIN := Color8(26, 22, 28)   # umplutura butonului (piatră închisă)
+const BTN_SECOND := ACCENT_STINS       # conturul
 
 var _remap_action := ""     # ce direcție așteaptă o tastă nouă (gol = nu remapăm acum)
 var _remap_buttons := {}    # action -> butonul care arată tasta
@@ -130,6 +136,12 @@ func _volume_row(text: String, value: float, cb: Callable) -> HBoxContainer:
 	s.step = 0.05
 	s.value = value
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # pixel art: butonul nu se înmoaie
+	s.add_theme_stylebox_override("slider", _bara(Color8(18, 15, 20), 3))
+	s.add_theme_stylebox_override("grabber_area", _bara(ACCENT_STINS, 3))
+	s.add_theme_stylebox_override("grabber_area_highlight", _bara(ACCENT, 3))
+	s.add_theme_icon_override("grabber", _grabber(ACCENT))
+	s.add_theme_icon_override("grabber_highlight", _grabber(ACCENT_CLAR))
 	s.value_changed.connect(cb)
 	row.add_child(s)
 	return row
@@ -204,25 +216,49 @@ func _buton(text: String, font_size: int, min_size: Vector2) -> Button:
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	return b
 
-# Tab-ul paginii deschise stă aprins (culoarea de „apăsat"), ca să se vadă unde ești.
+# Tab-ul paginii deschise stă aprins, ca să se vadă unde ești. ⚠️ Deosebirea se face pe MUCHIE,
+# nu pe umplutură: pe piatră aproape neagră un `darkened(0.18)` nu se vede deloc, pe când o muchie
+# de aramă aprinsă lângă una stinsă se citește instant.
 func _stil_tab(b: Button, activ: bool) -> void:
-	var bg := BTN_MAIN.lightened(0.22) if activ else BTN_MAIN.darkened(0.18)
-	var bd := BTN_SECOND.lightened(0.22) if activ else BTN_SECOND
+	var bg := Color8(52, 36, 34) if activ else BTN_MAIN
+	var bd := ACCENT_CLAR if activ else ACCENT_STINS
 	b.add_theme_stylebox_override("normal", _sb(bg, bd, 3))
-	b.add_theme_stylebox_override("hover", _sb(bg.lightened(0.10), bd.lightened(0.10), 3))
-	b.add_theme_color_override("font_color", Color(1, 0.97, 0.9) if activ else Color(0.8, 0.75, 0.7))
+	b.add_theme_stylebox_override("hover", _sb(Color8(64, 44, 40), ACCENT, 3))
+	b.add_theme_color_override("font_color", OS_ALB if activ else Color(0.62, 0.58, 0.56))
 
 func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.border_color = border
 	sb.set_border_width_all(width)
-	sb.set_corner_radius_all(10)
+	sb.set_corner_radius_all(2)   # colțuri aproape drepte: pixel art, nu material design
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
 	sb.content_margin_top = 8
 	sb.content_margin_bottom = 8
 	return sb
+
+# --- sliderele de volum ---
+# Fără astea rămâneau sliderele CENUȘII implicite ale motorului, adică singurul lucru din tot
+# meniul care arăta a Godot și nu a joc. Godot le desenează din trei bucăți: `slider` (șanțul),
+# `grabber_area` (partea plină, din stânga butonului) și iconița `grabber` (butonul însuși).
+func _bara(c: Color, inaltime: int) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = c
+	sb.set_corner_radius_all(1)
+	sb.content_margin_top = inaltime
+	sb.content_margin_bottom = inaltime
+	return sb
+
+# Butonul sliderului: un pătrat de aramă cu muchie închisă, desenat din cod (n-avem poză pentru el
+# și n-are rost una — 12×12 pixeli).
+func _grabber(c: Color) -> ImageTexture:
+	var img := Image.create(12, 12, false, Image.FORMAT_RGBA8)
+	for x in 12:
+		for y in 12:
+			var margine: bool = x < 2 or y < 2 or x > 9 or y > 9
+			img.set_pixel(x, y, c.darkened(0.55) if margine else c)
+	return ImageTexture.create_from_image(img)
 
 func _center_label(text: String, size: int) -> Label:
 	var l := Label.new()

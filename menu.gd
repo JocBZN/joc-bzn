@@ -4,35 +4,60 @@ extends Control
 # fundal cu gradient + vignette, titlu cu glow neon, butoane cu borduri cyan.
 
 const GAME_SCENE := "res://main.tscn"
-const ACCENT := Color(0.2, 0.9, 1.0)    # cyan — a mai rămas doar pentru fallback-ul de titlu
-const ACCENT2 := Color(1.0, 0.2, 0.6)   # magenta
 
-# Culorile butoanelor de meniu (lemn, ca logo-ul). Schimbă-le doar aici — toate butoanele
-# mari (START, BACK etc.) își iau culoarea din ele, în `_menu_button()`.
-const BTN_MAIN := Color("9e603f")     # principala: umplutura butonului
-const BTN_SECOND := Color("594232")   # secundara: conturul
+# ---------------------------------------------------------------------------
+# CUM ARATĂ (refăcut pe 2026-08-07: „să arate ca un joc făcut de un studio profesional")
+# ---------------------------------------------------------------------------
+# Meniul a trecut pe ACELEAȘI chenare de aramă ca EGT-ul și ca statuia din Ender
+# (`harta/EGT/Border EGT.png`), ca să nu mai fie trei stiluri în același joc. Ce s-a schimbat:
+#
+#   1. RAMA sub-paginilor: lemnul deschis din `Menu.png` → chenarul de aramă, celula (2,0).
+#      Lemnul era beige-auriu peste o pădure de noapte albastră, adică singurul lucru din tot
+#      ecranul care nu ținea de nicio paletă.
+#   2. BUTOANELE: din felii maro-portocalii cu colțuri rotunjite → piatră închisă cu muchie de
+#      aramă. Colțurile rotunjite de 10px erau cel mai mare semn de „interfață făcută repede":
+#      un joc pixel art n-are raze de 10 pixeli nicăieri în artă. Acum sunt 2, ca la cazinou.
+#   3. TITLURILE: din auriu simplu → alb-os cu contur de aramă + o linie subțire sub ele, ca la
+#      cazinou. O linie sub titlu costă nimic și separă „capul" paginii de conținut.
+#
+# ⚠️ Paleta e MĂSURATĂ din planșă, nu aleasă din ochi (vezi `casino.gd`, unde a fost scoasă
+# numărând pixelii). Dacă schimbi arta chenarelor, adu și culorile astea după ea.
+const ACCENT := Color8(198, 118, 80)        # arama chenarelor
+const ACCENT_CLAR := Color8(222, 152, 116)  # aceeași, aprinsă (hover, muchia butonului principal)
+const ACCENT_STINS := Color8(116, 62, 42)   # aceeași, în umbră (contururi, muchii de repaus)
+const OS_ALB := Color8(232, 224, 214)       # textul principal
+const CENUSA := Color8(150, 142, 138)       # textul secundar
 
-# Auriul ramei ornate (`Menu.png`), folosit la titlurile de pagină. Înainte titlurile erau
-# cyan cu glow magenta — rămășiță din tema cyberpunk de dinainte de logo, care se bătea cap
-# în cap cu lemnul (același motiv pentru care a fost scos subtitlul „CYBER SURVIVOR").
-const TITLU := Color(0.95, 0.85, 0.55)
+# Culorile butoanelor de meniu. Schimbă-le doar aici — toate butoanele mari (START, BACK etc.)
+# își iau culoarea din ele, în `_menu_button()`.
+const BTN_MAIN := Color8(26, 22, 28)   # principala: umplutura butonului (piatră închisă)
+const BTN_SECOND := ACCENT_STINS       # secundara: conturul
+
+# Culoarea titlurilor de pagină. A fost cyan cu glow magenta (tema cyberpunk), apoi auriu de lemn;
+# acum alb-os cu contur de aramă, ca titlurile din cazinou.
+const TITLU := OS_ALB
 
 # Arta de UI din joc, refolosită aici ca meniul și ecranul de level up să arate din același
-# joc: rama ornată pe sub-pagini, chenarele de raritate în jurul armelor.
+# joc: chenarele de raritate în jurul armelor.
 const UI_DIR := "res://Upgrades/Menu UI/"
-const RAMA := UI_DIR + "Menu.png"
-# Cât ține ornamentul ramei, în pixeli de textură — adică ce NU trebuie întins de nine-patch.
-# MĂSURAT pe `Menu.png` (400x328), nu ghicit: umplutura interioară începe la 61px din stânga,
-# 60 din dreapta, 50 de sus și 48 de jos. `levelup.gd` folosește 46 peste tot, ceea ce lasă
-# ~15px de ornament în zona întinsă — la panoul lui, care e mare și fix, nu se vede; aici,
-# pe panouri mici care se strâng pe conținut, colțurile ieșeau vizibil trase.
-const RAMA_MARG_LAT := 62
-const RAMA_MARG_SUS := 52
-const RAMA_MARG_JOS := 50
-# Spațiul dintre ramă și conținut: ornamentul + câțiva pixeli, ca textul să nu se lipească.
-const RAMA_PAD_LAT := 72
-const RAMA_PAD_SUS := 58
-const RAMA_PAD_JOS := 56
+
+# --- chenarele de aramă (aceeași planșă și aceeași unealtă ca în `casino.gd` / `trade.gd`) ---
+# Planșa e 5×4 celule de 64×64. Se decupează celula, se mărește ×2 cu NEAREST și se dă unui
+# `StyleBoxTexture` — nine-patch-ul întinde doar MIJLOCUL laturii, nu grosimea ei, deci o celulă
+# de 64 pe un panou de 900 ar fi lăsat linii de 1px fără mărire.
+# ⚠️ Celulele (0,1) și (0,3) NU se folosesc: au pătrate ALBE în colțuri.
+const SHEET := "res://harta/EGT/Border EGT.png"
+const CELULA_FOAIE := 64
+const ZOOM := 2
+const CH_PANOU := Vector2i(2, 0)
+# Cât din chenar e COLȚ ORNAMENTAT, adică ce nu se întinde. 16 în pixeli de planșă → 32 pe ecran.
+const RAMA_MARG := 16 * ZOOM
+# Spațiul dintre ramă și conținut. Mult mai mic decât la `Menu.png` (era 72/58/56): ornamentul de
+# aramă e subțire, iar cei ~30px câștigați pe verticală îi trebuiau paginii SETTINGS, care abia
+# încăpea în cele 648 de pixeli ai ecranului de referință.
+const RAMA_PAD_LAT := 42
+const RAMA_PAD_SUS := 34
+const RAMA_PAD_JOS := 30
 const BORDER_SEL := UI_DIR + "Border Rare.png"      # verde = ales (ca verdele de selecție de până acum)
 const BORDER_NESEL := UI_DIR + "Border Common.png"  # albastru-gri = neales
 const CELULA := 132.0    # latura unei celule de armă (chenar + iconiță)
@@ -82,6 +107,7 @@ const INTRO_BUTTONS := 0.35   # cât durează să apară butoanele
 const MENU_BLUR := 3.0        # cât de tare e blur-ul la final (0 = deloc, 8 = maxim)
 
 var _panels := {}
+var _sheet: Image = null       # planșa de chenare, citită o singură dată
 var _weapon_buttons := []
 var _lb_list: VBoxContainer
 
@@ -422,28 +448,29 @@ func _make_panel(key: String, titlu: String = "", cu_rama: bool = true) -> VBoxC
 		afara.alignment = BoxContainer.ALIGNMENT_CENTER
 		if titlu != "":
 			afara.add_child(_header(titlu))
+			afara.add_child(_linie(360.0, 8))
 		afara.add_child(_rama_container(box))
 		center.add_child(afara)
 	else:
 		center.add_child(box)
 	return box
 
-# Rama ornată care se strânge exact pe conținut.
+# Rama de aramă care se strânge exact pe conținut.
 #
-# De ce PanelContainer + StyleBoxTexture și nu un NinePatchRect ca în `levelup.gd`: acolo
-# panoul are mărime FIXĂ, deci NinePatch-ul e potrivit. Aici paginile au înălțimi diferite
+# De ce PanelContainer + StyleBoxTexture și nu un NinePatchRect ca în `levelup.gd` / `casino.gd`:
+# acolo panourile au mărime FIXĂ, deci NinePatch-ul e potrivit. Aici paginile au înălțimi diferite
 # (LEADERBOARD crește cu scorurile, SETTINGS e cea mai înaltă), iar un NinePatchRect nu se
 # strânge singur pe copii. PanelContainer face exact asta: își ia mărimea din conținut și
 # desenează stilul în spate.
 func _rama_container(continut: Control) -> PanelContainer:
 	var p := PanelContainer.new()
 	var sb := StyleBoxTexture.new()
-	sb.texture = load(RAMA)
+	sb.texture = _chenar(CH_PANOU)
 	# cât din textură e „colț/margine" și nu se întinde
-	sb.texture_margin_left = RAMA_MARG_LAT
-	sb.texture_margin_right = RAMA_MARG_LAT
-	sb.texture_margin_top = RAMA_MARG_SUS
-	sb.texture_margin_bottom = RAMA_MARG_JOS
+	sb.texture_margin_left = RAMA_MARG
+	sb.texture_margin_right = RAMA_MARG
+	sb.texture_margin_top = RAMA_MARG
+	sb.texture_margin_bottom = RAMA_MARG
 	# spațiul dintre ramă și text; trebuie clar peste ornament, altfel textul se lipește de el
 	sb.content_margin_left = RAMA_PAD_LAT
 	sb.content_margin_right = RAMA_PAD_LAT
@@ -453,6 +480,41 @@ func _rama_container(continut: Control) -> PanelContainer:
 	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # pixel art: fără înmuiere
 	p.add_child(continut)
 	return p
+
+# O celulă din planșa de chenare, gata de întins. Se decupează la rulare și se face textură
+# proprie: `StyleBoxTexture` vrea o textură întreagă, iar un `AtlasTexture` nu e de încredere aici.
+# (Aceeași funcție ca în `casino.gd` și `trade.gd`. E copiată, nu pusă la comun, fiindcă fiecare
+# ecran își construiește singur interfața — vezi comentariul din `trade.gd`.)
+func _chenar(celula: Vector2i) -> ImageTexture:
+	if _sheet == null:
+		var tex := load(SHEET) as Texture2D
+		if tex == null:
+			return null
+		_sheet = tex.get_image()
+	var bucata := _sheet.get_region(Rect2i(celula.x * CELULA_FOAIE, celula.y * CELULA_FOAIE, CELULA_FOAIE, CELULA_FOAIE))
+	bucata.resize(CELULA_FOAIE * ZOOM, CELULA_FOAIE * ZOOM, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(bucata)
+
+# Linia subțire de sub titlurile de pagină. Se stinge spre capete (trei bucăți cu alfa diferit),
+# ca să nu arate a bară trasă cu rigla peste artă.
+func _linie(latime: float, inaltime: int) -> Control:
+	var wrap := Control.new()
+	wrap.custom_minimum_size = Vector2(0, inaltime)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hb := HBoxContainer.new()
+	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 0)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(hb)
+	for a in [0.15, 0.55, 0.15]:
+		var r := ColorRect.new()
+		r.color = Color(ACCENT.r, ACCENT.g, ACCENT.b, a)
+		r.custom_minimum_size = Vector2(latime / 3.0, 2)
+		r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hb.add_child(r)
+	return wrap
 
 # ---------- MAIN ----------
 func _build_main() -> void:
@@ -542,8 +604,8 @@ func _build_title() -> Control:
 			_title_frames.append(load(p))
 	if _title_frames.is_empty():
 		var l := _center_label("Nicotine & Knives", 78)
-		l.add_theme_color_override("font_color", ACCENT)
-		l.add_theme_color_override("font_outline_color", Color(ACCENT2.r, ACCENT2.g, ACCENT2.b, 0.9))
+		l.add_theme_color_override("font_color", OS_ALB)
+		l.add_theme_color_override("font_outline_color", ACCENT_STINS)
 		l.add_theme_constant_override("outline_size", 8)
 		return l
 	_title_rect = TextureRect.new()
@@ -679,14 +741,52 @@ func _on_leaderboard() -> void:
 			var sec := int(s["time"]) % 60
 			# scorurile vechi (dinainte de kill count) n-au cheia "kills" → 0
 			var k: int = int(s.get("kills", 0))
-			# tr(...) explicit: textul are %d-uri, deci traducerea automată n-ar găsi nimic
-			# după ce numerele sunt deja puse în el (vezi i18n.gd)
-			var linie: String = tr("%d.   %d:%02d   ·   Level %d   ·   %d kills") % [rank, m, sec, s["level"], k]
-			if float(s["time"]) >= Difficulty.RUN_LENGTH:
-				linie += "   ·   " + tr("SURVIVED")   # a apucat Final Swarm
-			_lb_list.add_child(_center_label(linie, 22))
+			# tr(...) explicit: textele au %d-uri, deci traducerea automată n-ar găsi nimic
+			# după ce numerele sunt deja puse în ele (vezi i18n.gd)
+			var marcaj := tr("SURVIVED") if float(s["time"]) >= Difficulty.RUN_LENGTH else ""
+			_lb_list.add_child(_lb_rand(rank, "%d:%02d" % [m, sec],
+				tr("Level %d") % int(s["level"]), tr("%d kills") % k, marcaj))
 			rank += 1
 	_show("leaderboard")
+
+# Un rând de clasament, pe COLOANE.
+#
+# ⚠️ Înainte tot rândul era un singur text centrat („1.  12:11 · Level 41 · 3128 kills"), deci
+# nimic nu se alinia pe verticală: „Level 4" și „Level 41" cădeau la x-uri diferite și tabelul
+# arăta strâmb. Acum fiecare coloană e o etichetă separată, cu `SIZE_EXPAND_FILL` și o proporție
+# fixă — nu lățimi în pixeli. Diferența contează: cu pixeli, o traducere mai lungă (rusa scrie
+# „убийств: 3128") ar fi ieșit din coloana ei; cu proporții, TOATE rândurile primesc aceleași
+# lățimi din același total, în orice limbă. `clip_text` e plasa de siguranță: dacă totuși apare o
+# traducere peste măsură, se taie ea, nu se strică tabelul.
+const LB_LATIME := 700.0
+
+func _lb_rand(rank: int, timp: String, nivel: String, kills: String, marcaj: String) -> HBoxContainer:
+	# Primele trei se văd dintr-o privire: aramă aprinsă, alb-os, aramă. Restul, cenușiu.
+	# Un top în care toate rândurile sunt la fel de albe e o listă, nu un clasament.
+	var col: Color = [ACCENT_CLAR, OS_ALB, ACCENT][rank - 1] if rank <= 3 else CENUSA
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(LB_LATIME, 0)
+	row.add_theme_constant_override("separation", 12)
+	var coloane := [
+		["%d." % rank, 0.7, HORIZONTAL_ALIGNMENT_RIGHT],
+		[timp,         1.2, HORIZONTAL_ALIGNMENT_RIGHT],
+		[nivel,        2.1, HORIZONTAL_ALIGNMENT_RIGHT],
+		[kills,        2.4, HORIZONTAL_ALIGNMENT_RIGHT],
+		[marcaj,       2.3, HORIZONTAL_ALIGNMENT_LEFT],
+	]
+	for c in coloane:
+		var l := Label.new()
+		l.text = String(c[0])
+		l.horizontal_alignment = c[2]
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		l.size_flags_stretch_ratio = float(c[1])
+		l.clip_text = true
+		l.add_theme_font_size_override("font_size", 21)
+		l.add_theme_color_override("font_color", col)
+		l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		l.add_theme_constant_override("outline_size", 3)
+		row.add_child(l)
+	return row
 
 # ---------- LANGUAGE ----------
 # Panoul cu cele 9 limbi, deschis din butonul-steag de sus. Fiecare limbă e un buton cu
@@ -861,7 +961,9 @@ func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:
 	sb.bg_color = bg
 	sb.border_color = border
 	sb.set_border_width_all(width)
-	sb.set_corner_radius_all(10)
+	# ⚠️ 2, nu 10. Raza de 10 px era cel mai mare semn de „interfață făcută repede": nicăieri în
+	# arta jocului (pixel art) nu există un colț rotunjit de zece pixeli. Aproape drept, ca la cazinou.
+	sb.set_corner_radius_all(2)
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
 	sb.content_margin_top = 8
@@ -878,17 +980,20 @@ func _menu_button(text: String, cb: Callable, principal: bool = false) -> Button
 	# fără asta, VBox-ul din interiorul ramei întinde butonul până în ornament
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", 30 if principal else 22)
-	b.add_theme_color_override("font_color", Color(1.0, 0.97, 0.92) if principal else Color(0.94, 0.89, 0.82))
-	b.add_theme_color_override("font_hover_color", Color(1.0, 0.99, 0.96))
+	b.add_theme_color_override("font_color", OS_ALB if principal else Color(0.88, 0.84, 0.80))
+	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
 	b.add_theme_color_override("font_pressed_color", Color.WHITE)
 	# Opace, NU transparente ca stilul vechi: cu transparență, butoanele de sus ieșeau
 	# vizibil mai deschise decât cele de jos (transpărea cerul din fundalul blurat).
-	# hover\pressed sunt aceleași culori, doar deschise treptat — nu culori noi de întreținut
-	var baza := BTN_MAIN.lightened(0.10) if principal else BTN_MAIN
-	var contur := BTN_SECOND.lightened(0.10) if principal else BTN_SECOND
+	#
+	# Piatră închisă cu muchie de aramă. Butonul PRINCIPAL (START) se deosebește prin MUCHIE, nu
+	# prin umplutură: pe piatră aproape neagră o umplutură cu 10% mai deschisă nu se vede, dar o
+	# muchie de aramă aprinsă sare în ochi de la doi metri.
+	var baza := Color8(38, 30, 34) if principal else BTN_MAIN
+	var contur := ACCENT_CLAR if principal else ACCENT_STINS
 	b.add_theme_stylebox_override("normal", _sb(baza, contur, 3))
-	b.add_theme_stylebox_override("hover", _sb(baza.lightened(0.10), contur.lightened(0.10), 3))
-	b.add_theme_stylebox_override("pressed", _sb(baza.lightened(0.20), contur.lightened(0.20), 3))
+	b.add_theme_stylebox_override("hover", _sb(Color8(50, 36, 36), ACCENT, 3))
+	b.add_theme_stylebox_override("pressed", _sb(Color8(64, 42, 36), ACCENT_CLAR, 3))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.pressed.connect(cb)
 	_viata(b)
@@ -925,7 +1030,7 @@ func _scaleaza(b: Control, la: float) -> void:
 func _header(text: String) -> Label:
 	var l := _center_label(text, 42)
 	l.add_theme_color_override("font_color", TITLU)
-	l.add_theme_color_override("font_outline_color", Color(0.12, 0.07, 0.04, 0.9))
+	l.add_theme_color_override("font_outline_color", ACCENT_STINS)
 	l.add_theme_constant_override("outline_size", 6)
 	return l
 

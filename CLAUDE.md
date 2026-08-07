@@ -17,6 +17,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-07 (tot meniul jocului, în chenarele de aramă)
+
+**Cerut de Răzvan:** „fă tot meniul de la joc PROFESIONIST cum ai mai făcut și până acum, să arate ca un joc făcut de un studio profesional. Folosește Border EGT."
+
+**Atinse:** `menu.gd` (meniul principal + toate sub-paginile), `settings_ui.gd` (blocul de setări, folosit ȘI în pauză), `pause.gd` (meniul de pauză). Acum **tot jocul are o singură paletă** — aceeași aramă ca EGT-ul și statuia din Ender.
+
+**1. Rama.** `Upgrades/Menu UI/Menu.png` (lemn beige-auriu) → celula (2,0) din `harta/EGT/Border EGT.png`. Lemnul era singurul lucru de pe ecran care nu ținea de nicio paletă: beige cald peste o pădure de noapte albastră, lângă un logo de aramă. Rămâne `PanelContainer` + `StyleBoxTexture`, **nu** `NinePatchRect`: paginile au înălțimi diferite (LEADERBOARD crește cu scorurile), iar NinePatch-ul nu se strânge pe copii. Marginile de conținut au scăzut de la 72/58/56 la **42/34/30** — ornamentul de aramă e mult mai subțire decât cel de lemn, iar cei ~60px câștigați i-au prins bine paginii SETTINGS, care abia încăpea (600 → **541** din 648).
+
+**2. ⚠️ Colțurile rotunjite, 10 → 2.** Ăsta a fost cel mai mare semn de „interfață făcută repede", și e într-un singur loc: `_sb()`. **Nicăieri în arta jocului (pixel art) nu există o rază de zece pixeli** — deci butoanele arătau a pagină web lipită peste un joc. Aceeași schimbare în toate trei fișierele.
+
+**3. ⚠️ Butoanele: deosebirea se face pe MUCHIE, nu pe umplutură.** Stilul vechi construia hover/pressed cu `BTN_MAIN.lightened(0.10/0.20)`, ceea ce mergea pe maro deschis. Pe **piatră aproape neagră** (26,22,28) o umplutură cu 10% mai deschisă nu se vede deloc. Deci acum starea și importanța se citesc din culoarea muchiei: repaus = aramă stinsă, hover = aramă, apăsat/principal = aramă aprinsă. La fel la taburile din Settings (`_stil_tab`), unde `darkened(0.18)` pe negru era invizibil.
+
+**4. Sliderele de volum.** Erau cele CENUȘII implicite ale motorului — singurul lucru din tot meniul care arăta a Godot. Godot le desenează din trei bucăți: `slider` (șanțul), `grabber_area` (partea plină) și **iconița** `grabber` (butonul). Primele două sunt StyleBox-uri; a treia are nevoie de o textură, așa că butonul e un pătrat de aramă de 12×12 desenat din cod (`_grabber`).
+
+**5. ⚠️ Clasamentul, pe COLOANE.** Tot rândul era un SINGUR text centrat (`"%d.   %d:%02d   ·   Level %d   ·   %d kills"`), deci nimic nu se alinia: „Level 4" și „Level 41" cădeau la x-uri diferite. Acum fiecare coloană e o etichetă, cu **`SIZE_EXPAND_FILL` + proporție fixă, nu lățimi în pixeli** — cu pixeli, rusa („убийств: 3128") ar fi ieșit din coloana ei; cu proporții, toate rândurile primesc aceleași lățimi din același total, în orice limbă. `clip_text` e plasa de siguranță. Plus primele trei locuri colorate (aramă aprinsă / alb-os / aramă, restul cenușiu): un top în care toate rândurile sunt la fel de albe e o listă, nu un clasament.
+⚠️ Cheia compusă din `i18n.gd` a fost înlocuită cu `"%d kills"` (`"Level %d"` exista deja, de la Game Over).
+
+**6. Meniul de pauză a primit ȘI el rama.** Nu era în cerere direct, dar el ÎNCADREAZĂ blocul `SettingsUI`: fără schimbare ar fi rămas cu butoane maro rotunjite în jurul unui bloc de aramă. Butoanele lui pluteau înainte pe un ecran întunecat, fără nimic în jur — mergea, dar arăta a listă de depanare.
+
+**Verificat rulând**, cu poze pe fiecare pagină și înălțimea măsurată (`get_combined_minimum_size`) în **en / de / tr**: main 556, weapon 437, character 276, leaderboard cu 10 scoruri **491**, settings 541, language 570, opstart 414 — toate sub cele **648** ale ecranului de bază. Clasamentul randat și în **rusă** (cele mai lungi coloane): aliniat, nimic tăiat. Meniul de pauză, ambele pagini. `tool_check_i18n`: **246 chei × 8 limbi, tot tradus**.
+⚠️ Testul a umblat la `GameSettings.scores` doar în RAM ca să aibă ce afișa — și verifică singur, la final, că `scores.save` n-a fost atins (a ieșit `true`).
+
+**Rămas neatins dinadins:** `Menu.png` e încă folosit de `levelup.gd`, deci arta rămâne pe disc. Ecranul de level up, cel de Game Over și HUD-ul au stilul lor și n-au fost în cerere.
+
+---
+
 ## Session log — 2026-08-07 (SWAT — al treilea polițist, cel gras)
 
 **Cerut de Răzvan:** „ți-am băgat un nou enemy în homeless directii, vezi folderul Swat. Apare când mai are player-ul 6:00 în lumea normală și e la fel de rapid ca Police Skinny doar că are 50% din ce HP are Garda la momentul ăla exact. Vreau să fie așa tanky."

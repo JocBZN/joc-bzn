@@ -5,11 +5,16 @@ extends CanvasLayer
 # ESC din nou închide meniul (reia jocul). Pe pagina de Settings, ESC urcă înapoi la listă.
 # Construit tot din cod, ca gameover.gd. Pagina de Settings refolosește SettingsUI (ca meniul).
 
-const BTN_MAIN := Color("9e603f")     # umplutura butonului (lemn, ca în meniu)
-const BTN_SECOND := Color("594232")   # conturul
-# Auriul ramei ornate, la fel ca titlurile din meniul principal (2026-07-27). Înainte era
-# cyan neon, rămășiță din tema cyberpunk — se bătea cap în cap cu lemnul butoanelor.
-const ACCENT := Color(0.95, 0.85, 0.55)
+# Paleta e ACEEAȘI ca în `menu.gd`, `settings_ui.gd` și `casino.gd` (arama din `Border EGT.png`).
+# ⚠️ Meniul ăsta ÎNCADREAZĂ blocul `SettingsUI`, deci n-avea voie să rămână în urmă: cu butoane
+# maro în jurul unui bloc de aramă s-ar fi văzut de la o poștă că sunt două stiluri lipite.
+const ACCENT_CLAR := Color8(222, 152, 116)
+const ACCENT_STINS := Color8(116, 62, 42)
+const BTN_MAIN := Color8(26, 22, 28)   # umplutura butonului (piatră închisă)
+const BTN_SECOND := ACCENT_STINS       # conturul
+# Culoarea titlurilor. A fost cyan neon, apoi auriul lemnului; acum alb-os cu contur de aramă,
+# ca titlurile din meniul principal și din cazinou.
+const ACCENT := Color8(232, 224, 214)
 
 var _open := false
 var _page := "main"           # "main" (lista) sau "settings"
@@ -149,8 +154,47 @@ func _page_box(page: Control) -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 14)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(box)
+	center.add_child(_rama(box))
 	return box
+
+# Rama de aramă din `harta/EGT/Border EGT.png`, celula (2,0) — aceeași ca la sub-paginile
+# meniului principal și la cazinou. Butoanele pluteau înainte pe un ecran întunecat, fără nimic
+# în jur: mergea, dar arăta a listă de depanare, nu a meniu.
+#
+# `PanelContainer` + `StyleBoxTexture`, nu `NinePatchRect`: pagina de Settings e mult mai înaltă
+# decât lista de butoane, iar un NinePatchRect nu se strânge singur pe copii.
+const SHEET := "res://harta/EGT/Border EGT.png"
+const CELULA_FOAIE := 64
+const ZOOM := 2
+const RAMA_MARG := 16 * ZOOM
+var _sheet: Image = null
+
+func _rama(continut: Control) -> PanelContainer:
+	var p := PanelContainer.new()
+	var sb := StyleBoxTexture.new()
+	sb.texture = _chenar(Vector2i(2, 0))
+	sb.texture_margin_left = RAMA_MARG
+	sb.texture_margin_right = RAMA_MARG
+	sb.texture_margin_top = RAMA_MARG
+	sb.texture_margin_bottom = RAMA_MARG
+	sb.content_margin_left = 46
+	sb.content_margin_right = 46
+	sb.content_margin_top = 34
+	sb.content_margin_bottom = 34
+	p.add_theme_stylebox_override("panel", sb)
+	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	p.add_child(continut)
+	return p
+
+func _chenar(celula: Vector2i) -> ImageTexture:
+	if _sheet == null:
+		var tex := load(SHEET) as Texture2D
+		if tex == null:
+			return null
+		_sheet = tex.get_image()
+	var bucata := _sheet.get_region(Rect2i(celula.x * CELULA_FOAIE, celula.y * CELULA_FOAIE, CELULA_FOAIE, CELULA_FOAIE))
+	bucata.resize(CELULA_FOAIE * ZOOM, CELULA_FOAIE * ZOOM, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(bucata)
 
 func _title(text: String) -> Label:
 	var l := Label.new()
@@ -158,7 +202,7 @@ func _title(text: String) -> Label:
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.add_theme_font_size_override("font_size", 44)
 	l.add_theme_color_override("font_color", ACCENT)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	l.add_theme_color_override("font_outline_color", ACCENT_STINS)
 	l.add_theme_constant_override("outline_size", 6)
 	return l
 
@@ -167,10 +211,12 @@ func _button(text: String, cb: Callable) -> Button:
 	b.text = text
 	b.custom_minimum_size = Vector2(320, 56)
 	b.add_theme_font_size_override("font_size", 24)
-	b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+	b.add_theme_color_override("font_color", Color(0.90, 0.86, 0.82))
+	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
+	# ca la `menu.gd`: pe piatră aproape neagră deosebirea se face pe MUCHIE, nu pe umplutură
 	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
-	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
-	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+	b.add_theme_stylebox_override("hover", _sb(Color8(50, 36, 36), Color8(198, 118, 80), 3))
+	b.add_theme_stylebox_override("pressed", _sb(Color8(64, 42, 36), ACCENT_CLAR, 3))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.pressed.connect(func(): Audio.play("button", -3.0, 0.0))
 	b.pressed.connect(cb)
@@ -181,7 +227,7 @@ func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:
 	sb.bg_color = bg
 	sb.border_color = border
 	sb.set_border_width_all(width)
-	sb.set_corner_radius_all(10)
+	sb.set_corner_radius_all(2)   # colțuri aproape drepte: pixel art, nu material design
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
 	sb.content_margin_top = 8

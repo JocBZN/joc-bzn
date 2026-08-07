@@ -68,7 +68,9 @@ const TRAD := {
 "+1% CRIT PER LEVEL": ["每级 +1% 暴击", "+1% KRIT PRO LEVEL", "+1% CRÍTICO POR NIVEL", "+1% КРИТА ЗА УРОВЕНЬ", "+1% CRITIQUE PAR NIVEAU", "レベルごとにクリティカル+1%", "+1% KRYTYKA NA POZIOM", "SEVİYE BAŞINA +%1 KRİTİK"],
 "Only one character for now: \"Grasu\".\nMore coming soon!": ["目前只有一个角色：“Grasu”。\n更多角色即将推出！", "Momentan gibt es nur einen Charakter: „Grasu“.\nMehr folgen bald!", "Por ahora solo hay un personaje: «Grasu».\n¡Pronto habrá más!", "Пока есть только один персонаж: «Grasu».\nСкоро будут ещё!", "Un seul personnage pour l’instant : « Grasu ».\nD’autres arrivent bientôt !", "今のところキャラクターは「Grasu」だけ。\n近日追加予定！", "Na razie jest tylko jedna postać: „Grasu”.\nWięcej wkrótce!", "Şimdilik tek karakter var: “Grasu”.\nYakında daha fazlası!"],
 "No scores yet. Play a round!": ["还没有成绩。来玩一局吧！", "Noch keine Ergebnisse. Spiel eine Runde!", "Aún no hay puntuaciones. ¡Juega una partida!", "Пока нет результатов. Сыграй раунд!", "Aucun score pour l’instant. Fais une partie !", "まだ記録がありません。一回遊んでみよう！", "Brak wyników. Zagraj rundę!", "Henüz skor yok. Bir tur oyna!"],
-"%d.   %d:%02d   ·   Level %d   ·   %d kills": ["%d.   %d:%02d   ·   等级 %d   ·   击杀 %d", "%d.   %d:%02d   ·   Level %d   ·   %d Kills", "%d.   %d:%02d   ·   Nivel %d   ·   %d muertes", "%d.   %d:%02d   ·   Уровень %d   ·   убийств: %d", "%d.   %d:%02d   ·   Niveau %d   ·   %d élim.", "%d.   %d:%02d   ·   レベル %d   ·   撃破 %d", "%d.   %d:%02d   ·   Poziom %d   ·   %d zab.", "%d.   %d:%02d   ·   Seviye %d   ·   %d öldürme"],
+# Clasamentul e pe COLOANE de pe 2026-08-07, deci rândul nu mai e un singur text: fiecare bucată
+# se traduce singură. („Level %d" e mai jos, la ecranul de Game Over — aceeași cheie.)
+"%d kills": ["击杀 %d", "%d Kills", "%d muertes", "убийств: %d", "%d élim.", "撃破 %d", "%d zab.", "%d öldürme"],
 "SURVIVED": ["幸存", "ÜBERLEBT", "SOBREVIVIÓ", "ВЫЖИЛ", "SURVÉCU", "生還", "PRZETRWAŁ", "HAYATTA KALDI"],
 
 # ---------- settings ----------
