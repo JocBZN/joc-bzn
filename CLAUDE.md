@@ -17,6 +17,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-07 (SWAT — al treilea polițist, cel gras)
+
+**Cerut de Răzvan:** „ți-am băgat un nou enemy în homeless directii, vezi folderul Swat. Apare când mai are player-ul 6:00 în lumea normală și e la fel de rapid ca Police Skinny doar că are 50% din ce HP are Garda la momentul ăla exact. Vreau să fie așa tanky."
+
+**⚠️ „Mai are 6:00" = `Difficulty.time >= 240`, nu 360.** Cronometrul de pe ecran **SCADE** de la 10:00 (`time_left() = RUN_LENGTH - time`), deci „mai are 6:00" înseamnă 4:00 SCURSE. E genul de cifră care ar fi trecut neobservată în cod și ar fi scos inamicul cu două minute mai devreme.
+
+**⚠️ Cum se ține promisiunea „50% din Garda ÎN MOMENTUL ĂLA".** Nu se calculează nimic la rulare: `garda.gd::_ready` face `max_hp = int(300 * Difficulty.enemy_hp_mult())`, iar `enemy.gd::_ready` face `max_hp = int(max_hp * enemy_hp_mult() * power_mult)` — **același multiplicator**. Deci `max_hp = 150` în scenă dă exact 1/2 în ORICE secundă a rundei, nu doar la 6:00. Verificat pe patru momente: raport 0.500 la t=240, 400, 600 și 700 (adică și în Final Swarm, unde viața se dublează la fiecare 45s).
+
+**⚠️ SWAT-ul e scos din îngroșarea de după Nether** (`spawner.gd`, `escaped_power_mult = 2`), deși e tot polițist ca Skinny. Cu ea ar fi ajuns **100%** din viața Gărzii — un boss din întâmplare, și numai pe rundele în care ai trecut prin Nether. Promisiunea trebuie să fie adevărată mereu, deci îngroșarea se oprește la Skinny.
+
+**Arta:** 8 GIF-uri `Idle_running-6-frames_<dir> (1).gif`, 116×116, 6 cadre. Sufixul „ (1)" (de la o descărcare dublă) trebuia scos întâi — `tool_taie_gifuri.ps1` ia direcția din COADA numelui, deci ar fi ieșit `east (1)`. Apoi tăiate normal în 48 de PNG-uri în `homeless directii/Swat/frames/` + `--headless --import`. Toate 8 direcțiile sunt desenate (verificat cu md5: 8 fișiere diferite), nimic de oglindit.
+
+**Mărimea, măsurată nu ghicită:** silueta opacă din `run_south_0` e 31×52 px (față de 33×58 la Skinny, pe pânză de 128). Ca să iasă **la fel de înalt pe ecran ca Skinny** (58 × 1.8 = 104): `scale = 2.0` → 52 × 2 = 104. `stop_dist = 46` = jumătate din lățimea desenată (31 × 2) + jumătatea player-ului (15). Plafonul dur rămâne 54 (`contact_range` 60 − `STOP_MARGINE` 6).
+
+**Restul statelor:** `speed = 160` și `frames_fps = 14` — identice cu Skinny, cum s-a cerut; `damage_mult = 1.3`, tot ca el.
+
+**`xp_drop_mult = 3.0` — judecata mea, nu ceruta lui.** Un inamic cu de 5 ori viața lui Skinny care lasă exact cât el e timp pierdut curat: îl tai de cinci ori mai mult pentru aceeași gemă. 3 e conservator (sub raportul de viață). **Nu-l vrea? `xp_drop_mult` din `enemy_swat.tscn`, pe 1.0.**
+
+**Spawn-ul:** `swat_after = 240` + `swat_share = 0.20`, întrebat ÎNAINTEA lui Skinny în `_politist()` — deci Skinny ia felia lui din ce rămâne (același tipar ca Nether/Ender). Ținut mic dinadins: la 0.35 (cât are Skinny) jumătate din runda de după minutul 4 s-ar transforma în tocat buști. Verificat cu 4000 de trageri la zar pe fiecare moment: **0% la t=120 și t=239**, 19–20% la t=241 și t=400, cu Skinny scăzut de la 35% la ~28% (35% din restul) — adică numărul TOTAL de inamici nu s-a schimbat, doar cine sunt.
+
+**Rămas neatins dinadins:** hoarda monumentului (`monument.gd::FELURI`) n-a primit SWAT. E „random din toate dimensiunile", dar acolo toți primesc ×3 viteză și ×3 damage — un tanc de 5× viață în plus e o schimbare de echilibru pe care n-a cerut-o. Se adaugă cu **un rând** dacă vrea.
+
+**Verificat rulând:** cele 48 de cadre randate în grilă (8 direcții × 6, orientări corecte — spatele cu rucsacul la `north`, ochelarii portocalii la `south`, diagonalele la fel), fundal transparent, fără mânjeli de la GIF; niciun avertisment „lipsesc cadre" la instanțiere prin `enemy.gd`; și o poză cu cei trei polițiști unul lângă altul la t=240 — **HP 126 / 190 / 635**, viteze 137 / 182 / 182.
+
+---
+
 ## Session log — 2026-08-07 (căsuțele contractului: egale, pătrate, și se pot goli înapoi)
 
 **Cerut de Răzvan:** „arată urât astea 4 căsuțe. În primul rând nu sunt egale cu al 4-lea primele 3. Iar nu intră bine în căsuță. Vreau să ai și opțiunea să apeși pe iteme din nou ca să le scoți din căsuță." (+ captura din `debugging/`)

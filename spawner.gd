@@ -24,6 +24,12 @@ const ENEMY_ENDER := preload("res://enemy_ender.tscn")
 # și lovește puțin mai tare (`damage_mult = 1.3`). Arta e a lui Răzvan, pusă pe 2026-08-05 în
 # `homeless directii/Police Skinny/`. Vezi `skinny_after` / `skinny_share` mai jos.
 const ENEMY_SKINNY := preload("res://enemy_police_skinny.tscn")
+# ...și de la jumătatea rundei apare SWAT-ul: tot `enemy.gd`, tot atât de iute ca Skinny (160),
+# dar cu 150 HP de bază — adică exact JUMĂTATE din cei 300 ai Gărzii. Nu e o cifră aleasă din
+# ochi: `garda.gd` și `enemy.gd` își înmulțesc amândoi viața cu ACELAȘI `Difficulty.enemy_hp_mult()`
+# în clipa nașterii, deci raportul de 1/2 se ține în orice secundă a rundei, nu doar la 6:00.
+# Arta e a lui Răzvan, pusă pe 2026-08-07 în `homeless directii/Swat/`. Vezi `swat_after` mai jos.
+const ENEMY_SWAT := preload("res://enemy_swat.tscn")
 
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
@@ -59,6 +65,20 @@ const ENEMY_SKINNY := preload("res://enemy_police_skinny.tscn")
 # adică „un minut petrecut în LUMEA NORMALĂ", cum s-a cerut, nu un minut de ceas.
 @export var skinny_after: float = 60.0
 @export_range(0.0, 1.0) var skinny_share: float = 0.35
+
+# --- SWAT în lumea normală (cerut pe 2026-08-07) ---
+# Cerința: „apare când mai are player-ul 6:00 în lumea normală". Cronometrul de pe ecran SCADE de
+# la 10:00, deci „mai are 6:00" înseamnă `time_left() == 360`, adică `Difficulty.time >= 240` —
+# 4:00 SCURSE. De aia scrie 240 aici și nu 360. Se numără pe același `Difficulty.time` ca Skinny,
+# care stă pe loc în Limbo/Nether/Ender, deci e chiar „în lumea normală".
+#
+# `swat_share` = ce parte din POLIȚIȘTI sunt SWAT de atunci încolo. Se întreabă ÎNAINTEA lui
+# Skinny, deci la 0.20 iese: 20% SWAT, 28% Skinny (35% din restul) și 52% polițist obișnuit.
+#
+# ⚠️ Ține-l mic. Un SWAT are de 5 ori viața unui Skinny; la 0.35 (cât are Skinny) jumătate din
+# runda de după minutul 4 s-ar transforma în tocat buști. 0.20 ≈ unul din cinci polițiști.
+@export var swat_after: float = 240.0
+@export_range(0.0, 1.0) var swat_share: float = 0.20
 
 # --- Creaturile Ender-ului în lumea normală, după ce cade Celesto (cerut pe 2026-08-05) ---
 # Exact tiparul lui `nether_share`, o treaptă mai sus: îl bați pe boss-ul din a treia dimensiune
@@ -197,6 +217,11 @@ func _spawn_enemy() -> void:
 	# Polițiștii se îngrașă după ce te-ai întors din Nether; creaturile de acolo, nu — ele erau
 	# deja tari. Se pune ÎNAINTE de `add_child`, fiindcă `enemy.gd::_ready()` îl citește acolo.
 	# Skinny e tot polițist, deci intră și el în îngroșare.
+	#
+	# ⚠️ SWAT-ul NU intră, deși e tot polițist. Cerința lui e „50% din viața Gărzii în momentul
+	# ăla", iar `power_mult = 2` l-ar face 100% din ea — adică un boss de-a dreptul, din întâmplare,
+	# și numai pe rundele în care ai trecut prin Nether. Promisiunea trebuie să fie adevărată în
+	# orice secundă, deci îngroșarea se oprește la Skinny.
 	if (scena == ENEMY or scena == ENEMY_SKINNY) and _scapat_din_nether():
 		enemy.power_mult = escaped_power_mult
 	# Inamicii apar într-un con de ±`spawn_cone_deg` în jurul privirii. Cu 180 (implicit de pe
@@ -257,9 +282,13 @@ func _scena_inamic() -> PackedScene:
 		return ENEMY_ENDER
 	return _politist()
 
-# Ce fel de polițist iese acum în lumea normală: cel obișnuit sau Skinny (mai iute și mai tare).
-# Skinny apare abia după `skinny_after` secunde de rundă, ca primul minut să rămână blând.
+# Ce fel de polițist iese acum în lumea normală: cel obișnuit, Skinny (mai iute și mai tare) sau
+# SWAT (la fel de iute ca Skinny, dar de cinci ori mai gras). Fiecare apare abia după secunda lui,
+# ca începutul rundei să rămână blând. SWAT-ul se întreabă PRIMUL, deci Skinny ia felia lui din ce
+# a rămas — același tipar ca Nether/Ender mai sus, ca cele două să nu se calce.
 func _politist() -> PackedScene:
+	if Difficulty.time >= swat_after and randf() < swat_share:
+		return ENEMY_SWAT
 	if Difficulty.time >= skinny_after and randf() < skinny_share:
 		return ENEMY_SKINNY
 	return ENEMY
