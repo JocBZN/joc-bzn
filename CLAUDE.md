@@ -17,6 +17,31 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-07 (căsuțele contractului: egale, pătrate, și se pot goli înapoi)
+
+**Cerut de Răzvan:** „arată urât astea 4 căsuțe. În primul rând nu sunt egale cu al 4-lea primele 3. Iar nu intră bine în căsuță. Vreau să ai și opțiunea să apeși pe iteme din nou ca să le scoți din căsuță." (+ captura din `debugging/`)
+
+**1. De ce ieșeau dreptunghiulare.** Sloturile sunt copii de `HBoxContainer`, iar acesta **întinde pe verticală** tot ce n-are alt `size_flags_vertical`. Coloana premiului e mai înaltă (cutie + două etichete sub ea), deci rândul avea ~136px și cele 3 căsuțe de 92 se lungeau exact până acolo. Leacul: `SIZE_SHRINK_BEGIN` — le lasă pătrate ȘI le lipește de marginea de sus, la fel ca la cutia premiului. Săgeata a primit `custom_minimum_size.y = SLOT_LAT` + `SHRINK_BEGIN`, ca să stea la mijlocul RÂNDULUI DE CĂSUȚE, nu al coloanei premiului.
+
+**2. De ce nu intra itemul bine în căsuță.** Chenarul de raritate era pus cu offset-uri ghicite (9 și 11), dar rama desenată e de altă grosime la fiecare celulă. **Măsurată din planșă**, nu ghicită (scanare de la centru spre margini după prima schimbare de culoare): celula (1,2) are **6px** de ramă, (3,2) are **8px**, ×`ZOOM` → 12 și 16. Acum:
+- `SLOT_LAT = 116` — **aceeași latură la toate patru**;
+- `CONTINUT = SLOT_LAT - 2*RAMA_PREMIU = 84` — chenarul de raritate e la fel de mare peste tot, adică exact cât încape în cea mai strâmtă dintre rame. La sloturi rămân 4px de joc de fiecare parte, dar acolo e fundalul închis al ramei (#201E26), aceeași culoare — nu se vede.
+- iconița: `CONTINUT - 2*ICON_MARGINE`, cu `ICON_MARGINE = 13` (~14%, cât ține rama pictată a chenarului de raritate, ca în inventar).
+
+**3. Scoaterea din contract.** Mergea deja (al doilea click pe iconița din inventar), dar la `modulate.a = 0.22` itemul ales arăta MORT și nimeni nu ghicea că se poate apăsa. Acum:
+- itemul ales stă la **0.4**, iar stingerea se pune pe ARTĂ (border + icon), nu pe buton — `modulate` se moștenește la copii, deci un „X" pe un buton la 0.4 ar fi fost la fel de greu de văzut ca itemul de sub el;
+- **căsuțele au devenit butoane**: click pe una plină scoate itemul (`_scoate_slot`). Goală, e stinsă;
+- semn „X" în colț, la ambele capete. **„X" simplu, nu „✕"** — fontul e pixel art și un pătrat gol în locul semnului ar arăta a bug. **Mereu vizibil, nu la hover**: jocul e și pe Android, unde hover nu există;
+- în timpul tragerii (`_rula`) căsuțele sunt stinse și fără „X": contractul e deja bătut în cuie, itemele au plecat din registru.
+
+**4. Gaura de sub inventar.** `ScrollContainer` are `SIZE_EXPAND_FILL`, deci înghite toată înălțimea rămasă; cu un singur rând de iteme dedesubt rămânea gol. Acum stă într-o **casetă desenată** (`PanelContainer` cu fund închis + muchie de aramă stinsă), deci golul se citește ca „rafturi goale de inventar", nu ca o gaură.
+
+**`PANOU_IT_H` 566 → 612**, fiindcă și căsuțele au crescut. Cifra e **măsurată**, nu ghicită: `vbox.get_combined_minimum_size().y` după o tragere adevărată, în turcă, cu 30 de iteme → 551 + 56 de marjă = 607. Numele premiului are rezervată din start înălțimea a **două rânduri** (`custom_minimum_size.y = 44`) și e plafonat la `max_lines_visible = 2`: altfel apărea abia la aterizare și împingea tot ce e sub el peste chenar.
+
+**Verificat rulând** (player REAL, nu fals, ca să treacă și prin `da_item`): 30 de iteme în turcă → 3 rare → tragere → **Tuhaf Karışım (Destansı)**, registru 30 → 28, `trade_penalty` 1.00 → 1.10, nimic peste chenar; `_scoate_slot(1)` scoate din mijloc și restul se string la stânga; al doilea click pe iconițe golește contractul și deblochează raritatea; în timpul tragerii 3/3 căsuțe stinse și fără „X", iar `_scoate_slot` nu face nimic. `tool_check_i18n`: **246 de chei × 8 limbi**, tot tradus (cheie nouă: „Click to take it out", care se lipește după numele itemului în tooltip).
+
+---
+
 ## Session log — 2026-08-07 (EGT: TRADE-UP CONTRACT + tot cazinoul în chenarele de aramă)
 
 **Cerut de Răzvan:** „Adaugă la EGT și partea de gamble your items. Ți-am pus și un border ca să poți să faci tot meniul super profesional ca un joc cu 1 milion de copii vândute (Border EGT). La Gamble Your Items vreau să fie ca un trade-up de CS:GO — iei 3 iteme de le ai și poți să le transformi într-un item cu o calitate mai mare (gen uncommon → rare) și nu vezi ce îți pică până faci trade-up-ul."
@@ -36,7 +61,7 @@ Quick rules:
 
 **Verificat rulând**, cu inventar fabricat: 12 iteme → alegi 3 rare → contract plin cu chenar EPIC pe cutie și „?" → tragere → **Panic Button (epic)**, registru 12 → 10, `trade_penalty` 1.00 → 1.10; al doilea contract pornește imediat; click pe altă raritate cât una e blocată = ignorat; click pe legendary = ignorat; 30 de iteme în **turcă** (cele mai lungi propoziții) → nimic nu iese din chenar, inventarul se derulează; 3 iteme din care nu se poate face set → „You need 3 items of the same rarity". `tool_check_i18n` trece: **245 de chei × 8 limbi**, 7 chei noi.
 
-⚠️ Panoul are 566px înălțime, nu 596: la un singur rând de iteme tot restul se ducea în `ScrollContainer` și rămânea o gaură între iteme și butoane. Sub ~560 nu se poate coborî — atât cere conținutul cu o subtitrare ruptă pe două rânduri.
+⚠️ Înălțimea panoului (`PANOU_IT_H`) și așezarea căsuțelor s-au schimbat în sesiunea următoare — vezi log-ul „căsuțele contractului".
 
 ---
 

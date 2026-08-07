@@ -185,13 +185,29 @@ const TU_PAS_START := 0.035         # cât stă prima (secunde)
 const TU_PAS_FACTOR := 1.12         # cu cât încetinește la fiecare pas (≈2s în total)
 
 const PANOU_IT_W := 1010.0          # ⚠️ în pixeli de ECRAN DE BAZĂ (1152×648) — vezi trade.gd
-# 566, nu 596: la un inventar de 12 iteme (adică un singur rând) tot restul de înălțime se ducea
-# în ScrollContainer și rămânea o gaură de o palmă între iteme și butoane. Sub ~560 nu se poate
-# coborî — atât cere conținutul, iar o subtitrare ruptă pe două rânduri (turca, germana) ar urca
-# altfel peste chenar.
-const PANOU_IT_H := 566.0
-const SLOT_IT := 92.0               # latura unui slot de intrare
-const SLOT_PREMIU := 108.0          # latura cutiei de premiu
+# Cel mai înalt lucru care încape pe 648 de pixeli fără să pară înghesuit. Conținutul cel mai
+# gras măsurat (30 de iteme, turcă, cu premiul câștigat pe ecran) cere 607 — citit cu
+# `get_combined_minimum_size` după o tragere adevărată, nu ghicit. Sub atât, subtitrarea ruptă pe
+# două rânduri urcă peste chenar. Golul de sub iteme, care rămâne la un inventar mic, nu se mai
+# vede a gaură: scroll-ul stă acum într-o casetă desenată (vezi `_build_iteme`).
+const PANOU_IT_H := 612.0
+# ⚠️ TOATE CELE PATRU căsuțe au ACEEAȘI latură — cele 3 de intrare și cutia premiului.
+# (Răzvan, 2026-08-07: „nu sunt egale cu al 4-lea primele 3".) Sloturile ieșeau și DREPTUNGHIULARE,
+# nu doar mai mici: sunt copii de HBoxContainer, iar acesta întinde pe verticală tot ce nu e marcat
+# altfel — deci se lungeau până la înălțimea coloanei premiului (cutie + două etichete). Leacul e
+# `SIZE_SHRINK_BEGIN` mai jos, care le lasă pătrate ȘI le lipește de marginea de sus, la fel ca
+# cutia premiului.
+const SLOT_LAT := 116.0
+# Cât e de groasă rama desenată, în pixeli de ecran. Măsurat din planșă, nu ghicit: celula (1,2)
+# are 6px de ramă, (3,2) are 8px, iar ZOOM le dublează. Sub valorile astea chenarul de RARITATE
+# urcă peste aramă — exact „nu intră bine în căsuță".
+const RAMA_SLOT := 6 * ZOOM
+const RAMA_PREMIU := 8 * ZOOM
+# Chenarul de raritate + iconița sunt la fel de mari în toate patru: cât încape în cea mai strâmtă,
+# adică în cutia premiului. La sloturi rămâne 4px de joc de fiecare parte, dar acolo e fundalul
+# închis al ramei (#201E26), aceeași culoare — deci golul nu se vede, iar itemele se văd egale.
+const CONTINUT := SLOT_LAT - 2.0 * RAMA_PREMIU
+const ICON_MARGINE := 13.0          # cât ține rama pictată a chenarului de raritate (~14%, ca în inventar)
 const CELULA_IT := 62.0             # latura unei iconițe din inventar
 const GRILA_COL := 12               # câte iteme pe un rând de inventar
 
@@ -228,7 +244,7 @@ var _sheet: Image = null       # planșa de chenare, citită o singură dată
 var _sel := []                 # ce indici din `player.run_items` sunt puși în contract
 var _rar_blocata := ""         # raritatea impusă de prima alegere ("" = niciuna încă)
 var _rula := false             # cât se perindă iconițele la dezvăluire
-var _sloturi := []             # cele TU_CATE sloturi de intrare: {"icon", "border"}
+var _sloturi := []             # cele TU_CATE sloturi de intrare: {"cell", "icon", "border", "x"}
 var _premiu := {}              # cutia premiului: {"icon", "border", "semn", "nume", "rar", "box"}
 var _grila: GridContainer
 var _lbl_stare: Label
@@ -1043,11 +1059,14 @@ func _build_iteme() -> void:
 
 	_sloturi.clear()
 	for i in TU_CATE:
-		contract.add_child(_fa_slot())
+		contract.add_child(_fa_slot(i))
 
 	var sageata := Label.new()
 	sageata.text = "➜"
-	sageata.custom_minimum_size = Vector2(70, 0)
+	# înaltă exact cât o căsuță și lipită de sus: așa săgeata stă la mijlocul RÂNDULUI DE CĂSUȚE,
+	# nu la mijlocul coloanei premiului (care are două etichete sub ea și ar trage-o în jos)
+	sageata.custom_minimum_size = Vector2(70, SLOT_LAT)
+	sageata.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	sageata.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sageata.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	sageata.add_theme_font_size_override("font_size", 34)
@@ -1088,11 +1107,25 @@ func _build_iteme() -> void:
 
 	# Inventarul, într-un ScrollContainer: la 30 de iteme n-ar încăpea altfel, iar panoul TREBUIE
 	# să rămână de mărime fixă (vezi PANOU_IT_H — 1152×648 e tot ecranul pe care îl avem).
+	# ⚠️ Scroll-ul înghite toată înălțimea rămasă, deci cu un singur rând de iteme sub ele rămâne
+	# mult loc gol. De aia stă într-o CASETĂ desenată (fund închis + muchie de aramă stinsă): golul
+	# se citește ca „rafturi goale de inventar", nu ca o gaură în meniu.
+	var cutie := PanelContainer.new()
+	cutie.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.086, 0.078, 0.104, 0.85)
+	sb.border_color = Color(ACCENT_STINS.r, ACCENT_STINS.g, ACCENT_STINS.b, 0.7)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(2)
+	sb.set_content_margin_all(8)
+	cutie.add_theme_stylebox_override("panel", sb)
+	box.add_child(cutie)
+
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(0, 110)
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	box.add_child(scroll)
+	cutie.add_child(scroll)
 
 	_grila = GridContainer.new()
 	_grila.columns = GRILA_COL
@@ -1121,41 +1154,86 @@ func _on_back_iteme() -> void:
 		_arata_pagina("intro")
 
 # Un slot de intrare: chenar de aramă gol, în care aterizează iconița itemului ales.
-func _fa_slot() -> Control:
-	var cell := Control.new()
-	cell.custom_minimum_size = Vector2(SLOT_IT, SLOT_IT)
-	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+# E un BUTON, nu un simplu Control: click pe o căsuță plină scoate itemul din contract și îl dă
+# înapoi în inventar (cerut de Răzvan pe 2026-08-07). Gol, butonul e stins, deci nu face nimic.
+func _fa_slot(poz: int) -> Control:
+	var cell := Button.new()
+	cell.custom_minimum_size = Vector2(SLOT_LAT, SLOT_LAT)
+	# ⚠️ SHRINK_BEGIN, nu implicitul: vezi comentariul de la SLOT_LAT — altfel HBox-ul întinde
+	# căsuța pe toată înălțimea rândului și iese dreptunghi.
+	cell.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	cell.flat = true
+	cell.disabled = true
+	for stare in ["normal", "hover", "pressed", "focus", "disabled"]:
+		cell.add_theme_stylebox_override(stare, StyleBoxEmpty.new())
+	cell.pressed.connect(_scoate_slot.bind(poz))
 
 	var cadru := _cadru(CH_SLOT, 14)
 	cadru.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	cadru.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cell.add_child(cadru)
 
-	var border := TextureRect.new()      # chenarul de RARITATE al itemului pus înăuntru
-	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	border.offset_left = 9
-	border.offset_top = 9
-	border.offset_right = -9
-	border.offset_bottom = -9
+	var c := _continut(cell)             # chenarul de RARITATE + iconița, la fel ca la premiu
+
+	var x := _semn_scoate(RAMA_SLOT + 2.0, 20.0)
+	x.visible = false
+	cell.add_child(x)
+
+	_sloturi.append({"cell": cell, "icon": c["icon"], "border": c["border"], "x": x})
+	return cell
+
+# Chenarul de raritate și iconița, centrate în căsuță. Aceleași dimensiuni la slot și la premiu —
+# de aia sunt aici și nu scrise de două ori.
+func _continut(cell: Control) -> Dictionary:
+	var border := TextureRect.new()
+	_centreaza(border, CONTINUT)
 	border.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	border.stretch_mode = TextureRect.STRETCH_SCALE
 	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cell.add_child(border)
 
 	var icon := TextureRect.new()
-	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	icon.offset_left = 20
-	icon.offset_top = 20
-	icon.offset_right = -20
-	icon.offset_bottom = -20
+	_centreaza(icon, CONTINUT - 2.0 * ICON_MARGINE)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cell.add_child(icon)
+	return {"icon": icon, "border": border}
 
-	_sloturi.append({"icon": icon, "border": border})
-	return cell
+# Pune un copil fix în mijlocul părintelui, de latura cerută. Ancorele se scriu de mână: preset-ul
+# de centru păstrează mărimea de dinainte, iar noi o impunem pe a noastră.
+func _centreaza(c: Control, latura: float) -> void:
+	c.anchor_left = 0.5
+	c.anchor_top = 0.5
+	c.anchor_right = 0.5
+	c.anchor_bottom = 0.5
+	c.offset_left = -latura * 0.5
+	c.offset_top = -latura * 0.5
+	c.offset_right = latura * 0.5
+	c.offset_bottom = latura * 0.5
+
+# Semnul „scoate-mă" din colțul din dreapta-sus. „X" simplu, nu „✕": fontul jocului e pixel art și
+# n-are garantat semnul frumos, iar un pătrat gol în locul lui ar arăta a bug. Stă mereu vizibil,
+# nu doar la hover — pe telefon (jocul e și pe Android) nu există hover.
+# `marj` = cât intră dinspre colțul căsuței, ca să stea PE item și nu peste ornamentul de aramă.
+func _semn_scoate(marj: float, dim: float) -> Label:
+	var x := Label.new()
+	x.text = "X"
+	x.anchor_left = 1.0
+	x.anchor_right = 1.0
+	x.offset_left = -marj - dim
+	x.offset_top = marj
+	x.offset_right = -marj
+	x.offset_bottom = marj + dim
+	x.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	x.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	x.add_theme_font_size_override("font_size", 16)
+	x.add_theme_color_override("font_color", ACCENT_CLAR)
+	x.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	x.add_theme_constant_override("outline_size", 5)
+	x.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return x
 
 # Cutia premiului: același tipar, dar cu chenarul ornat și cu un „?" cât timp nu știi ce e.
 func _fa_premiu() -> Control:
@@ -1165,12 +1243,12 @@ func _fa_premiu() -> Control:
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var cell := Control.new()
-	cell.custom_minimum_size = Vector2(SLOT_PREMIU, SLOT_PREMIU)
+	cell.custom_minimum_size = Vector2(SLOT_LAT, SLOT_LAT)
 	cell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# pivotul în centru: la aterizare cutia „pocnește" (scale 1.3 → 1.0), iar fără pivot ar sări
 	# din colțul stâng-sus în loc să crească din mijloc
-	cell.pivot_offset = Vector2(SLOT_PREMIU, SLOT_PREMIU) * 0.5
+	cell.pivot_offset = Vector2(SLOT_LAT, SLOT_LAT) * 0.5
 	wrap.add_child(cell)
 
 	var cadru := _cadru(CH_PREMIU, 14)
@@ -1178,28 +1256,9 @@ func _fa_premiu() -> Control:
 	cadru.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cell.add_child(cadru)
 
-	var border := TextureRect.new()
-	border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	border.offset_left = 11
-	border.offset_top = 11
-	border.offset_right = -11
-	border.offset_bottom = -11
-	border.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	border.stretch_mode = TextureRect.STRETCH_SCALE
-	border.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cell.add_child(border)
-
-	var icon := TextureRect.new()
-	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	icon.offset_left = 24
-	icon.offset_top = 24
-	icon.offset_right = -24
-	icon.offset_bottom = -24
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cell.add_child(icon)
+	var c := _continut(cell)
+	var border: TextureRect = c["border"]
+	var icon: TextureRect = c["icon"]
 
 	var semn := Label.new()
 	semn.text = "?"
@@ -1222,7 +1281,11 @@ func _fa_premiu() -> Control:
 
 	var nume := Label.new()
 	nume.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nume.custom_minimum_size = Vector2(190, 0)
+	# ⚠️ înălțimea a DOUĂ rânduri, rezervată din start deși eticheta e goală: numele câștigat apare
+	# abia la aterizare, iar unul lung (turcă, germană) ar crește atunci coloana premiului și ar
+	# împinge tot ce e sub ea peste chenarul panoului. Așa locul e ținut dinainte și nimic nu sare.
+	nume.custom_minimum_size = Vector2(190, 44)
+	nume.max_lines_visible = 2      # și plafonat la două: un nume tradus lung n-are voie să crească panoul
 	nume.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	nume.add_theme_font_size_override("font_size", 16)
 	nume.add_theme_color_override("font_color", OS_ALB)
@@ -1293,11 +1356,19 @@ func _celula_item(idx: int, u, lu) -> Control:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	b.add_child(icon)
 
-	# Cele trei stări se citesc din OPACITATE, nu din culori noi: itemul PUS ÎN CONTRACT e aproape
-	# transparent (a plecat de aici, e sus în slot), cel pe care nu-l poți alege acum e tras spre
-	# cenușiu, restul stau la putere plină. Nimic desenat peste artă.
+	# Cele trei stări se citesc din OPACITATE: itemul PUS ÎN CONTRACT e stins (a plecat de aici, e
+	# sus în slot), cel pe care nu-l poți alege acum e tras spre cenușiu, restul stau la putere
+	# plină. ⚠️ Cel ales NU coboară sub ~0.45 și primește un „X" peste el: la 0.22 arăta mort și
+	# nimeni nu ghicea că se poate apăsa din nou ca să-l scoți (Răzvan, 2026-08-07).
 	if ales:
-		b.modulate = Color(1, 1, 1, 0.22)
+		# ⚠️ stingerea se pune pe ARTĂ, nu pe buton: `modulate` se moștenește la copii, iar un „X"
+		# la 0.45 ar fi fost la fel de greu de văzut ca itemul de sub el
+		border.modulate = Color(1, 1, 1, 0.4)
+		icon.modulate = Color(1, 1, 1, 0.4)
+		b.tooltip_text = String(u["nume"]) + " — " + tr("Click to take it out")
+		var x := _semn_scoate(5.0, 15.0)
+		x.add_theme_font_size_override("font_size", 13)
+		b.add_child(x)
 	elif not poate:
 		b.modulate = Color(0.52, 0.50, 0.52, 0.55)
 	b.disabled = not poate
@@ -1328,6 +1399,18 @@ func _click_item(idx: int, rar: String) -> void:
 	_umple_grila()
 	_actualizeaza_contract()
 
+# Click pe o căsuță plină din contract → itemul se întoarce în inventar. Aceeași treabă ca al
+# doilea click pe iconița din inventar, doar că apucată de celălalt capăt.
+func _scoate_slot(poz: int) -> void:
+	if _rula or poz < 0 or poz >= _sel.size():
+		return
+	_sel.remove_at(poz)
+	if _sel.is_empty():
+		_rar_blocata = ""
+	Audio.play("button", -7.0, 0.0)
+	_umple_grila()
+	_actualizeaza_contract()
+
 # Redesenează sloturile, cutia premiului, textul de stare și butonul.
 # `pastreaza_premiu` = tocmai ai câștigat ceva și vrem să rămână pe ecran, nu să revină la „?".
 func _actualizeaza_contract(pastreaza_premiu := false) -> void:
@@ -1336,14 +1419,22 @@ func _actualizeaza_contract(pastreaza_premiu := false) -> void:
 
 	for i in _sloturi.size():
 		var s: Dictionary = _sloturi[i]
+		var plin := false
 		if lu != null and p != null and i < _sel.size():
 			var u = lu.item_dupa_id(String(p.run_items[int(_sel[i])]))
 			if u != null:
 				s["border"].texture = load(MENU_UI_DIR + String(lu.RARITIES.get(String(u.get("rar", "common")), lu.RARITIES["common"])["border"]))
 				s["icon"].texture = load(lu.icon_path(u))
-				continue
-		s["border"].texture = null
-		s["icon"].texture = null
+				s["cell"].tooltip_text = String(u["nume"]) + " — " + tr("Click to take it out")
+				plin = true
+		if not plin:
+			s["border"].texture = null
+			s["icon"].texture = null
+			s["cell"].tooltip_text = ""
+		# căsuța se poate apăsa doar cât e plină ȘI cât nu se învârte: în timpul tragerii contractul
+		# e deja bătut în cuie (itemele au fost scoase din registru), un click ar fi minciună
+		s["cell"].disabled = not plin or _rula
+		s["x"].visible = plin and not _rula
 
 	if not pastreaza_premiu:
 		_premiu["icon"].texture = null

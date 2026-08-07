@@ -221,6 +221,8 @@ const TRAD := {
 "TRADE UP": ["汰换", "TAUSCHEN", "MEJORAR", "ОБМЕНЯТЬ", "ÉCHANGER", "トレードアップ", "WYMIEŃ", "TAKAS ET"],
 "Pick 3 items of the same rarity": ["选择 3 个同稀有度的道具", "Wähle 3 Items derselben Seltenheit", "Elige 3 objetos de la misma rareza", "Выбери 3 предмета одной редкости", "Choisis 3 objets de la même rareté", "同じレアリティのアイテムを3つ選ぶ", "Wybierz 3 przedmioty tej samej rzadkości", "Aynı nadirlikten 3 eşya seç"],
 "You need 3 items of the same rarity": ["你需要 3 个同稀有度的道具", "Du brauchst 3 Items derselben Seltenheit", "Necesitas 3 objetos de la misma rareza", "Нужно 3 предмета одной редкости", "Il te faut 3 objets de la même rareté", "同じレアリティのアイテムが3つ必要", "Potrzebujesz 3 przedmiotów tej samej rzadkości", "Aynı nadirlikten 3 eşyaya ihtiyacın var"],
+# se lipește după numele itemului, în tooltip: „Wine — Click to take it out"
+"Click to take it out": ["点击可取出", "Zum Herausnehmen klicken", "Haz clic para sacarlo", "Нажми, чтобы убрать", "Clique pour le retirer", "クリックで取り出す", "Kliknij, aby wyjąć", "Çıkarmak için tıkla"],
 
 # ---------- numele upgrade-urilor ----------
 # Numele proprii (Stroh, Duridama, Hellas, Saratalin) rămân la fel în toate limbile.
