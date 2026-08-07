@@ -17,6 +17,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-07 (cerul Ender-ului, refăcut: liniile drepte erau HASH-UL, nu shaderul)
+
+**Cerut de Răzvan:** „nu îmi plac liniile astea albastre din render de la shader. poți să faci să fie mai premium? ca un joc care are 100.000 de copii vândute pe Steam" (+ captura din `debugging/`).
+
+**Cauza, găsită rulând, nu citind.** Am pus `ender_cosmic.gdshader` singur pe un ColorRect și l-am spart pe componente (o scenă temporară care schimbă un `mode` și salvează câte un PNG). Liniile veneau din `n2`, adică din `noise()`, adică din `hash21`:
+
+```
+p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y);
+```
+
+Zgomotul interpolat e continuu **doar dacă cele două celule vecine citesc EXACT aceeași valoare în colțul comun**. Hash-ul ăsta termină înmulțind două numere de ordinul lui ~90 (produs ~8600), unde un `float` are pași de ~0,001 — colțul comun ieșea cu valori ușor diferite din cele două celule, deci o TREAPTĂ fix pe granița celulei, adică o linie **dreaptă**. Se roteau încet fiindcă nebuloasa se rotea. **Martorul:** același zgomot cu hash pe biți întregi (cel din `biome.gdshader`) → ecran complet curat, zero linii. **Morală: pentru zgomot pe tot ecranul, hash pe ÎNTREGI, nu `fract()` peste `fract()`.**
+- ⚠️ `nether_hell.gdshader` are **încă** hash-ul vechi — fumul lui suferă de aceeași boală. N-am umblat la el, nu l-a cerut.
+
+**Ce s-a schimbat în `ender_cosmic.gdshader`** (rescris, aceleași reguli ca înainte: nu citește ecranul, aceeași compunere într-o trecere, `amount` la fel):
+- `uhash`/`hash21`/`hash22` pe biți întregi + interpolare **quintică** (cubica lasă o cută vizibilă pe graniță când împingi contrastul cu `smoothstep`).
+- `fbm2`/`fbm3` cu **rotație între octave** și pas **2.03**, nu 2.0 — altfel octavele își suprapun granițele și grila reapare, doar mai fină.
+- Nebuloasa e **domain-warped** (zgomot împins cu alt zgomot) + „dust lanes" care taie fâșii din nor. Ăsta e singurul lucru care face un nor procedural să nu arate procedural.
+- **Stele pe trei straturi**, cu luminozitate strâmbată cu o putere (puține tari, multe abia vizibile), culoare variată (rece/chihlimbariu) și o cruce subțire de lumină doar pe cele mai tari. ⚠️ Offset-ul stelei în celulă e ±0.25 și haloul se stinge tot până la 0.25: dacă desenul atinge marginea celulei, se taie brusc → exact muchia dreaptă pe care o reparam.
+- **Paralaxă**: `atmosphere.gd` scrie în fiecare cadru `world_offset` = `-get_viewport().get_canvas_transform().origin` (pixeli de ecran, zoom-ul deja inclus, deci nu căutăm Camera2D). Cerul curge în urma ta → se simte că ești ÎNTR-un loc, nu că ai un filtru pe ecran. Straturile: 0.020 / 0.055 / 0.115.
+- **Dither** de 1/255 pe pixel înainte de afișare. Gradientele foarte întunecate ies altfel în INELE pe 8 biți; banding-ul e cel mai ieftin mod de a arăta amatorism și se repară cu o linie.
+- Stea căzătoare la ~19s, aurora șerpuită din zgomot (nu dintr-un sinus curat), vinietă mai moale.
+
+**Verificat rulând**: (1) shaderul singur, la trei poziții de lume — zero muchii drepte, cer diferit la fiecare poziție; (2) prin drumul adevărat (`atmosphere.gd::set_dimension("ender")`) peste o lume falsă și un HUD fals — HUD-ul rămâne lizibil, culorile lumii nu-s spălate; (3) **cost pe GPU la 1920×1080, vsync oprit: 1,487ms fără shader → 1,711ms cu el = 0,225ms.** Ieftin, dar contează că a fost măsurat: proiectul e pentru Android.
+
+---
+
 ## Session log — 2026-08-06 (Nether-ul și Ender-ul au un CAPĂT: groapa de la 3000px)
 
 **Cerut de Răzvan:** „poate să fie finite nether și ender ca să găsești statuile mai ușor? Gradient spre negru ca să simuleze o groapă infinită ca în Minecraft — să fie undeva la 3000 de pixeli de spawn."

@@ -72,6 +72,13 @@ func _process(_delta: float) -> void:
 		_player = get_tree().get_first_node_in_group("player") as Node2D
 	if _player != null and _light != null:
 		_light.global_position = _player.global_position
+	# Paralaxa cerului din Ender: shaderul trebuie să știe unde a ajuns lumea pe ecran, ca stelele
+	# să curgă în urma ta în loc să stea lipite de ecran. `canvas_transform.origin` e exact asta,
+	# în pixeli de ecran și deja înmulțit cu zoom-ul camerei — deci merge oricât ar fi camera trasă,
+	# și nu trebuie să căutăm noi Camera2D-ul. `nether_hell.gdshader` n-are uniforma asta; a o scrie
+	# oricum e inofensiv (Godot o ține deoparte până apare un shader care o cere).
+	if _dim_kind != "" and _dim_mat != null:
+		_dim_mat.set_shader_parameter("world_offset", -get_viewport().get_canvas_transform().origin)
 
 func _setup_night() -> void:
 	var cm := CanvasModulate.new()
