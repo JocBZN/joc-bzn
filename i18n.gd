@@ -214,6 +214,11 @@ const TRAD := {
 "Bet: %s": ["下注：%s", "Einsatz: %s", "Apuesta: %s", "Ставка: %s", "Mise : %s", "賭け: %s", "Zakład: %s", "Bahis: %s"],
 "YOU WIN!": ["你赢了！", "GEWONNEN!", "¡GANASTE!", "ТЫ ВЫИГРАЛ!", "GAGNÉ !", "勝ち！", "WYGRANA!", "KAZANDIN!"],
 "YOU LOSE": ["你输了", "VERLOREN", "PERDISTE", "ТЫ ПРОИГРАЛ", "PERDU", "負け", "PRZEGRANA", "KAYBETTİN"],
+# Banul de după trei câștiguri la rând (casino.gd, CASTIGURI_BAN). Primul text apare și pe ecranul
+# de ban, și deasupra aparatului EGT din lume (`egt.gd::eticheta`).
+"You've been banned for cheating": ["你因作弊被封禁", "Du wurdest wegen Betrugs gesperrt", "Te han baneado por hacer trampa", "Ты забанен за читерство", "Tu es banni pour triche", "不正行為により出入り禁止", "Zostałeś zbanowany za oszustwo", "Hile yaptığın için yasaklandın"],
+"%d wins in a row": ["连赢 %d 次", "%d Siege in Folge", "%d victorias seguidas", "%d победы подряд", "%d gains d'affilée", "%d連勝", "%d wygrane z rzędu", "Üst üste %d kazanç"],
+"The casino is closed for the rest of the run": ["本局剩下的时间，赌场对你关门了", "Das Casino bleibt für den Rest des Laufs zu", "El casino queda cerrado el resto de la partida", "Казино закрыто до конца забега", "Le casino est fermé pour le reste de la partie", "このランの間、カジノは閉店だ", "Kasyno jest zamknięte do końca tej rundy", "Bu tur boyunca kumarhane sana kapalı"],
 
 # ---------- trade-up contract, tot în cazinou (casino.gd, „Gamble your items") ----------
 "TRADE-UP CONTRACT": ["汰换合同", "TAUSCH-VERTRAG", "CONTRATO DE MEJORA", "КОНТРАКТ ОБМЕНА", "CONTRAT D'ÉCHANGE", "トレードアップ契約", "KONTRAKT WYMIANY", "TAKAS SÖZLEŞMESİ"],

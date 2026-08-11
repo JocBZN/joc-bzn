@@ -26,6 +26,9 @@ const FISIERE_UI := [
 	# pe care îl scrie `interact_ui.gd` deasupra obiectului — deci trebuie verificat și el.
 	"res://monument.gd", "res://chest.gd", "res://ender_statue.gd",
 	"res://trade.gd",
+	# cazinoul EGT: `casino.gd` desenează tot meniul, iar `egt.gd` dă textul de deasupra aparatului
+	# din lume (la fel ca `chest.gd`) — de pe 2026-08-11, „You've been banned for cheating".
+	"res://casino.gd", "res://egt.gd",
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [

@@ -17,6 +17,30 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-11 (cazinoul te BANEAZĂ după 3 câștiguri la rând)
+
+**Cerut de Răzvan:** „vreau dacă playerul câștigă de 3 ori la rând la ruletă să nu îl mai lase tot run-ul să joace și să îi scrie «You've been banned for cheating»".
+
+**Atinse:** `casino.gd` (ecranul 4 + numărătoarea), `egt.gd` (eticheta de deasupra aparatului), `i18n.gd` (3 chei noi), `tool_check_i18n.gd` (lista de fișiere verificate).
+
+**1. Al treilea câștig se ÎNCASEAZĂ.** Statusul se dublează normal, bannerul „3 RED — YOU WIN!" rămâne `BAN_INTARZIERE` (1,7s) pe ecran și abia apoi intră ecranul de ban. Altfel banul ar arăta ca și cum jocul ți-a furat rotirea câștigătoare, nu ca urmarea ei.
+
+**2. ⚠️ Șirul se numără pe RUNDĂ, nu pe vizită.** `Casino` e **un singur nod**, în `main.tscn`, care trăiește cât runda — deci nu poți strânge două câștiguri, să ieși din meniu și s-o iei de la capăt, și nici nu scapi mergând la alt EGT (toate aparatele deschid același nod, vezi `egt.gd::invoca`). O pierdere duce șirul la 0; banul, o dată căzut, NU se mai ia (verificat: a patra rotire, pierzătoare, a dus șirul la 0 și a lăsat `_banat = true`). Trade-up-ul n-are câștig/pierdere, deci nu intră la socoteală. La restart, `reload_current_scene()` reface nodul → tot curat.
+
+**3. ⚠️ Blocarea stă într-un SINGUR loc: `_arata_pagina()`.** Cât ești banat, orice pagină cerută devine `"ban"`. Așa nu poate fi ocolită de niciunul din cele trei drumuri care duc la pagini: `open()` (E pe aparat), ESC-ul de pe masă și butoanele „Back". Peste asta, `SPIN`, punerea jetonului și `TRADE UP` refuză și ele. Dacă aș fi pus verificarea doar în fiecare din ele, prima cale nouă adăugată peste un an ar fi fost o portiță.
+
+**4. ⚠️ `egt.gd::poate_invoca()` rămâne `true` și după ban** — aceeași logică ca la cufărul fără cheie (`chest.gd`): pe `false`, `interact_ui.gd` nu mai alege deloc aparatul ca țintă, deci n-ar mai scrie NIMIC deasupra lui și ar arăta a decor. Așa rămâne țintă și scrie de ce nu mai merge, prin `eticheta()`. Textul apare pe **toate** aparatele din lume, fiindcă banul e al cazinoului, nu al mașinii la care ai jucat.
+
+**5. Textul cu cifră se pune la AFIȘARE, nu la construcție.** „3 wins in a row" e asamblat (`tr("%d wins in a row") % CASTIGURI_BAN`), deci nu se re-traduce singur când schimbi limba din Settings — iar panoul se construiește o dată, la pornirea rundei. Pus în `_arata_pagina`, e mereu în limba de acum.
+
+**6. `casino.gd` și `egt.gd` au intrat în `FISIERE_UI` din `tool_check_i18n.gd`.** Nu erau acolo deloc, deși `casino.gd` desenează tot meniul cazinoului și avea deja `tr(...)`-uri — adică traducerile lui nu erau verificate de nimeni. Acum: **249 chei × 8 limbi, tot tradus**.
+
+**Verificat rulând** (scena de test ștearsă după): trei „câștiguri" simulate prin `_arata_rezultat` → șir 1 → 2 → 3, `_banat` pe true la al treilea, pagina trece pe `ban` după întârziere cu SPIN stins, a patra rotire (pierzătoare) resetează șirul dar nu banul, `e_banat()` true, aparatul instanțiat din `egt.tscn` întoarce eticheta corectă și `invoca()` nu mai deschide nimic. Plus o poză a ecranului de ban (titlu roșu pe două rânduri în chenarul de aramă, „3 WINS IN A ROW", „THE CASINO IS CLOSED FOR THE REST OF THE RUN", buton „Leave").
+
+**Butoane de reglaj:** `CASTIGURI_BAN` (câte câștiguri la rând) și `BAN_INTARZIERE` (cât stă rezultatul pe ecran înainte de ban), amândouă sus în `casino.gd`.
+
+---
+
 ## Session log — 2026-08-07 (tot meniul jocului, în chenarele de aramă)
 
 **Cerut de Răzvan:** „fă tot meniul de la joc PROFESIONIST cum ai mai făcut și până acum, să arate ca un joc făcut de un studio profesional. Folosește Border EGT."

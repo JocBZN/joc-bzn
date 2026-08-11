@@ -7,13 +7,15 @@ extends CanvasLayer
 # nodul are `PROCESS_MODE_ALWAYS`. ESC te întoarce un pas înapoi (de la masă la meniu, din meniu
 # afară din cazinou).
 #
-# Trei ecrane:
+# Patru ecrane:
 #   1. „Let's go gambling" + Gamble your stats / Gamble your items.
 #   2. MASA DE RULETĂ: poza din `harta/EGT/Roulette Table.png`, cu zone de click peste FIECARE
 #      număr și peste toate pariurile exterioare (roșu/negru, par/impar, duzini, coloane).
 #      În dreapta bifezi ce statusuri bagi în joc.
 #   3. TRADE-UP CONTRACT (2026-08-07): dai 3 iteme de ACEEAȘI raritate și primești unul cu o
 #      treaptă mai sus, pe care NU-L VEZI până nu tragi. Vezi secțiunea lui, mai jos.
+#   4. BANAT (2026-08-11): dacă îți ies TREI câștiguri la rând la ruletă, cazinoul te dă afară
+#      pentru tot run-ul — „You've been banned for cheating". Vezi `CASTIGURI_BAN`.
 #
 # ---------------------------------------------------------------------------
 # CUM ARATĂ (refăcut pe 2026-08-07: „ca un joc cu 1 milion de copii vândute")
@@ -87,6 +89,19 @@ const CASTIG_MULT := {
 }
 # Dacă pierzi, statusul se înjumătățește — la fel pentru orice pariu.
 const PIERDERE_MULT := 0.5
+
+# --- BANAT PENTRU „TRIȘAT" (cerut de Răzvan pe 2026-08-11) ---
+# Trei câștiguri LA RÂND la ruletă și cazinoul te dă afară pentru tot run-ul: „You've been banned
+# for cheating". Al treilea câștig se ÎNCASEAZĂ normal (statusul se dublează) și abia apoi cade
+# banul — altfel ar arăta ca și cum jocul ți-a furat rotirea câștigătoare.
+#
+# Șirul se numără pe RUNDĂ, nu pe vizită: nodul cazinoului e unul singur, stă în `main.tscn` și
+# trăiește cât runda, deci nu poți ieși din meniu după două câștiguri ca să o iei de la capăt, și
+# nici nu scapi mergând la alt aparat EGT (toate deschid acest nod). O pierdere duce șirul înapoi
+# la 0. Trade-up-ul nu are câștig/pierdere, deci nu intră la socoteală.
+# La restart, `reload_current_scene()` face nodul din nou → și șirul, și banul pornesc curate.
+const CASTIGURI_BAN := 3
+const BAN_INTARZIERE := 1.7   # cât rămâne rezultatul pe ecran înainte să apară ecranul de ban (sec)
 
 # --- NOROCUL la ruletă (cerut de Răzvan pe 2026-07-30) ---
 # Norocul strâns în rundă (Unusual Clover, The Office...) înclină și ruleta: +1 PUNCT PROCENTUAL
@@ -228,9 +243,13 @@ var _evid_rect := Rect2()      # căsuța numărului ieșit (se evidențiază du
 # un `ButtonGroup` (vezi `_umple_statusuri`), deci regula se vede pe ecran, nu doar în cod.
 var _ales := ""
 var _se_invarte := false
+var _castiguri_la_rand := 0    # câte câștiguri consecutive are la ruletă (vezi CASTIGURI_BAN)
+var _banat := false            # dat afară din cazinou pentru tot run-ul
 
 var _pag_intro: Control
 var _pag_masa: Control
+var _pag_ban: Control
+var _lbl_motiv: Label          # „3 wins in a row" de pe ecranul de ban
 var _masa: TextureRect
 var _roata: TextureRect
 var _jeton: TextureRect
@@ -272,6 +291,7 @@ func _ready() -> void:
 	_build_intro()
 	_build_masa()
 	_build_iteme()
+	_build_ban()
 	_arata_pagina("intro")
 	get_viewport().size_changed.connect(_relayout)
 
@@ -310,15 +330,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		_inchide()
 
 func _arata_pagina(care: String) -> void:
+	# Banat = nu mai există alt ecran în cazinou. Redirectarea stă AICI, într-un singur loc, ca să
+	# nu poată fi ocolită: și `open()`, și ESC-ul de pe masă, și butoanele „Back" trec pe aici.
+	if _banat:
+		care = "ban"
 	_pagina = care
 	_pag_intro.visible = (care == "intro")
 	_pag_masa.visible = (care == "masa")
 	_pag_iteme.visible = (care == "iteme")
+	_pag_ban.visible = (care == "ban")
 	if care == "masa":
 		_reseteaza_masa()
 		_relayout()
 	elif care == "iteme":
 		_reseteaza_iteme()
+	elif care == "ban":
+		_lbl_motiv.text = tr("%d wins in a row") % CASTIGURI_BAN   # tr() explicit: are %d, vezi i18n.gd
 
 # ---------------------------------------------------------------------------
 # ECRANUL 1 — „Let's go gambling"
@@ -376,6 +403,79 @@ func _build_intro() -> void:
 
 	box.add_child(_buton("Gamble your stats", _on_stats))
 	box.add_child(_buton("Gamble your items", _on_items))
+
+	box.add_child(_spatiu(10))
+	box.add_child(_buton("Leave", _inchide))
+
+# ---------------------------------------------------------------------------
+# ECRANUL 4 — BANAT (vezi CASTIGURI_BAN)
+# ---------------------------------------------------------------------------
+# Aceeași croială ca ecranul de intro (același panou de aramă, aceeași ierarhie pe mărime), doar
+# că titlul e roșu: e singura dată când cazinoul îți spune „nu". Nu are decât butonul „Leave" —
+# un buton care nu duce nicăieri ar fi o promisiune mincinoasă.
+func _build_ban() -> void:
+	_pag_ban = Control.new()
+	_pag_ban.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pag_ban.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_pag_ban)
+
+	var pw := 700.0
+	var ph := 430.0
+	var panel := _cadru(CH_PANOU, 16)
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -pw / 2.0
+	panel.offset_right = pw / 2.0
+	panel.offset_top = -ph / 2.0
+	panel.offset_bottom = ph / 2.0
+	_pag_ban.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 46)
+	margin.add_theme_constant_override("margin_right", 46)
+	margin.add_theme_constant_override("margin_top", 40)
+	margin.add_theme_constant_override("margin_bottom", 34)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	margin.add_child(box)
+
+	var titlu := Label.new()
+	titlu.text = "You've been banned for cheating"
+	titlu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# autowrap OBLIGATORIU: e cel mai lung titlu din joc, iar tradus („Zostałeś zbanowany za
+	# oszustwo") crește și mai mult — fără el și-ar impune lățimea și ar ieși din panou.
+	titlu.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	titlu.add_theme_font_size_override("font_size", 40)
+	titlu.add_theme_color_override("font_color", Color8(214, 78, 64))
+	titlu.add_theme_color_override("font_outline_color", Color8(52, 14, 12))
+	titlu.add_theme_constant_override("outline_size", 6)
+	box.add_child(titlu)
+
+	box.add_child(_linie(340.0, 12))
+
+	# De ce ai fost dat afară — cifra vine din constantă, nu scrisă de mână în text.
+	# ⚠️ Textul se pune abia la afișare (`_arata_pagina`), nu aici: fiind ASAMBLAT cu `tr(...) % n`,
+	# nu se re-traduce singur când schimbi limba din Settings, iar panoul se construiește o dată,
+	# la pornirea rundei. Pus la afișare, e mereu în limba de acum.
+	_lbl_motiv = Label.new()
+	_lbl_motiv.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_motiv.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_motiv.add_theme_font_size_override("font_size", 22)
+	_lbl_motiv.add_theme_color_override("font_color", OS_ALB)
+	_contur(_lbl_motiv)
+	box.add_child(_lbl_motiv)
+
+	var cat := Label.new()
+	cat.text = "The casino is closed for the rest of the run"
+	cat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cat.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cat.add_theme_font_size_override("font_size", 15)
+	cat.add_theme_color_override("font_color", CENUSA)
+	_contur(cat)
+	box.add_child(cat)
 
 	box.add_child(_spatiu(10))
 	box.add_child(_buton("Leave", _inchide))
@@ -535,7 +635,7 @@ func _rect_numar(n: int) -> Rect2:
 	return Rect2(GRID_X0 + col * COL_W, GRID_Y0 + rand * ROW_H, COL_W, ROW_H)
 
 func _pune_pariu(pariu: Dictionary, r: Rect2, eticheta: String) -> void:
-	if _se_invarte:
+	if _se_invarte or _banat:
 		return
 	Audio.play("button", -4.0, 0.0)
 	_pariu = pariu
@@ -694,9 +794,9 @@ func _on_bifa(bifat: bool, id: String) -> void:
 		Audio.play("button", -8.0, 0.0)   # o singură dată pe schimbare, nu de două ori
 	_actualizeaza_spin()
 
-# SPIN merge doar dacă ai și pariat pe masă, și ales statusul.
+# SPIN merge doar dacă ai și pariat pe masă, și ales statusul (și dacă nu ești banat).
 func _actualizeaza_spin() -> void:
-	_btn_spin.disabled = _se_invarte or _pariu == null or _ales == ""
+	_btn_spin.disabled = _banat or _se_invarte or _pariu == null or _ales == ""
 	if _pariu == null:
 		_lbl_pariu.text = "Place your bet on the table"
 		_lbl_plata.text = ""
@@ -729,7 +829,7 @@ func _goleste_rezultat() -> void:
 # ÎNVÂRTIREA
 # ---------------------------------------------------------------------------
 func _spin() -> void:
-	if _se_invarte or _pariu == null or _ales == "":
+	if _se_invarte or _banat or _pariu == null or _ales == "":
 		return
 	_se_invarte = true
 	_btn_spin.disabled = true
@@ -775,8 +875,34 @@ func _arata_rezultat(n: int) -> void:
 	_aplica_pariul(castigat)
 	_umple_statusuri()
 	_se_invarte = false
+
+	# ȘIRUL DE CÂȘTIGURI → banul. Se numără DUPĂ ce câștigul a fost încasat (vezi CASTIGURI_BAN):
+	# al treilea îți dublează statusul ca oricare altul, abia apoi te dă afară.
+	_castiguri_la_rand = (_castiguri_la_rand + 1) if castigat else 0
+	if _castiguri_la_rand >= CASTIGURI_BAN:
+		_banat = true             # de aici, `_actualizeaza_spin` stinge SPIN și masa e moartă
+
 	_actualizeaza_spin()
 	_relayout()
+
+	if _banat:
+		# Lăsăm rezultatul o clipă pe ecran: banul trebuie citit ca URMAREA câștigului, nu ca o
+		# fereastră care a sărit peste el. Tween (nu timer), fiindcă jocul e pe pauză.
+		var t := create_tween()
+		t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		t.tween_interval(BAN_INTARZIERE)
+		t.tween_callback(_cade_banul)
+
+# Ecranul de ban, la BAN_INTARZIERE secunde după al treilea câștig. Dacă între timp ai ieșit cu
+# ESC din cazinou, paginile se schimbă în spate și îl vezi la următoarea apăsare de E — doar că
+# `egt.gd` nu-l mai deschide, deci în practică rămâne eticheta de deasupra aparatului.
+func _cade_banul() -> void:
+	Audio.play("game_over", -8.0, 0.0)
+	_arata_pagina("ban")
+
+# Îl întreabă aparatul din lume (`egt.gd`): mai are voie jucătorul la joc?
+func e_banat() -> bool:
+	return _banat
 
 # Câte puncte procentuale de șansă în plus dă norocul strâns în rundă. `luck` pornește de la 0
 # și e ZECIMAL (The Office dă +2,5), deci bonusul curge continuu — 5 noroc dau o jumătate de
@@ -1495,7 +1621,7 @@ func _are_set_posibil() -> bool:
 # TRADE-UP: tragerea
 # ---------------------------------------------------------------------------
 func _trade_up() -> void:
-	if _rula or _sel.size() != TU_CATE:
+	if _rula or _banat or _sel.size() != TU_CATE:
 		return
 	var p = get_tree().get_first_node_in_group("player")
 	var lu = get_tree().get_first_node_in_group("levelup_menu")
