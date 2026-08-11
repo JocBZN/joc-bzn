@@ -1,9 +1,10 @@
 extends CanvasLayer
 
-# Ecranul de LEVEL UP (stil Megabonk): la creșterea în nivel pune jocul pe PAUZĂ și
-# arată 3 îmbunătățiri alese aleatoriu, ca o LISTĂ verticală în stânga panoului `Menu.png`.
-# Fiecare rând = iconița pusă în border-ul RARITĂȚII + nume (colorat pe raritate) + stat.
-# Dai click pe un rând → efectul se aplică pe player (vezi _apply) → jocul repornește.
+# Ecranul de LEVEL UP (stil Megabonk): la creșterea în nivel pune jocul pe PAUZĂ și arată 3
+# îmbunătățiri alese aleatoriu, ca trei CARTONAȘE în panoul din stânga; în dreapta, statusurile de
+# acum. Fiecare cartonaș = iconița pusă în chenarul RARITĂȚII + raritate / nume / efect.
+# Dai click pe un cartonaș → efectul se aplică pe player (vezi _apply) → jocul repornește.
+# Cum arată și de ce → secțiunea „CUM ARATĂ", mai jos.
 
 const ICON_DIR := "res://Upgrades/"
 const MENU_UI_DIR := "res://Upgrades/Menu UI/"
@@ -78,7 +79,55 @@ var UPGRADES := [
 	{"id": "tower_5g", "nume": "5G Tower", "icon": "upgrade_58.png", "rar": "epic", "desc": "Enemies drop 15% more xp"},
 ]
 
-const CELL := 120.0   # mărimea unei celule de border (cu iconița în interior)
+const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
+
+# ---------------------------------------------------------------------------
+# CUM ARATĂ (refăcut pe 2026-08-11: „mai premium, ca la un studio mare")
+# ---------------------------------------------------------------------------
+# Ecranul a trecut pe ACELEAȘI chenare de aramă ca restul jocului (cazinou, statuia din Ender,
+# meniul principal): `harta/EGT/Border EGT.png`, o planșă de 5×4 celule de 64×64 din care se
+# taie la rulare doar celulele care trebuie (`_chenar`). Ce s-a schimbat față de varianta veche:
+#
+#   1. RAMA: lemnul beige-auriu din `Menu.png` → aramă. Era ultimul ecran rămas pe lemn, deci
+#      singurul loc din joc unde paleta se rupea.
+#   2. Cele 3 opțiuni sunt acum CARTONAȘE, fiecare în chenarul lui (celula (1,2)), nu text care
+#      plutește pe panou. Un rând fără margini nu arată a lucru pe care poți da click.
+#   3. ⚠️ NUMELE nu mai e colorat pe raritate, ci alb-os; raritatea rămâne singura colorată.
+#      Culoarea de Common e #424B6D — albastru închis pe fundal aproape negru, adică numele
+#      itemului era cel mai greu de citit lucru de pe ecran, exact la cea mai deasă raritate.
+#      Descrierea a trecut pe cenușiu, din același motiv.
+#   4. HOVER: rama cartonașului se aprinde din cenușă în aramă în 0,12s, iar numele în alb.
+#      Înainte era un dreptunghi alb transparent peste rând, care nu se vedea pe fundal închis.
+#   5. Panoul de STATS are aceeași înălțime și aceeași ramă ca cel de alegeri (două panouri de
+#      înălțimi diferite arată a improvizație), iar rândurile stau într-un tabel cu dungi.
+#
+# ⚠️ Paleta e MĂSURATĂ din planșă (vezi `casino.gd`), nu aleasă din ochi. Dacă schimbi arta
+# chenarelor, adu și culorile astea după ea.
+const SHEET := "res://harta/EGT/Border EGT.png"
+const CELULA_FOAIE := 64
+const ZOOM := 2                       # celula se mărește ×2 NEAREST: vezi `_chenar`
+const CH_PANOU := Vector2i(2, 0)      # colțuri în spirală — panourile mari
+const CH_CARD := Vector2i(1, 2)       # chenar subțire — un cartonaș de upgrade
+# ⚠️ NU folosi celulele (0,1) și (0,3): au pătrate ALBE în colțuri (sunt marcaje de planșă).
+const RAMA_PANOU := 16                # cât din celulă e colț ornamentat (în pixeli de planșă)
+const RAMA_CARD := 14
+
+const ACCENT := Color8(198, 118, 80)        # arama chenarelor
+const ACCENT_CLAR := Color8(222, 152, 116)  # aceeași, aprinsă
+const ACCENT_STINS := Color8(116, 62, 42)   # aceeași, în umbră (contururi)
+const OS_ALB := Color8(232, 224, 214)       # titluri și nume de item
+const CENUSA := Color8(150, 142, 138)       # text secundar (descrieri, etichete de stat)
+
+# Mărimile, în pixeli de ECRAN DE BAZĂ (1152×648 — tot ce e mai mare se scalează singur).
+const MARGINE_ECRAN := 26.0
+const PANOU_W := 686.0
+const PANOU_H := 556.0     # ⚠️ ambele panouri au ACEEAȘI înălțime, vezi punctul 5 de mai sus
+const STATS_W := 366.0
+const CARD_H := 116.0      # înălțimea unui cartonaș: 3 × 116 + 2 × 12 = 372, cât încape sub titlu
+
+# Rama cartonașului: cenușie în repaus, aramă plină la hover (vezi `_hover`).
+const CARD_REPAUS := Color(0.62, 0.60, 0.62)
+const CARD_HOVER := Color(1, 1, 1)
 
 # ȘANSELE PE RARITATE (în procente, per rând afișat).
 # Până acum raritatea era DOAR culoare: cele 3 iteme se alegeau uniform din listă, deci un
@@ -102,6 +151,9 @@ const LUCK_TAKE := {"common": 0.5, "uncommon": 0.5}                  # cât ia, 
 const LUCK_GIVE := {"rare": 2.0, "epic": 2.0, "legendary": 1.0}      # în ce RAPORT împarte
 
 var _buttons := []
+var _cards := []        # NinePatchRect: rama de aramă a fiecărui cartonaș (se aprinde la hover)
+var _lbl_nivel: Label   # „Level 7", sub titlu
+var _sheet: Image = null   # planșa de chenare, citită o singură dată (vezi `_chenar`)
 var _borders := []      # TextureRect cu border-ul rarității
 var _icons := []        # TextureRect cu iconița upgrade-ului (peste border)
 var _rar_labels := []   # eticheta cu raritatea (colorată exact ca border-ul)
@@ -129,124 +181,136 @@ func _ready() -> void:
 	layer = 10                               # deasupra HUD-ului
 	visible = false
 
-	# fundal întunecat peste tot ecranul — gri spre negru
+	# Fundal întunecat peste tot ecranul. Mai opac decât înainte (era 0.9 peste un gri): lumea
+	# care se zbate în spate fura atenția tocmai când trebuie să citești trei iteme.
 	var overlay := ColorRect.new()
-	overlay.color = Color(0.12, 0.12, 0.14, 0.9)
+	# ⚠️ 0.975, nu 0.9: la 0.94 se citeau încă prin el cronometrul din HUD (sus) și „LEVEL 1"
+	# (jos-stânga) — două texte fantomă peste un meniu, exact semnul de interfață neterminată.
+	overlay.color = Color(0.07, 0.06, 0.09, 0.975)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 
-	# panoul ornat (Menu.png) ca ramă care se întinde curat (nine-patch).
-	# Ancorat pe STÂNGA-centru (nu mai e centrat pe ecran) ca să lase loc panoului de STATS pe dreapta.
-	var panel := NinePatchRect.new()
-	panel.texture = load(MENU_UI_DIR + "Menu.png")
-	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	panel.patch_margin_left = 46
-	panel.patch_margin_right = 46
-	panel.patch_margin_top = 46
-	panel.patch_margin_bottom = 46
-	var pw := 680.0
-	var ph := 580.0
-	panel.custom_minimum_size = Vector2(pw, ph)
+	_build_alegeri()
+	_build_stats_panel()
+
+# Panoul din STÂNGA: titlul, nivelul la care ai ajuns și cele 3 cartonașe.
+# Ancorat pe stânga-centru (nu centrat pe ecran) ca să lase loc panoului de STATS pe dreapta.
+func _build_alegeri() -> void:
+	var panel := _cadru(CH_PANOU, RAMA_PANOU)
+	panel.custom_minimum_size = Vector2(PANOU_W, PANOU_H)
 	panel.set_anchors_preset(Control.PRESET_CENTER_LEFT)
-	panel.offset_left = 40
-	panel.offset_right = 40 + pw
-	panel.offset_top = -ph / 2.0
-	panel.offset_bottom = ph / 2.0
+	panel.offset_left = MARGINE_ECRAN
+	panel.offset_right = MARGINE_ECRAN + PANOU_W
+	panel.offset_top = -PANOU_H / 2.0
+	panel.offset_bottom = PANOU_H / 2.0
 	add_child(panel)
 
-	# marginile interioare, ca să stăm în interiorul ramei
+	# ⚠️ Marginile trebuie să treacă de grosimea ramei desenate (16 px de celulă × ZOOM = 32),
+	# altfel conținutul se urcă pe ornament.
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 46)
-	margin.add_theme_constant_override("margin_right", 46)
-	# top mai mare (ca la panoul STATS): la fontul HomeVideo, 44 lăsa titlul „LEVEL UP! Choose:"
-	# să intre în rama de sus. 66 îl coboară sub chenar. Bottom rămâne 44 (peste grosimea ramei).
-	margin.add_theme_constant_override("margin_top", 66)
-	margin.add_theme_constant_override("margin_bottom", 44)
+	margin.add_theme_constant_override("margin_left", 40)
+	margin.add_theme_constant_override("margin_right", 40)
+	margin.add_theme_constant_override("margin_top", 36)
+	margin.add_theme_constant_override("margin_bottom", 32)
 	panel.add_child(margin)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 16)
+	box.add_theme_constant_override("separation", 4)
 	box.alignment = BoxContainer.ALIGNMENT_BEGIN
 	margin.add_child(box)
 
 	var title := Label.new()
-	title.text = "LEVEL UP!  Choose:"
+	title.text = "LEVEL UP"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 36)
-	title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))  # auriu ca rama
-	_add_outline(title)
+	title.add_theme_font_size_override("font_size", 44)
+	title.add_theme_color_override("font_color", OS_ALB)
+	# contur de ARAMĂ, nu negru: la un titlu alb pe negru ține loc de aureolă și leagă textul de
+	# rama din jur, fără shader și fără font nou (același truc ca la `casino.gd`).
+	title.add_theme_color_override("font_outline_color", ACCENT_STINS)
+	title.add_theme_constant_override("outline_size", 6)
 	box.add_child(title)
 
-	# împinge lista ~50px spre dreapta (titlul rămâne centrat)
-	var list_margin := MarginContainer.new()
-	list_margin.add_theme_constant_override("margin_left", 50)
-	box.add_child(list_margin)
+	box.add_child(_linie(300.0, 12))
 
-	# lista verticală de sloturi (fiecare = border+iconiță | raritate + nume + stat)
+	# Nivelul la care tocmai ai ajuns. Textul se pune la fiecare deschidere (`_show_choices`),
+	# fiindcă e ASAMBLAT cu `%d` și n-ar putea fi tradus singur de Godot — vezi i18n.gd.
+	_lbl_nivel = Label.new()
+	_lbl_nivel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_nivel.add_theme_font_size_override("font_size", 18)
+	_lbl_nivel.add_theme_color_override("font_color", ACCENT)
+	_add_outline(_lbl_nivel)
+	box.add_child(_lbl_nivel)
+
+	var sub := Label.new()
+	sub.text = "Choose one"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 15)
+	sub.add_theme_color_override("font_color", CENUSA)
+	_add_outline(sub)
+	box.add_child(sub)
+
+	var spatiu := Control.new()
+	spatiu.custom_minimum_size = Vector2(0, 10)
+	spatiu.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(spatiu)
+
 	var list := VBoxContainer.new()
-	# spațiere puțin mai mică (era 12): compensează cei ~22px luați de marginea de sus mărită,
-	# ca al treilea rând să nu ajungă în rama de jos.
-	list.add_theme_constant_override("separation", 8)
-	list_margin.add_child(list)
-
+	list.add_theme_constant_override("separation", 12)
+	box.add_child(list)
 	for i in 3:
 		list.add_child(_make_row(i))
 
-	_build_stats_panel()
-
-# Panoul de statusuri din dreapta ecranului (stil Binding of Isaac): aceeași ramă Menu.png ca
-# meniul, lipită de marginea dreaptă, centrată pe verticală. Rândurile se umplu în _refresh_stats.
+# Panoul de statusuri din dreapta ecranului (stil Binding of Isaac), în aceeași ramă de aramă și
+# de ACEEAȘI ÎNĂLȚIME ca panoul de alegeri. Rândurile se umplu în `_refresh_stats`.
 func _build_stats_panel() -> void:
-	var panel := NinePatchRect.new()
-	panel.texture = load(MENU_UI_DIR + "Menu.png")
-	panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	panel.patch_margin_left = 46
-	panel.patch_margin_right = 46
-	panel.patch_margin_top = 46
-	panel.patch_margin_bottom = 46
+	var panel := _cadru(CH_PANOU, RAMA_PANOU)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var w := 386.0
-	var h := 574.0
-	panel.custom_minimum_size = Vector2(w, h)
+	panel.custom_minimum_size = Vector2(STATS_W, PANOU_H)
 	# ancoră pe dreapta-centru, apoi offset-uri care o lipesc de margine, centrată pe verticală
 	panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	panel.offset_right = -16
-	panel.offset_left = -16 - w
-	panel.offset_top = -h / 2.0
-	panel.offset_bottom = h / 2.0
+	panel.offset_right = -MARGINE_ECRAN
+	panel.offset_left = -MARGINE_ECRAN - STATS_W
+	panel.offset_top = -PANOU_H / 2.0
+	panel.offset_bottom = PANOU_H / 2.0
 	add_child(panel)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# marginile trebuie să fie clar peste grosimea ramei (patch_margin = 46), ca textul să nu se
-	# lipească de pereții chenarului
-	margin.add_theme_constant_override("margin_left", 62)
-	margin.add_theme_constant_override("margin_right", 62)
-	margin.add_theme_constant_override("margin_top", 66)   # titlul coborât mai jos, sub rama de sus
-	margin.add_theme_constant_override("margin_bottom", 58)
+	margin.add_theme_constant_override("margin_left", 38)
+	margin.add_theme_constant_override("margin_right", 38)
+	margin.add_theme_constant_override("margin_top", 36)
+	margin.add_theme_constant_override("margin_bottom", 32)
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(margin)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 4)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(box)
 
 	var title := Label.new()
 	title.text = "STATS"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(0.95, 0.85, 0.55))  # auriu ca rama
+	title.add_theme_font_size_override("font_size", 30)
+	title.add_theme_color_override("font_color", OS_ALB)
+	title.add_theme_color_override("font_outline_color", ACCENT_STINS)
+	title.add_theme_constant_override("outline_size", 5)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_add_outline(title)
 	box.add_child(title)
+
+	box.add_child(_linie(200.0, 12))
 
 	_stats_box = VBoxContainer.new()
 	# ATENȚIE: panoul are înălțime FIXĂ, iar rândurile nu se micșorează singure — la 13 rânduri
-	# (de când există „Luck") spațierea 7 împingea ultimul rând peste ramă. Dacă mai adaugi un
-	# stat, verifică marginea de jos a panoului: fie scazi spațierea, fie fontul (19).
-	_stats_box.add_theme_constant_override("separation", 3)
+	# (de când există „Luck") spațierea 7 împingea ultimul rând peste ramă. Acum rândurile sunt
+	# casete cu dungi, deci separarea e 0 și aerul vine din marginile lor. Dacă mai adaugi un
+	# stat, verifică marginea de jos a panoului: fie scazi marginile din `_rand_stat`, fie fontul.
+	_stats_box.add_theme_constant_override("separation", 0)
+	# umple ce rămâne sub titlu și ține tabelul centrat pe verticală: dacă într-o zi rămân mai
+	# puține rânduri, golul se împarte sus-jos în loc să cadă tot la fund
+	_stats_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stats_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	_stats_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(_stats_box)
 
@@ -261,51 +325,102 @@ func _refresh_stats() -> void:
 	var p = get_tree().get_first_node_in_group("player")
 	if p == null or not p.has_method("stat_lines"):
 		return
+	var i := 0
 	for row in p.stat_lines():
-		var col: Color = STAT_COLORS.get(row["state"], STAT_COLORS["same"])
-		var hb := HBoxContainer.new()
-		hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var name_lbl := Label.new()
-		name_lbl.text = row["label"]
-		name_lbl.add_theme_font_size_override("font_size", 19)
-		name_lbl.add_theme_color_override("font_color", col)
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_add_outline(name_lbl)
-		hb.add_child(name_lbl)
-		var val_lbl := Label.new()
-		val_lbl.text = row["value"]
-		val_lbl.add_theme_font_size_override("font_size", 19)
-		val_lbl.add_theme_color_override("font_color", col)
-		val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		val_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_add_outline(val_lbl)
-		hb.add_child(val_lbl)
-		_stats_box.add_child(hb)
+		_stats_box.add_child(_rand_stat(row, i))
+		i += 1
 
-# Construiește un rând-buton: [border cu iconiță]  [nume / stat]. Salvează referințele.
+# Un rând din tabelul de statusuri: numele la stânga, valoarea la dreapta.
+#
+# ⚠️ NUMELE statului nu mai ia culoarea stării, doar VALOAREA. Cu amândouă colorate, un panou cu
+# 6 statusuri crescute era un perete verde în care nu se mai citea nimic; acum verdele/roșul apar
+# doar pe cifre, adică fix pe ce s-a schimbat.
+#
+# Dungile (un rând din doi cu fundal cu 3% alb) sunt tot ce desparte 13 rânduri strânse — fără
+# ele ochiul pierde linia și citește valoarea altui stat.
+func _rand_stat(row: Dictionary, idx: int) -> PanelContainer:
+	var col: Color = STAT_COLORS.get(row["state"], STAT_COLORS["same"])
+	var pc := PanelContainer.new()
+	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(1, 1, 1, 0.03) if idx % 2 == 1 else Color(0, 0, 0, 0)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	# 5, nu 2: cele 13 rânduri strânse lăsau un sfert de panou gol dedesubt, iar un panou pe
+	# jumătate plin arată a listă neterminată. Cu aerul ăsta, tabelul umple rama.
+	sb.content_margin_top = 5
+	sb.content_margin_bottom = 5
+	pc.add_theme_stylebox_override("panel", sb)
+
+	var hb := HBoxContainer.new()
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pc.add_child(hb)
+
+	var name_lbl := Label.new()
+	name_lbl.text = row["label"]
+	name_lbl.add_theme_font_size_override("font_size", 18)
+	name_lbl.add_theme_color_override("font_color", Color8(186, 180, 174))
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.clip_text = true      # un nume lung tradus scurtează, nu lățește panoul peste ramă
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(name_lbl)
+	hb.add_child(name_lbl)
+
+	var val_lbl := Label.new()
+	val_lbl.text = row["value"]
+	val_lbl.add_theme_font_size_override("font_size", 18)
+	val_lbl.add_theme_color_override("font_color", col)
+	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	val_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(val_lbl)
+	hb.add_child(val_lbl)
+	return pc
+
+# Un CARTONAȘ de ales: chenar de aramă, în el [chenarul de raritate cu iconița] [raritate / nume /
+# descriere]. Salvează referințele, ca `_show_choices` să nu mai construiască nimic — doar umple.
 func _make_row(i: int) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(0, CELL + 8)
+	b.custom_minimum_size = Vector2(0, CARD_H)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.flat = true
-	# fără chrome de buton normal; doar un highlight discret la hover/apăsare/focus
-	b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-	b.add_theme_stylebox_override("hover", _hover_box(0.10))
-	b.add_theme_stylebox_override("pressed", _hover_box(0.18))
-	b.add_theme_stylebox_override("focus", _hover_box(0.08))
+	# Butonul nu desenează NIMIC: tot ce se vede e chenarul din planșă, iar starea se citește din
+	# aprinderea lui (vezi `_hover`). Un dreptunghi alb transparent peste un fundal aproape negru
+	# — cum era înainte — nu se vedea nici la 18% alfa.
+	for stare in ["normal", "hover", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(stare, StyleBoxEmpty.new())
 	b.pressed.connect(_on_choice.bind(i))
+	# și mouse, și tastatură/gamepad: focusul aprinde cartonașul la fel ca trecerea cu mouse-ul
+	b.mouse_entered.connect(_hover.bind(i, true))
+	b.mouse_exited.connect(_hover.bind(i, false))
+	b.focus_entered.connect(_hover.bind(i, true))
+	b.focus_exited.connect(_hover.bind(i, false))
 	_buttons.append(b)
 
-	# conținutul stă peste buton; îi lăsăm click-ul să treacă la buton (mouse ignore)
+	var cadru := _cadru(CH_CARD, RAMA_CARD)
+	cadru.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cadru.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cadru.modulate = CARD_REPAUS
+	b.add_child(cadru)
+	_cards.append(cadru)
+
+	# ⚠️ Marginile trebuie să treacă de grosimea ramei cartonașului (14 × ZOOM = 28 în lateral
+	# desenat ~12), altfel iconița calcă pe ornament.
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(margin)
+
 	var hb := HBoxContainer.new()
-	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hb.add_theme_constant_override("separation", 14)
+	hb.add_theme_constant_override("separation", 16)
 	hb.alignment = BoxContainer.ALIGNMENT_BEGIN
 	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(hb)
+	margin.add_child(hb)
 
-	# celula cu border + iconiță
+	# celula cu chenarul de RARITATE + iconița
 	var cell := Control.new()
 	cell.custom_minimum_size = Vector2(CELL, CELL)
 	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -322,11 +437,12 @@ func _make_row(i: int) -> Button:
 
 	var icon := TextureRect.new()
 	icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	# marginile lasă iconița în „fereastra" din interiorul ramei
-	icon.offset_left = 16
-	icon.offset_top = 16
-	icon.offset_right = -16
-	icon.offset_bottom = -16
+	# marginile lasă iconița în „fereastra" din interiorul chenarului de raritate (~13%, ca în
+	# inventarul din cazinou)
+	icon.offset_left = 12
+	icon.offset_top = 12
+	icon.offset_right = -12
+	icon.offset_bottom = -12
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -334,24 +450,26 @@ func _make_row(i: int) -> Button:
 	cell.add_child(icon)
 	_icons.append(icon)
 
-	# textul: nume (colorat pe raritate) + stat (verde)
+	# textul: raritate (singurul colorat) / nume / descriere
 	var text := VBoxContainer.new()
 	text.alignment = BoxContainer.ALIGNMENT_CENTER
+	text.add_theme_constant_override("separation", 1)
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(text)
 
-	# raritatea (mic, sus), colorată exact ca border-ul
 	var rar_lbl := Label.new()
-	rar_lbl.add_theme_font_size_override("font_size", 17)
+	rar_lbl.add_theme_font_size_override("font_size", 15)
 	rar_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_add_outline(rar_lbl)
 	text.add_child(rar_lbl)
 	_rar_labels.append(rar_lbl)
 
 	var name_lbl := Label.new()
-	name_lbl.add_theme_font_size_override("font_size", 26)
+	name_lbl.add_theme_font_size_override("font_size", 25)
+	name_lbl.add_theme_color_override("font_color", OS_ALB)
+	name_lbl.clip_text = true      # un nume lung tradus scurtează, nu lățește cartonașul
 	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_add_outline(name_lbl)
 	text.add_child(name_lbl)
@@ -359,7 +477,9 @@ func _make_row(i: int) -> Button:
 
 	var desc_lbl := Label.new()
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_lbl.add_theme_font_size_override("font_size", 19)
+	desc_lbl.add_theme_font_size_override("font_size", 17)
+	desc_lbl.add_theme_color_override("font_color", CENUSA)
+	desc_lbl.max_lines_visible = 2   # două rânduri, cât încape pe cartonaș în orice limbă
 	desc_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_add_outline(desc_lbl)
 	text.add_child(desc_lbl)
@@ -367,17 +487,69 @@ func _make_row(i: int) -> Button:
 
 	return b
 
+# Trecerea cu mouse-ul (sau focusul) peste un cartonaș: rama se aprinde din cenușă în aramă plină,
+# iar numele din alb-os în alb. 0,12s — cât să se simtă, nu cât să se aștepte.
+func _hover(i: int, pornit: bool) -> void:
+	if i < 0 or i >= _cards.size():
+		return
+	var t := create_tween()
+	t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)   # jocul e pe pauză cât alegi
+	t.tween_property(_cards[i], "modulate", CARD_HOVER if pornit else CARD_REPAUS, 0.12)
+	_name_labels[i].add_theme_color_override("font_color", Color(1, 1, 1) if pornit else OS_ALB)
+
 # contur negru de 2px pe text, ca să se citească pe orice fundal
 func _add_outline(lbl: Label) -> void:
 	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	lbl.add_theme_constant_override("outline_size", 2)
 
-# highlight semi-transparent, colțuri rotunjite (pentru hover/pressed/focus)
-func _hover_box(alpha: float) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, alpha)
-	sb.set_corner_radius_all(8)
-	return sb
+# ---------------------------------------------------------------------------
+# CĂRĂMIZILE DE ASPECT (aceleași ca la `casino.gd` / `menu.gd` — citește acolo de ce arată așa)
+# ---------------------------------------------------------------------------
+# Un chenar din planșă, gata de întins (nine-patch). `margine` = câți pixeli din margine NU se
+# întind (colțurile ornamentate). Panourile au mărime FIXĂ, deci NinePatchRect e potrivit aici.
+func _cadru(celula: Vector2i, margine: int) -> NinePatchRect:
+	var np := NinePatchRect.new()
+	np.texture = _chenar(celula)
+	np.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	np.patch_margin_left = margine * ZOOM
+	np.patch_margin_right = margine * ZOOM
+	np.patch_margin_top = margine * ZOOM
+	np.patch_margin_bottom = margine * ZOOM
+	return np
+
+# ⚠️ Celula se MĂREȘTE de ZOOM ori (nearest, deci rămâne pixel art curat) înainte să ajungă
+# textură: nine-patch-ul întinde doar MIJLOCUL laturilor, nu și grosimea lor, iar o celulă de
+# 64px pusă pe un panou de 686 lăsa linii de 1px — un chenar desenat cu pixul.
+func _chenar(celula: Vector2i) -> ImageTexture:
+	if _sheet == null:
+		var tex := load(SHEET) as Texture2D
+		if tex == null:
+			return null
+		_sheet = tex.get_image()
+	var bucata := _sheet.get_region(Rect2i(celula.x * CELULA_FOAIE, celula.y * CELULA_FOAIE, CELULA_FOAIE, CELULA_FOAIE))
+	bucata.resize(CELULA_FOAIE * ZOOM, CELULA_FOAIE * ZOOM, Image.INTERPOLATE_NEAREST)
+	return ImageTexture.create_from_image(bucata)
+
+# Linia subțire de sub titlu. Se stinge spre capete (trei bucăți cu alfa diferit), ca să nu arate
+# a bară trasă cu rigla peste artă.
+func _linie(latime: float, inaltime: int) -> Control:
+	var wrap := Control.new()
+	wrap.custom_minimum_size = Vector2(0, inaltime)
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hb := HBoxContainer.new()
+	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 0)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(hb)
+	for a in [0.15, 0.55, 0.15]:
+		var r := ColorRect.new()
+		r.color = Color(ACCENT.r, ACCENT.g, ACCENT.b, a)
+		r.custom_minimum_size = Vector2(latime / 3.0, 2)
+		r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hb.add_child(r)
+	return wrap
 
 # Chemată de player (player.gd -> _level_up) la fiecare creștere în nivel.
 func open() -> void:
@@ -544,13 +716,22 @@ func _show_choices(exclude: Array = []) -> void:
 		var rar = RARITIES.get(u.get("rar", "common"), RARITIES["common"])
 		_borders[i].texture = load(MENU_UI_DIR + rar["border"])
 		_rar_labels[i].text = rar["nume"]
-		_rar_labels[i].add_theme_color_override("font_color", rar["color"])
-		_name_labels[i].add_theme_color_override("font_color", rar["color"])
-		_desc_labels[i].add_theme_color_override("font_color", rar["color"])
+		# ⚠️ DOAR raritatea se colorează pe raritate. Numele rămâne alb-os și descrierea cenușie:
+		# Common e #424B6D, adică albastru închis pe fundal aproape negru — vezi capul fișierului.
+		# eticheta se ia spre alb cu 30%: culoarea de Common (#424B6D) e prea închisă ca TEXT pe
+		# fundal aproape negru. Chenarul desenat rămâne culoarea adevărată a rarității.
+		_rar_labels[i].add_theme_color_override("font_color", (rar["color"] as Color).lerp(Color.WHITE, 0.3))
+		_name_labels[i].add_theme_color_override("font_color", OS_ALB)
+		# fiecare pagină nouă pornește cu toate cartonașele stinse, chiar dacă mouse-ul stătea
+		# peste unul când ai ales (semnalul de ieșire nu mai vine, nodul nu se mișcă)
+		_cards[i].modulate = CARD_REPAUS
 		# textele
 		_buttons[i].tooltip_text = u["nume"]
 		_name_labels[i].text = u["nume"]
 		_desc_labels[i].text = u["desc"]
+	var p = get_tree().get_first_node_in_group("player")
+	# tr() explicit: textul are %d, deci n-ar putea fi tradus singur de Godot (vezi i18n.gd)
+	_lbl_nivel.text = tr("Level %d") % (int(p.level) if p != null and "level" in p else 1)
 	_refresh_stats()
 	visible = true
 	get_tree().paused = true

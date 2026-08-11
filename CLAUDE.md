@@ -17,6 +17,35 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-11 (level up + pagina principală, „premium", pe Border EGT)
+
+**Cerut de Răzvan:** „poți să faci meniul de upgrade-uri mai premium? Folosind Border EGT, și vreau și meniul principal să îl faci tot cu ăla. Îți alegi tu cum le pui și pe care. Dar vreau să arate de parcă e făcut de un studio mare de game dev. Foarte profesional și curat."
+
+**Atinse:** `levelup.gd` (refăcut tot ce se vede), `menu.gd` (placa de sub butoanele paginii principale + verdele OP), `i18n.gd` (2 chei noi, una scoasă).
+
+**1. Level up — rama.** Lemnul din `Menu.png` → chenarul de aramă, celula (2,0), aceeași unealtă (`_chenar`) ca la cazinou/statuie/meniu. Era ULTIMUL ecran rămas pe lemn. **De acum `Menu.png` nu mai e încărcat de niciun script** — din folderul `Upgrades/Menu UI/` se mai folosesc doar chenarele de raritate.
+
+**2. Cele 3 opțiuni sunt CARTONAȘE**, fiecare în chenarul lui subțire (celula (1,2)). Un rând fără margini nu arată a lucru pe care poți da click. Hover-ul (și focusul de tastatură) aprinde rama din cenușă în aramă în 0,12s, plus numele în alb. **Highlight-ul vechi era un dreptunghi alb transparent** (10–18% alfa) — pe fundal aproape negru, invizibil.
+
+**3. ⚠️ Numele itemului NU mai e colorat pe raritate.** Common e `#424B6D`, adică albastru închis pe fundal aproape negru: numele itemului era cel mai greu de citit lucru de pe ecran, exact la raritatea care apare cel mai des (40%). Acum: nume alb-os, descriere cenușie, iar **doar cuvântul rarității** poartă culoarea — și aia trasă 30% spre alb, din același motiv. Chenarul desenat rămâne culoarea adevărată.
+
+**4. Titlul, spart în trei.** „LEVEL UP" mare + linia subțire + „Level 12" / „Choose one". Nivelul la care ai ajuns e o informație pe care ecranul nu ți-o dădea deloc. În plus, vechiul titlu-într-o-bucată („LEVEL UP!  Choose:") creștea urât în germană și rusă. Cheia veche a ieșit din `i18n.gd`, au intrat „LEVEL UP" și „Choose one"; nivelul refolosește „Level %d" de la Game Over.
+
+**5. Panoul de STATS e un tabel:** aceeași ramă și **aceeași înălțime** ca panoul de alegeri (două panouri de înălțimi diferite arată a improvizație), dungi de 3% alb pe rândurile pare, iar **doar valoarea** ia verdele/roșul de schimbare. Cu numele colorat și el, o rundă bună făcea panoul un perete verde.
+
+**6. ⚠️ Fundalul, 0.9 → 0.975.** La 0.94 se citeau prin el cronometrul din HUD (sus) și „LEVEL 1" (jos-stânga) — două texte fantomă peste meniu. Prins pe poză, nu în cod.
+
+**7. Meniul principal: butoanele stau pe o PLACĂ de aramă.** Era ultimul ecran fără ramă, adică prima pagină pe care o vede oricine arăta a listă lipită peste o poză, în timp ce toate sub-paginile erau încadrate. **Marginile plăcii sunt mai strânse (34/26/24) decât cele standard (42/34/30)**: cu cele standard, logo-ul (240) + placa treceau de cei 648px ai ecranului de referință. Măsurat după: **594**.
+⚠️ Transparența din intro se animează acum pe PLACĂ, nu pe lista de butoane — `modulate` se moștenește la copii, deci altfel rama ar fi stat vizibilă și goală tot intro-ul.
+
+**8. Verdele de „OP pornit", muiat** (`#66FF80` → `#76B27C`): pe un ecran de aramă și piatră, butonul de test din colț sărea în ochi mai tare decât START.
+
+**Verificat rulând** (scenele de test șterse după): ecranul de level up deschis **în jocul adevărat** (peste lume și HUD, cu jocul pe pauză), alegerea aplicată pe bune (registru 0 → 1, meniu închis, joc repornit), poză pe starea de hover, și amândouă ecranele randate în **germană** — nimic tăiat, nimic ieșit din ramă. Înălțimi cu `get_combined_minimum_size()`: main 594, weapon 437, settings 541, toate sub 648. `tool_check_i18n`: **250 chei × 8 limbi, tot tradus**.
+
+**Neatins dinadins:** ecranul de Game Over și HUD-ul (n-au fost în cerere), iar verdele de SELECȚIE de la arme/limbi a rămas — ăla e chenarul de raritate din arta jocului, nu o culoare inventată de interfață.
+
+---
+
 ## Session log — 2026-08-11 (cazinoul te BANEAZĂ după 3 câștiguri la rând)
 
 **Cerut de Răzvan:** „vreau dacă playerul câștigă de 3 ori la rând la ruletă să nu îl mai lase tot run-ul să joace și să îi scrie «You've been banned for cheating»".

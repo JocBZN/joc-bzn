@@ -131,6 +131,7 @@ var _title_mover: Control       # titlul propriu-zis, mutat liber în interiorul
 var _intro_running := false     # cât e true, o apăsare pe ecran sare peste intro
 var _intro_tweens: Array[Tween] = []   # tween-urile intro-ului, ca să le pot opri la skip
 var _main_buttons: VBoxContainer
+var _main_plate: PanelContainer      # placa de aramă de sub butoanele paginii principale
 var _settings_btn: Button           # roata dințată din colțul dreapta-sus (deschide Settings)
 var _settings_ui: SettingsUI        # blocul refolosibil de setări (volume + remapare taste)
 var _lang_btn: Button               # steagul de lângă rotiță (deschide alegerea limbii)
@@ -287,7 +288,10 @@ func _play_intro() -> void:
 	_tint.modulate.a = 0.0
 	_vig.modulate.a = 0.0
 	_title_group.modulate.a = 0.0
-	_main_buttons.modulate.a = 0.0
+	# ⚠️ transparența se pune pe PLACĂ, nu pe lista de butoane: `modulate` se moștenește la copii,
+	# deci rama și butoanele apar odată. Pe lista de butoane, rama ar fi rămas vizibilă goală
+	# în tot intro-ul.
+	_main_plate.modulate.a = 0.0
 	_settings_btn.modulate.a = 0.0
 	_lang_btn.modulate.a = 0.0
 	_op_btn.modulate.a = 0.0
@@ -321,7 +325,7 @@ func _play_intro() -> void:
 	_intro_tweens.append(t2)
 	t2.tween_property(_title_mover, "position:y", 0.0, INTRO_RISE) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	t2.tween_property(_main_buttons, "modulate:a", 1.0, INTRO_BUTTONS) \
+	t2.tween_property(_main_plate, "modulate:a", 1.0, INTRO_BUTTONS) \
 		.set_delay(INTRO_RISE * 0.5)
 	t2.tween_property(_settings_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
 		.set_delay(INTRO_RISE * 0.5)
@@ -360,7 +364,7 @@ func _skip_intro() -> void:
 	_tint.modulate.a = 1.0
 	_vig.modulate.a = 1.0
 	_title_group.modulate.a = 1.0
-	_main_buttons.modulate.a = 1.0
+	_main_plate.modulate.a = 1.0
 	_settings_btn.modulate.a = 1.0
 	_lang_btn.modulate.a = 1.0
 	_op_btn.modulate.a = 1.0
@@ -427,9 +431,10 @@ func _vignette() -> void:
 # al ramei e mai gros decât marginea nine-patch, deci un titlu pus înăuntru se lipea de el; și
 # scoate ~66px din interior, de care pagina SETTINGS chiar avea nevoie ca să încapă în ecran.
 #
-# `cu_rama` = pagina primește chenarul ornat din joc (`Menu.png`). Meniul principal NU-l
-# vrea — acolo logo-ul stă peste fundalul animat și o ramă în jur ar sufoca imaginea; toate
-# sub-paginile îl primesc, ca să fie clar că sunt „ferestre" și ca să semene cu level up-ul.
+# `cu_rama` = pagina primește chenarul ornat de aramă în jurul ÎNTREGULUI conținut. Pagina
+# principală cere `false` fiindcă acolo rama n-are ce căuta în jurul logo-ului (ar sufoca
+# fundalul animat) — dar de pe 2026-08-11 butoanele ei stau pe placa lor de aramă, construită
+# separat în `_build_main`. Sub-paginile o primesc întreagă, ca să fie clar că sunt „ferestre".
 func _make_panel(key: String, titlu: String = "", cu_rama: bool = true) -> VBoxContainer:
 	var panel := Control.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -462,7 +467,7 @@ func _make_panel(key: String, titlu: String = "", cu_rama: bool = true) -> VBoxC
 # (LEADERBOARD crește cu scorurile, SETTINGS e cea mai înaltă), iar un NinePatchRect nu se
 # strânge singur pe copii. PanelContainer face exact asta: își ia mărimea din conținut și
 # desenează stilul în spate.
-func _rama_container(continut: Control) -> PanelContainer:
+func _rama_container(continut: Control, pad_lat := RAMA_PAD_LAT, pad_sus := RAMA_PAD_SUS, pad_jos := RAMA_PAD_JOS) -> PanelContainer:
 	var p := PanelContainer.new()
 	var sb := StyleBoxTexture.new()
 	sb.texture = _chenar(CH_PANOU)
@@ -471,11 +476,12 @@ func _rama_container(continut: Control) -> PanelContainer:
 	sb.texture_margin_right = RAMA_MARG
 	sb.texture_margin_top = RAMA_MARG
 	sb.texture_margin_bottom = RAMA_MARG
-	# spațiul dintre ramă și text; trebuie clar peste ornament, altfel textul se lipește de el
-	sb.content_margin_left = RAMA_PAD_LAT
-	sb.content_margin_right = RAMA_PAD_LAT
-	sb.content_margin_top = RAMA_PAD_SUS
-	sb.content_margin_bottom = RAMA_PAD_JOS
+	# spațiul dintre ramă și text; trebuie clar peste ornament, altfel textul se lipește de el.
+	# Placa de sub butoanele din pagina principală cere unele mai strânse — vezi `_build_main`.
+	sb.content_margin_left = pad_lat
+	sb.content_margin_right = pad_lat
+	sb.content_margin_top = pad_sus
+	sb.content_margin_bottom = pad_jos
 	p.add_theme_stylebox_override("panel", sb)
 	p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # pixel art: fără înmuiere
 	p.add_child(continut)
@@ -532,16 +538,23 @@ func _build_main() -> void:
 	# subtitlul „CYBER SURVIVOR" a fost scos când a intrat logo-ul: numele e deja în logo,
 	# iar textul cyan se bătea cu stilul de lemn. Ca să-l aduci înapoi, adaugi aici un
 	# _center_label(...) în _title_group și scazi TITLE_SIZE cu ~40, altfel nu mai încape.
-	box.add_child(_spacer(16))
+	box.add_child(_spacer(10))
 	# la fel, butoanele într-un grup separat — apar după titlu
 	_main_buttons = VBoxContainer.new()
-	_main_buttons.add_theme_constant_override("separation", 14)
+	_main_buttons.add_theme_constant_override("separation", 12)
 	_main_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(_main_buttons)
 	_main_buttons.add_child(_menu_button("START", _on_start, true))
 	_main_buttons.add_child(_menu_button("CHOOSE CHARACTER", _show.bind("character")))
 	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
 	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
+	# ⚠️ De pe 2026-08-11 butoanele stau pe o PLACĂ de aramă, nu plutind peste fundalul blurat.
+	# Era ultimul ecran din joc fără ramă, deci pagina de start — prima pe care o vede oricine —
+	# arăta ca o listă lipită peste o poză, în timp ce toate sub-paginile erau încadrate.
+	# Marginile plăcii sunt mai strânse decât cele obișnuite: cu 42/34/30, logo-ul (240) + placa
+	# ar fi trecut de cei 648px ai ecranului de referință.
+	_main_plate = _rama_container(_main_buttons, 34, 26, 24)
+	_main_plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_child(_main_plate)
 	# Butoanele mici de sus NU stau în lista verticală (ar înghesui-o și ar ieși din ecran).
 	# Sunt ancorate în colțul dreapta-sus: rotița de Settings, iar la stânga ei steagul de limbă.
 	_settings_btn = _corner_button(_show.bind("settings"), 0)
@@ -861,8 +874,12 @@ func _refresh_lang_button() -> void:
 #
 # Cifrele vin din `GameSettings` (`OP_DAMAGE`, `OP_ATTACK_SPEED`, `OP_PROJECTILES`) — aceleași pe
 # care le aplică `player.gd`. Scrise de mână aici, pagina ar fi ajuns să mintă după prima reglare.
-const OP_VERDE_BG := Color(0.10, 0.24, 0.16, 0.95)
-const OP_VERDE_BD := Color(0.4, 1.0, 0.5)
+# Verdele de „pornit" al cheat-ului. ⚠️ Muiat pe 2026-08-11: era #66FF80, un verde de neon care
+# nu există nicăieri în arta jocului — pe un ecran de aramă și piatră, butonul din colț sărea în
+# ochi mai tare decât START-ul. Ăsta e tot verde („pornit" se citește instant), dar de aceeași
+# saturație cu restul paletei.
+const OP_VERDE_BG := Color8(22, 42, 30)
+const OP_VERDE_BD := Color8(118, 178, 124)
 
 func _build_opstart() -> void:
 	var box := _make_panel("opstart", "OP START")

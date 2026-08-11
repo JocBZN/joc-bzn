@@ -117,7 +117,11 @@ const TRAD := {
 "You need a key": ["需要钥匙", "Du brauchst einen Schlüssel", "Necesitas una llave", "Нужен ключ", "Il te faut une clé", "カギが必要", "Potrzebujesz klucza", "Bir anahtar gerek"],
 
 # ---------- level up ----------
-"LEVEL UP!  Choose:": ["升级！选择:", "LEVEL UP!  Wähle:", "¡SUBES DE NIVEL!  Elige:", "НОВЫЙ УРОВЕНЬ!  Выбери:", "NIVEAU SUPÉRIEUR !  Choisis :", "レベルアップ！選べ:", "NOWY POZIOM!  Wybierz:", "SEVİYE ATLADIN!  Seç:"],
+# Titlul e scurt de pe 2026-08-11: sub el stau nivelul („Level %d", cheia de la Game Over) și
+# îndemnul, fiecare pe rândul lui — un titlu care conținea și instrucțiunea („LEVEL UP! Choose:")
+# creștea urât în germană și în rusă.
+"LEVEL UP": ["升级", "LEVEL UP", "SUBES DE NIVEL", "НОВЫЙ УРОВЕНЬ", "NIVEAU SUPÉRIEUR", "レベルアップ", "NOWY POZIOM", "SEVİYE ATLADIN"],
+"Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],
 "STATS": ["属性", "WERTE", "ESTADÍSTICAS", "ХАРАКТЕРИСТИКИ", "STATS", "ステータス", "STATYSTYKI", "İSTATİSTİK"],
 "Common": ["普通", "Gewöhnlich", "Común", "Обычный", "Commun", "コモン", "Zwykły", "Sıradan"],
 "Uncommon": ["罕见", "Ungewöhnlich", "Poco común", "Необычный", "Peu commun", "アンコモン", "Niezwykły", "Az Bulunur"],
