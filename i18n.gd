@@ -121,6 +121,19 @@ const TRAD := {
 # îndemnul, fiecare pe rândul lui — un titlu care conținea și instrucțiunea („LEVEL UP! Choose:")
 # creștea urât în germană și în rusă.
 "LEVEL UP": ["升级", "LEVEL UP", "SUBES DE NIVEL", "НОВЫЙ УРОВЕНЬ", "NIVEAU SUPÉRIEUR", "レベルアップ", "NOWY POZIOM", "SEVİYE ATLADIN"],
+# ---------- Alba-Neagra (alba_menu.gd) ----------
+# „ALBA NEAGRA" e nume propriu (jocul de stradă românesc), rămâne la fel în toate limbile.
+"Guess which cup hides the ball": ["猜猜球在哪个杯子下", "Rate, unter welchem Becher die Kugel ist", "Adivina bajo qué vaso está la bola", "Угадай, под каким стаканом шарик", "Devine sous quel gobelet est la bille", "どのカップにボールがあるか当てて", "Zgadnij, pod którym kubkiem jest kulka", "Topun hangi bardakta olduğunu bil"],
+"Watch the cups": ["盯住杯子", "Behalte die Becher im Auge", "Sigue los vasos", "Следи за стаканами", "Suis les gobelets", "カップから目を離すな", "Patrz na kubki", "Bardakları izle"],
+"Where is the ball?": ["球在哪里？", "Wo ist die Kugel?", "¿Dónde está la bola?", "Где шарик?", "Où est la bille ?", "ボールはどこ？", "Gdzie jest kulka?", "Top nerede?"],
+"Two in a row for the first prize": ["连中两次才有第一个奖品", "Zwei in Folge für den ersten Preis", "Dos seguidas para el primer premio", "Две подряд — и получишь первый приз", "Deux d'affilée pour le premier lot", "2連続で最初の景品", "Dwa z rzędu do pierwszej nagrody", "İlk ödül için üst üste iki tane"],
+"Lose and the game gets %d%% harder": ["输了游戏会难 %d%%", "Verlierst du, wird das Spiel %d%% schwerer", "Si pierdes, el juego se vuelve %d%% más difícil", "Проиграешь — игра станет на %d%% сложнее", "Si tu perds, le jeu devient %d%% plus dur", "負けるとゲームが %d%% 難しくなる", "Przegrasz — gra będzie o %d%% trudniejsza", "Kaybedersen oyun %%%d zorlaşır"],
+"The game got %d%% harder": ["游戏难度提高了 %d%%", "Das Spiel ist %d%% schwerer geworden", "El juego se ha vuelto %d%% más difícil", "Игра стала на %d%% сложнее", "Le jeu est devenu %d%% plus dur", "ゲームが %d%% 難しくなった", "Gra stała się o %d%% trudniejsza", "Oyun %%%d zorlaştı"],
+"Round %d": ["第 %d 轮", "Runde %d", "Ronda %d", "Раунд %d", "Manche %d", "ラウンド %d", "Runda %d", "Tur %d"],
+"TAKE %s": ["拿走 %s", "%s NEHMEN", "LLEVARSE %s", "ЗАБРАТЬ %s", "PRENDRE %s", "%s を受け取る", "WEŹ %s", "%s AL"],
+"PLAY": ["开始", "SPIELEN", "JUGAR", "ИГРАТЬ", "JOUER", "プレイ", "GRAJ", "OYNA"],
+"CONTINUE": ["继续", "WEITER", "SEGUIR", "ПРОДОЛЖИТЬ", "CONTINUER", "続ける", "DALEJ", "DEVAM"],
+
 # avertismentul de la intrarea prea devreme în Nether (nether.gd, INTRARE_MIN)
 "YOU CAME TOO EARLY": ["你来得太早了", "DU KAMST ZU FRÜH", "HAS VENIDO DEMASIADO PRONTO", "ТЫ ПРИШЁЛ СЛИШКОМ РАНО", "TU ES VENU TROP TÔT", "早すぎる", "PRZYSZEDŁEŚ ZA WCZEŚNIE", "ÇOK ERKEN GELDİN"],
 "The Nether is packed until %s": ["下界在 %s 之前挤满了敌人", "Der Nether ist bis %s überfüllt", "El Nether está atestado hasta %s", "Незер переполнен до %s", "Le Nether est bondé jusqu'à %s", "ネザーは %s まで敵だらけ", "Nether jest zapchany do %s", "Nether %s'e kadar tıka basa dolu"],

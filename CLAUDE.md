@@ -17,6 +17,34 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-11 (ALBA NEAGRA: structură nouă + jocul cu paharele)
+
+**Cerut de Răzvan:** un folder nou `harta/Alba Neagra` cu două poze — omul (structură nouă în lume, „dacă ai putea să îi dai și o animație mică de breathing") și masa (meniul care se deschide la E). „Vezi cum arată pe net Alba Neagra/Shell Game și vreau să îmi faci o animație la fel cu paharele. Pe runde și din ce în ce mai greu. Primești iteme din ce în ce mai bune dacă ghicești. 2 = common, 3 = uncommon și tot așa. Dacă vrei să continui și pierzi, nu primești nimic și îți crește dificultatea cu 10%. Poți să joci doar o singură dată per NPC."
+**Întrebat și lămurit:** XP-ul din paranteză era despre **poza bilei** (folosim sfera de XP), nu o mecanică; scara se oprește la Legendary.
+
+**Fișiere noi:** `alba.gd` + `alba.tscn` (omul), `albas.gd` (generatorul), `alba_menu.gd` (jocul), `tool_alba_assets.gd` + `.tscn` (tăiat arta). **Atinse:** `main.tscn`, `nether.gd`/`limbo.gd`/`ender.gd` (WORLD_NODES), `pause.gd`, `i18n.gd`, `tool_check_i18n.gd`.
+
+**1. ⚠️ Arta a trebuit DESFĂCUTĂ ca să se poată mișca.** Poza mesei (1672×940) are cele trei pahare desenate pe ea; ca să le pot amesteca, unealta taie `cup.png` și le ȘTERGE din `table.png`. Peticul se copiază **rând cu rând, din masa de lângă fiecare pahar**, în oglindă:
+   · paharele ies cu vârful DEASUPRA muchiei din spate, deci un dreptunghi umplut cu „culoarea medie a mesei" ar fi tăiat trei crestături în siluetă; deasupra muchiei, coloanele vecine sunt deja transparente, deci rândurile alea ies transparente singure, fără să știm noi unde e muchia;
+   · prima variantă lua „fâșia cea mai lată" și a copiat COLȚUL rotunjit al mesei în mijlocul tăbliei — se vedea imediat pe poză. Acum ia din vecinătatea imediată, stânga pentru jumătatea stângă, dreapta pentru cea dreaptă (masa e în perspectivă: muchia e la altă înălțime la 300px distanță).
+   · Decuparea paharului: flood fill din marginile casetei care se oprește ȘI în conturul negru, ȘI în transparent. Fără a doua condiție, floodul intra prin vârful paharului (acolo silueta n-are contur desenat — o desparte de fundal chiar negrul) și golea paharul: ieșise doar conturul.
+
+**2. Respirația.** Un singur sprite ține și omul, și masa lui, deci nu pot mișca doar omul. Îl întind pe verticală cu 1,8% la 2,3s, cu TALPA ținută pe loc: un `Sprite2D` se scalează din centru, deci `offset.y` coboară în paralel cu exact `talpa × (k−1)/k`. Fără compensarea asta, masa intra în iarbă la fiecare inspirație.
+
+**3. Regulile.** 2 ghiciri = Common, 3 = Uncommon, 4 = Rare, 5 = Epic, 6 = **Legendary și jocul se închide singur** (peste Legendary n-ai ce câștiga). Greșeală = nimic + `Difficulty.add_trade_penalty(0.10)` — același mecanism ca la statuia Ender, deci +10% pe viață, damage de contact, spawn ȘI viteză. Scara de premii e desenată sus, cu treapta următoare aprinsă: nu trebuie să ții minte tu unde ai ajuns.
+
+**4. Omul se consumă la PRIMA RUNDĂ, nu la deschiderea meniului** — dacă doar te uiți și pleci, rămâne întreg. Locul lui se ține minte în generator (`marcheaza_folosit`, ca la cufere), altfel ar fi revenit întreg la fiecare descărcare de chunk și puteai juca la nesfârșit plimbându-te.
+
+**5. ⚠️ Amestecul se CONSTRUIEȘTE dintr-o bucată, dar se JOACĂ pe parcurs.** Deci la construcție `_slot` e încă starea de la început și nu poți citi din el pozițiile schimbului al cincilea. Ține o copie „simulată" care înaintează odată cu construcția, iar la rulare `_schimba` face aceleași mutări pe `_slot`-ul adevărat. Fără asta, paharele ar fi sărit aiurea de la a doua mutare.
+
+**6. ESC cu premiu în mână ÎL IA.** Ar fi crud să pierzi un Legendary câștigat fiindcă ai apăsat ESC. (Dacă n-ai ajuns la 2 ghiciri, ESC doar închide.)
+
+**Reglaje de mărime, prinse pe poze:** bila 104 → 150 (ieșea cât o boabă de mazăre); ridicarea paharului **nu poate trece de 152** — la 230 paharul își scotea vârful din poza mesei și plutea peste titlu.
+
+**Verificat rulând jocul adevărat:** omul apare în lume, se sortează corect cu player-ul și scrie „Press E to interact"; E deschide jocul și pune jocul pe pauză; două ghiciri fac butonul „TAKE COMMON"; luarea premiului bagă un item real în registru (0 → 1); o greșeală duce `trade_penalty` 1.00 → 1.10; iar generatorul întoarce **1 om înainte de consum și 0 după**, pe același chunk. `tool_check_i18n`: **263 chei × 8 limbi**.
+
+---
+
 ## Session log — 2026-08-11 (Nether-ul te pedepsește dacă intri prea devreme)
 
 **Cerut de Răzvan:** „vreau Nether-ul să fie greu în așa fel încât un player să nu poată intra imediat în portal, să trebuiască să stea în lumea normală măcar 2 minute. Ca și spawn-rate mă refer la inamicii din Nether."

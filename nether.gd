@@ -78,7 +78,7 @@ const SHAKE_TIME := 0.9
 # ⚠️ Când adaugi un generator nou în `World` (main.tscn), treci-l ȘI aici, altfel rămâne aprins
 # în Nether și-i vezi obiectele plutind într-o dimensiune în care n-au ce căuta. Așa a pățit
 # „EGTs" (aparatele de cazinou), adăugat pe 2026-07-30 și uitat de aici până în aceeași zi.
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments"]
+const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments", "AlbaNeagras"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 
 var active := false

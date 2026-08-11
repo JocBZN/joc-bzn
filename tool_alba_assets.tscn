@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tool_alba_assets.gd" id="1_tool"]
+
+[node name="ToolAlbaAssets" type="Node"]
+script = ExtResource("1_tool")

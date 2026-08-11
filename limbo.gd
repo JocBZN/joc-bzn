@@ -39,7 +39,7 @@ const CLOCK_COLOR := Color(1.0, 0.10, 0.10)     # roșu aprins
 # (aparatele de cazinou, 2026-07-30) întâi în `nether.gd`, apoi și aici — și cu „Portals",
 # lipsă de aici până pe 2026-08-06, adică în Limbo îți răsăreau portaluri Nether și fântâni
 # Ender („nu vreau sa apara portalul de ender in limbo").
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Chests", "EGTs", "Monuments", "Portals"]
+const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Chests", "EGTs", "Monuments", "Portals", "AlbaNeagras"]
 # `Paths` (potecile) NU e în `World`, ci frate cu el, direct în `main.tscn` — de aia are
 # nevoie de listă separată. Exact ca în `nether.gd`.
 const ROOT_NODES := ["Paths"]

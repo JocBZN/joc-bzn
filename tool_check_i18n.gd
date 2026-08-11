@@ -29,10 +29,11 @@ const FISIERE_UI := [
 	# cazinoul EGT: `casino.gd` desenează tot meniul, iar `egt.gd` dă textul de deasupra aparatului
 	# din lume (la fel ca `chest.gd`) — de pe 2026-08-11, „You've been banned for cheating".
 	"res://casino.gd", "res://egt.gd",
+	"res://alba_menu.gd",   # Alba-Neagra (2026-08-11)
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [
-	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "%d", "%s", "", " ", "MAX",
+	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "ALBA NEAGRA", "%d", "%s", "", " ", "MAX",
 	"keybinds", "graphics", "main", "settings", "language", "weapon", "character",
 	"leaderboard", "opstart", "same", "up", "down",
 ]
