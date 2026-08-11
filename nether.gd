@@ -25,6 +25,34 @@ const SUMMON := preload("res://summoning_portal.tscn")   # structura care îl ch
 
 # --- reglaje (schimbă-le liniștit) ---
 const NETHER_TIME := 420.0      # 7:00 — cât ține faza „normală" înainte de Nether Swarm
+
+# --- CÂT DE PLIN E NETHER-UL DACĂ INTRI PREA DEVREME (cerut de Răzvan pe 2026-08-11) ---
+# „Vreau Nether-ul să fie greu în așa fel încât un player să nu poată intra imediat în portal, să
+# trebuiască să stea în lumea normală măcar 2 minute. Ca și spawn-rate mă refer la inamicii din
+# Nether."
+#
+# NU e o ușă încuiată: portalul te lasă înăuntru oricând. Ce se schimbă e cât de deasă e ploaia de
+# inamici — Nether-ul e croit pentru un player cu 2 minute de rundă în spate, iar dacă vii mai
+# devreme îl găsești la fel de plin, doar că tu ai cu 2 minute mai puține upgrade-uri. Un gard
+# făcut din dificultate, nu din cod care zice „nu poți".
+#
+# Rata de spawn primește un multiplicator care pleacă de la `SPAWN_PEDEAPSA` la secunda 0 și scade
+# liniar până la 1.0 la `INTRARE_MIN`. Se socotește pe ceasul NETHER-ului (`_diff_time`), nu pe
+# clipa intrării — deci dacă intri la 0:30 și supraviețuiești, pedeapsa se stinge singură când
+# ceasul ajunge la 2:00. Ai trecut proba; n-are rost să te mai apese tot drumul.
+#
+# Măsurat (inamici pe secundă în Nether, cu pedeapsă / fără):
+#   intri la 0:00 → 4.00 / 1.00      intri la 1:30 → 3.19 / 1.85
+#   intri la 0:30 → 3.55 / 1.14      intri la 2:00 → 3.12 / 3.12  (neatins de aici încolo)
+#   intri la 1:00 → 3.20 / 1.28
+# Adică sub 2 minute Nether-ul e cel puțin la fel de aglomerat ca la 2:00 — iar creaturile de aici
+# au oricum 50 HP și viteza 190, față de 30 și 120 afară.
+#
+# ⚠️ Pedeapsa se aplică DOAR la câți inamici apar, nu și la cât de tari sunt: viața și viteza lor
+# rămân pe `_diff_time()`, ca până acum. Dacă aș fi urcat și ceasul de dificultate, ar fi crescut
+# și `xp_mult` — adică intratul devreme ar fi PLĂTIT mai bine, exact pe dos față de ce s-a cerut.
+const INTRARE_MIN := 120.0      # 2:00 — pentru câtă rundă în spate e croit Nether-ul
+const SPAWN_PEDEAPSA := 4.0     # de câte ori mai deși sunt inamicii dacă intri în secunda 0
 const XP_BONUS := 2.0           # de câte ori mai mult XP lasă inamicii de aici
 const BURST := 25               # câți inamici apar DEODATĂ la intrare
 const BURST_RADIUS := 620.0     # la ce distanță de tine apar (cerc în jurul tău)
@@ -176,10 +204,27 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	_clock.visible = true
 	_flash_screen()
 
-	for i in BURST:
+	# ⚠️ Și valul de la intrare crește cu pedeapsa: la 0:00 nu te întâmpină 25 de creaturi, ci 100.
+	# E singurul lucru care îți spune ÎN CLIPA aia că ai venit prea devreme — un multiplicator pe
+	# rata de spawn se simte abia peste zece secunde, când e deja târziu să te întorci.
+	for i in int(round(BURST * spawn_mult())):
 		_spawn_one()
 
 	_announce("THE NETHER", "Kill Saratalin to leave")
+	# Dacă ai venit prea devreme, ți-o și scrie — dar DUPĂ ce se stinge bannerul de sus:
+	# `hud.announce` îl înlocuiește pe cel dinainte, deci două anunțuri odată ar însemna unul.
+	if spawn_mult() > 1.05:
+		var t := create_tween()
+		t.tween_interval(2.6)
+		t.tween_callback(_avertisment_devreme)
+
+# „Ai venit prea devreme" — vezi INTRARE_MIN. Ora se scrie din constantă, nu de mână: dacă Răzvan
+# schimbă pragul, textul îl urmează.
+func _avertisment_devreme() -> void:
+	if not active:
+		return
+	_announce("YOU CAME TOO EARLY", tr("The Nether is packed until %s") % _mmss(INTRARE_MIN))
+	Audio.play("levelup", -6.0)
 
 # ---------- IEȘIRE ----------
 # `anunt = true`  → ieșire VOLUNTARĂ, apăsând E pe portalul de întoarcere.
@@ -568,6 +613,27 @@ func _free_return_portal() -> void:
 	if _summon_portal != null and is_instance_valid(_summon_portal):
 		_summon_portal.queue_free()
 	_summon_portal = null
+
+# Cât se ÎNMULȚEȘTE rata de spawn acum, din cauza intrării timpurii (vezi INTRARE_MIN).
+# O citește `spawner.gd::rata_curenta()` — un singur loc unde trăiește formula ratei, ca și felia
+# de creaturi scăpate. 1.0 = nicio pedeapsă (ai intrat la timp, sau nici nu ești în Nether).
+#
+# ⚠️ Cât ești în Limbo mort ÎN Nether, `active` rămâne aprins (vezi `suspenda()`), deci pedeapsa
+# se aplică și inamicilor pe care îi naște Limbo. Așa și trebuie: Limbo scoate inamici „de acum
+# un minut", iar acum un minut erai într-un Nether la fel de plin.
+func spawn_mult() -> float:
+	if not active:
+		return 1.0
+	var acum := _diff_time()
+	# 1. Pedeapsa propriu-zisă: cu cât ai intrat mai devreme, cu atât mai deși.
+	var lipsa := clampf((INTRARE_MIN - acum) / INTRARE_MIN, 0.0, 1.0)
+	var m := 1.0 + (SPAWN_PEDEAPSA - 1.0) * lipsa
+	# 2. ...dar niciodată mai gol decât ar fi lumea la INTRARE_MIN. ⚠️ Podeaua asta nu e de prisos:
+	# rata sare BRUSC de ×2 fix la 2:00 (`Difficulty.SPAWN_DOUBLE_AFTER`), deci numai cu rampa de
+	# mai sus intrarea la 1:30 ieșea 2.48/s — adică MAI UȘOARĂ decât cea la 2:00 (3.12/s), fix
+	# gaura pe care regula trebuia s-o astupe. Prins măsurând, nu citind.
+	var podea := Difficulty.spawn_mult_la(INTRARE_MIN) / maxf(0.01, Difficulty.spawn_mult_la(acum))
+	return maxf(m, podea)
 
 func _spawn_one() -> void:
 	if _player == null or not is_instance_valid(_player):

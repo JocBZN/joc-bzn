@@ -183,15 +183,26 @@ func enemy_speed_mult() -> float:
 	return minf(m, SPEED_CAP)
 
 func spawn_mult() -> float:
-	var m := 1.0 + SPAWN_PER_MIN * _phase1_minutes()
+	return spawn_mult_la(_mult_time())
+
+# Același lucru, dar pentru un moment ALES de tine, nu pentru cel de acum. Îl cere
+# `nether.gd::spawn_mult`: ca să nu lase Nether-ul mai gol decât ar fi lumea la 2:00, trebuie să
+# poată compara rata de ACUM cu rata de ATUNCI. Public, ca `mult_time()`.
+#
+# ⚠️ `trade_penalty` intră și aici, ca în varianta fără parametru — cine împarte două rezultate
+# ale funcției (exact ce face Nether-ul) îl simplifică oricum, iar cine cere una singură trebuie
+# să primească aceeași cifră ca înainte.
+func spawn_mult_la(t: float) -> float:
+	var faza1 := minf(t, RUN_LENGTH) / 60.0
+	var m := 1.0 + SPAWN_PER_MIN * faza1
 	# Cerut de Răzvan pe 2026-07-22: după minutul 2 curg de DOUĂ ori mai mulți inamici.
 	# E un salt brusc, nu o rampă — exact asta a cerut („după minutul 2, 2× mai mulți decât
 	# acum"). Se înmulțește peste creșterea normală, deci se păstrează și restul scalării.
 	# Trece prin `_mult_time()`, ca să respecte înghețarea din Limbo ca toate celelalte.
-	if _mult_time() >= SPAWN_DOUBLE_AFTER:
+	if t >= SPAWN_DOUBLE_AFTER:
 		m *= SPAWN_DOUBLE_MULT
-	if _mult_is_fs():
-		m *= FS_SPAWN_JUMP * _fs_factor(FS_SPAWN_DOUBLE_EVERY)
+	if t >= RUN_LENGTH:
+		m *= FS_SPAWN_JUMP * pow(2.0, (t - RUN_LENGTH) / FS_SPAWN_DOUBLE_EVERY)
 	return m * trade_penalty
 
 func xp_mult() -> float:

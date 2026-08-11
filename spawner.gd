@@ -185,6 +185,12 @@ func rata_curenta() -> float:
 	if _scapat_din_nether():
 		# de două ori mai mulți polițiști, cu creaturile tot la `nether_share` din total
 		rate *= escaped_police_mult / maxf(0.01, 1.0 - nether_share)
+	# CÂT EȘTI ÎN NETHER: pedeapsa pentru intrarea prea devreme (cerută pe 2026-08-11). Formula ei
+	# stă în `nether.gd::spawn_mult` — aici doar o cerem, la fel ca felia de creaturi scăpate.
+	# Cele două nu se calcă: `_scapat_din_nether()` e adevărat exact când NU mai ești acolo.
+	var n := get_tree().get_first_node_in_group("nether")
+	if n != null and n.get("active") == true and n.has_method("spawn_mult"):
+		rate *= n.spawn_mult()
 	return rate
 
 # Ce fel de inamic naște lumea acum — PUBLIC, tot pentru Limbo (vezi `_scena_inamic`).

@@ -121,6 +121,10 @@ const TRAD := {
 # îndemnul, fiecare pe rândul lui — un titlu care conținea și instrucțiunea („LEVEL UP! Choose:")
 # creștea urât în germană și în rusă.
 "LEVEL UP": ["升级", "LEVEL UP", "SUBES DE NIVEL", "НОВЫЙ УРОВЕНЬ", "NIVEAU SUPÉRIEUR", "レベルアップ", "NOWY POZIOM", "SEVİYE ATLADIN"],
+# avertismentul de la intrarea prea devreme în Nether (nether.gd, INTRARE_MIN)
+"YOU CAME TOO EARLY": ["你来得太早了", "DU KAMST ZU FRÜH", "HAS VENIDO DEMASIADO PRONTO", "ТЫ ПРИШЁЛ СЛИШКОМ РАНО", "TU ES VENU TROP TÔT", "早すぎる", "PRZYSZEDŁEŚ ZA WCZEŚNIE", "ÇOK ERKEN GELDİN"],
+"The Nether is packed until %s": ["下界在 %s 之前挤满了敌人", "Der Nether ist bis %s überfüllt", "El Nether está atestado hasta %s", "Незер переполнен до %s", "Le Nether est bondé jusqu'à %s", "ネザーは %s まで敵だらけ", "Nether jest zapchany do %s", "Nether %s'e kadar tıka basa dolu"],
+
 # capul de secțiune din fișa de armă (menu.gd, pagina CHOOSE WEAPON)
 "AT START": ["初始", "ZU BEGINN", "AL INICIO", "В НАЧАЛЕ", "AU DÉPART", "開始時", "NA START", "BAŞLANGIÇTA"],
 "Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],

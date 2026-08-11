@@ -17,6 +17,33 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-11 (Nether-ul te pedepsește dacă intri prea devreme)
+
+**Cerut de Răzvan:** „vreau Nether-ul să fie greu în așa fel încât un player să nu poată intra imediat în portal, să trebuiască să stea în lumea normală măcar 2 minute. Ca și spawn-rate mă refer la inamicii din Nether."
+
+**Atinse:** `nether.gd` (`INTRARE_MIN`, `SPAWN_PEDEAPSA`, `spawn_mult()`, valul de la intrare, avertismentul), `spawner.gd` (cere multiplicatorul), `difficulty.gd` (`spawn_mult_la(t)`), `i18n.gd` (2 chei).
+
+**1. NU e ușă încuiată.** Portalul te lasă înăuntru oricând; ce se schimbă e cât de deasă e ploaia de inamici. Un gard făcut din dificultate, nu din cod care zice „nu poți" — asta a și cerut („să fie greu în așa fel încât...").
+
+**2. Formula.** Rata de spawn primește un multiplicator care pleacă de la **×4 la secunda 0** și scade liniar la ×1 la **2:00**. Se socotește pe ceasul NETHER-ului (`_diff_time()`), nu pe clipa intrării, deci **pedeapsa se stinge singură dacă supraviețuiești înăuntru** (verificat: intrat la 0:00, după 2:00 petrecute acolo → ×1.00). Ai trecut proba, n-are rost să te mai apese tot drumul.
+
+**3. ⚠️ Rampa singură lăsa o GAURĂ, prinsă la măsurătoare.** Rata de bază sare ×2 fix la 2:00 (`SPAWN_DOUBLE_AFTER`), așa că doar cu rampa liniară intrarea la **1:30 ieșea 2.48/s — mai ușoară decât cea la 2:00 (3.12/s)**, adică exact gaura pe care regula trebuia s-o astupe. Am adăugat o **podea**: Nether-ul nu e niciodată mai gol decât ar fi lumea la `INTRARE_MIN`. Pentru ea a trebuit `Difficulty.spawn_mult_la(t)` — aceeași formulă, evaluată într-un moment ales (`spawn_mult()` o cheamă acum cu `_mult_time()`, deci nu s-a schimbat nimic pentru ceilalți).
+
+**Măsurat** (inamici/s în Nether, cu regulă / fără): 0:00 → 4.00/1.00 · 0:30 → 3.70/1.14 · 1:00 → 3.20/1.28 · 1:30 → 3.12/1.42 · 2:00 și după → neatins. Lumea normală: 3.12/s la 2:00, neschimbată.
+
+**4. Valul de la intrare crește și el:** 25 de creaturi la 2:00, **~100 la 0:00**. Un multiplicator pe rată se simte abia peste zece secunde, când e prea târziu să te întorci; zidul care se strânge pe tine în clipa aterizării se simte imediat.
+
+**5. Avertisment pe ecran**, la 2,6s după bannerul „THE NETHER": „YOU CAME TOO EARLY / The Nether is packed until 2:00". Întârzierea nu e de gust — `hud.announce` ÎNLOCUIEȘTE bannerul de dinainte, deci două anunțuri odată ar fi însemnat unul singur. Ora se scrie din constantă (`_mmss(INTRARE_MIN)`), deci textul urmează pragul dacă îl reglezi.
+
+**6. ⚠️ Se pedepsește DOAR câți inamici apar, nu și cât de tari sunt.** Viața și viteza rămân pe `_diff_time()`. Dacă urcam ceasul de dificultate, urca și `xp_mult` — adică intratul devreme ar fi PLĂTIT mai bine, exact pe dos.
+
+**Verificat rulând**: tabelul de mai sus măsurat pe șapte momente de intrare într-o rundă adevărată, stingerea pedepsei după 2 minute înăuntru, lumea normală neatinsă, plus poze cu zidul de creaturi la 0:00 și cu bannerul de avertisment. `tool_check_i18n`: **253 chei × 8 limbi**.
+ℹ️ În poze player-ul secera valul în două secunde fiindcă **salvarea lui Răzvan are OP START pornit** (damage 100, 10 proiectile) — cifrele de spawn nu depind de asta, dar „cât de letal e" nu se poate judeca din pozele alea.
+
+**Butoane de reglaj:** `INTRARE_MIN` (pragul, acum 2:00) și `SPAWN_PEDEAPSA` (cât de deși la secunda 0, acum ×4), amândouă sus în `nether.gd`.
+
+---
+
 ## Session log — 2026-08-11 (CHOOSE WEAPON: armele în stânga, fișa lor în dreapta)
 
 **Cerut de Răzvan:** „la choose weapon, vreau armele să fie în stânga și să scrie ce fac (ce abilități au — cum scrie și acum sub ele) în dreapta".
