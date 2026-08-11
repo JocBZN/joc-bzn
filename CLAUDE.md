@@ -17,6 +17,32 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-11 (CHOOSE WEAPON: armele în stânga, fișa lor în dreapta)
+
+**Cerut de Răzvan:** „la choose weapon, vreau armele să fie în stânga și să scrie ce fac (ce abilități au — cum scrie și acum sub ele) în dreapta".
+
+**Atinse:** `menu.gd` (`_build_weapon` rescris + fișa), `i18n.gd` (o cheie nouă: „AT START").
+
+**1. Ce era.** Cele 5 arme una lângă alta, pe orizontală, cu numele (18px) și bonusul de nivel (13px) scrise dedesubt. Cinci coloane înguste de text mărunt — pagina cea mai aglomerată din meniu — și tot ce se putea afla despre o armă era acel rând de notă.
+
+**2. Ce e acum.** Listă pe stânga (chenar de raritate + iconiță + nume, rânduri de 62px), fișă pe dreapta cu arma pe care stai.
+
+**3. ⚠️ Cifrele din fișă se CITESC din `player.gd`, nu se scriu de mână.** `_arme_stats()` ia constanta `ARME` cu `get_script_constant_map()` și de acolo scoate damage-ul și intervalul (afișat ca `1/interval` în „x.xx/s", exact ca în panoul de level up). O copie în `menu.gd` ar fi rămas în urmă în tăcere la primul rebalans — capcană pe care fișierul o are deja scrisă la `WEAPONS` pentru textele de bonus.
+Secțiunea se cheamă **„AT START"** fiindcă asta e: statusul cu care PORNEȘTE arma, fără magazinul permanent și fără itemele din rundă.
+
+**4. Fișa urmărește mouse-ul (și focusul de tastatură), dar se întoarce la arma ALEASĂ când ieși de pe listă.** Fără întoarcere ar rămâne pe ultima armă peste care ai trecut din greșeală și n-ai mai ști ce ai ales de fapt.
+
+**5. Fișa e o casetă desenată (piatră închisă, muchie de aramă), NU încă un chenar ornat** — pagina are deja o ramă în jur, iar două rame ornate una în alta se citesc ca una singură, groasă și murdară (aceeași regulă ca la cutia de inventar din cazinou).
+
+**6. Bonusul de nivel n-a primit cap de secțiune.** Am pus întâi „EVERY LEVEL" deasupra lui și ieșea „EVERY LEVEL / +1% ATTACK SPEED **PER LEVEL**" — același lucru spus de două ori. Textul lui zice deja când se aplică.
+
+**⚠️ Înălțimea.** Prima variantă (celulă 68, separare 8, iconița fișei 96, marginile 22) măsura **623 din 648** — încăpea, dar la limită. Acum: celulă 62, separare 6, iconiță 84, margini 18 → **585**. Dacă mai adaugi o armă a șasea, remăsoară: 5 rânduri intră comod, 6 nu mai sigur.
+
+**Verificat rulând** (scena de test ștearsă după): fișa arată corect arma previzualizată (coasa: 24 / 1,05/s — exact cifrele din `ARME`), se întoarce la pistol când ies de pe listă, și pagina randată în **germană** („VERFLUCHTES SCHWERT" încape în rând). `tool_check_i18n`: **251 chei × 8 limbi**.
+⚠️ Testul NU a apăsat pe nicio armă: `_on_weapon_chosen` scrie în `GameSettings.weapon_type`, iar aia ajunge în salvarea reală a lui Răzvan (vezi regula de sus despre teste și `GameSettings`). Codul acela n-a fost atins.
+
+---
+
 ## Session log — 2026-08-11 (level up + pagina principală, „premium", pe Border EGT)
 
 **Cerut de Răzvan:** „poți să faci meniul de upgrade-uri mai premium? Folosind Border EGT, și vreau și meniul principal să îl faci tot cu ăla. Îți alegi tu cum le pui și pe care. Dar vreau să arate de parcă e făcut de un studio mare de game dev. Foarte profesional și curat."

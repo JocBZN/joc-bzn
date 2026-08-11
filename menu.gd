@@ -109,6 +109,9 @@ const MENU_BLUR := 3.0        # cât de tare e blur-ul la final (0 = deloc, 8 = 
 var _panels := {}
 var _sheet: Image = null       # planșa de chenare, citită o singură dată
 var _weapon_buttons := []
+var _weapon_detail := {}       # etichetele fișei din dreapta paginii CHOOSE WEAPON
+var _weapon_preview := ""      # arma peste care stă mouse-ul („" = arată-o pe cea aleasă)
+var _arme := {}                # `ARME` din player.gd (damage/cadență de pornire), citit o dată
 var _lb_list: VBoxContainer
 
 var _bg_rect: TextureRect       # fundalul (întâi cadrul clar, apoi cadrele animate)
@@ -651,65 +654,206 @@ func _on_start() -> void:
 	get_tree().change_scene_to_file(GAME_SCENE)
 
 # ---------- CHOOSE WEAPON ----------
+# Refăcut pe 2026-08-11, cerut de Răzvan: „armele în stânga și să scrie ce fac în dreapta".
+#
+# Înainte cele 5 arme stăteau una lângă alta, pe orizontală, fiecare cu numele și bonusul de nivel
+# scrise dedesubt cu 13px. Ieșeau cinci coloane înguste de text mărunt, adică pagina cea mai
+# aglomerată din meniu — și tot ce se putea afla despre o armă era un rând de notă.
+#
+# Acum: LISTĂ pe stânga (iconiță + nume), FIȘĂ pe dreapta cu arma pe care stai. Fișa arată ce nu
+# se vedea nicăieri până acum — damage-ul și cadența cu care PORNEȘTE arma, citite din `player.gd`
+# (`ARME`), nu scrise de mână aici: dacă Răzvan schimbă acolo o cifră, meniul o ia singur.
+#
+# Fișa urmărește mouse-ul (hover = previzualizare), dar când ieși de pe listă se întoarce la arma
+# ALEASĂ. Fără întoarcerea asta, fișa ar rămâne pe ultima armă peste care ai trecut din greșeală
+# și n-ai mai ști ce arma ai ales de fapt.
+# ⚠️ Cifrele astea sunt croite pe ÎNĂLȚIME: pagina trebuie să încapă în cei 648px ai ecranului
+# de bază, cu tot cu titlu, ramă și butonul BACK. Cu celula la 68 și separarea 8 ieșea 623 din
+# 648 — încăpea la limită, dar nu mai respira nimic. Măsoară din nou dacă umbli la ele.
+const CELULA_LISTA := 62.0     # latura unei iconițe din lista de arme
+const FISA_W := 420.0          # lățimea fișei din dreapta
+const PLAYER_GD := "res://player.gd"
+
 func _build_weapon() -> void:
 	var box := _make_panel("weapon", "CHOOSE WEAPON")
-	box.add_child(_spacer(10))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 28)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_child(row)
+	box.add_child(_spacer(6))
+
+	var doua := HBoxContainer.new()
+	doua.add_theme_constant_override("separation", 26)
+	doua.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(doua)
+
+	var lista := VBoxContainer.new()
+	lista.add_theme_constant_override("separation", 6)
+	lista.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	doua.add_child(lista)
 	_weapon_buttons.clear()
 	for i in WEAPONS.size():
-		var w = WEAPONS[i]
-		var slot := VBoxContainer.new()
-		slot.alignment = BoxContainer.ALIGNMENT_CENTER
-		slot.add_theme_constant_override("separation", 8)
-		row.add_child(slot)
-		# Butonul e doar zona de click (transparentă); ce se vede sunt chenarul de raritate
-		# și iconița din el — aceeași construcție ca rândurile din `levelup.gd`, ca alegerea
-		# armei să arate din același joc ca ecranul de level up.
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(CELULA, CELULA)
-		b.flat = true
-		b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		b.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
-		b.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
-		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-		b.pressed.connect(_on_weapon_chosen.bind(String(w["id"])))
-		slot.add_child(b)
+		lista.add_child(_rand_arma(i))
 
-		var chenar := TextureRect.new()
-		chenar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		chenar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		chenar.stretch_mode = TextureRect.STRETCH_SCALE
-		chenar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		chenar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_child(chenar)
+	doua.add_child(_fisa_arma())
 
-		var poza := TextureRect.new()
-		if ResourceLoader.exists(w["icon"]):
-			poza.texture = load(w["icon"])
-		# iconița stă ÎN interiorul chenarului, nu peste el
-		poza.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		poza.offset_left = ICON_PAD
-		poza.offset_top = ICON_PAD
-		poza.offset_right = -ICON_PAD
-		poza.offset_bottom = -ICON_PAD
-		poza.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		poza.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		poza.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_child(poza)
-
-		_weapon_buttons.append({"buton": b, "chenar": chenar})
-		_viata(b)
-		slot.add_child(_center_label(w["name"], 18))
-		# bonusul de nivel al armei, mai mic și mai stins: e o notă, nu titlul
-		var b_lbl := _center_label(w["bonus"], 13)
-		b_lbl.add_theme_color_override("font_color", Color(0.62, 0.86, 0.62))
-		slot.add_child(b_lbl)
 	_refresh_weapon_selection()
-	box.add_child(_spacer(22))
+	box.add_child(_spacer(18))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
+
+# Un rând din listă: [chenar cu iconița] [numele armei]. Butonul e doar zona de click
+# (transparentă); ce se vede sunt chenarul de raritate și iconița — aceeași construcție ca la
+# cartonașele din `levelup.gd`, ca alegerea armei să arate din același joc.
+func _rand_arma(i: int) -> Button:
+	var w = WEAPONS[i]
+	var id := String(w["id"])
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(320, CELULA_LISTA)
+	b.flat = true
+	for stare in ["normal", "hover", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(stare, StyleBoxEmpty.new())
+	b.pressed.connect(_on_weapon_chosen.bind(id))
+	# și mouse, și tastatură/gamepad: fișa urmează și focusul, nu doar cursorul
+	b.mouse_entered.connect(_preview_arma.bind(id))
+	b.mouse_exited.connect(_preview_arma.bind(""))
+	b.focus_entered.connect(_preview_arma.bind(id))
+	b.focus_exited.connect(_preview_arma.bind(""))
+
+	var hb := HBoxContainer.new()
+	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hb.add_theme_constant_override("separation", 14)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(hb)
+
+	var cell := Control.new()
+	cell.custom_minimum_size = Vector2(CELULA_LISTA, CELULA_LISTA)
+	cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(cell)
+
+	var chenar := TextureRect.new()
+	chenar.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	chenar.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chenar.stretch_mode = TextureRect.STRETCH_SCALE
+	chenar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	chenar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(chenar)
+
+	var poza := TextureRect.new()
+	if ResourceLoader.exists(w["icon"]):
+		poza.texture = load(w["icon"])
+	# iconița stă ÎN interiorul chenarului, nu peste el. 9px la o celulă de 68 = cât ține rama
+	# pictată a chenarului de raritate (ICON_PAD e croit pentru celula mare, de 132).
+	poza.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	poza.offset_left = 9
+	poza.offset_top = 9
+	poza.offset_right = -9
+	poza.offset_bottom = -9
+	poza.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	poza.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	poza.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	poza.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cell.add_child(poza)
+
+	var nume := Label.new()
+	nume.text = String(w["name"])
+	nume.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	nume.add_theme_font_size_override("font_size", 19)
+	nume.add_theme_color_override("font_color", OS_ALB)
+	nume.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nume.clip_text = true    # un nume lung tradus scurtează, nu lățește rândul
+	nume.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nume.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	nume.add_theme_constant_override("outline_size", 3)
+	hb.add_child(nume)
+
+	_weapon_buttons.append({"buton": b, "chenar": chenar, "nume": nume})
+	_viata(b)
+	return b
+
+# FIȘA din dreapta: iconiță mare + nume, apoi statusurile de pornire și bonusul de nivel.
+# Caseta e desenată (piatră închisă cu muchie de aramă), nu încă un chenar ornat: pagina are deja
+# o ramă în jur, iar două rame ornate una în alta se citesc ca una singură, groasă și murdară.
+func _fisa_arma() -> Control:
+	var caseta := PanelContainer.new()
+	caseta.custom_minimum_size = Vector2(FISA_W, 0)
+	caseta.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.086, 0.078, 0.104, 0.85)
+	sb.border_color = Color(ACCENT_STINS.r, ACCENT_STINS.g, ACCENT_STINS.b, 0.8)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(2)
+	sb.set_content_margin_all(18)
+	caseta.add_theme_stylebox_override("panel", sb)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+	caseta.add_child(box)
+
+	var cap := HBoxContainer.new()
+	cap.add_theme_constant_override("separation", 16)
+	box.add_child(cap)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(84, 84)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cap.add_child(icon)
+
+	var nume := Label.new()
+	nume.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	nume.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nume.add_theme_font_size_override("font_size", 26)
+	nume.add_theme_color_override("font_color", OS_ALB)
+	nume.add_theme_color_override("font_outline_color", ACCENT_STINS)
+	nume.add_theme_constant_override("outline_size", 5)
+	nume.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cap.add_child(nume)
+
+	box.add_child(_linie(300.0, 12))
+
+	var cap_start := Label.new()
+	cap_start.text = "AT START"
+	cap_start.add_theme_font_size_override("font_size", 13)
+	cap_start.add_theme_color_override("font_color", ACCENT)
+	box.add_child(cap_start)
+
+	var dmg := _fisa_rand(box, "Damage")
+	var atk := _fisa_rand(box, "Attack Speed")
+
+	box.add_child(_spacer(8))
+
+	# ⚠️ Bonusul de nivel NU primește cap de secțiune („EVERY LEVEL"): textul lui spune deja
+	# „...PER LEVEL", iar cele două împreună sunau a formular completat de două ori.
+	var bonus := Label.new()
+	bonus.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bonus.add_theme_font_size_override("font_size", 17)
+	bonus.add_theme_color_override("font_color", Color(0.62, 0.86, 0.62))
+	bonus.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	bonus.add_theme_constant_override("outline_size", 3)
+	box.add_child(bonus)
+
+	_weapon_detail = {"icon": icon, "nume": nume, "damage": dmg, "atk": atk, "bonus": bonus}
+	return caseta
+
+# Un rând de status din fișă: eticheta la stânga, valoarea la dreapta. Întoarce eticheta valorii,
+# ca `_refresh_weapon_detail` să-i poată schimba textul.
+func _fisa_rand(parinte: VBoxContainer, eticheta: String) -> Label:
+	var hb := HBoxContainer.new()
+	parinte.add_child(hb)
+	var l := Label.new()
+	l.text = eticheta
+	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_color_override("font_color", Color8(186, 180, 174))
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(l)
+	var v := Label.new()
+	v.add_theme_font_size_override("font_size", 18)
+	v.add_theme_color_override("font_color", OS_ALB)
+	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hb.add_child(v)
+	return v
+
+func _preview_arma(id: String) -> void:
+	_weapon_preview = id
+	_refresh_weapon_detail()
 
 func _on_weapon_chosen(id: String) -> void:
 	GameSettings.weapon_type = id
@@ -724,6 +868,38 @@ func _refresh_weapon_selection() -> void:
 		chenar.texture = load(BORDER_SEL if sel else BORDER_NESEL)
 		var b: Button = _weapon_buttons[i]["buton"]
 		b.modulate = Color(1, 1, 1) if sel else Color(0.72, 0.72, 0.76)
+	_refresh_weapon_detail()
+
+# Umple fișa cu arma peste care stai — sau, dacă nu stai pe niciuna, cu cea ALEASĂ.
+func _refresh_weapon_detail() -> void:
+	if _weapon_detail.is_empty():
+		return
+	var id := _weapon_preview if _weapon_preview != "" else String(GameSettings.weapon_type)
+	var w = null
+	for x in WEAPONS:
+		if String(x["id"]) == id:
+			w = x
+			break
+	if w == null:
+		w = WEAPONS[0]
+		id = String(w["id"])
+	_weapon_detail["icon"].texture = load(w["icon"]) if ResourceLoader.exists(w["icon"]) else null
+	_weapon_detail["nume"].text = String(w["name"])
+	_weapon_detail["bonus"].text = String(w["bonus"])
+	var st: Dictionary = _arme_stats().get(id, {})
+	_weapon_detail["damage"].text = str(int(st.get("damage", 0)))
+	var interval: float = float(st.get("interval", 1.0))
+	_weapon_detail["atk"].text = "%.2f/s" % (1.0 / maxf(interval, 0.01))
+
+# Statusurile de pornire ale armelor, citite DIN `player.gd` (constanta `ARME`) — nu copiate aici.
+# O copie ar fi rămas în urmă în tăcere la prima reglare de damage, exact ca textele de bonus
+# (vezi ⚠️ de la `WEAPONS`). Se citește o singură dată și se ține minte.
+func _arme_stats() -> Dictionary:
+	if _arme.is_empty():
+		var s := load(PLAYER_GD)
+		if s != null:
+			_arme = s.get_script_constant_map().get("ARME", {})
+	return _arme
 
 # ---------- CHOOSE CHARACTER (placeholder) ----------
 func _build_character() -> void:

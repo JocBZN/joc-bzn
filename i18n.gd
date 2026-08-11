@@ -121,6 +121,8 @@ const TRAD := {
 # îndemnul, fiecare pe rândul lui — un titlu care conținea și instrucțiunea („LEVEL UP! Choose:")
 # creștea urât în germană și în rusă.
 "LEVEL UP": ["升级", "LEVEL UP", "SUBES DE NIVEL", "НОВЫЙ УРОВЕНЬ", "NIVEAU SUPÉRIEUR", "レベルアップ", "NOWY POZIOM", "SEVİYE ATLADIN"],
+# capul de secțiune din fișa de armă (menu.gd, pagina CHOOSE WEAPON)
+"AT START": ["初始", "ZU BEGINN", "AL INICIO", "В НАЧАЛЕ", "AU DÉPART", "開始時", "NA START", "BAŞLANGIÇTA"],
 "Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],
 "STATS": ["属性", "WERTE", "ESTADÍSTICAS", "ХАРАКТЕРИСТИКИ", "STATS", "ステータス", "STATYSTYKI", "İSTATİSTİK"],
 "Common": ["普通", "Gewöhnlich", "Común", "Обычный", "Commun", "コモン", "Zwykły", "Sıradan"],
