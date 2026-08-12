@@ -15,7 +15,10 @@ extends Node
 #      aici sunt și rezultate false (simboluri, formate), de aia se afișează ca AVERTISMENT.
 # Iese cu cod 1 dacă găsește o problemă din primele trei categorii.
 
-const LEVELUP := "res://levelup.gd"
+# Listele de ITEME (nume + descriere). `dubios_menu.gd` are pool-ul lui, care nu trece prin
+# `levelup.gd`, deci fără el numele itemelor dubiosului ar fi rămas englezești în 8 limbi fără să
+# se plângă nimeni.
+const LISTE_ITEME := ["res://levelup.gd", "res://dubios_menu.gd"]
 # fișierele care desenează text; restul n-au UI
 const FISIERE_UI := [
 	"res://menu.gd", "res://settings_ui.gd", "res://pause.gd", "res://gameover.gd",
@@ -30,6 +33,7 @@ const FISIERE_UI := [
 	# din lume (la fel ca `chest.gd`) — de pe 2026-08-11, „You've been banned for cheating".
 	"res://casino.gd", "res://egt.gd",
 	"res://alba_menu.gd",   # Alba-Neagra (2026-08-11)
+	"res://dubios_menu.gd", # marfa dubiosului (2026-08-12)
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [
@@ -84,20 +88,20 @@ func _verifica_steagurile(limbi: Array) -> void:
 		if not ResourceLoader.exists(String(l["steag"])):
 			_problema("lipsește steagul %s" % l["steag"])
 
-# 3. numele, descrierile și raritățile upgrade-urilor
+# 3. numele, descrierile și raritățile upgrade-urilor (din toate listele de iteme)
 func _verifica_levelup() -> void:
-	print("[3] upgrade-uri din levelup.gd")
-	var text := _citeste(LEVELUP)
+	print("[3] upgrade-uri din %s" % ", ".join(LISTE_ITEME.map(func(f): return String(f).get_file())))
 	var re := RegEx.new()
 	re.compile('"(?:nume|desc)":\\s*"((?:[^"\\\\]|\\\\.)*)"')
 	var vazute := {}
-	for m in re.search_all(text):
-		var s := m.get_string(1)
-		if vazute.has(s):
-			continue
-		vazute[s] = true
-		if not _trad.has(s) and not IGNORATE.has(s):
-			_problema('levelup.gd: "%s" nu are traduceri' % s)
+	for fisier in LISTE_ITEME:
+		for m in re.search_all(_citeste(fisier)):
+			var s := m.get_string(1)
+			if vazute.has(s):
+				continue
+			vazute[s] = true
+			if not _trad.has(s) and not IGNORATE.has(s):
+				_problema('%s: "%s" nu are traduceri' % [String(fisier).get_file(), s])
 
 # 4. tr("...") din cod
 func _verifica_tr() -> void:

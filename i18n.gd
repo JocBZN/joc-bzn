@@ -139,6 +139,23 @@ const TRAD := {
 # scrie în locul rundei înainte de prima rundă, ca panoul să nu fie gol
 "READY": ["准备就绪", "BEREIT", "LISTO", "ГОТОВ", "PRÊT", "準備完了", "GOTOWE", "HAZIR"],
 "PRIZE LADDER": ["奖品阶梯", "PREISLEITER", "ESCALERA DE PREMIOS", "ЛЕСТНИЦА ПРИЗОВ", "ÉCHELLE DES LOTS", "景品ラダー", "DRABINA NAGRÓD", "ÖDÜL MERDİVENİ"],
+
+# ---------- marfa dubiosului (dubios_menu.gd, 2026-08-12) ----------
+# ⚠️ Calitatea lor NU se scrie nicăieri, deci n-are cheie. Textele cu procente de mai jos ajung
+# direct pe Label (le traduce Godot singur), deci `%` e semn obișnuit, NU se dublează — spre
+# deosebire de cele două de la urmă, care trec prin `tr(...) % ...`.
+"SHADY DEAL": ["可疑交易", "ZWIELICHTIGER DEAL", "TRATO TURBIO", "МУТНАЯ СДЕЛКА", "MARCHÉ LOUCHE", "怪しい取引", "PODEJRZANY UKŁAD", "KARANLIK ANLAŞMA"],
+"Cursed Tome": ["诅咒之书", "Verfluchter Foliant", "Tomo Maldito", "Проклятый Том", "Grimoire Maudit", "呪いの書", "Przeklęta Księga", "Lanetli Kitap"],
+"Increase Spawnrate by 25%": ["敌人生成速度 +25%", "+25% Gegner-Spawnrate", "+25% de aparición de enemigos", "+25% к появлению врагов", "+25% d'apparition d'ennemis", "敵の出現率 +25%", "+25% tempa pojawiania się wrogów", "Düşman doğuşu +%25"],
+"Iron Helmet": ["铁盔", "Eisenhelm", "Yelmo de Hierro", "Железный Шлем", "Heaume de Fer", "アイアンヘルム", "Żelazny Hełm", "Demir Miğfer"],
+"Take 100% Less Damage, Deal 25% Less Damage": ["受到伤害 -100%，造成伤害 -25%", "-100% erlittener Schaden, -25% eigener Schaden", "-100% de daño recibido, -25% de daño infligido", "-100% получаемого урона, -25% наносимого", "-100% de dégâts subis, -25% de dégâts infligés", "被ダメージ -100%、与ダメージ -25%", "-100% otrzymywanych obrażeń, -25% zadawanych", "Alınan hasar -%100, verilen hasar -%25"],
+"Blame Circle": ["指责之环", "Schuldkreis", "Círculo de Culpas", "Круг Обвинений", "Cercle du Blâme", "責任転嫁の輪", "Krąg Oskarżeń", "Suçlama Çemberi"],
+"Double one random stat, -25% of a random stat": ["随机一项属性翻倍，随机一项属性 -25%", "Ein zufälliger Wert verdoppelt, ein zufälliger -25%", "Duplica una estadística al azar, -25% en otra", "Случайная характеристика ×2, другая -25%", "Double une stat au hasard, -25% sur une autre", "ランダムな能力が2倍、別の能力が -25%", "Losowa statystyka ×2, inna -25%", "Rastgele bir özellik iki katı, bir diğeri -%25"],
+"Arcane Magic": ["奥术魔法", "Arkane Magie", "Magia Arcana", "Тайная Магия", "Magie Arcanique", "アルカナマジック", "Magia Arkanów", "Gizemli Büyü"],
+"Reset all your items with ones of the same quality": ["将你的所有道具换成同品质的其他道具", "Tauscht all deine Items gegen andere gleicher Güte", "Cambia todos tus objetos por otros de la misma calidad", "Меняет все твои предметы на другие того же качества", "Remplace tous tes objets par d'autres de même qualité", "所持アイテムを同じ品質の別のものに入れ替える", "Zamienia wszystkie przedmioty na inne tej samej jakości", "Tüm eşyalarını aynı kalitede başkalarıyla değiştirir"],
+# astea DOUĂ trec prin `tr(...) % ...`, deci procentul literal se scrie „%%"
+"%s doubled, %s down 25%%": ["%s 翻倍，%s -25%%", "%s verdoppelt, %s -25%%", "%s duplicado, %s -25%%", "%s ×2, %s -25%%", "%s doublé, %s -25%%", "%s が2倍、%s が -25%%", "%s podwojone, %s -25%%", "%s iki katı, %s -%%25"],
+"%d items rerolled": ["重掷了 %d 件道具", "%d Items neu gewürfelt", "%d objetos recambiados", "Переброшено предметов: %d", "%d objets relancés", "%d 個のアイテムを引き直した", "Przelosowano %d przedmiotów", "%d eşya yeniden çekildi"],
 "TAKE %s": ["拿走 %s", "%s NEHMEN", "LLEVARSE %s", "ЗАБРАТЬ %s", "PRENDRE %s", "%s を受け取る", "WEŹ %s", "%s AL"],
 "PLAY": ["开始", "SPIELEN", "JUGAR", "ИГРАТЬ", "JOUER", "プレイ", "GRAJ", "OYNA"],
 "CONTINUE": ["继续", "WEITER", "SEGUIR", "ПРОДОЛЖИТЬ", "CONTINUER", "続ける", "DALEJ", "DEVAM"],

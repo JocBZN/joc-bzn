@@ -623,6 +623,12 @@ func _trage_unul(deja: Array):
 func _e_disponibil(u) -> bool:
 	return not _luate_unic.has(u["id"])
 
+# Scoate un item din carantina „unicelor". O cere Arcane Magic (`dubios_menu.gd`): el îți ia
+# itemele înapoi și-ți dă altele, iar un unic pe care NU-l mai ai n-are de ce să rămână interzis —
+# altfel Undying Spirit ar fi ieșit din runda ta fără să-l fi avut vreodată la final.
+func uita_unic(id: String) -> void:
+	_luate_unic.erase(id)
+
 # `exclude` = iteme interzise pe lângă cele deja trase în runda asta. Îl folosește Lucky Die,
 # ca pagina de după reroll să fie chiar ALTA, nu aceleași iteme trase din nou.
 func _trage_iteme(n: int, exclude: Array = []) -> Array:

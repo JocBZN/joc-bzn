@@ -191,6 +191,11 @@ func rata_curenta() -> float:
 	var n := get_tree().get_first_node_in_group("nether")
 	if n != null and n.get("active") == true and n.has_method("spawn_mult"):
 		rate *= n.spawn_mult()
+	# Cursed Tome (itemul dubiosului): +25% inamici pe secundă, cumulat. Aici, în formula comună,
+	# nu în `_spawn_tick` — altfel Limbo, care își naște singur inamicii din ea, l-ar fi ignorat.
+	var p = get_tree().get_first_node_in_group("player")
+	if p != null and "spawn_rate_mult" in p:
+		rate *= float(p.spawn_rate_mult)
 	return rate
 
 # Ce fel de inamic naște lumea acum — PUBLIC, tot pentru Limbo (vezi `_scena_inamic`).

@@ -3,16 +3,19 @@ extends StaticBody2D
 # DUBIOSU — omul în palton negru și pălărie (`harta/dubiosu.png`), pus în lume pe 2026-08-12.
 # Unde apare → `dubiosi.gd`.
 #
-# ⚠️ DEOCAMDATĂ NU FACE NIMIC, așa a cerut Răzvan. Stă în iarbă, respiră și te oprește dacă dai
-# să treci prin el — atât. NU e în grupul „interactable", deci `interact_ui.gd` nici nu se uită
-# la el: nu apare „Press E to interact" și n-are `invoca()`. Când primește o treabă, se adaugă
-# amândouă (`add_to_group("interactable")` + `invoca()`, plus `poate_invoca()` dacă se consumă) —
-# vezi `alba.gd`, care le are pe toate trei.
+# Apeși E pe el și-ți scoate din palton 3 iteme (`dubios_menu.gd`) — patru iteme care NU există
+# în tragerea de la level up, în cufere, în cazinou sau la statuia Ender.
+#
+# ⚠️ Un om îți scoate marfa o SINGURĂ dată, ca omul de Alba-Neagra: după ce alegi, își strânge
+# paltonul și rămâne consumat chiar dacă pleci din zonă și te întorci, fiindcă `dubiosi.gd` ține
+# minte locul (același tipar ca la cufere, `chests.gd::marcheaza_folosit`).
 #
 # Poziția nodului = linia de SORTARE (Y-sort), NU talpa artei: arta coboară `ACOPERIRE_JOS`
 # pixeli sub ea, ca player-ul care trece prin fața lui să fie desenat PESTE el. Același truc ca
 # la omul de Alba-Neagra, la aparatul EGT, la copaci și la statuie.
 
+@export var interact_range: float = 190.0    # cât de aproape trebuie să fii ca să apară textul
+@export var label_offset_y: float = -150.0   # cât de sus stă textul (îl citește `interact_ui.gd`)
 @export var art_scale: float = 1.6           # cât de mare e pe ecran (arta e 128×128)
 
 const ACOPERIRE_JOS := 74.0
@@ -37,7 +40,11 @@ const ACOPERIRE_JOS := 74.0
 const RESP_SCALA := 1.018    # cât se întinde la inspirație (1.0 = deloc)
 const RESP_TIMP := 2.3       # cât ține o inspirație (secunde); expirația ține la fel
 
+var _folosit := false
+
 func _ready() -> void:
+	# „interactable" = tot ce poate afișa „Press E to interact" (statui, portaluri, cufere, EGT).
+	add_to_group("interactable")
 	var spr := $Sprite2D as Sprite2D
 	spr.scale = Vector2(art_scale, art_scale)
 	_aseaza_pe_origine(spr)
@@ -65,3 +72,39 @@ func _respira(spr: Sprite2D) -> void:
 	t.parallel().tween_property(spr, "offset:y", spr.offset.y - dy, RESP_TIMP)
 	t.tween_property(spr, "scale:y", art_scale, RESP_TIMP)
 	t.parallel().tween_property(spr, "offset:y", spr.offset.y, RESP_TIMP)
+
+# ---------------------------------------------------------------------------
+# INTERACȚIUNEA (`interact_ui.gd` cere metodele astea de la orice „interactable")
+# ---------------------------------------------------------------------------
+# Mai poate fi folosit? `false` după ce ți-a scos marfa o dată, ca la cufărul deschis: un „Press E"
+# care nu face nimic arată a bug.
+func poate_invoca() -> bool:
+	return not _folosit
+
+func invoca() -> void:
+	if _folosit:
+		return
+	var meniu = get_tree().get_first_node_in_group("dubios_menu")
+	if meniu == null:
+		return
+	# Se consumă la DESCHIDERE, nu la alegere (invers față de omul de Alba-Neagra, unde poți doar
+	# să te uiți și să pleci): aici marfa a ieșit deja din palton, iar meniul nici nu te lasă să
+	# pleci fără să alegi (ESC nu-l închide, vezi `dubios_menu.gd`).
+	consuma()
+	meniu.open(self)
+
+func consuma() -> void:
+	if _folosit:
+		return
+	_folosit = true
+	# generatorul ține minte locul, ca omul să nu revină întreg când chunk-ul se descarcă și se
+	# regenerează — se întâmplă și dacă te îndepărtezi și revii, și la fiecare intrare/ieșire din
+	# Nether, Ender sau Limbo (ele golesc toate generatoarele). Același tipar ca la cufăr.
+	var gen := get_parent()
+	while gen != null and not gen.has_method("marcheaza_folosit"):
+		gen = gen.get_parent()
+	if gen != null:
+		gen.marcheaza_folosit(global_position)
+	# se stinge pe loc: nu mai are ce să-ți vândă
+	var t := create_tween()
+	t.tween_property(self, "modulate", Color(0.55, 0.55, 0.58), 0.5)

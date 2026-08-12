@@ -29,6 +29,7 @@
 [ext_resource type="Script" path="res://albas.gd" id="28_albas"]
 [ext_resource type="Script" path="res://alba_menu.gd" id="29_alba_menu"]
 [ext_resource type="Script" path="res://dubiosi.gd" id="30_dubiosi"]
+[ext_resource type="Script" path="res://dubios_menu.gd" id="31_dubios_menu"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -146,3 +147,6 @@ script = ExtResource("27_trade")
 
 [node name="AlbaMenu" type="CanvasLayer" parent="."]
 script = ExtResource("29_alba_menu")
+
+[node name="DubiosMenu" type="CanvasLayer" parent="."]
+script = ExtResource("31_dubios_menu")

@@ -10,10 +10,10 @@ extends Node2D
 # Alba-Neagra — altfel generatoare care nu știu unele de altele pot pune două lucruri mari exact
 # în același loc.
 #
-# ⚠️ Spre deosebire de `albas.gd`, aici NU există listă de „folosiți": dubiosul nu face nimic
-# (vezi `dubiosu.gd`), deci nu are cum să se consume. Dacă vreodată primește o treabă care se
-# consumă, copiază de la `albas.gd` `_folosite` + `marcheaza_folosit` + filtrul din `_build_chunk`
-# — fără ele ar reveni întreg de fiecare dată când chunk-ul se descarcă și se regenerează.
+# ⚠️ Ține minte pe cine ai GOLIT deja (`_folosite`), la fel ca `chests.gd` și `albas.gd`: fără
+# asta, omul ar reveni întreg de fiecare dată când chunk-ul se descarcă și se regenerează — adică
+# ai fi putut lua iteme la nesfârșit de la același om, plimbându-te încolo și-ncoace.
+# Vezi `dubiosu.gd::consuma`.
 
 const DUBIOSU := preload("res://dubiosu.tscn")
 const SEED_SALT := 0xD0B1  # altul decât la copaci/pietre/statui/EGT/Alba, ca să nu iasă aceleași numere
@@ -30,6 +30,7 @@ const SEED_SALT := 0xD0B1  # altul decât la copaci/pietre/statui/EGT/Alba, ca s
 @export var tries: int = 12               # câte poziții încearcă până renunță la fereală
 
 var _loaded := {}
+var _folosite := {}           # pozițiile oamenilor de la care ai luat deja
 var _props: Node2D = null
 var _rocks: Node2D = null
 var _statues: Node2D = null
@@ -133,12 +134,22 @@ func _langa_alba(pos: Vector2, key: Vector2i) -> bool:
 				return true
 	return false
 
+# Chemată de `dubiosu.gd::consuma` când omul din poziția asta și-a scos marfa.
+func marcheaza_folosit(pos_lume: Vector2) -> void:
+	_folosite[_cheie(to_local(pos_lume))] = true
+
+# Poziția, rotunjită la pixel întreg. Rotunjim ca să nu depindem de virgulele mobile: aceeași
+# sămânță dă același `float` de fiecare dată, dar drumul dus-întors prin `global_position` poate
+# pierde ultimul bit, iar un dicționar nu iartă nici atât. (Copiat din `chests.gd`.)
+func _cheie(p: Vector2) -> Vector2i:
+	return Vector2i(p.round())
+
 func _build_chunk(key: Vector2i) -> Node2D:
 	var container := Node2D.new()
 	container.y_sort_enabled = true
 	add_child(container)
 	var pos := chunk_dubios_pos(key)
-	if pos != Vector2.INF:
+	if pos != Vector2.INF and not _folosite.has(_cheie(pos)):
 		var d := DUBIOSU.instantiate()
 		d.position = pos
 		container.add_child(d)

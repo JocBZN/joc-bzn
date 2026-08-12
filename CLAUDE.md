@@ -18,6 +18,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (Dubiosu: marfa lui — 4 iteme care nu există nicăieri altundeva)
+
+**Cerut de Răzvan:** „vreau dubiosu, când apeși E pe el, să îți dea 3 variante de iteme (ca upgrade-urile normale) doar că pe astea nu le găsești în upgrade-uri normale. Toate sunt aceeași calitate (**nu vreau să scrii asta undeva**). Ai un border în folderul Upgrade Dubios ca să faci tot meniul, inclusiv rama de la iteme."
+
+**Fișiere noi:** `dubios_menu.gd`. **Atinse:** `dubiosu.gd` (interacțiune), `dubiosi.gd` (ține minte pe cine ai golit), `player.gd` (3 statusuri noi + copia stării de start), `spawner.gd`, `levelup.gd` (`uita_unic`), `pause.gd`, `main.tscn`, `i18n.gd` (11 chei × 8 limbi), `tool_check_i18n.gd`.
+
+**Meniul.** Aceeași construcție ca ecranul de Level Up, dar cu planșa verde din `harta/Upgrade Dubios/` (tot 5×4 celule de 64px) și **fără rând de raritate** — calitatea lor nu se scrie nicăieri, cum a cerut. Nu există nici măcar câmp „rar" în listă: „aceeași calitate" înseamnă, pentru Arcane Magic, „tot din lista asta", deci n-are nevoie de un nume. Verdele (`#2C8A4D`) e **măsurat** din planșă, nu ales din ochi (regula casei). Un om îți scoate marfa **o singură dată**, iar ESC NU închide meniul: omul se consumă la deschidere, deci un ESC ar fi însemnat un om irosit.
+
+**Cele patru iteme.** Cursed Tome (+25% spawn rate, cumulat) intră în `spawner.rata_curenta()`, nu în `_spawn_tick` — altfel Limbo, care își naște singur inamicii din formula aia, l-ar fi ignorat. Iron Helmet: **chiar 100%**, `take_damage` iese din funcție la `damage_taken_mult <= 0`, deci ești nemuritor; prețul (×0.75 damage dat) se compune. ⚠️ Reflectul (Old Reliable, Mike's Hedgehog) pleacă ÎNAINTE de linia aia, deci cască + Old Reliable = nemuritor cu spini. Blame Circle alege două statusuri **diferite** dintr-o listă în care niciunul nu poate fi 0 la start (dublu din 0 tot 0 face, ar fi părut item stricat) și lasă meniul deschis 1,8 s ca să apuci să citești ce ai pățit.
+
+**Arcane Magic — partea grea.** Nu se poate face desfăcând efectele: `_apply` scrie direct în statusuri, iar din „viteza e 275" nu mai afli ce a adunat-o acolo. Deci `player.gd` ține `_start_state`, o copie a **tuturor** variabilelor de script, luată pe ultima linie din `_ready` (după armă, META și OP start, înainte de orice item), iar `reset_la_start()` o pune înapoi și meniul rejoacă peste ea o listă nouă. Se copiază toate variabilele, nu o listă scrisă de mână, altfel fiecare item nou care atinge un câmp nou ar fi început să fie uitat în tăcere.
+
+⚠️ **Ce NU se resetează**, cu motivul lângă, în `NU_SE_RESETEAZA`. Cel periculos e **`xp_to_next`**: e amestecat — îl taie Grinder / Tome of Knowledge, dar îl și înmulțește cu 1,2 fiecare nivel. Pus înapoi la valoarea de la nivelul 1, ai fi urcat zece niveluri pe loc. E singurul efect de item pe care resetul nu-l desface. La fel `undying_used` (altfel itemul devenea „mai dă-mi o viață"). Itemele „unice" pierdute ies din carantina din `levelup.gd` (`uita_unic`), altfel Undying Spirit ar fi rămas interzis toată runda fără să-l ai. Și Arcane Magic **se exclude pe el însuși** din tragere, exact ca Lucky Die la cufere — altfel s-ar chema la nesfârșit.
+
+**Itemele dubiosului sunt invizibile** pentru cazinou și pentru masa de schimb a statuii Ender: amândouă caută id-ul cu `levelup.item_dupa_id`, care întoarce null, și sar peste. Așa și trebuie — nu se pariază și nu se schimbă.
+
+**Verificat rulând**, cu player adevărat: două tomuri → ×1,5625; casca → 50 damage încasat, viața neschimbată, `damage_mult` 1,0 → 0,75 → 0,5625; Blame Circle → „Move Speed doubled, Max HP down 25%" cu cifrele chiar mutate; Arcane Magic pe `[bere, seringa, jean_bomb, undying_spirit, cursed_tome]` → 5 iteme noi cu **exact aceleași rarități** (common, uncommon, legendary, legendary, dubios) și statusurile întoarse la bază (dmg 51→24, maxHP 135→100, spawn 1,25→1,0); E pe om → meniul se deschide și omul rămâne consumat. Plus două capturi din meniu, `tool_check_i18n` ✔ 278 chei × 8 limbi și `main.tscn` rulat headless fără erori.
+
+⚠️ **Codexul de upgrade-uri (`codex.html` + artifactul) NU are încă itemele astea.** Nu erau în `levelup.gd`, deci n-au intrat automat nicăieri.
+
+---
+
 ## Session log — 2026-08-12 (Dubiosu: NPC nou în lume, deocamdată fără treabă)
 
 **Cerut de Răzvan:** „în folderu harta ai o poză nouă — dubiosu. Vreau să fie un npc ca Alba Neagra (să și aibă efect de respirat) — momentan nu vreau să facă nimic."

@@ -71,6 +71,9 @@ func _blocked() -> bool:
 	var alba = get_tree().get_first_node_in_group("alba_menu")
 	if alba != null and alba.visible:
 		return true   # și la masa de Alba-Neagra (`alba_menu.gd`)
+	var dubios = get_tree().get_first_node_in_group("dubios_menu")
+	if dubios != null and dubios.visible:
+		return true   # și la marfa dubiosului (`dubios_menu.gd`)
 	var boss = get_tree().get_first_node_in_group("saratalin")
 	if boss != null and boss.has_method("in_cinematic") and boss.in_cinematic():
 		return true
