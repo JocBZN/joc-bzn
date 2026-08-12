@@ -27,7 +27,9 @@ extends CanvasLayer
 #
 # Paharele trebuie să se miște singure, deci `tool_alba_assets.gd` taie din poză:
 #   scene.png — omul și masa lui, cu paharele ȘTERSE (peticite din pixelii de lângă ele)
-#   cup.png   — un pahar, 13×16
+#   cup.png   — UN pahar, 14×16, decupat fix pe conturul lui negru
+# Se desenează ACELAȘI pahar (cel din stânga, are silueta întreagă) pe toate cele trei locuri —
+# așa a cerut Răzvan: „copiază paharul din stânga și dă copy-paste în celelalte locuri".
 # Bila e sfera de XP din joc (`xp/xp1.png`) — ideea lui Răzvan.
 #
 # ⚠️ Schimbi `Alba Neagra.png` → rulezi unealta din nou ȘI iei cifrele pe care le tipărește
@@ -43,13 +45,16 @@ const BALL_TEX := "res://xp/xp1.png"
 
 # --- GEOMETRIA, în pixelii pozei de 128×128 (cifrele vin din `tool_alba_assets.gd`) ---
 const ART_CONTINUT := Rect2(18.0, 8.0, 90.0, 116.0)   # unde e desenat efectiv ceva în poză
-const SLOT_X := [44.5, 64.0, 81.5]   # centrele celor trei locuri de pe masă
-const TALPA := 95.0                  # linia pe care STAU paharele
-const CUP_W := 13.0
+const SLOT_X := [45.0, 64.0, 83.0]   # centrele celor trei locuri de pe masă
+const TALPA := 96.0                  # linia pe care STAU paharele
+const CUP_W := 14.0
 const CUP_H := 16.0
 const CUP_Y := TALPA - CUP_H * 0.5   # centrul unui pahar așezat pe masă
-const RIDICARE := 16.0               # cât se ridică un pahar ca să se vadă dedesubt (paharul e 16 înalt,
-                                     # deci bila de 9 iese toată; la 26 ajungea în mâinile omului)
+const RIDICARE := 10.0               # cât se ridică un pahar ca să se vadă dedesubt
+                                     # ⚠️ Nu mai mult: bila e de 9, deci 10 o descoperă toată, iar
+                                     # talpa paharului rămâne pe tăblie. La 16 paharul ajungea cu
+                                     # totul în mâinile omului și părea că-l ține în palme, nu că-l
+                                     # ridică de pe masă (la 26 urca de tot în pieptul lui).
 const ARC := 11.0                    # cât de sus trece paharul care sare peste celălalt
 const BILA_D := 9.0
 const BILA_Y := TALPA - BILA_D * 0.5 + 0.5

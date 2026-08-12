@@ -18,15 +18,38 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (Alba-Neagra: paharele, decupate ca lumea)
+
+**Reclamat de Răzvan:** „paharele sunt decupate prost. Vreau să fie decupate fix cu stroke-ul negru pe care îl au deja. Copiază paharul din stânga și dă copy-paste în celelalte locuri."
+
+Prima variantă de decupaj (log-ul de mai jos) pornea de la „ce e aproape alb e pahar" și cârpea restul cu umplere de găuri. **Ideea era greșită din start.** Paharul e desenat cu un **contur închis**, deci silueta lui nu se definește după culoare, ci geometric:
+
+1. pornim dintr-un pixel aproape alb (numai paharele au așa ceva pe tăblie);
+2. umplem în lături tot ce **nu e contur** — ne oprim singuri în linia neagră, indiferent cât de închise sunt umbrele dinăuntru;
+3. adăugăm conturul: pixelii închiși **lipiți** de interior.
+
+⚠️ **Pragul de contur trebuie să fie 0.35, nu 0.20.** Conturul paharului NU e negru uniform: pe stânga (rândul 90 din poză) e un gri de ~0,25. Cu 0,20 umplerea se scurgea prin el pe toată masa — de aici veneau decupajele stricate. Tăblia e ≥ 0,5, deci 0,35 desparte curat.
+
+⚠️ **Conturul se ia cu UN SINGUR pixel în jur, nu urmărind linia neagră.** Sus, conturul paharului e lipit de muchia neagră a mesei, care traversează toată poza; dacă urmărești linia, decupezi jumătate de masă odată cu paharul. Crestăturile de un pixel (unde conturul e desenat pe doi pixeli, unul negru și unul gri) se astupă separat, cu o regulă geometrică: un pixel închis înconjurat pe **3 din 4** laturi de mască e tot contur. Cu 2 laturi ar prinde din nou muchia mesei.
+
+⚠️ **La ștersul paharelor de pe masă, sursele de petic trebuie să excludă TOATE paharele deodată.** Peticul copie material din pixelii de pe același rând, în oglindă; dacă nu marchezi întâi cele trei pahare (plus un pixel de franj în jur) ca „sursă interzisă", paharul din stânga se peticește cu pixeli din paharul din mijloc și pe masă rămân cioburi negre. Și se peticește **pe lățimea măștii pe rândul ăla**, nu pe toată caseta — sus paharul e îngust și are mâinile omului lângă el.
+
+**Rezultat:** `cup.png` e acum 14×16, o siluetă închisă cu contur negru pe tot conturul, iar meniul desenează **același pahar** pe toate cele trei locuri (cum a cerut). Constante noi în `alba_menu.gd`: `SLOT_X [45, 64, 83]`, `CUP_W 14`, `TALPA 96`.
+
+**Și un reglaj găsit uitându-mă la rezultat:** ridicarea paharului 16 → **10**. Bila are 9 px, deci 10 o descoperă toată, iar talpa paharului rămâne pe tăblie. La 16 paharul urca cu totul în mâinile omului și părea că-l ține în palme, nu că-l ridică de pe masă.
+
+**Verificat:** poza de control (original | scenă peticită cu paharul pus de 3 ori | masa goală, toate mărite ×6) + trei capturi din meniul real (așezate / ridicate / bila la vedere), `tool_check_i18n` ✔.
+
+---
+
 ## Session log — 2026-08-12 (meniul Alba-Neagra, refăcut de la zero)
 
 **Cerut de Răzvan:** „ți-am șters aproape tot de la Alba Neagra în afară de obiectul principal. Când începi jocu vreau să fie o variantă zoomed in de la poza Alba Neagra. Taie tu cups și fă animația. Fă meniul să pară că e făcut de un studio mare care face jocuri constant și arată foarte profesionist. Vreau să fie wow. Să fie premium meniul. Folosește elemente de la Border EGT."
 
 **1. Arta.** Din folder rămăsese doar `Alba Neagra.png` (128×128, omul din lume). Meniul arată acum ACEEAȘI poză, mărită de 4 ori. `tool_alba_assets.gd` a fost rescris: nu mai taie din poza mare a mesei (ștearsă), ci din poza omului, și scoate `scene.png` (omul cu masa, fără pahare) + `cup.png` (un pahar, 13×16). Tipărește la final cifrele pentru `alba_menu.gd` (`SLOT_X`, `CUP_W/H`, talpa), ca să nu le mai măsoare nimeni de mână.
 
-⚠️ **Două capcane la decupat, amândouă m-au prins:**
-- Paharul are pe el umbre de **exact aceeași culoare ca tăblia** (155), deci un prag de „aproape alb" le lasă afară și paharul iese ciuruit. Se rezolvă geometric: ce e **înconjurat** de pixeli de pahar e pahar, indiferent de culoare (`_gauri`).
-- Conturul negru nu e „deschis la culoare", deci nu intră în insulă; se adaugă separat, doar pixelii închiși **lipiți** de ea. Fără asta paharul arată ca o pată de lapte.
+⚠️ **Decupajul descris aici (prag de „aproape alb" + umplere de găuri) a fost ÎNLOCUIT** — vezi log-ul de mai sus, „paharele, decupate ca lumea". Ce rămâne valabil de aici:
+- Paharul are pe el umbre de **exact aceeași culoare ca tăblia** (155), deci orice prag pe culoare îl taie ciuruit. De asta silueta se ia geometric, nu după cât e de deschis.
 - Verificarea care chiar prinde greșelile: **pui paharul decupat înapoi pe scena peticită, în cele trei locuri, și compari cu originalul.** Un pahar izolat pe fundal gri arată oricum ciudat și nu-ți spune nimic.
 
 **2. Meniul.** Rescris complet, în trei coloane pe un plan fix de 1152×648 (`PLAN` + `_pune`, deci layout-ul arată la fel la orice rezoluție):
@@ -39,7 +62,7 @@ Quick rules:
 
 ⚠️ **O etichetă cu autowrap NU se așază cu `size`.** Își calculează înălțimea minimă din lățimea pe care o are în acel moment, iar înainte de prima așezare lățimea e 0 → „un cuvânt pe rând" → minim 439 px, care rămâne agățat de ea pentru totdeauna. Textul ajungea tocmai în mijlocul panoului. Soluția: eticheta stă într-un `Control` gol, ancorată pe tot cuprinsul lui (`_eticheta_rupta`).
 
-**3. Reglaje găsite rulând, nu ghicite:** ridicarea paharului 26 → **16** px de artă (la 26 paharul ajungea în mâinile omului), arcul 20 → **11**, umbrele de sub pahare de la alpha 0,85 la **0,42** (erau trei pete cenușii pe masă).
+**3. Reglaje găsite rulând, nu ghicite:** ridicarea paharului 26 → 16 px de artă (ajunsă apoi la **10**, vezi log-ul de mai sus), arcul 20 → **11**, umbrele de sub pahare de la alpha 0,85 la **0,42** (erau trei pete cenușii pe masă).
 
 **Verificat:** patru capturi din joc (intro / bila la vedere / amestec / câștig), `tool_check_i18n` ✔ (265 chei × 8 limbi; chei noi: „READY", „PRIZE LADDER"; titlul scris cu spații între litere e trecut în `IGNORATE`) și o pornire de `main.tscn` fără erori de script.
 
