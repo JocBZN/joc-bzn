@@ -18,6 +18,33 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (meniul Alba-Neagra, refăcut de la zero)
+
+**Cerut de Răzvan:** „ți-am șters aproape tot de la Alba Neagra în afară de obiectul principal. Când începi jocu vreau să fie o variantă zoomed in de la poza Alba Neagra. Taie tu cups și fă animația. Fă meniul să pară că e făcut de un studio mare care face jocuri constant și arată foarte profesionist. Vreau să fie wow. Să fie premium meniul. Folosește elemente de la Border EGT."
+
+**1. Arta.** Din folder rămăsese doar `Alba Neagra.png` (128×128, omul din lume). Meniul arată acum ACEEAȘI poză, mărită de 4 ori. `tool_alba_assets.gd` a fost rescris: nu mai taie din poza mare a mesei (ștearsă), ci din poza omului, și scoate `scene.png` (omul cu masa, fără pahare) + `cup.png` (un pahar, 13×16). Tipărește la final cifrele pentru `alba_menu.gd` (`SLOT_X`, `CUP_W/H`, talpa), ca să nu le mai măsoare nimeni de mână.
+
+⚠️ **Două capcane la decupat, amândouă m-au prins:**
+- Paharul are pe el umbre de **exact aceeași culoare ca tăblia** (155), deci un prag de „aproape alb" le lasă afară și paharul iese ciuruit. Se rezolvă geometric: ce e **înconjurat** de pixeli de pahar e pahar, indiferent de culoare (`_gauri`).
+- Conturul negru nu e „deschis la culoare", deci nu intră în insulă; se adaugă separat, doar pixelii închiși **lipiți** de ea. Fără asta paharul arată ca o pată de lapte.
+- Verificarea care chiar prinde greșelile: **pui paharul decupat înapoi pe scena peticită, în cele trei locuri, și compari cu originalul.** Un pahar izolat pe fundal gri arată oricum ciudat și nu-ți spune nimic.
+
+**2. Meniul.** Rescris complet, în trei coloane pe un plan fix de 1152×648 (`PLAN` + `_pune`, deci layout-ul arată la fel la orice rezoluție):
+- **stânga** — runda („READY" înainte de start), indiciul, avertismentul de dificultate, premiul câștigat;
+- **centru** — scena: poza mărită ×4 într-o ramă bogată, cu un reflector cald deasupra mesei, umbre sub pahare care se micșorează când paharul se ridică, și zonele de click peste cele trei locuri;
+- **dreapta** — scara de premii (5 plăcuțe, cea următoare pulsează, cele luate se umplu cu culoarea rarității) și butoanele.
+- Ramele sunt 5 celule diferite din `Border EGT.png` (`CH_PANOU`, `CH_SCENA`, `CH_PANEL`, `CH_BUTON`, `CH_PLACA`), butoanele au `StyleBoxTexture` din aceeași planșă.
+
+⚠️ **Celulele din `Border EGT.png` NU au mijlocul transparent**, au un bleumarin închis. O ramă pusă PESTE ceva trebuie să aibă `draw_center = false`, altfel acoperă complet ce e dedesubt — prima versiune a ieșit cu scena goală, deși poza era încărcată și așezată corect.
+
+⚠️ **O etichetă cu autowrap NU se așază cu `size`.** Își calculează înălțimea minimă din lățimea pe care o are în acel moment, iar înainte de prima așezare lățimea e 0 → „un cuvânt pe rând" → minim 439 px, care rămâne agățat de ea pentru totdeauna. Textul ajungea tocmai în mijlocul panoului. Soluția: eticheta stă într-un `Control` gol, ancorată pe tot cuprinsul lui (`_eticheta_rupta`).
+
+**3. Reglaje găsite rulând, nu ghicite:** ridicarea paharului 26 → **16** px de artă (la 26 paharul ajungea în mâinile omului), arcul 20 → **11**, umbrele de sub pahare de la alpha 0,85 la **0,42** (erau trei pete cenușii pe masă).
+
+**Verificat:** patru capturi din joc (intro / bila la vedere / amestec / câștig), `tool_check_i18n` ✔ (265 chei × 8 limbi; chei noi: „READY", „PRIZE LADDER"; titlul scris cu spații între litere e trecut în `IGNORATE`) și o pornire de `main.tscn` fără erori de script.
+
+---
+
 ## Session log — 2026-08-12 (de ce hitbox-ul din editor nu semăna cu cel din joc)
 
 **Reclamat de Răzvan:** „Collision shape-ul din Godot nu arată ca cel din joc… încercam să le schimb și nu se schimbă nimic" — la Alba Neagra și la EGT.

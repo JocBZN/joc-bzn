@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwcrmoi6tjm8v"
-path="res://.godot/imported/Alba Neagra Table.png-51ee5635fb169bd18aed18742d6a25d6.ctex"
+uid="uid://cnn82jovb5p3u"
+path="res://.godot/imported/scene.png-f8727fa29e85ca1b06a5adc3d2639650.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://harta/Alba Neagra/Alba Neagra Table.png"
-dest_files=["res://.godot/imported/Alba Neagra Table.png-51ee5635fb169bd18aed18742d6a25d6.ctex"]
+source_file="res://harta/Alba Neagra/scene.png"
+dest_files=["res://.godot/imported/scene.png-f8727fa29e85ca1b06a5adc3d2639650.ctex"]
 
 [params]
 

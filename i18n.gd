@@ -130,6 +130,9 @@ const TRAD := {
 "If you lose, gain +%d%% Difficulty": ["输了会 +%d%% 难度", "Verlierst du: +%d%% Schwierigkeit", "Si pierdes, +%d%% de dificultad", "Проиграешь — +%d%% сложности", "Si tu perds, +%d%% de difficulté", "負けると難易度 +%d%%", "Przegrasz — +%d%% trudności", "Kaybedersen +%%%d zorluk"],
 "The game got %d%% harder": ["游戏难度提高了 %d%%", "Das Spiel ist %d%% schwerer geworden", "El juego se ha vuelto %d%% más difícil", "Игра стала на %d%% сложнее", "Le jeu est devenu %d%% plus dur", "ゲームが %d%% 難しくなった", "Gra stała się o %d%% trudniejsza", "Oyun %%%d zorlaştı"],
 "Round %d": ["第 %d 轮", "Runde %d", "Ronda %d", "Раунд %d", "Manche %d", "ラウンド %d", "Runda %d", "Tur %d"],
+# scrie în locul rundei înainte de prima rundă, ca panoul să nu fie gol
+"READY": ["准备就绪", "BEREIT", "LISTO", "ГОТОВ", "PRÊT", "準備完了", "GOTOWE", "HAZIR"],
+"PRIZE LADDER": ["奖品阶梯", "PREISLEITER", "ESCALERA DE PREMIOS", "ЛЕСТНИЦА ПРИЗОВ", "ÉCHELLE DES LOTS", "景品ラダー", "DRABINA NAGRÓD", "ÖDÜL MERDİVENİ"],
 "TAKE %s": ["拿走 %s", "%s NEHMEN", "LLEVARSE %s", "ЗАБРАТЬ %s", "PRENDRE %s", "%s を受け取る", "WEŹ %s", "%s AL"],
 "PLAY": ["开始", "SPIELEN", "JUGAR", "ИГРАТЬ", "JOUER", "プレイ", "GRAJ", "OYNA"],
 "CONTINUE": ["继续", "WEITER", "SEGUIR", "ПРОДОЛЖИТЬ", "CONTINUER", "続ける", "DALEJ", "DEVAM"],

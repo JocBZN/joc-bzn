@@ -20,36 +20,39 @@ extends CanvasLayer
 # · Un om se joacă o SINGURĂ dată pe rundă (vezi `alba.gd::consuma`).
 #
 # ---------------------------------------------------------------------------
-# ARTA
+# ARTA (refăcută pe 2026-08-12, cerută de Răzvan)
 # ---------------------------------------------------------------------------
-# `harta/Alba Neagra/Alba Neagra Table.png` e o poză cu masa ȘI cele trei pahare desenate pe ea.
-# Paharele trebuie să se miște separat, deci `tool_alba_assets.gd` taie din ea:
-#   table.png — masa fără pahare (cu petice copiate din masa de lângă ele)
-#   cup.png   — un pahar, decupat
+# Meniul arată ACEEAȘI poză cu care omul apare în lume (`Alba Neagra.png`, 128×128), doar mărită
+# de `ART_ZOOM` ori — „o variantă zoomed in", cum a cerut-o. Nu mai există o poză separată de masă.
+#
+# Paharele trebuie să se miște singure, deci `tool_alba_assets.gd` taie din poză:
+#   scene.png — omul și masa lui, cu paharele ȘTERSE (peticite din pixelii de lângă ele)
+#   cup.png   — un pahar, 13×16
 # Bila e sfera de XP din joc (`xp/xp1.png`) — ideea lui Răzvan.
-# ⚠️ Schimbi poza mare → rulezi unealta din nou ȘI remăsori constantele de geometrie de mai jos.
+#
+# ⚠️ Schimbi `Alba Neagra.png` → rulezi unealta din nou ȘI iei cifrele pe care le tipărește
+# (SLOT_X, CUP_W, CUP_H, TALPA). Nimic nu te avertizează dacă rămân vechi: paharele pur și simplu
+# ajung lângă locul lor.
+#
+# ⚠️ `ART_ZOOM` trebuie să rămână ÎNTREG. La 3,5 pixelii ies inegali (unii lați de 3, alții de 4)
+# și pixel art-ul arată murdar — se vede imediat pe conturul negru al omului.
 
-const TABLE_TEX := "res://harta/Alba Neagra/table.png"
+const SCENE_TEX := "res://harta/Alba Neagra/scene.png"
 const CUP_TEX := "res://harta/Alba Neagra/cup.png"
 const BALL_TEX := "res://xp/xp1.png"
 
-# --- GEOMETRIA, în pixelii pozei mari (1672×940) ---
-# Cifrele sunt cele scoase de unealtă (casetele paharelor), nu ghicite: paharele stau la
-# x = 396…642, 711…961, 1032…1277, cu vârful la y = 152.
-const TABLE_W := 1672.0
-const TABLE_H := 940.0
-const SLOT_X := [519.0, 836.0, 1154.0]   # centrele celor trei locuri de pe masă
-const CUP_Y := 276.0                     # centrul unui pahar așezat pe masă
-const CUP_W := 250.0
-const CUP_H := 247.0
-# ⚠️ Bila a fost mărită după prima poză (era 104): ieșea cât o boabă de mazăre pe o masă de un
-# ecran. Ridicarea, în schimb, NU poate trece de 152: un pahar ridicat mai sus și-ar scoate vârful
-# afară din poza mesei (CUP_Y − RIDICARE − CUP_H/2 ≥ 0) și ar ajunge peste titlu. Încercarea cu
-# 230 chiar asta a făcut — paharul plutea peste „WATCH THE CUPS".
-const RIDICARE := 150.0                  # cât se ridică un pahar ca să se vadă dedesubt
-const ARC := 120.0                       # cât de sus trece paharul care sare peste celălalt
-const BILA_D := 150.0                    # cât de mare e bila pe masă
-const BILA_Y := CUP_Y + CUP_H * 0.5 - BILA_D * 0.5 + 6.0   # așezată pe masă, la talpa paharului
+# --- GEOMETRIA, în pixelii pozei de 128×128 (cifrele vin din `tool_alba_assets.gd`) ---
+const ART_CONTINUT := Rect2(18.0, 8.0, 90.0, 116.0)   # unde e desenat efectiv ceva în poză
+const SLOT_X := [44.5, 64.0, 81.5]   # centrele celor trei locuri de pe masă
+const TALPA := 95.0                  # linia pe care STAU paharele
+const CUP_W := 13.0
+const CUP_H := 16.0
+const CUP_Y := TALPA - CUP_H * 0.5   # centrul unui pahar așezat pe masă
+const RIDICARE := 16.0               # cât se ridică un pahar ca să se vadă dedesubt (paharul e 16 înalt,
+                                     # deci bila de 9 iese toată; la 26 ajungea în mâinile omului)
+const ARC := 11.0                    # cât de sus trece paharul care sare peste celălalt
+const BILA_D := 9.0
+const BILA_Y := TALPA - BILA_D * 0.5 + 0.5
 
 # --- CÂT DE GREU E ---
 # Runda 1 are `MUTARI_BAZA` schimburi, fiecare de `DURATA_START` secunde. La fiecare rundă se
@@ -66,43 +69,69 @@ const PREMII := {2: "common", 3: "uncommon", 4: "rare", 5: "epic", 6: "legendary
 const SIR_MAXIM := 6
 const PEDEAPSA := 0.10        # +10% dificultate dacă pierzi
 
-# --- rama de meniu (aceeași planșă și aceleași culori ca la cazinou / meniu / level up) ---
+# ---------------------------------------------------------------------------
+# ASPECTUL
+# ---------------------------------------------------------------------------
+# Ramele vin din aceeași planșă ca la cazinou (`Border EGT.png`, 5×4 celule de 64px). Fiecare
+# celulă e o ramă întreagă, deci se folosește ca NinePatch: colțurile rămân întregi, laturile se
+# întind. Meniul folosește trei celule diferite, ca să nu arate totul la fel:
 const SHEET := "res://harta/EGT/Border EGT.png"
 const CELULA := 64
-const ZOOM := 2
-const CH_PANOU := Vector2i(2, 0)
+const CH_PANOU := Vector2i(2, 0)     # rama mare din jurul ecranului (spirale în colțuri)
+const CH_SCENA := Vector2i(3, 2)     # rama scenei (dublă, cu colțuri tăiate) — cea mai bogată
+const CH_PANEL := Vector2i(1, 1)     # panourile laterale (dublă, simplă)
+const CH_BUTON := Vector2i(1, 3)     # butoanele (subțire, cu bumbi în colțuri)
+const CH_PLACA := Vector2i(0, 1)     # plăcuțele din scara de premii (colțuri pătrate)
+
 const ACCENT := Color8(198, 118, 80)
 const ACCENT_CLAR := Color8(222, 152, 116)
 const ACCENT_STINS := Color8(116, 62, 42)
 const OS_ALB := Color8(232, 224, 214)
 const CENUSA := Color8(150, 142, 138)
-const BTN_MAIN := Color8(26, 22, 28)
+const FUNDAL := Color8(17, 14, 20)
+
+# Ecranul e desenat pe un plan de 1152×648 (rezoluția de bază a jocului) și apoi mutat/scalat ca
+# să încapă în fereastră. Așa layout-ul arată la fel peste tot, în loc să se rearanjeze singur.
+const PLAN := Vector2(1152.0, 648.0)
 
 # ---------------------------------------------------------------------------
-var _stare := "intro"      # intro | amesteca | alege | castigat | gata
+var _stare := "intro"      # intro | amesteca | alege | arata | castigat | gata
 var _runda := 0
 var _sir := 0              # câte ghiciri la rând
 var _bila_cup := 0         # care pahar are bila
 var _slot := [0, 1, 2]     # pe ce loc de pe masă stă fiecare pahar
-var _cup_x := [SLOT_X[0], SLOT_X[1], SLOT_X[2]]   # poziția lui ACUM (pixeli de poză)
+var _cup_x := [SLOT_X[0], SLOT_X[1], SLOT_X[2]]   # poziția lui ACUM (pixeli de artă)
 var _cup_y := [CUP_Y, CUP_Y, CUP_Y]
 var _npc: Node = null      # omul din lume care a deschis meniul
 
-var _masa: TextureRect
+var _k := 1.0              # cât de mare e planul de 1152×648 în fereastra de acum
+var _off := Vector2.ZERO   # și unde începe
+
+var _panou: NinePatchRect
+var _scena_clip: Control
+var _scena: TextureRect
 var _cupe := []            # TextureRect × 3
+var _umbre := []           # umbra de sub fiecare pahar
 var _bila: TextureRect
 var _zone := []            # butoanele transparente de peste cele trei locuri
+var _rama_scena: NinePatchRect
+var _reflector: TextureRect
+var _titlu: Label
 var _lbl_runda: Label
 var _lbl_stare: Label
 var _lbl_risc: Label
-var _trepte := []          # cele 5 chenare din scara de premii
+var _wrap_indiciu: Control
+var _wrap_risc: Control
+var _lbl_indiciu: Label
+var _trepte := []          # cele 5 rânduri din scara de premii
 var _btn_joaca: Button
 var _btn_ia: Button
 var _btn_pleaca: Button
-var _premiu_box: HBoxContainer
+var _premiu_box: VBoxContainer
 var _premiu_icon: TextureRect
 var _premiu_nume: Label
 var _sheet_img: Image = null
+var _puls := 0.0
 
 func _ready() -> void:
 	add_to_group("alba_menu")
@@ -111,8 +140,8 @@ func _ready() -> void:
 	visible = false
 
 	var overlay := ColorRect.new()
-	# aproape opac, ca la cazinou: masa e deschisă la culoare și orice se mișcă în spate fură ochiul
-	overlay.color = Color(0.07, 0.06, 0.09, 0.985)
+	# aproape opac: scena e luminată și orice se mișcă în spate fură ochiul
+	overlay.color = Color(FUNDAL.r, FUNDAL.g, FUNDAL.b, 0.99)
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 
@@ -158,71 +187,52 @@ func _unhandled_input(event: InputEvent) -> void:
 # INTERFAȚA
 # ---------------------------------------------------------------------------
 func _build() -> void:
-	var panel := _cadru(CH_PANOU, 16)
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panel.offset_left = 18
-	panel.offset_top = 14
-	panel.offset_right = -18
-	panel.offset_bottom = -14
-	add_child(panel)
+	_panou = _cadru(CH_PANOU, 2)
+	add_child(_panou)
 
-	# --- capul paginii ---
-	var sus := VBoxContainer.new()
-	sus.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	sus.offset_left = 40
-	sus.offset_right = -40
-	sus.offset_top = 30
-	sus.add_theme_constant_override("separation", 2)
-	sus.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(sus)
+	_titlu = _eticheta("A L B A   N E A G R A", 40, OS_ALB, HORIZONTAL_ALIGNMENT_CENTER)
+	_titlu.add_theme_color_override("font_outline_color", ACCENT_STINS)
+	_titlu.add_theme_constant_override("outline_size", 7)
+	add_child(_titlu)
 
-	var titlu := Label.new()
-	titlu.text = "ALBA NEAGRA"
-	titlu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	titlu.add_theme_font_size_override("font_size", 42)
-	titlu.add_theme_color_override("font_color", OS_ALB)
-	titlu.add_theme_color_override("font_outline_color", ACCENT_STINS)
-	titlu.add_theme_constant_override("outline_size", 6)
-	sus.add_child(titlu)
+	add_child(_linie_ornament())
 
-	sus.add_child(_linie(320.0, 10))
+	_lbl_stare = _eticheta("", 21, OS_ALB, HORIZONTAL_ALIGNMENT_CENTER)
+	add_child(_lbl_stare)
 
-	# scara de premii: 2 → Common … 6 → Legendary. Se vede dintr-o privire cât mai ai de mers.
-	var scara := HBoxContainer.new()
-	scara.alignment = BoxContainer.ALIGNMENT_CENTER
-	scara.add_theme_constant_override("separation", 10)
-	scara.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sus.add_child(scara)
-	_trepte.clear()
-	for n in range(2, SIR_MAXIM + 1):
-		scara.add_child(_treapta(n))
+	# --- SCENA: poza omului, mărită, cu paharele peste ea ---
+	_rama_scena = _cadru(CH_SCENA, 2, false)   # peste scenă: fără mijloc, altfel îi acoperă poza
+	_scena_clip = Control.new()
+	_scena_clip.clip_contents = true      # arta e mai mare decât rama; ce iese se taie
+	_scena_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_scena_clip)
 
-	var jos_cap := HBoxContainer.new()
-	jos_cap.alignment = BoxContainer.ALIGNMENT_CENTER
-	jos_cap.add_theme_constant_override("separation", 18)
-	jos_cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sus.add_child(jos_cap)
+	# lumina de deasupra mesei — un cerc cald, foarte slab; fără el scena e o poză lipită pe negru
+	_reflector = TextureRect.new()
+	_reflector.texture = _tex_radiala(96, Color(1.0, 0.86, 0.66), 0.22)
+	_reflector.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_reflector.stretch_mode = TextureRect.STRETCH_SCALE
+	_reflector.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scena_clip.add_child(_reflector)
 
-	_lbl_runda = Label.new()
-	_lbl_runda.add_theme_font_size_override("font_size", 17)
-	_lbl_runda.add_theme_color_override("font_color", ACCENT)
-	_contur(_lbl_runda)
-	jos_cap.add_child(_lbl_runda)
+	_scena = TextureRect.new()
+	_scena.texture = load(SCENE_TEX)
+	_scena.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_scena.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_scena.stretch_mode = TextureRect.STRETCH_SCALE
+	_scena.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_scena_clip.add_child(_scena)
 
-	_lbl_stare = Label.new()
-	_lbl_stare.add_theme_font_size_override("font_size", 17)
-	_lbl_stare.add_theme_color_override("font_color", OS_ALB)
-	_contur(_lbl_stare)
-	jos_cap.add_child(_lbl_stare)
-
-	# --- masa cu paharele ---
-	_masa = TextureRect.new()
-	_masa.texture = load(TABLE_TEX)
-	_masa.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_masa.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_masa.stretch_mode = TextureRect.STRETCH_SCALE
-	_masa.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(_masa)
+	# umbrele stau SUB pahare: se micșorează când paharul se ridică, așa se vede că a decolat
+	_umbre.clear()
+	for i in 3:
+		var u := TextureRect.new()
+		u.texture = _tex_radiala(64, Color(0, 0, 0), 0.55)
+		u.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		u.stretch_mode = TextureRect.STRETCH_SCALE
+		u.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_scena_clip.add_child(u)
+		_umbre.append(u)
 
 	# bila stă SUB pahare în ordinea de desenare, ca paharul s-o acopere când coboară peste ea
 	_bila = TextureRect.new()
@@ -232,7 +242,7 @@ func _build() -> void:
 	_bila.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_bila.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bila.visible = false
-	_masa.add_child(_bila)
+	_scena_clip.add_child(_bila)
 
 	_cupe.clear()
 	for i in 3:
@@ -242,7 +252,7 @@ func _build() -> void:
 		c.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		c.stretch_mode = TextureRect.STRETCH_SCALE
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_masa.add_child(c)
+		_scena_clip.add_child(c)
 		_cupe.append(c)
 
 	# Zonele de click sunt fixe, peste cele trei LOCURI de pe masă — nu peste pahare. Așa e și în
@@ -253,105 +263,93 @@ func _build() -> void:
 		var b := Button.new()
 		b.flat = true
 		b.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		b.add_theme_stylebox_override("hover", _lumina(0.14))
-		b.add_theme_stylebox_override("pressed", _lumina(0.22))
+		b.add_theme_stylebox_override("hover", _lumina(0.13))
+		b.add_theme_stylebox_override("pressed", _lumina(0.20))
 		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		b.pressed.connect(_alege.bind(i))
-		_masa.add_child(b)
+		_scena_clip.add_child(b)
 		_zone.append(b)
 
-	# --- josul paginii ---
-	var jos := VBoxContainer.new()
-	jos.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	jos.offset_left = 40
-	jos.offset_right = -40
-	jos.offset_top = -132
-	jos.offset_bottom = -26
-	jos.alignment = BoxContainer.ALIGNMENT_END
-	jos.add_theme_constant_override("separation", 6)
-	panel.add_child(jos)
+	add_child(_rama_scena)     # rama se desenează PESTE artă, ca poza să meargă până sub ea
+
+	# --- panoul din STÂNGA: runda, riscul, premiul câștigat ---
+	var stanga := _cadru(CH_PANEL, 1)
+	add_child(stanga)
+	_lbl_runda = _eticheta("", 26, ACCENT_CLAR, HORIZONTAL_ALIGNMENT_CENTER)
+	add_child(_lbl_runda)
+	_wrap_indiciu = _eticheta_rupta("Guess which cup hides the ball", 15, CENUSA)
+	_lbl_indiciu = _wrap_indiciu.get_child(0) as Label
+	add_child(_wrap_indiciu)
+	_wrap_risc = _eticheta_rupta("", 14, CENUSA)
+	_lbl_risc = _wrap_risc.get_child(0) as Label
+	add_child(_wrap_risc)
 
 	# premiul câștigat (iconița + numele), apare la final
-	_premiu_box = HBoxContainer.new()
+	_premiu_box = VBoxContainer.new()
 	_premiu_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	_premiu_box.add_theme_constant_override("separation", 12)
+	_premiu_box.add_theme_constant_override("separation", 4)
 	_premiu_box.visible = false
 	_premiu_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	jos.add_child(_premiu_box)
-
+	add_child(_premiu_box)
 	_premiu_icon = TextureRect.new()
-	_premiu_icon.custom_minimum_size = Vector2(52, 52)
+	_premiu_icon.custom_minimum_size = Vector2(64, 64)
 	_premiu_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_premiu_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_premiu_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_premiu_box.add_child(_premiu_icon)
-
-	_premiu_nume = Label.new()
-	_premiu_nume.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_premiu_nume.add_theme_font_size_override("font_size", 22)
-	_premiu_nume.add_theme_color_override("font_color", OS_ALB)
-	_contur(_premiu_nume)
+	_premiu_nume = _eticheta("", 17, OS_ALB, HORIZONTAL_ALIGNMENT_CENTER)
 	_premiu_box.add_child(_premiu_nume)
 
-	_lbl_risc = Label.new()
-	_lbl_risc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_lbl_risc.add_theme_font_size_override("font_size", 14)
-	_lbl_risc.add_theme_color_override("font_color", CENUSA)
-	_contur(_lbl_risc)
-	jos.add_child(_lbl_risc)
-
-	var butoane := HBoxContainer.new()
-	butoane.alignment = BoxContainer.ALIGNMENT_CENTER
-	butoane.add_theme_constant_override("separation", 14)
-	jos.add_child(butoane)
+	# --- panoul din DREAPTA: scara de premii + butoanele ---
+	var dreapta := _cadru(CH_PANEL, 1)
+	add_child(dreapta)
+	var cap := _eticheta("PRIZE LADDER", 16, ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
+	add_child(cap)
+	_trepte.clear()
+	for n in range(2, SIR_MAXIM + 1):
+		_trepte.append(_treapta(n))
 
 	_btn_joaca = _buton("PLAY", _joaca)
-	butoane.add_child(_btn_joaca)
+	add_child(_btn_joaca)
 	# textul lui se scrie în `_actualizeaza` („TAKE COMMON", „TAKE EPIC"…), deci pornește gol
 	_btn_ia = _buton("", _ia_premiul)
-	butoane.add_child(_btn_ia)
+	add_child(_btn_ia)
 	_btn_pleaca = _buton("Leave", _inchide)
-	butoane.add_child(_btn_pleaca)
+	add_child(_btn_pleaca)
 
-	get_viewport().size_changed.connect(_relayout)
+	# nodurile astea sunt așezate cu mâna, în `_layout`, nu de containere
+	_asaza_totul(cap, stanga, dreapta)
+	get_viewport().size_changed.connect(_layout)
 
-# O treaptă din scara de premii: „3" + numele rarității, în culoarea ei.
-func _treapta(n: int) -> Control:
-	var pc := PanelContainer.new()
-	pc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(1, 1, 1, 0.03)
-	sb.border_color = Color(ACCENT_STINS.r, ACCENT_STINS.g, ACCENT_STINS.b, 0.7)
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(2)
-	sb.content_margin_left = 10
-	sb.content_margin_right = 10
-	sb.content_margin_top = 3
-	sb.content_margin_bottom = 3
-	pc.add_theme_stylebox_override("panel", sb)
+# Reține nodurile care nu au variabilă proprie, ca `_layout` să le poată muta.
+var _cap_scara: Control
+var _panel_stanga: NinePatchRect
+var _panel_dreapta: NinePatchRect
+var _ornament: Control
 
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 7)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pc.add_child(hb)
+func _asaza_totul(cap: Control, stanga: NinePatchRect, dreapta: NinePatchRect) -> void:
+	_cap_scara = cap
+	_panel_stanga = stanga
+	_panel_dreapta = dreapta
+	_layout()
 
-	var nr := Label.new()
-	nr.text = str(n)
-	nr.add_theme_font_size_override("font_size", 16)
-	nr.add_theme_color_override("font_color", OS_ALB)
-	_contur(nr)
-	hb.add_child(nr)
-
-	var rar := Label.new()
+# O treaptă din scara de premii: „3  UNCOMMON", pe o plăcuță.
+func _treapta(n: int) -> Dictionary:
+	var placa := _cadru(CH_PLACA, 1, false)    # peste fundalul colorat al raritatii
+	add_child(placa)
+	var fundal := ColorRect.new()
+	fundal.color = Color(1, 1, 1, 0.03)
+	fundal.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fundal)
+	move_child(fundal, placa.get_index())      # sub plăcuță
+	var nr := _eticheta(str(n), 19, OS_ALB, HORIZONTAL_ALIGNMENT_CENTER)
+	add_child(nr)
 	var info := _info_raritate(String(PREMII[n]))
-	rar.text = String(info["nume"])
-	rar.add_theme_font_size_override("font_size", 15)
-	rar.add_theme_color_override("font_color", (info["color"] as Color).lerp(Color.WHITE, 0.25))
-	_contur(rar)
-	hb.add_child(rar)
-
-	_trepte.append({"box": pc, "sb": sb, "n": n})
-	return pc
+	var rar := _eticheta(String(info["nume"]), 16, (info["color"] as Color).lerp(Color.WHITE, 0.2),
+		HORIZONTAL_ALIGNMENT_LEFT)
+	add_child(rar)
+	return {"placa": placa, "fundal": fundal, "nr": nr, "rar": rar, "n": n,
+		"culoare": info["color"] as Color}
 
 # Numele și culoarea unei rarități, luate din `levelup.gd` (singurul loc unde trăiesc).
 func _info_raritate(rar: String) -> Dictionary:
@@ -359,6 +357,80 @@ func _info_raritate(rar: String) -> Dictionary:
 	if lu != null:
 		return lu.RARITIES.get(rar, lu.RARITIES["common"])
 	return {"nume": rar, "color": Color(1, 1, 1)}
+
+# ---------------------------------------------------------------------------
+# AȘEZAREA ÎN PAGINĂ
+# ---------------------------------------------------------------------------
+# Totul e scris în coordonatele planului de 1152×648 și trecut prin `_R`, care îl mută și-l scalează
+# în fereastra de acum. Un singur loc de schimbat dacă vrei alt aranjament.
+func _layout() -> void:
+	if _panou == null or not is_inside_tree():
+		return
+	var vp := get_viewport().get_visible_rect().size
+	_k = minf(vp.x / PLAN.x, vp.y / PLAN.y)
+	_off = (vp - PLAN * _k) * 0.5
+
+	_pune(_panou, Rect2(6, 6, 1140, 636))
+	_pune(_titlu, Rect2(0, 14, 1152, 52))
+	_pune(_ornament, Rect2(366, 66, 420, 14))
+	_pune(_lbl_stare, Rect2(330, 82, 492, 28))
+
+	var scena_rama := Rect2(330, 112, 492, 512)
+	_pune(_rama_scena, scena_rama)
+	_pune(_scena_clip, scena_rama.grow(-9))
+
+	# arta: mărire ÎNTREAGĂ, cât încape, centrată pe conținutul din poză (nu pe canvas)
+	var interior := scena_rama.grow(-9).size
+	var zoom := maxf(1.0, floorf(minf(interior.x / ART_CONTINUT.size.x, interior.y / ART_CONTINUT.size.y)))
+	var dim := ART_CONTINUT.size * zoom
+	_art_zoom = zoom
+	_art_orig = (interior - dim) * 0.5 - ART_CONTINUT.position * zoom
+	_scena.position = _art_orig * _k
+	_scena.size = Vector2(128, 128) * zoom * _k
+	_reflector.size = Vector2(interior.x, interior.y * 0.9) * _k
+	_reflector.position = Vector2(0, -interior.y * 0.12) * _k
+
+	_pune(_panel_stanga, Rect2(26, 112, 280, 512))
+	_pune(_lbl_runda, Rect2(46, 140, 240, 36))
+	_pune(_wrap_indiciu, Rect2(46, 190, 240, 56))
+	_pune(_wrap_risc, Rect2(46, 256, 240, 56))
+	_pune(_premiu_box, Rect2(46, 340, 240, 200))
+
+	_pune(_panel_dreapta, Rect2(846, 112, 280, 512))
+	_pune(_cap_scara, Rect2(866, 132, 240, 24))
+	for i in _trepte.size():
+		var r := Rect2(866, 164 + i * 46, 240, 40)
+		_pune(_trepte[i]["placa"], r)
+		_pune(_trepte[i]["fundal"], r.grow(-4))
+		_pune(_trepte[i]["nr"], Rect2(r.position.x + 12, r.position.y + 9, 26, 24))
+		_pune(_trepte[i]["rar"], Rect2(r.position.x + 48, r.position.y + 11, 180, 22))
+	_aseaza_butoane()
+	_aseaza_paharele()
+
+# Butoanele se string unul sub altul, sărind peste cele ascunse: „TAKE EPIC" apare doar când ai
+# ce lua, iar fără asta rămânea o gaură cât un buton între PLAY și LEAVE.
+func _aseaza_butoane() -> void:
+	if _btn_joaca == null:
+		return
+	var y := 412.0
+	for b in [_btn_joaca, _btn_ia, _btn_pleaca]:
+		if not b.visible:
+			continue
+		_pune(b, Rect2(866, y, 240, 46))
+		y += 54.0
+
+var _art_zoom := 4.0
+var _art_orig := Vector2.ZERO
+
+func _pune(c: Control, r: Rect2) -> void:
+	if c == null:
+		return
+	c.position = _off + r.position * _k
+	c.size = r.size * _k
+
+# Din pixeli de POZĂ în pixeli de ecran, în interiorul scenei.
+func _art(v: Vector2) -> Vector2:
+	return (_art_orig + v * _art_zoom) * _k
 
 # ---------------------------------------------------------------------------
 # JOCUL
@@ -510,7 +582,7 @@ func _reseteaza_masa() -> void:
 		_cup_x[i] = SLOT_X[i]
 		_cup_y[i] = CUP_Y
 	_bila.visible = false
-	_relayout()
+	_layout()
 
 func _set_cup_y(v: float, i: int) -> void:
 	_cup_y[i] = v
@@ -519,26 +591,32 @@ func _set_cup_y(v: float, i: int) -> void:
 # TEXTELE ȘI BUTOANELE, după stare
 # ---------------------------------------------------------------------------
 func _actualizeaza() -> void:
-	_lbl_runda.text = "" if _runda == 0 else tr("Round %d") % _runda   # tr() explicit: are %d
+	# tr() explicit: are %d. Înainte de prima rundă scrie „READY" — altfel panoul din stânga
+	# rămâne complet gol când deschizi meniul și pare că nu s-a încărcat.
+	_lbl_runda.text = "READY" if _runda == 0 else tr("Round %d") % _runda
+	var pedeapsa := int(round(PEDEAPSA * 100.0))
 	match _stare:
 		"intro":
 			_lbl_stare.text = "Guess which cup hides the ball"
-			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % int(round(PEDEAPSA * 100.0))
+			_lbl_indiciu.text = "Two in a row for the first prize"
+			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % pedeapsa
 		"amesteca":
 			_lbl_stare.text = "Watch the cups"
 			_lbl_risc.text = ""
-		"alege":
+		"alege", "arata":
 			_lbl_stare.text = "Where is the ball?"
-			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % int(round(PEDEAPSA * 100.0))
+			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % pedeapsa
 		"castigat":
 			_lbl_stare.text = "YOU WIN!"
-			_lbl_risc.text = "" if PREMII.has(_sir) else "Two in a row for the first prize"
+			_lbl_indiciu.text = "" if PREMII.has(_sir) else "Two in a row for the first prize"
+			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % pedeapsa
 		"gata":
 			var pierdut: bool = _sir == 0 and _runda > 0
 			_lbl_stare.text = "YOU LOSE" if pierdut else ""
+			_lbl_indiciu.text = ""
 			# ⚠️ Pedeapsa TREBUIE scrisă pe ecran: e singurul lucru care se schimbă în restul rundei
 			# și nu se vede nicăieri altundeva. tr() explicit: are %d.
-			_lbl_risc.text = tr("The game got %d%% harder") % int(round(PEDEAPSA * 100.0)) if pierdut else ""
+			_lbl_risc.text = tr("The game got %d%% harder") % pedeapsa if pierdut else ""
 	var e_pierdut: bool = _stare == "gata" and _sir == 0 and _runda > 0
 	_lbl_stare.add_theme_color_override("font_color",
 		Color(0.44, 0.86, 0.44) if _stare == "castigat" else (
@@ -553,99 +631,175 @@ func _actualizeaza() -> void:
 		# ⚠️ `tr()` și pe numele rarității: textul e ASAMBLAT, deci Godot nu-l mai traduce singur.
 		_btn_ia.text = tr("TAKE %s") % tr(String(_info_raritate(String(PREMII[_sir]))["nume"])).to_upper()
 	_btn_pleaca.visible = _stare != "amesteca"
+	_aseaza_butoane()
 	for b in _zone:
 		b.disabled = _stare != "alege"
 
-	# scara de premii: treapta pe care ai ajuns se aprinde, cele trecute rămân stinse
+	# scara de premii: treapta următoare se aprinde, cele luate rămân pline
 	for t in _trepte:
-		var activa: bool = int(t["n"]) == _sir + 1 and _stare != "gata"
-		var luata: bool = int(t["n"]) <= _sir
-		var sb: StyleBoxFlat = t["sb"]
-		sb.border_color = ACCENT_CLAR if activa else Color(ACCENT_STINS.r, ACCENT_STINS.g, ACCENT_STINS.b, 0.7)
-		sb.bg_color = Color(1, 1, 1, 0.10) if luata else Color(1, 1, 1, 0.03)
-		(t["box"] as Control).modulate = Color(1, 1, 1) if (activa or luata) else Color(0.78, 0.76, 0.78)
+		var n: int = t["n"]
+		var activa: bool = n == _sir + 1 and _stare != "gata"
+		var luata: bool = n <= _sir
+		var cul: Color = t["culoare"]
+		(t["fundal"] as ColorRect).color = Color(cul.r, cul.g, cul.b, 0.22) if luata else Color(1, 1, 1, 0.03)
+		(t["placa"] as Control).modulate = ACCENT_CLAR if activa else (
+			Color(1, 1, 1) if luata else Color(0.55, 0.52, 0.55))
+		(t["nr"] as Label).modulate = Color(1, 1, 1) if (activa or luata) else Color(0.7, 0.68, 0.7)
+		(t["rar"] as Label).modulate = Color(1, 1, 1) if (activa or luata) else Color(0.7, 0.68, 0.7)
 
 # ---------------------------------------------------------------------------
-# AȘEZAREA ÎN PAGINĂ (merge la orice rezoluție)
+# CE SE MIȘCĂ ÎN FIECARE CADRU
 # ---------------------------------------------------------------------------
-func _process(_delta: float) -> void:
-	if visible:
-		_aseaza_paharele()
-
-func _relayout() -> void:
-	if _masa == null or not is_inside_tree():
+func _process(delta: float) -> void:
+	if not visible:
 		return
-	var vp := get_viewport().get_visible_rect().size
-	# masa stă între capul paginii și butoane, păstrându-și proporțiile
-	var zona := Rect2(60.0, vp.y * 0.20, maxf(100.0, vp.x - 120.0), maxf(100.0, vp.y * 0.60))
-	var s: float = minf(zona.size.x / TABLE_W, zona.size.y / TABLE_H)
-	var dim := Vector2(TABLE_W, TABLE_H) * s
-	_masa.position = zona.position + (zona.size - dim) * 0.5
-	_masa.size = dim
 	_aseaza_paharele()
+	# treapta următoare pulsează încet — singurul lucru care se mișcă în meniu când stai pe loc
+	_puls += delta
+	var p := 0.78 + 0.22 * sin(_puls * 3.0)
+	for t in _trepte:
+		if int(t["n"]) == _sir + 1 and _stare != "gata" and _stare != "amesteca":
+			(t["placa"] as Control).modulate = ACCENT_CLAR * Color(p, p, p, 1.0)
 
-# Paharele, bila și zonele de click, din pixelii pozei în pixeli de ecran.
+# Paharele, umbrele, bila și zonele de click, din pixelii pozei în pixeli de ecran.
 func _aseaza_paharele() -> void:
-	if _masa == null or _masa.size.x <= 0.0:
+	if _scena_clip == null:
 		return
-	var s: float = _masa.size.x / TABLE_W
+	var z := _art_zoom * _k
 	for i in 3:
 		var c: TextureRect = _cupe[i]
-		c.size = Vector2(CUP_W, CUP_H) * s
-		c.position = (Vector2(_cup_x[i], _cup_y[i]) - Vector2(CUP_W, CUP_H) * 0.5) * s
-	var d := BILA_D * s
+		c.size = Vector2(CUP_W, CUP_H) * z
+		c.position = _art(Vector2(_cup_x[i] - CUP_W * 0.5, _cup_y[i] - CUP_H * 0.5))
+		# Umbra: cu cât paharul e mai sus, cu atât mai mică și mai palidă — ea vinde săritura.
+		# ⚠️ Ține-o SLABĂ. Prima încercare (alpha 0,85, lată cât paharul + 5) punea trei pete
+		# cenușii pe masă, de parcă scăpase cineva scrum acolo.
+		var sus: float = clampf((CUP_Y - _cup_y[i]) / RIDICARE, 0.0, 1.0)
+		var u: TextureRect = _umbre[i]
+		var lat: float = (CUP_W + 1.0) * (1.0 - 0.3 * sus)
+		u.size = Vector2(lat, lat * 0.34) * z
+		u.position = _art(Vector2(_cup_x[i] - lat * 0.5, TALPA - lat * 0.17 + 0.5))
+		u.modulate = Color(1, 1, 1, 0.42 - 0.26 * sus)
+	var d := BILA_D * z
 	_bila.size = Vector2(d, d)
-	_bila.position = (Vector2(SLOT_X[_slot[_bila_cup]], BILA_Y) - Vector2(BILA_D, BILA_D) * 0.5) * s
+	_bila.position = _art(Vector2(SLOT_X[_slot[_bila_cup]] - BILA_D * 0.5, BILA_Y - BILA_D * 0.5))
 	for i in 3:
 		var b: Button = _zone[i]
-		b.size = Vector2(CUP_W, CUP_H + RIDICARE * 0.5) * s
-		b.position = (Vector2(SLOT_X[i], CUP_Y + RIDICARE * 0.25) - Vector2(CUP_W, CUP_H + RIDICARE * 0.5) * 0.5) * s
+		var lat := CUP_W + 8.0
+		var inalt := CUP_H + RIDICARE
+		b.size = Vector2(lat, inalt) * z
+		b.position = _art(Vector2(SLOT_X[i] - lat * 0.5, TALPA + 2.0 - inalt))
 
 # ---------------------------------------------------------------------------
-# CĂRĂMIZILE DE ASPECT (aceleași ca la `casino.gd` — citește acolo de ce arată așa)
+# CĂRĂMIZILE DE ASPECT
 # ---------------------------------------------------------------------------
-func _cadru(celula: Vector2i, margine: int) -> NinePatchRect:
+# O ramă din planșa `Border EGT.png`, ca NinePatch: colțurile rămân întregi, laturile se întind.
+# `zoom` = de câte ori se mărește celula de 64px înainte de întindere (2 = ramă groasă, de ecran).
+#
+# ⚠️ `centru = false` e OBLIGATORIU pentru ramele puse PESTE ceva. Celulele din planșă NU au
+# mijlocul transparent, au un bleumarin închis — o ramă desenată peste scenă îi acoperă complet
+# poza și rămâi cu un dreptunghi gol (exact asta a pățit prima versiune a meniului nou).
+func _cadru(celula: Vector2i, zoom: int, centru: bool = true) -> NinePatchRect:
 	var np := NinePatchRect.new()
-	np.texture = _chenar(celula)
+	np.texture = _chenar(celula, zoom)
 	np.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	np.patch_margin_left = margine * ZOOM
-	np.patch_margin_right = margine * ZOOM
-	np.patch_margin_top = margine * ZOOM
-	np.patch_margin_bottom = margine * ZOOM
+	np.draw_center = centru
+	np.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var m := 15 * zoom
+	np.patch_margin_left = m
+	np.patch_margin_right = m
+	np.patch_margin_top = m
+	np.patch_margin_bottom = m
 	return np
 
-func _chenar(celula: Vector2i) -> ImageTexture:
+func _chenar(celula: Vector2i, zoom: int) -> ImageTexture:
 	if _sheet_img == null:
 		var tex := load(SHEET) as Texture2D
 		if tex == null:
 			return null
 		_sheet_img = tex.get_image()
 	var bucata := _sheet_img.get_region(Rect2i(celula.x * CELULA, celula.y * CELULA, CELULA, CELULA))
-	bucata.resize(CELULA * ZOOM, CELULA * ZOOM, Image.INTERPOLATE_NEAREST)
+	bucata.resize(CELULA * zoom, CELULA * zoom, Image.INTERPOLATE_NEAREST)
 	return ImageTexture.create_from_image(bucata)
 
-func _linie(latime: float, inaltime: int) -> Control:
+# Cercul de lumină / umbra de sub pahar: un gradient radial desenat o dată, în cod.
+func _tex_radiala(dim: int, culoare: Color, putere: float) -> ImageTexture:
+	var img := Image.create(dim, dim, false, Image.FORMAT_RGBA8)
+	var c := (dim - 1) * 0.5
+	for y in dim:
+		for x in dim:
+			var d := Vector2(x - c, y - c).length() / c
+			var a: float = clampf(1.0 - d, 0.0, 1.0)
+			img.set_pixel(x, y, Color(culoare.r, culoare.g, culoare.b, a * a * putere))
+	return ImageTexture.create_from_image(img)
+
+# Linia de sub titlu, cu un romb în mijloc — două ColorRect-uri și un pătrat rotit la 45°.
+func _linie_ornament() -> Control:
 	var wrap := Control.new()
-	wrap.custom_minimum_size = Vector2(0, inaltime)
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hb := HBoxContainer.new()
-	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hb.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_theme_constant_override("separation", 0)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wrap.add_child(hb)
-	for a in [0.15, 0.55, 0.15]:
-		var r := ColorRect.new()
-		r.color = Color(ACCENT.r, ACCENT.g, ACCENT.b, a)
-		r.custom_minimum_size = Vector2(latime / 3.0, 2)
-		r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		hb.add_child(r)
+	_ornament = wrap
+	# ⚠️ Ancorele se scriu de mână, nu cu un preset: `PRESET_LEFT_WIDE` ancorează și marginea de jos
+	# la 1, deci `offset_bottom = 8` înseamnă „cu 8 px MAI JOS decât fundul", nu „gros de 2 px" —
+	# prima încercare a ieșit cu două bare grase cât o cărămidă.
+	var st := ColorRect.new()
+	st.color = Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.5)
+	st.anchor_left = 0.0
+	st.anchor_right = 0.42
+	st.anchor_top = 0.0
+	st.anchor_bottom = 0.0
+	st.offset_top = 6
+	st.offset_bottom = 8
+	st.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(st)
+	var dr := ColorRect.new()
+	dr.color = st.color
+	dr.anchor_left = 0.58
+	dr.anchor_right = 1.0
+	dr.anchor_top = 0.0
+	dr.anchor_bottom = 0.0
+	dr.offset_top = 6
+	dr.offset_bottom = 8
+	dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(dr)
+	var romb := ColorRect.new()
+	romb.color = ACCENT_CLAR
+	romb.set_anchors_preset(Control.PRESET_CENTER)
+	romb.size = Vector2(9, 9)
+	romb.pivot_offset = Vector2(4.5, 4.5)
+	romb.rotation = PI * 0.25
+	romb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wrap.add_child(romb)
+	wrap.resized.connect(func():
+		romb.position = Vector2(wrap.size.x * 0.5 - 4.5, 2.5))
 	return wrap
 
-func _contur(lbl: Label) -> void:
-	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	lbl.add_theme_constant_override("outline_size", 3)
+func _eticheta(text: String, dim: int, culoare: Color, aliniere: int) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.horizontal_alignment = aliniere
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.add_theme_font_size_override("font_size", dim)
+	l.add_theme_color_override("font_color", culoare)
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_constant_override("outline_size", 4)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+# O etichetă care se rupe pe mai multe rânduri.
+#
+# ⚠️ NU o așeza direct cu `_pune`. O etichetă cu autowrap își calculează înălțimea minimă din
+# lățimea pe care o are ÎN ACEL MOMENT — iar înainte de prima așezare lățimea ei e 0, adică „un
+# cuvânt pe rând". Minimul ăla (439 px pentru un text de două rânduri!) rămâne agățat de ea și
+# `size` nu mai poate coborî sub el: textul ajunge tocmai în mijlocul panoului. De aia eticheta stă
+# într-un Control gol, ancorat pe tot cuprinsul lui: containerul primește mărimea, iar eticheta o
+# moștenește DUPĂ ce lățimea e cunoscută.
+func _eticheta_rupta(text: String, dim: int, culoare: Color) -> Control:
+	var wrap := Control.new()
+	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l := _eticheta(text, dim, culoare, HORIZONTAL_ALIGNMENT_CENTER)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	wrap.add_child(l)
+	return wrap
 
 func _lumina(alpha: float) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
@@ -653,30 +807,32 @@ func _lumina(alpha: float) -> StyleBoxFlat:
 	sb.set_corner_radius_all(3)
 	return sb
 
+# Butoanele au rama din aceeași planșă, ca să nu iasă din stil.
 func _buton(text: String, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(240, 46)
-	b.add_theme_font_size_override("font_size", 20)
+	b.add_theme_font_size_override("font_size", 19)
 	b.add_theme_color_override("font_color", OS_ALB)
 	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
-	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, ACCENT_STINS))
-	b.add_theme_stylebox_override("hover", _sb(Color8(42, 30, 30), ACCENT))
-	b.add_theme_stylebox_override("pressed", _sb(Color8(56, 36, 32), ACCENT_CLAR))
+	b.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	b.add_theme_constant_override("outline_size", 4)
+	b.add_theme_stylebox_override("normal", _sb_buton(CH_BUTON, Color(1, 1, 1)))
+	b.add_theme_stylebox_override("hover", _sb_buton(CH_BUTON, ACCENT_CLAR * Color(1.25, 1.25, 1.25, 1)))
+	b.add_theme_stylebox_override("pressed", _sb_buton(CH_BUTON, ACCENT))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("disabled", _sb_buton(CH_BUTON, Color(0.5, 0.5, 0.5)))
 	if cb.is_valid():
 		b.pressed.connect(func(): Audio.play("button", -3.0, 0.0))
 		b.pressed.connect(cb)
 	return b
 
-func _sb(bg: Color, border: Color) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(2)   # colțuri aproape drepte: pixel art, nu material design
+func _sb_buton(celula: Vector2i, tenta: Color) -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	sb.texture = _chenar(celula, 1)
+	sb.modulate_color = tenta
+	sb.set_texture_margin_all(15)
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	return sb

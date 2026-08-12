@@ -33,7 +33,10 @@ const FISIERE_UI := [
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [
-	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "ALBA NEAGRA", "%d", "%s", "", " ", "MAX",
+	# titlul meniului Alba-Neagra e scris cu spații între litere (efect de afiș), deci nu se
+	# potrivește cu „ALBA NEAGRA" — dar e tot nume propriu, nu se traduce
+	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "ALBA NEAGRA", "A L B A   N E A G R A",
+	"%d", "%s", "", " ", "MAX",
 	"keybinds", "graphics", "main", "settings", "language", "weapon", "character",
 	"leaderboard", "opstart", "same", "up", "down",
 ]
