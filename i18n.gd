@@ -127,7 +127,7 @@ const TRAD := {
 "Watch the cups": ["盯住杯子", "Behalte die Becher im Auge", "Sigue los vasos", "Следи за стаканами", "Suis les gobelets", "カップから目を離すな", "Patrz na kubki", "Bardakları izle"],
 "Where is the ball?": ["球在哪里？", "Wo ist die Kugel?", "¿Dónde está la bola?", "Где шарик?", "Où est la bille ?", "ボールはどこ？", "Gdzie jest kulka?", "Top nerede?"],
 "Two in a row for the first prize": ["连中两次才有第一个奖品", "Zwei in Folge für den ersten Preis", "Dos seguidas para el primer premio", "Две подряд — и получишь первый приз", "Deux d'affilée pour le premier lot", "2連続で最初の景品", "Dwa z rzędu do pierwszej nagrody", "İlk ödül için üst üste iki tane"],
-"Lose and the game gets %d%% harder": ["输了游戏会难 %d%%", "Verlierst du, wird das Spiel %d%% schwerer", "Si pierdes, el juego se vuelve %d%% más difícil", "Проиграешь — игра станет на %d%% сложнее", "Si tu perds, le jeu devient %d%% plus dur", "負けるとゲームが %d%% 難しくなる", "Przegrasz — gra będzie o %d%% trudniejsza", "Kaybedersen oyun %%%d zorlaşır"],
+"If you lose, gain +%d%% Difficulty": ["输了会 +%d%% 难度", "Verlierst du: +%d%% Schwierigkeit", "Si pierdes, +%d%% de dificultad", "Проиграешь — +%d%% сложности", "Si tu perds, +%d%% de difficulté", "負けると難易度 +%d%%", "Przegrasz — +%d%% trudności", "Kaybedersen +%%%d zorluk"],
 "The game got %d%% harder": ["游戏难度提高了 %d%%", "Das Spiel ist %d%% schwerer geworden", "El juego se ha vuelto %d%% más difícil", "Игра стала на %d%% сложнее", "Le jeu est devenu %d%% plus dur", "ゲームが %d%% 難しくなった", "Gra stała się o %d%% trudniejsza", "Oyun %%%d zorlaştı"],
 "Round %d": ["第 %d 轮", "Runde %d", "Ronda %d", "Раунд %d", "Manche %d", "ラウンド %d", "Runda %d", "Tur %d"],
 "TAKE %s": ["拿走 %s", "%s NEHMEN", "LLEVARSE %s", "ЗАБРАТЬ %s", "PRENDRE %s", "%s を受け取る", "WEŹ %s", "%s AL"],

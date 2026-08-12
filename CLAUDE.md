@@ -18,6 +18,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (Alba-Neagra: textul de avertisment de jos)
+
+**Cerut de Răzvan:** „la alba neagra vreau sa scrie jos If you lose, gain +10% Difficulty".
+
+Eticheta de risc (`_lbl_risc` din `alba_menu.gd`, stările `intro` și `alege`) zicea „Lose and the game gets 10% harder". Acum zice **„If you lose, gain +10% Difficulty"** — formulare care seamănă cu restul jocului, unde prețul e scris tot ca dificultate (`"Cost: +%d%% difficulty"` la trade-up / statuia Ender).
+
+- `i18n.gd`: cheia veche `"Lose and the game gets %d%% harder"` a fost **înlocuită** cu `"If you lose, gain +%d%% Difficulty"` (toate cele 8 traduceri rescrise; la turcă procentul stă înaintea cifrei, deci `+%%%d zorluk`).
+- Cheia `"The game got %d%% harder"` (mesajul de DUPĂ ce ai pierdut, starea `gata`) a rămas neatinsă: acolo e trecut, nu avertisment.
+- `tr()` explicit se păstrează — textul are `%d`, deci fără el s-ar căuta cheia „…+10%…", care nu există.
+
+**Verificat:** `tool_check_i18n.tscn` → „✔ TOTUL E TRADUS" (263 chei × 8 limbi) și o rulare cu poză a meniului: scrie „IF YOU LOSE, GAIN +10% DIFFICULTY" (fontul e all-caps).
+
+---
+
 ## Session log — 2026-08-11 (ALBA NEAGRA: structură nouă + jocul cu paharele)
 
 **Cerut de Răzvan:** un folder nou `harta/Alba Neagra` cu două poze — omul (structură nouă în lume, „dacă ai putea să îi dai și o animație mică de breathing") și masa (meniul care se deschide la E). „Vezi cum arată pe net Alba Neagra/Shell Game și vreau să îmi faci o animație la fel cu paharele. Pe runde și din ce în ce mai greu. Primești iteme din ce în ce mai bune dacă ghicești. 2 = common, 3 = uncommon și tot așa. Dacă vrei să continui și pierzi, nu primești nimic și îți crește dificultatea cu 10%. Poți să joci doar o singură dată per NPC."

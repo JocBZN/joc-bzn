@@ -523,13 +523,13 @@ func _actualizeaza() -> void:
 	match _stare:
 		"intro":
 			_lbl_stare.text = "Guess which cup hides the ball"
-			_lbl_risc.text = tr("Lose and the game gets %d%% harder") % int(round(PEDEAPSA * 100.0))
+			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % int(round(PEDEAPSA * 100.0))
 		"amesteca":
 			_lbl_stare.text = "Watch the cups"
 			_lbl_risc.text = ""
 		"alege":
 			_lbl_stare.text = "Where is the ball?"
-			_lbl_risc.text = tr("Lose and the game gets %d%% harder") % int(round(PEDEAPSA * 100.0))
+			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % int(round(PEDEAPSA * 100.0))
 		"castigat":
 			_lbl_stare.text = "YOU WIN!"
 			_lbl_risc.text = "" if PREMII.has(_sir) else "Two in a row for the first prize"
