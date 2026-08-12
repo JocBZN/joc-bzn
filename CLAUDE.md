@@ -18,6 +18,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (Alba-Neagra: meniul, adus la simetrie)
+
+**Cerut de Răzvan:** „e puțin asimetric meniul în Alba Neagra, fă-l bun profesionist."
+
+**Ce era strâmb, de fapt.** Panourile laterale erau de lățimi diferite (210 în stânga, 280 în dreapta), iar scena stătea între ele cu spații egale de 24 px. Marginile față de ecran ieșeau egale (26 și 26), deci la prima vedere părea în regulă — dar **mijlocul scenei cădea pe 541, nu pe 576**, adică cu 35 px la stânga față de titlul care stă exact deasupra ei. Așa ceva se vede ca „ceva nu e drept" fără să-ți dai seama ce, fiindcă ochiul compară omul cu paharele cu textul de deasupra lui, nu cu rama de afară. Pe deasupra, panoul din stânga era o cutie mică plutind la jumătatea înălțimii, față de o coloană întreagă în dreapta: toată greutatea desenului cădea într-o parte.
+
+**Caroiajul nou** (scris în comentariul din `_layout`, cu suma alături, ca să nu se strice la următoarea reglare):
+`26 ┃ panou 262 ┃ 24 ┃ SCENĂ 528 ┃ 24 ┃ panou 262 ┃ 26 = 1152`. Panourile sunt acum **egale și amândouă pe toată înălțimea** (112 → 624), iar mijlocul scenei cade fix pe 576, pe aceeași axă cu titlul, cu linia cu romb și cu rândul de stare. Mărirea artei rămâne ×4 — e limitată de înălțimea scenei, deci lățimea schimbată n-o atinge.
+
+**Cele două panouri au aceleași benzi pe înălțime**, ca să se citească drept o pereche: capul la 132 („ROUND 1" ↔ „PRIZE LADDER", aliniate la același mijloc), conținutul 164–388 (indiciul/premiul ↔ cele 5 trepte), o **linie despărțitoare la 398 în amândouă**, apoi josul 412–566 (avertismentul de risc ↔ butoanele). Linia e nouă (`_despartitor`) și e acolo ca jumătatea de jos a panourilor să arate a bandă cu rost, nu a loc rămas gol.
+
+**O gaură nouă, astupată.** Într-un panou înalt s-a văzut ce nu se vedea în cel mic: după prima ghicire reușită, banda din mijloc rămânea **complet goală** (indiciul „Two in a row…" se șterge de îndată ce ai un premiu de luat). Acum scrie **„One more for RARE"** — cheie nouă în `i18n.gd`, cu numele rarității tradus separat și scris cu majuscule, exact ca pe butonul „TAKE UNCOMMON" de vizavi. ⚠️ La șirul de 6 nu mai există treaptă următoare: `PREMII[7]` ar crăpa, deci textul e păzit de un `PREMII.has(_sir + 1)`.
+
+**Verificat** cu o scenă de test care instanțiază meniul și fotografiază șase stări (intro / de ales / câștigat / șir maxim / pierdut / premiul cu nume lung în panou) — inclusiv cazul care ar fi crăpat. `tool_check_i18n` ✔ 267 chei × 8 limbi.
+
+---
+
 ## Session log — 2026-08-12 (Alba-Neagra: titlul, panoul din stânga, dificultatea)
 
 **Cerut de Răzvan:** „partea din stânga de la Alba Neagra e prea mare doar pentru un scris și o imagine de la item când câștigi. Și sus nu vreau să scrie Alba Neagra, vreau să scrie doar *Where is the ball?*. Și fă-l să fie mai greu puțin."

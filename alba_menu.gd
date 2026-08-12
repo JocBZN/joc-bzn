@@ -296,13 +296,14 @@ func _build() -> void:
 	# --- panoul din STÂNGA: runda, riscul, premiul câștigat ---
 	var stanga := _cadru(CH_PANEL, 1)
 	add_child(stanga)
-	# scrisul e cu un punct mai mic decât înainte: panoul s-a strâns de la 280 la 210 px
-	_lbl_runda = _eticheta("", 24, ACCENT_CLAR, HORIZONTAL_ALIGNMENT_CENTER)
+	_sep_stanga = _despartitor()
+	add_child(_sep_stanga)
+	_lbl_runda = _eticheta("", 20, ACCENT_CLAR, HORIZONTAL_ALIGNMENT_CENTER)
 	add_child(_lbl_runda)
-	_wrap_indiciu = _eticheta_rupta("Guess which cup hides the ball", 14, CENUSA)
+	_wrap_indiciu = _eticheta_rupta("Guess which cup hides the ball", 15, CENUSA)
 	_lbl_indiciu = _wrap_indiciu.get_child(0) as Label
 	add_child(_wrap_indiciu)
-	_wrap_risc = _eticheta_rupta("", 13, CENUSA)
+	_wrap_risc = _eticheta_rupta("", 14, CENUSA)
 	_lbl_risc = _wrap_risc.get_child(0) as Label
 	add_child(_wrap_risc)
 
@@ -329,6 +330,8 @@ func _build() -> void:
 	# --- panoul din DREAPTA: scara de premii + butoanele ---
 	var dreapta := _cadru(CH_PANEL, 1)
 	add_child(dreapta)
+	_sep_dreapta = _despartitor()
+	add_child(_sep_dreapta)
 	var cap := _eticheta("PRIZE LADDER", 16, ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
 	add_child(cap)
 	_trepte.clear()
@@ -352,6 +355,8 @@ var _cap_scara: Control
 var _panel_stanga: NinePatchRect
 var _panel_dreapta: NinePatchRect
 var _ornament: Control
+var _sep_stanga: ColorRect
+var _sep_dreapta: ColorRect
 
 func _asaza_totul(cap: Control, stanga: NinePatchRect, dreapta: NinePatchRect) -> void:
 	_cap_scara = cap
@@ -401,10 +406,17 @@ func _layout() -> void:
 	_pune(_ornament, Rect2(366, 66, 420, 14))
 	_pune(_lbl_stare, Rect2(330, 82, 492, 28))
 
-	# Scena e lipită de panoul din stânga (care s-a strâns) și de cel din dreapta, cu același spațiu
-	# de 24 px de fiecare parte. NU e centrată pe ecran, fiindcă panourile nu sunt la fel de late —
-	# centrate ar fi titlul și linia de sub el, care se uită la toată rama, nu la scenă.
-	var scena_rama := Rect2(260, 112, 562, 512)
+	# --- CAROIAJUL (rescris pe 2026-08-12: „e puțin asimetric, fă-l profesionist") ---
+	# Trei coloane pe același rând (y 112 → 624), cu aceleași cifre în oglindă:
+	#   26 ┃ panou 262 ┃ 24 ┃ SCENĂ 528 ┃ 24 ┃ panou 262 ┃ 26
+	# Adunate: 26+262+24+528+24+262+26 = 1152. Deci mijlocul scenei cade FIX pe 576, adică pe
+	# mijlocul ecranului — acolo unde stau deja titlul, linia cu romb și eticheta de stare.
+	# ⚠️ Înainte panourile erau de 210 și 280 și scena de 562: cu spații egale de 24, mijlocul
+	# scenei ieșea pe 541, cu 35 px mai la stânga decât titlul de deasupra ei. Asta se vedea ca
+	# „ceva nu e drept" fără să-ți dai seama ce, iar panoul din stânga, mic și plutind la jumătatea
+	# înălțimii, lăsa toată greutatea desenului în dreapta.
+	# Dacă umbli la vreo cifră de aici, ține suma la 1152 și cele două panouri EGALE.
+	var scena_rama := Rect2(312, 112, 528, 512)
 	_pune(_rama_scena, scena_rama)
 	_pune(_scena_clip, scena_rama.grow(-9))
 
@@ -419,28 +431,35 @@ func _layout() -> void:
 	_reflector.size = Vector2(interior.x, interior.y * 0.9) * _k
 	_reflector.position = Vector2(0, -interior.y * 0.12) * _k
 
-	# Panoul din stânga ține doar două-trei rânduri de scris ȘI iconița premiului, deci e mic și
-	# centrat pe înălțimea scenei (2026-08-12, „e prea mare doar pentru un scris și o imagine").
+	# Cele două panouri au ACELEAȘI trei benzi pe înălțime, ca ochiul să le citească drept o
+	# pereche, nu ca două cutii nimerite acolo:
+	#   132–156  capul coloanei   (stânga „ROUND 1", dreapta „PRIZE LADDER")
+	#   164–388  conținutul       (stânga indiciul / premiul, dreapta cele 5 trepte)
+	#   398      linia despărțitoare, la aceeași înălțime în amândouă
+	#   412–566  josul            (stânga avertismentul de risc, dreapta butoanele)
+	# ⚠️ Rama e un NinePatch cu marginea de 15 px, deci scrisul începe la x+18, nu la x: 44 în
+	# stânga (panou de la 26), 882 în dreapta (panou de la 864). Ambele coloane de scris sunt de
+	# 226 px — dacă schimbi una, schimb-o și pe cealaltă, altfel se pierde tot ce e mai sus.
 	#
-	# Premiul stă peste indiciu și peste avertismentul de risc, nu sub ele: cele două se văd doar cât
-	# joci, iar premiul apare abia la final, deci nu sunt niciodată pe ecran în același timp (vezi
-	# `_actualizeaza`, care le și ascunde ca să fie sigur). Așa panoul e cât conținutul lui, nu cât
-	# suma lucrurilor care s-ar putea nimeri în el.
-	# ⚠️ Rama e un NinePatch cu marginea de 15 px, deci scrisul începe de la x+18, nu de la x.
-	_pune(_panel_stanga, Rect2(26, 247, 210, 242))
-	_pune(_lbl_runda, Rect2(44, 273, 174, 32))
-	_pune(_wrap_indiciu, Rect2(44, 311, 174, 60))
-	_pune(_wrap_risc, Rect2(44, 375, 174, 56))
-	_pune(_premiu_box, Rect2(44, 311, 174, 150))
+	# Premiul stă PESTE indiciu, nu sub el: indiciul se vede cât joci, premiul abia la final, deci
+	# nu sunt niciodată pe ecran în același timp (vezi `_actualizeaza`, care le și ascunde ca să fie
+	# sigur). Așa banda din mijloc are un singur lucru în ea, oricare ar fi starea.
+	_pune(_panel_stanga, Rect2(26, 112, 262, 512))
+	_pune(_lbl_runda, Rect2(44, 128, 226, 32))
+	_pune(_sep_stanga, Rect2(44, 398, 226, 2))
+	_pune(_premiu_box, Rect2(44, 206, 226, 140))
+	_pune(_wrap_indiciu, Rect2(44, 244, 226, 64))
+	_pune(_wrap_risc, Rect2(44, 459, 226, 60))
 
-	_pune(_panel_dreapta, Rect2(846, 112, 280, 512))
-	_pune(_cap_scara, Rect2(866, 132, 240, 24))
+	_pune(_panel_dreapta, Rect2(864, 112, 262, 512))
+	_pune(_cap_scara, Rect2(882, 132, 226, 24))
+	_pune(_sep_dreapta, Rect2(882, 398, 226, 2))
 	for i in _trepte.size():
-		var r := Rect2(866, 164 + i * 46, 240, 40)
+		var r := Rect2(882, 164 + i * 46, 226, 40)
 		_pune(_trepte[i]["placa"], r)
 		_pune(_trepte[i]["fundal"], r.grow(-4))
 		_pune(_trepte[i]["nr"], Rect2(r.position.x + 12, r.position.y + 9, 26, 24))
-		_pune(_trepte[i]["rar"], Rect2(r.position.x + 48, r.position.y + 11, 180, 22))
+		_pune(_trepte[i]["rar"], Rect2(r.position.x + 48, r.position.y + 11, 166, 22))
 	_aseaza_butoane()
 	_aseaza_paharele()
 
@@ -453,7 +472,7 @@ func _aseaza_butoane() -> void:
 	for b in [_btn_joaca, _btn_ia, _btn_pleaca]:
 		if not b.visible:
 			continue
-		_pune(b, Rect2(866, y, 240, 46))
+		_pune(b, Rect2(882, y, 226, 46))
 		y += 54.0
 
 var _art_zoom := 4.0
@@ -647,7 +666,19 @@ func _actualizeaza() -> void:
 			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % pedeapsa
 		"castigat":
 			_lbl_stare.text = "YOU WIN!"
-			_lbl_indiciu.text = "" if PREMII.has(_sir) else "Two in a row for the first prize"
+			# Panoul din stânga spune ce se câștigă mergând mai departe — altfel, de la a doua
+			# ghicire încolo, banda lui din mijloc rămânea goală și panoul părea neterminat.
+			# ⚠️ La `_sir == SIR_MAXIM` NU mai există treaptă următoare (`PREMII[7]` ar crăpa);
+			# starea asta se închide oricum singură cu premiul în mână, vezi `_rezultat`.
+			if not PREMII.has(_sir):
+				_lbl_indiciu.text = "Two in a row for the first prize"
+			elif PREMII.has(_sir + 1):
+				# tr() explicit de două ori: textul e ASAMBLAT, deci nici el, nici numele
+				# raritații din el nu mai trec singure prin traducere.
+				_lbl_indiciu.text = tr("One more for %s") % tr(
+					String(_info_raritate(String(PREMII[_sir + 1]))["nume"])).to_upper()
+			else:
+				_lbl_indiciu.text = ""
 			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % pedeapsa
 		"gata":
 			var pierdut: bool = _sir == 0 and _runda > 0
@@ -814,6 +845,16 @@ func _linie_ornament() -> Control:
 	wrap.resized.connect(func():
 		romb.position = Vector2(wrap.size.x * 0.5 - 4.5, 2.5))
 	return wrap
+
+# Linia subțire care taie un panou în două. Stă la aceeași înălțime în amândouă (398) și taie
+# fiecare panou acolo unde se schimbă rolul: în dreapta între ce POȚI câștiga și ce FACI, în stânga
+# între starea jocului și prețul greșelii. Fără ea, jumătatea de jos a panourilor părea o rămășiță
+# de loc gol, nu o bandă cu rost.
+func _despartitor() -> ColorRect:
+	var c := ColorRect.new()
+	c.color = Color(ACCENT.r, ACCENT.g, ACCENT.b, 0.35)
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return c
 
 func _eticheta(text: String, dim: int, culoare: Color, aliniere: int) -> Label:
 	var l := Label.new()

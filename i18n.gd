@@ -129,6 +129,9 @@ const TRAD := {
 "Where is the ball?": ["球在哪里？", "Wo ist die Kugel?", "¿Dónde está la bola?", "Где шарик?", "Où est la bille ?", "ボールはどこ？", "Gdzie jest kulka?", "Top nerede?"],
 # scrie sub titlu cât alegi; nu repeta întrebarea de mai sus, aici se spune ce ai de făcut
 "Pick a cup": ["选一个杯子", "Wähle einen Becher", "Elige un vaso", "Выбери стакан", "Choisis un gobelet", "カップを選べ", "Wybierz kubek", "Bir bardak seç"],
+# scrie în panoul din stânga după o ghicire reușită: ce iei dacă mai nimerești o dată. %s e
+# numele raritații, tradus separat (cheile „Common"…„Legendary") și scris cu majuscule.
+"One more for %s": ["再中一次得 %s", "Noch einer für %s", "Una más para %s", "Ещё одна — и %s", "Encore une pour %s", "あと1回で %s", "Jeszcze jedna do %s", "%s için bir tane daha"],
 "Two in a row for the first prize": ["连中两次才有第一个奖品", "Zwei in Folge für den ersten Preis", "Dos seguidas para el primer premio", "Две подряд — и получишь первый приз", "Deux d'affilée pour le premier lot", "2連続で最初の景品", "Dwa z rzędu do pierwszej nagrody", "İlk ödül için üst üste iki tane"],
 "If you lose, gain +%d%% Difficulty": ["输了会 +%d%% 难度", "Verlierst du: +%d%% Schwierigkeit", "Si pierdes, +%d%% de dificultad", "Проиграешь — +%d%% сложности", "Si tu perds, +%d%% de difficulté", "負けると難易度 +%d%%", "Przegrasz — +%d%% trudności", "Kaybedersen +%%%d zorluk"],
 "The game got %d%% harder": ["游戏难度提高了 %d%%", "Das Spiel ist %d%% schwerer geworden", "El juego se ha vuelto %d%% más difícil", "Игра стала на %d%% сложнее", "Le jeu est devenu %d%% plus dur", "ゲームが %d%% 難しくなった", "Gra stała się o %d%% trudniejsza", "Oyun %%%d zorlaştı"],
