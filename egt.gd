@@ -14,13 +14,20 @@ extends StaticBody2D
 
 @export var interact_range: float = 190.0    # cât de aproape trebuie să fii ca să apară textul
 @export var label_offset_y: float = -160.0   # cât de sus stă textul (îl citește `interact_ui.gd`)
-@export var art_scale: float = 1.6           # cât de mare e aparatul pe ecran (arta e 68×111 px)
+@export var art_scale: float = 1.6           # cât de mare e aparatul pe ecran (arta e 128×128 px)
 
 # Cât coboară arta SUB linia de sortare, în pixeli de LUME. Trebuie să fie mai mare decât
 # jumătatea sprite-ului player-ului (~64px), altfel îi rămân picioarele afară când trece prin
 # spate. 74 = cât au copacii și statuia. Dacă schimbi valoarea, mută și `CollisionShape2D`
 # din `egt.tscn` cu aceeași cantitate, altfel hitbox-ul se dezlipește de aparat.
 const ACOPERIRE_JOS := 74.0
+
+# ⚠️ `Sprite2D` din `egt.tscn` are scrise ÎN SCENĂ exact valorile pe care le pune `_ready()`
+# (`scale = 1.6`, `offset.y = -7.75`). Jocul nu le citește — le recalculează oricum — sunt acolo
+# DOAR ca editorul să arate aparatul la mărimea și în locul din joc, altfel potrivești
+# `CollisionShape2D` după o imagine mai mică și mai sus decât cea adevărată (2026-08-12).
+# Schimbi `art_scale`, `ACOPERIRE_JOS` sau poza? Rescrie și cifrele din scenă, altfel editorul
+# minte din nou — în tăcere. Formula e `_aseaza_pe_origine` de mai jos.
 
 func _ready() -> void:
 	# „interactable" = tot ce poate afișa „Press E to interact" (statui, portaluri, cufere, EGT).

@@ -1,18 +1,22 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://un8x3k4b2htd"]
 
-[ext_resource type="Script" path="res://alba.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://harta/Alba Neagra/Alba Neagra.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://cqumfhtu511c3" path="res://alba.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://by60psycewxhh" path="res://harta/Alba Neagra/Alba Neagra.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_alba"]
-size = Vector2(120, 70)
+size = Vector2(106.25008, 46.250008)
 
-[node name="AlbaNeagra" type="StaticBody2D"]
+[node name="AlbaNeagra" type="StaticBody2D" unique_id=1495450370]
+scale = Vector2(0.8, 0.8)
 script = ExtResource("1_script")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1335008244]
 texture_filter = 1
+scale = Vector2(1.6, 1.6)
 texture = ExtResource("2_tex")
+offset = Vector2(0, -13.75)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 40)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=299157719]
+position = Vector2(-0.6250002, 26.874956)
+scale = Vector2(0.9999991, 0.9999991)
 shape = SubResource("RectangleShape2D_alba")

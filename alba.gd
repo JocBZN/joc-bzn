@@ -18,6 +18,13 @@ extends StaticBody2D
 
 const ACOPERIRE_JOS := 74.0
 
+# ⚠️ `Sprite2D` din `alba.tscn` are scrise ÎN SCENĂ exact valorile pe care le pune `_ready()`
+# (`scale = 1.6`, `offset.y = -13.75`). Nu le folosește jocul — el le recalculează oricum — sunt
+# acolo DOAR ca editorul să arate omul la mărimea și în locul din joc, altfel potrivești
+# `CollisionShape2D` după o imagine mai mică și mai sus decât cea adevărată (2026-08-12).
+# Schimbi `art_scale`, `ACOPERIRE_JOS` sau poza? Rescrie și cifrele din scenă, altfel editorul
+# minte din nou — în tăcere. Formula e `_aseaza_pe_origine` de mai jos.
+
 # --- RESPIRAȚIA (cerută de Răzvan: „să nu pară așa static") ---
 # Un singur sprite, deci nu putem mișca omul fără să mișcăm și masa lui. Ce se poate face fără
 # să se rupă desenul: îl întindem pe VERTICALĂ cu câteva miimi, cu pivotul FIX PE TALPĂ. Masa,

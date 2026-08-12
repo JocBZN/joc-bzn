@@ -18,6 +18,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (de ce hitbox-ul din editor nu semăna cu cel din joc)
+
+**Reclamat de Răzvan:** „Collision shape-ul din Godot nu arată ca cel din joc… încercam să le schimb și nu se schimbă nimic" — la Alba Neagra și la EGT.
+
+**Cauza (verificată rulând cu `--debug-collisions`, nu din citit):** nu există două forme. Există UNA, dar `_ready()` din `alba.gd` și `egt.gd` mută **arta** sub ea la rulare: `spr.scale = art_scale` (1.6) și `_aseaza_pe_origine()` care recalculează `offset.y` ca talpa să cadă la `ACOPERIRE_JOS = 74px` sub origine (trucul de Y-sort). `CollisionShape2D` nu e atins niciodată. În editor sprite-ul stătea la `scale = 1, offset = 0` — adică cu 60% mai mic și mai sus decât în joc. Potriveai cutia după o imagine care în joc arată altfel.
+
+**Ce am făcut:** am scris ÎN SCENE exact valorile pe care scriptul le pune oricum la rulare — `alba.tscn`: `scale = 1.6`, `offset.y = -13.75`; `egt.tscn`: `scale = 1.6`, `offset.y = -7.75`. Jocul nu le citește (le recalculează), deci **la rulare nu se schimbă absolut nimic** — verificat, „IN SCENA" și „LA RULARE" tipăresc aceleași cifre. Se schimbă doar ce vezi în editor: arta la mărimea adevărată, deci cutia se potrivește din prima.
+
+⚠️ **Cifrele sunt duplicate, deci pot rămâne în urmă în tăcere.** Dacă umbli la `art_scale`, la `ACOPERIRE_JOS` sau schimbi poza, rescrie-le și în scenă (formula e `_aseaza_pe_origine`). Avertismentul e scris și în capul lui `alba.gd` și `egt.gd`.
+
+**De reținut, două lucruri care par tot „hitbox" și nu sunt:**
+- `CollisionShape2D` **doar blochează mersul**. Raza la care apare „Press E to interact" e `interact_range = 190` (distanță), pe nodul rădăcină.
+- Copacii, pietrele și structurile din deșert **n-au scenă deloc** — corpul și forma se construiesc din cod (`props.gd:182`, `rocks.gd:203`, `desert_structures.gd:318`), iar hitbox-ul se reglează din butoanele nodului `Props` / `Rocks` din `main.tscn` (`hitbox_north/south/east/west`, `hitbox_factor`, `hitbox_vertical`, `sort_anchor`).
+
+**Observat pe drum:** `egt.tscn` nu se modificase pe disc de pe 30 iulie, deși Răzvan zicea că a tot încercat să-i schimbe cutia — modificările alea nu ajunseseră niciodată în fișier (scenă nesalvată sau editat în tab-ul „Remote" al debugger-ului, unde valorile trăiesc doar cât rulează jocul). Și `harta/EGT/egt.png` e acum 128×128, nu 68×111 cum zicea comentariul din `egt.gd` — corectat.
+
+---
+
 ## Session log — 2026-08-12 (Alba-Neagra: textul de avertisment de jos)
 
 **Cerut de Răzvan:** „la alba neagra vreau sa scrie jos If you lose, gain +10% Difficulty".
