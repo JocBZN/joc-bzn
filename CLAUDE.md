@@ -18,6 +18,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (Alba-Neagra: titlul, panoul din stânga, dificultatea)
+
+**Cerut de Răzvan:** „partea din stânga de la Alba Neagra e prea mare doar pentru un scris și o imagine de la item când câștigi. Și sus nu vreau să scrie Alba Neagra, vreau să scrie doar *Where is the ball?*. Și fă-l să fie mai greu puțin."
+
+**1. Titlul.** `„A L B A   N E A G R A"` → `"Where is the ball?"`, cheie care exista deja în `i18n.gd`. Numele jocului de stradă românesc nu se traduce, deci în celelalte 8 limbi titlul era o formulă goală; acum e întrebarea jocului și se traduce peste tot. ⚠️ Scris **fără spații între litere** — cu ele nu s-ar mai potrivi cheia din tabel și titlul ar rămâne englezesc în toate limbile.
+
+Întrebarea era însă scrisă și pe rândul de stare de sub titlu, cât alegi — ar fi apărut de două ori, una sub alta. Acolo scrie acum ce ai de **făcut**: cheie nouă `"Pick a cup"`, cu cele 8 traduceri (vocabularul e cel deja folosit: *Becher / vaso / стакан / gobelet / カップ / kubek / bardak*).
+
+**2. Panoul din stânga: 280×512 → 210×242**, centrat pe înălțimea scenei. Trucul care l-a făcut atât de mic: **premiul se desenează PESTE indiciu și peste avertismentul de risc**, în același loc din panou. Cele două se văd doar cât joci, premiul apare abia la final — `_ia_premiul` ajunge în starea „gata", unde ambele sunt oricum goale — deci nu sunt niciodată pe ecran în același timp. `_actualizeaza` le și ascunde explicit, ca aspectul să nu depindă de asta. Așa panoul e cât conținutul lui, nu cât suma lucrurilor care s-ar putea nimeri în el.
+
+Restul, ca urmare: scrisul cu un punct mai mic (24/14/13), numele premiului cu `autowrap` (în 174 px „Cursed Sword Mastery" nu mai încape pe un rând), iar scena a luat lățimea rămasă: `Rect2(260, 112, 562, 512)`, cu același spațiu de 24 px față de ambele panouri. ⚠️ Scena **nu** e centrată pe ecran și nici nu trebuie: panourile nu sunt la fel de late. Centrate rămân titlul și linia de sub el, care se uită la toată rama. Mărirea artei rămâne ×4 — e limitată de înălțimea scenei, nu de lățime, deci lățimea în plus n-o schimbă.
+
+**3. Mai greu:** 4 + 2 mutări pe rundă → **5 + 3**, durata unei mutări 0,42→0,17 s → **0,36→0,14 s**, iar bila stă descoperită la început 0,75 → **0,5 s** (era timp de gândit, nu de văzut). Runda 1: 5 × 0,36 s (amestecul măsurat: 3,12 s cap-coadă). Runda 6: 20 × 0,16 s. ⚠️ Sub ~0,12 s pe mutare jocul nu devine mai greu, devine **imposibil**: paharele sar dintr-un loc în altul fără să apuci să le vezi drumul, deci rămâne ghicit din trei. Dacă vrei și mai greu, adaugă mutări, nu viteză.
+
+**Verificat:** patru capturi din meniul real (intro / ales / premiu câștigat / totul în germană — limba cu scrisul cel mai lat, încape), o rundă jucată cap-coadă, `tool_check_i18n` ✔ (266 chei).
+
+---
+
 ## Session log — 2026-08-12 (Alba-Neagra: paharele, decupate ca lumea)
 
 **Reclamat de Răzvan:** „paharele sunt decupate prost. Vreau să fie decupate fix cu stroke-ul negru pe care îl au deja. Copiază paharul din stânga și dă copy-paste în celelalte locuri."

@@ -125,7 +125,10 @@ const TRAD := {
 # „ALBA NEAGRA" e nume propriu (jocul de stradă românesc), rămâne la fel în toate limbile.
 "Guess which cup hides the ball": ["猜猜球在哪个杯子下", "Rate, unter welchem Becher die Kugel ist", "Adivina bajo qué vaso está la bola", "Угадай, под каким стаканом шарик", "Devine sous quel gobelet est la bille", "どのカップにボールがあるか当てて", "Zgadnij, pod którym kubkiem jest kulka", "Topun hangi bardakta olduğunu bil"],
 "Watch the cups": ["盯住杯子", "Behalte die Becher im Auge", "Sigue los vasos", "Следи за стаканами", "Suis les gobelets", "カップから目を離すな", "Patrz na kubki", "Bardakları izle"],
+# titlul meniului (de pe 2026-08-12 scrie întrebarea jocului, nu numele lui)
 "Where is the ball?": ["球在哪里？", "Wo ist die Kugel?", "¿Dónde está la bola?", "Где шарик?", "Où est la bille ?", "ボールはどこ？", "Gdzie jest kulka?", "Top nerede?"],
+# scrie sub titlu cât alegi; nu repeta întrebarea de mai sus, aici se spune ce ai de făcut
+"Pick a cup": ["选一个杯子", "Wähle einen Becher", "Elige un vaso", "Выбери стакан", "Choisis un gobelet", "カップを選べ", "Wybierz kubek", "Bir bardak seç"],
 "Two in a row for the first prize": ["连中两次才有第一个奖品", "Zwei in Folge für den ersten Preis", "Dos seguidas para el primer premio", "Две подряд — и получишь первый приз", "Deux d'affilée pour le premier lot", "2連続で最初の景品", "Dwa z rzędu do pierwszej nagrody", "İlk ödül için üst üste iki tane"],
 "If you lose, gain +%d%% Difficulty": ["输了会 +%d%% 难度", "Verlierst du: +%d%% Schwierigkeit", "Si pierdes, +%d%% de dificultad", "Проиграешь — +%d%% сложности", "Si tu perds, +%d%% de difficulté", "負けると難易度 +%d%%", "Przegrasz — +%d%% trudności", "Kaybedersen +%%%d zorluk"],
 "The game got %d%% harder": ["游戏难度提高了 %d%%", "Das Spiel ist %d%% schwerer geworden", "El juego se ha vuelto %d%% más difícil", "Игра стала на %d%% сложнее", "Le jeu est devenu %d%% plus dur", "ゲームが %d%% 難しくなった", "Gra stała się o %d%% trudniejsza", "Oyun %%%d zorlaştı"],

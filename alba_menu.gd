@@ -62,12 +62,23 @@ const BILA_Y := TALPA - BILA_D * 0.5 + 0.5
 # --- CÂT DE GREU E ---
 # Runda 1 are `MUTARI_BAZA` schimburi, fiecare de `DURATA_START` secunde. La fiecare rundă se
 # adaugă `MUTARI_PE_RUNDA` schimburi și fiecare devine cu `DURATA_PAS` mai scurt, până la
-# `DURATA_MIN`. Runda 6: 14 schimburi × 0,17s ≈ 2,4 secunde de învârteală.
-const MUTARI_BAZA := 4
-const MUTARI_PE_RUNDA := 2
-const DURATA_START := 0.42
-const DURATA_PAS := 0.05
-const DURATA_MIN := 0.17
+# `DURATA_MIN`.
+#   runda 1:  5 schimburi × 0,36s      runda 4: 14 × 0,24s
+#   runda 2:  8 × 0,32s                runda 5: 17 × 0,20s
+#   runda 3: 11 × 0,28s                runda 6: 20 × 0,16s ≈ 3,2 secunde de învârteală
+#
+# Urcate pe 2026-08-12 („fă-l să fie mai greu puțin"): erau 4 + 2 pe rundă, de la 0,42s la 0,17s.
+# ⚠️ `DURATA_MIN` sub ~0,12 nu mai face jocul mai greu, îl face IMPOSIBIL: paharele sar dintr-un
+# loc în altul fără să apuci să le vezi drumul, deci nu mai ai ce urmări cu ochiul — rămâne
+# ghicit din trei. Dacă vrei și mai greu, adaugă schimburi, nu viteză.
+const MUTARI_BAZA := 5
+const MUTARI_PE_RUNDA := 3
+const DURATA_START := 0.36
+const DURATA_PAS := 0.04
+const DURATA_MIN := 0.14
+# Cât stă bila descoperită la început, cât s-o vezi. Scăzut de la 0,75s: era timp de gândit, nu
+# de văzut.
+const ARATA_BILA := 0.5
 
 # Ce câștigi pentru un șir de N ghiciri. Sub 2 nu primești nimic.
 const PREMII := {2: "common", 3: "uncommon", 4: "rare", 5: "epic", 6: "legendary"}
@@ -195,7 +206,12 @@ func _build() -> void:
 	_panou = _cadru(CH_PANOU, 2)
 	add_child(_panou)
 
-	_titlu = _eticheta("A L B A   N E A G R A", 40, OS_ALB, HORIZONTAL_ALIGNMENT_CENTER)
+	# Titlul e ÎNTREBAREA jocului, nu numele lui („Where is the ball?", cerut de Răzvan pe
+	# 2026-08-12). Un titlu scris „A L B A   N E A G R A" nu spunea nimic unui străin — numele
+	# jocului de stradă românesc nu se traduce, deci în celelalte 8 limbi rămânea o formulă goală.
+	# ⚠️ Scris FĂRĂ spații între litere: cu ele nu s-ar mai potrivi cheia din `i18n.gd` și titlul
+	# ar rămâne englezesc în toate limbile.
+	_titlu = _eticheta("Where is the ball?", 40, OS_ALB, HORIZONTAL_ALIGNMENT_CENTER)
 	_titlu.add_theme_color_override("font_outline_color", ACCENT_STINS)
 	_titlu.add_theme_constant_override("outline_size", 7)
 	add_child(_titlu)
@@ -280,12 +296,13 @@ func _build() -> void:
 	# --- panoul din STÂNGA: runda, riscul, premiul câștigat ---
 	var stanga := _cadru(CH_PANEL, 1)
 	add_child(stanga)
-	_lbl_runda = _eticheta("", 26, ACCENT_CLAR, HORIZONTAL_ALIGNMENT_CENTER)
+	# scrisul e cu un punct mai mic decât înainte: panoul s-a strâns de la 280 la 210 px
+	_lbl_runda = _eticheta("", 24, ACCENT_CLAR, HORIZONTAL_ALIGNMENT_CENTER)
 	add_child(_lbl_runda)
-	_wrap_indiciu = _eticheta_rupta("Guess which cup hides the ball", 15, CENUSA)
+	_wrap_indiciu = _eticheta_rupta("Guess which cup hides the ball", 14, CENUSA)
 	_lbl_indiciu = _wrap_indiciu.get_child(0) as Label
 	add_child(_wrap_indiciu)
-	_wrap_risc = _eticheta_rupta("", 14, CENUSA)
+	_wrap_risc = _eticheta_rupta("", 13, CENUSA)
 	_lbl_risc = _wrap_risc.get_child(0) as Label
 	add_child(_wrap_risc)
 
@@ -303,6 +320,10 @@ func _build() -> void:
 	_premiu_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_premiu_box.add_child(_premiu_icon)
 	_premiu_nume = _eticheta("", 17, OS_ALB, HORIZONTAL_ALIGNMENT_CENTER)
+	# ⚠️ Se rupe pe rânduri: în panoul strâns (174 px) un nume ca „Cursed Sword Mastery" nu mai
+	# încape pe un rând și s-ar tăia la margine. Aici autowrap-ul e sigur (spre deosebire de
+	# `_eticheta_rupta`), fiindcă VBox-ul îi dă lățimea înainte să-și calculeze înălțimea.
+	_premiu_nume.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_premiu_box.add_child(_premiu_nume)
 
 	# --- panoul din DREAPTA: scara de premii + butoanele ---
@@ -380,7 +401,10 @@ func _layout() -> void:
 	_pune(_ornament, Rect2(366, 66, 420, 14))
 	_pune(_lbl_stare, Rect2(330, 82, 492, 28))
 
-	var scena_rama := Rect2(330, 112, 492, 512)
+	# Scena e lipită de panoul din stânga (care s-a strâns) și de cel din dreapta, cu același spațiu
+	# de 24 px de fiecare parte. NU e centrată pe ecran, fiindcă panourile nu sunt la fel de late —
+	# centrate ar fi titlul și linia de sub el, care se uită la toată rama, nu la scenă.
+	var scena_rama := Rect2(260, 112, 562, 512)
 	_pune(_rama_scena, scena_rama)
 	_pune(_scena_clip, scena_rama.grow(-9))
 
@@ -395,11 +419,19 @@ func _layout() -> void:
 	_reflector.size = Vector2(interior.x, interior.y * 0.9) * _k
 	_reflector.position = Vector2(0, -interior.y * 0.12) * _k
 
-	_pune(_panel_stanga, Rect2(26, 112, 280, 512))
-	_pune(_lbl_runda, Rect2(46, 140, 240, 36))
-	_pune(_wrap_indiciu, Rect2(46, 190, 240, 56))
-	_pune(_wrap_risc, Rect2(46, 256, 240, 56))
-	_pune(_premiu_box, Rect2(46, 340, 240, 200))
+	# Panoul din stânga ține doar două-trei rânduri de scris ȘI iconița premiului, deci e mic și
+	# centrat pe înălțimea scenei (2026-08-12, „e prea mare doar pentru un scris și o imagine").
+	#
+	# Premiul stă peste indiciu și peste avertismentul de risc, nu sub ele: cele două se văd doar cât
+	# joci, iar premiul apare abia la final, deci nu sunt niciodată pe ecran în același timp (vezi
+	# `_actualizeaza`, care le și ascunde ca să fie sigur). Așa panoul e cât conținutul lui, nu cât
+	# suma lucrurilor care s-ar putea nimeri în el.
+	# ⚠️ Rama e un NinePatch cu marginea de 15 px, deci scrisul începe de la x+18, nu de la x.
+	_pune(_panel_stanga, Rect2(26, 247, 210, 242))
+	_pune(_lbl_runda, Rect2(44, 273, 174, 32))
+	_pune(_wrap_indiciu, Rect2(44, 311, 174, 60))
+	_pune(_wrap_risc, Rect2(44, 375, 174, 56))
+	_pune(_premiu_box, Rect2(44, 311, 174, 150))
 
 	_pune(_panel_dreapta, Rect2(846, 112, 280, 512))
 	_pune(_cap_scara, Rect2(866, 132, 240, 24))
@@ -463,7 +495,7 @@ func _joaca() -> void:
 	# 1. ridică paharul cu bila, ca s-o vezi
 	tw.tween_method(_set_cup_y.bind(_bila_cup), CUP_Y, CUP_Y - RIDICARE, 0.35) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tw.tween_interval(0.75)
+	tw.tween_interval(ARATA_BILA)
 	tw.tween_method(_set_cup_y.bind(_bila_cup), CUP_Y - RIDICARE, CUP_Y, 0.3) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func(): _bila.visible = false)
@@ -609,7 +641,9 @@ func _actualizeaza() -> void:
 			_lbl_stare.text = "Watch the cups"
 			_lbl_risc.text = ""
 		"alege", "arata":
-			_lbl_stare.text = "Where is the ball?"
+			# ⚠️ NU „Where is the ball?": de când întrebarea e scrisă în TITLU, ar fi apărut de
+			# două ori, una sub alta. Aici scrie ce ai de FĂCUT, nu ce se întreabă.
+			_lbl_stare.text = "Pick a cup"
 			_lbl_risc.text = tr("If you lose, gain +%d%% Difficulty") % pedeapsa
 		"castigat":
 			_lbl_stare.text = "YOU WIN!"
@@ -622,6 +656,10 @@ func _actualizeaza() -> void:
 			# ⚠️ Pedeapsa TREBUIE scrisă pe ecran: e singurul lucru care se schimbă în restul rundei
 			# și nu se vede nicăieri altundeva. tr() explicit: are %d.
 			_lbl_risc.text = tr("The game got %d%% harder") % pedeapsa if pierdut else ""
+	# ⚠️ Premiul e desenat PESTE cele două scrisuri (același loc în panou, vezi `_layout`). Ele sunt
+	# oricum goale când apare el, dar le ascundem ca să nu depindă aspectul de asta.
+	_wrap_indiciu.visible = not _premiu_box.visible
+	_wrap_risc.visible = not _premiu_box.visible
 	var e_pierdut: bool = _stare == "gata" and _sir == 0 and _runda > 0
 	_lbl_stare.add_theme_color_override("font_color",
 		Color(0.44, 0.86, 0.44) if _stare == "castigat" else (
