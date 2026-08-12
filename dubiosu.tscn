@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://dubiosu.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://harta/dubiosu.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dubiosu"]
+size = Vector2(70, 40)
+
+[node name="Dubiosu" type="StaticBody2D"]
+scale = Vector2(0.8, 0.8)
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("2_tex")
+offset = Vector2(0, -12.75)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 20)
+shape = SubResource("RectangleShape2D_dubiosu")

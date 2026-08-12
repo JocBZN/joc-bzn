@@ -18,6 +18,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (Dubiosu: NPC nou în lume, deocamdată fără treabă)
+
+**Cerut de Răzvan:** „în folderu harta ai o poză nouă — dubiosu. Vreau să fie un npc ca Alba Neagra (să și aibă efect de respirat) — momentan nu vreau să facă nimic."
+
+**Fișiere noi:** `dubiosu.gd` + `dubiosu.tscn` (omul), `dubiosi.gd` (generatorul). **Atinse:** `main.tscn` (nodul `Dubiosi` în `World`), `nether.gd` / `limbo.gd` / `ender.gd` (`WORLD_NODES`).
+
+**Omul.** `StaticBody2D` cu sprite, exact tiparul de la `alba.gd`: arta coboară `ACOPERIRE_JOS = 74` px sub originea nodului (originea e linia de Y-sort, deci player-ul care trece prin fața lui e desenat peste el), iar respirația e `scale.y` ×1,018 dus-întors în 2,3 s, cu `offset.y` tras în jos în paralel cu `talpă × (k−1)/k` — fără asta un `Sprite2D`, care se scalează din centru, i-ar băga tălpile în pământ la fiecare inspirație. **Măsurat:** talpa se mișcă **0,11 px** pe o respirație întreagă, adică deloc.
+
+**⚠️ Nu face nimic, INTENȚIONAT.** Nu e în grupul `"interactable"` și n-are `invoca()`, deci `interact_ui.gd` nici nu se uită la el: nu apare „Press E to interact". Un prompt care nu face nimic arată a bug. Când o să primească o treabă: `add_to_group("interactable")` + `invoca()` (+ `poate_invoca()` dacă se consumă) în `dubiosu.gd`, ȘI `_folosite` + `marcheaza_folosit` în `dubiosi.gd`, copiate din `albas.gd` — fără ele ar reveni întreg de fiecare dată când chunk-ul se descarcă și se regenerează.
+
+**Generatorul** e `albas.gd` cu altă sămânță (`0xD0B1`) și 2% pe chunk, ferit de copaci, pietre, statui, EGT-uri **și de oamenii de Alba-Neagra** (`min_dist_alba = 260`, întrebat prin `chunk_alba_pos`, care răspunde înainte să existe nodul). Fără listă de „folosiți", că n-are ce consuma.
+
+**Cifrele artei** (măsurate, nu ghicite): poza e 128×128, desenul ocupă x 31…97, y 8…123 → `offset.y = -12.75` scris în scenă pentru editor (jocul îl recalculează oricum). Mărimea e aceeași ca la omul de Alba-Neagra (`art_scale = 1.6` × scara nodului 0,8). ⚠️ Poza era **neimportată** (fără `.import`), deci un `load()` dintr-o rulare directă ar fi dat „No loader found" — rulat `--headless --import`.
+
+**Verificat:** captură cu el lângă omul de Alba-Neagra și lângă player, pe iarbă (Y-sort și tălpile bune), talpa măsurată pe 8 momente ale respirației, densitatea generatorului **48 din 2500 de chunk-uri** (≈1,9%, țintit 2%), un dubios chiar născut în cele 49 de chunk-uri din jurul player-ului, plus `main.tscn` rulat headless fără nicio eroare.
+
+---
+
 ## Session log — 2026-08-12 (Alba-Neagra: meniul, adus la simetrie)
 
 **Cerut de Răzvan:** „e puțin asimetric meniul în Alba Neagra, fă-l bun profesionist."

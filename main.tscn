@@ -28,6 +28,7 @@
 [ext_resource type="Script" path="res://trade.gd" id="27_trade"]
 [ext_resource type="Script" path="res://albas.gd" id="28_albas"]
 [ext_resource type="Script" path="res://alba_menu.gd" id="29_alba_menu"]
+[ext_resource type="Script" path="res://dubiosi.gd" id="30_dubiosi"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -86,6 +87,10 @@ script = ExtResource("22_egts")
 [node name="AlbaNeagras" type="Node2D" parent="World"]
 y_sort_enabled = true
 script = ExtResource("28_albas")
+
+[node name="Dubiosi" type="Node2D" parent="World"]
+y_sort_enabled = true
+script = ExtResource("30_dubiosi")
 
 [node name="Monuments" type="Node2D" parent="World" unique_id=86867326]
 y_sort_enabled = true
