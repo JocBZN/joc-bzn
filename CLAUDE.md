@@ -18,6 +18,40 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (spawn aleator în lumea normală + damage/viteză îngroșate)
+
+**Cerut de Răzvan:** „vreau inamicii în lumea normală să se spawneze random (inamicii diferiți în sine nu mai vreau să aibă un timp anume la care se spawnează și câți, vreau din prima să fie spawn rate-ul și sprite-urile random). Damage-ul, hp-ul și movement speed-ul vreau să scaleze cu timpul, să fie puțin greu."
+
+**Atinse:** `spawner.gd`, `difficulty.gd`. Fără fișiere noi.
+
+**1. Valurile.** Până acum fiecare polițist avea ora lui fixă și felia lui fixă: Skinny de la 1:00 cu 35%, SWAT de la 4:00 cu 20%. Adică fiecare rundă arăta identic în aceleași minute. Acum, la fiecare **10–22 s**, `_val_nou()` trage la sorți **odată** două lucruri: **amestecul** (fiecare fel primește ponderea lui de bază × un factor aleator între 1/2.2 și 2.2) și **ritmul** (un multiplicator peste rata de spawn). Toți trei sunt pe masă **de la secunda 0**; `skinny_after`/`skinny_share`/`swat_after`/`swat_share` au dispărut.
+
+🔑 **Ponderile de bază NU sunt egale** (1.0 / 0.7 / 0.35) și asta e o decizie, nu o scăpare: un SWAT are de 5 ori viața unui polițist obișnuit, deci la șanse egale jumătate din runda de la 0:10 ar fi fost tocat buști — adică „imposibil", nu „greu", care e ce s-a cerut. Ponderile de bază spun cine e regula, sorțul de la fiecare val spune cât se abate valul ăsta de la ea. Ieșit pe 200.000 de inamici: **49,2% obișnuit / 33,4% Skinny / 17,4% SWAT** în medie, dar un val singur mută SWAT-ul între **4,4% și 39,4%**.
+
+⚠️ **`ritm_min`/`ritm_max` (0.55–1.45) sunt așezate ca MEDIA să fie exact 1.0** (măsurat 1.0031 pe 1000 de minute simulate). Ritmul aleator e TEXTURĂ, nu o îngroșare pe furiș — dificultatea rămâne în întregime în `difficulty.gd`, altfel curbele de acolo n-ar mai însemna nimic și n-ai mai ști pe ce reglezi. Ritmul **alunecă** spre valoarea nouă în 1,2 s în loc să sară: un salt s-ar citi ca un lag, o alunecare se simte ca o maree.
+
+⚠️ **Ritmul se aplică DOAR în lumea normală** (`_in_lumea_normala()`). Nether-ul și Ender-ul au fiecare formula lui, calibrată pe promisiuni exacte („aici nu e niciodată mai gol decât lumea la 2:00"), iar un multiplicator care se plimbă între 0.55 și 1.45 peste ea ar face promisiunile alea false o parte din timp.
+
+⚠️ **Cronometrul valurilor merge pe `delta`, NU pe `Difficulty.time`** — ăla stă pe loc în Limbo, Nether și Ender, deci valurile ar fi înghețat acolo și te-ai fi întors în lume cu exact amestecul și, mai rău, cu ritmul blocat pe cifra de la plecare.
+
+**2. Curbele.** Din cele trei cerute, **viața scala deja cel mai tare din tot jocul** (×31,9 la minutul 10) — pe ea am lăsat-o în pace tocmai fiindcă e motorul principal; urcată și ea, inamicii ar fi depășit orice build și ieșea „imposibil", nu „greu". Plate erau celelalte două, și pe alea le-am urcat:
+
+| | înainte, la 10:00 | acum, la 10:00 |
+|---|---|---|
+| viață | ×31,9 | ×31,9 *(neatinsă)* |
+| damage de contact | ×2,00 (și ×1 fix în primele 1:30) | **×2,75**, crescând de la secunda 0 |
+| viteză | ×1,35 (liniar) | **×1,53**, compus după 1:30 |
+
+⚠️ **Damage-ul se plătește PER INAMIC LIPIT DE TINE** (`player._take_contact_damage` trece prin toți din `contact_range`), deci ×2,75 cu trei pe tine = 41 de damage la fiecare jumătate de secundă din cei 100 de bază. De-asta s-a oprit la 2,75 și nu la 3+: pedeapsa pentru înconjurat se înmulțește oricum cu numărul lor, iar ăla urcă separat prin `spawn_mult()`.
+
+⚠️ **Viteza s-a oprit la ×1,53 din cauza lui 160 vs 215:** Skinny și SWAT pleacă de la 160, player-ul de la 215. La ×1,35 abia îl ajungeau, la ×1,53 îl întrec (245) — ceea ce e chiar ideea (la minutul 10 fuga nu mai e un răspuns), dar orice cifră peste asta scoate fuga din joc cu mult înainte de Final Swarm.
+
+⚠️ **Partea liniară a vitezei s-a mutat de pe `_phase1_minutes()` pe `_lin_minutes()`.** Dacă o lăsam să curgă pe toate cele 10 minute ȘI adăugam compunerea peste ea, cele două s-ar fi adunat de două ori și viteza ieșea ×1,8 în loc de ×1,53.
+
+**Verificat rulând:** 200.000 de inamici pentru amestecul mediu, 400 de valuri pentru cât variază, 1000 de minute simulate pentru media ritmului, plus `main.tscn` ADEVĂRAT — la 6 s deja polițiști + Skinny amestecați, **la 14 s toate trei felurile, SWAT inclusiv** (imposibil înainte de 4:00), captură de ecran de la 9:45 cu toate trei pe ecran, zero erori la rulare.
+
+---
+
 ## Session log — 2026-08-12 (Magnetul de XP)
 
 **Cerut de Răzvan:** „ți-am pus o poză nouă în folderul xp — se numește magnet. Vreau să aibă un stroke de 1 pixel negru și să aibă drop rate de la inamici de 0.5%. Atunci când e ridicat de pe jos trage tot xp-ul de pe hartă și îl dă la player."

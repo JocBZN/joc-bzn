@@ -42,10 +42,29 @@ const SPAWN_DOUBLE_MULT := 2.0
 # build-ul tău se înmulțește (damage × crit × proiectile × AOE). Acum urcă și ei
 # geometric: 1.40 pe minut → ~32× la minutul 10, cu accelerarea simțită treptat.
 const HP_GROWTH_PER_MIN := 1.40
-# Damage-ul de contact NU creștea deloc: un inamic de la minutul 10 lovea exact cât
-# unul de la secunda 0. Acum crește compus, calibrat să ajungă la ×2 la minutul 10
-# (2^(1/8.5), fiindcă din 1:30 până la 10:00 sunt 8.5 minute de rampă).
-const DMG_GROWTH_PER_MIN := 1.0844
+# --- DAMAGE ȘI VITEZĂ, îngroșate pe 2026-08-12 ---
+# Cerința lui Răzvan, odată cu spawn-ul aleator: „damage-ul, HP-ul și movement speed-ul vreau să
+# scaleze cu timpul, puțin mai greu". VIAȚA scala deja cel mai tare din tot jocul (×37 la minutul
+# 10, prin `HP_GROWTH_PER_MIN`) — pe ea am lăsat-o în pace tocmai fiindcă e deja motorul principal;
+# dacă o urcam și pe ea, inamicii ar fi depășit orice build și ieșea „imposibil", nu „greu".
+# Plate erau CELELALTE DOUĂ, și pe alea le-am urcat:
+#
+#   · damage de contact: era ×1 fix în primele 1:30 și ×2.00 la minutul 10 → acum crește de la
+#     SECUNDA 0 (partea liniară, `DMG_PER_MIN`) și ajunge la ×2.75;
+#   · viteză: era liniară, ×1.35 la minutul 10 → acum se compune după 1:30 ca viața și ajunge la
+#     ×1.53, adică ACCELEREAZĂ spre final în loc să urce cu aceeași felie în fiecare minut.
+#
+# ⚠️ Damage-ul se socotește PER INAMIC LIPIT DE TINE (`player._take_contact_damage` trece prin toți
+# cei din `contact_range`), deci ×2.75 pe trei inamici deodată = 41 de damage la fiecare jumătate de
+# secundă din cei 100 de bază. De-asta nu l-am dus la ×3+: pedeapsa pentru înconjurat se înmulțește
+# oricum cu numărul lor, iar ăla urcă separat prin `spawn_mult()`.
+const DMG_PER_MIN := 0.10        # partea liniară, primele 1:30 (înainte nu exista deloc)
+const DMG_GROWTH_PER_MIN := 1.108
+# Cât se compune VITEZA pe minut după 1:30. Ține-l mic și verifică-l pe `SPEED_CAP`: un Skinny/SWAT
+# pleacă de la 160, iar player-ul de la 215 — la ×1.35 abia îl ajungeau, la ×1.53 îl întrec, ceea ce
+# e chiar ideea (la minutul 10 nu mai poți doar să fugi), dar orice cifră peste asta scoate fuga din
+# joc cu mult înainte de Final Swarm.
+const SPEED_GROWTH_PER_MIN := 1.045
 
 # --- FAZA 2 (Final Swarm): la câte SECUNDE se dublează fiecare lucru ---
 # Mai mic = crește mai repede. Viața e cea care explodează; viteza urcă mult
@@ -170,16 +189,25 @@ func enemy_hp_mult() -> float:
 		* trade_penalty
 
 # Cât de tare lovesc inamicii (contact + bilele Gărzii), față de începutul rundei.
-# 1.0 în primele 1:30, ×2 la minutul 10, apoi se dublează la fiecare 2 minute în Final Swarm.
+# Crește de la secunda 0 (liniar în primele 1:30, compus după), ×2.75 la minutul 10, apoi se
+# dublează la fiecare 2 minute în Final Swarm.
 func enemy_damage_mult() -> float:
-	return pow(DMG_GROWTH_PER_MIN, _ramp_minutes()) * _fs_factor(FS_DMG_DOUBLE_EVERY) * trade_penalty
+	return (1.0 + DMG_PER_MIN * _lin_minutes()) \
+		* pow(DMG_GROWTH_PER_MIN, _ramp_minutes()) \
+		* _fs_factor(FS_DMG_DOUBLE_EVERY) * trade_penalty
 
 # ⚠️ Dificultatea cumpărată intră ÎNAINTE de plafon, deci plafonul îi rămâne deasupra: nici cu
 # toate schimburile făcute inamicii nu trec de `SPEED_CAP`. Altfel ar fi ajuns mai iuți decât tine
 # și n-ai mai fi avut ce face — exact lucrul de care plafonul există să te apere. Consecința:
 # după ce viteza a atins 2.2 (pe la 3–4 minute de Final Swarm), schimburile nu mai adaugă viteză.
+#
+# ⚠️ Partea liniară se oprește la 1:30 (`_lin_minutes`, nu `_phase1_minutes` ca înainte) fiindcă de
+# acolo încolo preia compunerea. Dacă le lăsam pe amândouă să curgă pe toate cele 10 minute, s-ar fi
+# adunat de două ori și viteza ar fi ieșit ×1.8 la minutul 10 în loc de ×1.53.
 func enemy_speed_mult() -> float:
-	var m := (1.0 + SPEED_PER_MIN * _phase1_minutes()) * _fs_factor(FS_SPEED_DOUBLE_EVERY) * trade_penalty
+	var m := (1.0 + SPEED_PER_MIN * _lin_minutes()) \
+		* pow(SPEED_GROWTH_PER_MIN, _ramp_minutes()) \
+		* _fs_factor(FS_SPEED_DOUBLE_EVERY) * trade_penalty
 	return minf(m, SPEED_CAP)
 
 func spawn_mult() -> float:
