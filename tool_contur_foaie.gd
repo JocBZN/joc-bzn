@@ -17,6 +17,7 @@ extends Node
 const CONTUR := Color(0.72, 0.28, 1.0, 1.0)      # același mov ca la proiectile (culoarea implicită)
 const GALBEN := Color(1.0, 0.85, 0.15, 1.0)      # galbenul cheii de cufăr
 const ALBASTRU := Color(0.15, 0.27, 0.78, 1.0)   # albastru închis — Undead Executioner Puppet
+const NEGRU := Color(0.0, 0.0, 0.0, 1.0)         # magnetul de XP (cerut de Răzvan)
 const PRAG := 0.35                               # de la ce alfa în sus considerăm că e desen
 
 # O imagine simplă (nu foaie de cadre) se pune tot aici, cu `"cadre": 1`.
@@ -38,6 +39,13 @@ const LUCRARI := [
 		"iesire": "res://harta/Chest/key_contur.png",
 		"cadre": 1,
 		"culoare": GALBEN,
+	},
+	{
+		# Magnetul de XP: tot o singură imagine de 128×128, ca și cheia
+		"sursa": "res://xp/magnet.png",
+		"iesire": "res://xp/magnet_contur.png",
+		"cadre": 1,
+		"culoare": NEGRU,
 	},
 ]
 

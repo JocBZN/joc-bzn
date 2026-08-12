@@ -38,9 +38,18 @@ static var _scena_bula: PackedScene
 const NUANTA_BULA := 0.0      # 0.0 = roșu; 0.97 ≈ vișiniu, dacă vrei alt ton
 static var _tex_rosie: Texture2D
 
+# --- ADUNATE DE MAGNET (`magnet.gd`) ---
+# Magnetul ridicat de pe jos trimite TOATE gemele de pe hartă la player. Spre deosebire de
+# atracția obișnuită de mai jos (care ține doar în raza `magnet_range`), asta nu se mai oprește:
+# gema pleacă de oriunde ar fi și accelerează până ajunge la tine.
+const MAGNET_ACCEL := 3000.0        # px/s² — pornește lin și se face fulger
+const MAGNET_VITEZA_MAX := 2400.0   # px/s
+
 var _time := 0.0
 var _base_scale: Vector2
 var _collected := false
+var _spre_magnet := false
+var _viteza_magnet := 0.0
 var _player: Node2D
 
 @onready var sprite: Sprite2D = $Sprite2D
@@ -138,8 +147,23 @@ func _textura_rosie(sursa: Texture2D) -> Texture2D:
 	_tex_rosie = ImageTexture.create_from_image(img)
 	return _tex_rosie
 
+# Chemată de `magnet.gd` când player-ul calcă pe un magnet: gema pleacă spre el, oriunde ar fi.
+#
+# Iese din grupul „xp" pe loc, din două motive: nu mai intră în socoteala contopirilor (ar fi
+# absorbită într-o bulă chiar în timp ce zboară), și un al doilea magnet cules cât încă zboară
+# n-o mai găsește ca s-o pornească a doua oară.
+func atrage_la_player() -> void:
+	if _collected or _spre_magnet:
+		return
+	_spre_magnet = true
+	_viteza_magnet = 0.0
+	remove_from_group("xp")
+
 func _physics_process(delta: float) -> void:
 	if _collected:
+		return
+	if _spre_magnet:
+		_zboara_la_player(delta)
 		return
 	# animație idle: pulsează ușor + plutește sus-jos
 	_time += delta
@@ -153,8 +177,30 @@ func _physics_process(delta: float) -> void:
 			var dir := (_player.global_position - global_position).normalized()
 			global_position += dir * magnet_speed * delta
 
+# Zborul spre player după un magnet. Îl urmărește CADRU CU CADRU, nu pe o traiectorie calculată
+# o dată: player-ul se mișcă în tot timpul ăsta, iar o gemă care zboară spre locul unde era el
+# acum o secundă ar rata și ar rămâne în urmă.
+#
+# ⚠️ XP-ul se dă AICI, la sosire, nu la ridicarea magnetului: așa bara se umple pe măsură ce curg
+# gemele — ăsta e tot spectacolul itemului. Și fără sunet: pe o hartă plină ar bubui de sute de
+# ori într-o secundă (`_on_body_entered` de mai jos, care sună, iese devreme cât zburăm).
+func _zboara_la_player(delta: float) -> void:
+	if _player == null or not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player") as Node2D
+	if _player == null:
+		return
+	_viteza_magnet = minf(_viteza_magnet + MAGNET_ACCEL * delta, MAGNET_VITEZA_MAX)
+	var spre := _player.global_position - global_position
+	var pas := _viteza_magnet * delta
+	if spre.length() <= pas + 8.0:
+		_collected = true
+		_player.gain_xp(value)
+		_pop()
+		return
+	global_position += spre.normalized() * pas
+
 func _on_body_entered(body: Node) -> void:
-	if _collected:
+	if _collected or _spre_magnet:
 		return
 	if body.is_in_group("player"):
 		_collected = true

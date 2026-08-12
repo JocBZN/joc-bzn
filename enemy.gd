@@ -136,11 +136,14 @@ var _charm_next := 0.0        # momentul (sec) când poate lovi din nou
 var _xp1: PackedScene
 var _xp2: PackedScene
 var _key: PackedScene
+var _magnet: PackedScene
 
 # Șansa ca un inamic mort să lase o CHEIE de cufăr (cerut de Răzvan: 0.5%, adică 1 la 200
 # de morți). NU se scalează cu nimic — nici cu dificultatea, nici cu norocul: e o rată fixă,
 # ca să poți socoti câte cufere deschizi într-o rundă după câți inamici omori.
 const KEY_CHANCE := 0.005
+# MAGNETUL de XP (`magnet.gd`), tot 0.5% și tot fix, din același motiv.
+const MAGNET_CHANCE := 0.005
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -158,6 +161,8 @@ func _ready() -> void:
 		_xp2 = load("res://xp2.tscn")
 	if ResourceLoader.exists("res://key.tscn"):
 		_key = load("res://key.tscn")
+	if ResourceLoader.exists("res://magnet.tscn"):
+		_magnet = load("res://magnet.tscn")
 
 # O animație pe direcție, din poze separate. Numele animațiilor sunt exact cele din `DIRECTII`,
 # deci restul codului (care face `anim.play(DIRECTII[idx])`) nu știe și nu-i pasă de unde vin.
@@ -571,3 +576,9 @@ func _drop_xp() -> void:
 		var cheie := _key.instantiate()
 		parent.add_child(cheie)
 		cheie.global_position = global_position + Vector2(-22, -6)
+	# MAGNET de XP: 0.5%, tot independent de restul dropului. Cade în cealaltă parte decât cheia,
+	# ca să se vadă amândouă dacă pică odată (1 la 40.000 de morți, dar se întâmplă).
+	if _magnet != null and randf() < MAGNET_CHANCE:
+		var magnet := _magnet.instantiate()
+		parent.add_child(magnet)
+		magnet.global_position = global_position + Vector2(22, -6)

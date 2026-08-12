@@ -18,6 +18,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-12 (Magnetul de XP)
+
+**Cerut de Răzvan:** „ți-am pus o poză nouă în folderul xp — se numește magnet. Vreau să aibă un stroke de 1 pixel negru și să aibă drop rate de la inamici de 0.5%. Atunci când e ridicat de pe jos trage tot xp-ul de pe hartă și îl dă la player."
+
+**Fișiere noi:** `magnet.gd` + `magnet.tscn`, `xp/magnet_contur.png`. **Atinse:** `xp.gd`, `enemy.gd`, `tool_contur_foaie.gd`.
+
+**Conturul.** Nu l-am desenat de mână și nici nu l-am pus cu shader: `magnet.png` e 128×128, exact ca `key.png`, deci a intrat ca încă o linie în `tool_contur_foaie.gd` (culoare nouă, `NEGRU`) și scoate `xp/magnet_contur.png`. **Sursa lui Răzvan rămâne neatinsă**, deci unealta poate fi rulată de câte ori vrea fără să se îngroașe conturul — dacă ar scrie peste sursă, a doua rulare ar contura conturul.
+
+**Obiectul de pe jos** e clonă de `key.gd`, nu de `xp.gd`: la cheie și la magnet cade unul la ~200 de morți, deci nu se strâng niciodată grămadă și n-au nevoie de contopirea în bule din `xp.gd`. Drop 0.5% în `_drop_xp`, independent de restul (poți primi și XP rar, și cheie, și magnet), căzut cu 22 px în DREAPTA — cheia cade în stânga, ca să se vadă amândouă dacă pică odată.
+
+**Sugerea XP-ului.** Magnetul cheamă `atrage_la_player()` pe fiecare gemă din grupul „xp". Gema iese din grup pe loc (nu mai intră în contopiri cât zboară, și un al doilea magnet n-o mai pornește a doua oară) și zboară spre player accelerat, 3000 px/s² până la 2400 px/s.
+
+⚠️ Zborul urmărește player-ul **cadru cu cadru**, nu pe o traiectorie calculată o dată (un tween spre poziția de la plecare ar fi ratat, fiindcă player-ul se mișcă). ⚠️ XP-ul se dă **la sosire**, nu tot deodată la ridicarea magnetului: așa bara se umple pe măsură ce curg gemele, ăsta e tot spectacolul itemului. ⚠️ Și **fără sunet** pe gemă: `_on_body_entered` (care sună) iese devreme cât gema e în zbor, altfel pe o hartă plină ar fi bubuit de sute de ori într-o secundă.
+
+**Verificat rulând:** 31 de geme împrăștiate până la 3000 px (una la −1800, +900), magnet cules → **toate 31 adunate, 0 noduri rămase, XP exact 120 din 120**; captură de la zoom-ul REAL al camerei din joc (0,7), unde se vede conturul negru; captură din timpul sugerii, cu spirala de geme care curge spre player. `main.tscn` headless fără erori.
+
+---
+
 ## Session log — 2026-08-12 (Dubiosu: marfa lui — 4 iteme care nu există nicăieri altundeva)
 
 **Cerut de Răzvan:** „vreau dubiosu, când apeși E pe el, să îți dea 3 variante de iteme (ca upgrade-urile normale) doar că pe astea nu le găsești în upgrade-uri normale. Toate sunt aceeași calitate (**nu vreau să scrii asta undeva**). Ai un border în folderul Upgrade Dubios ca să faci tot meniul, inclusiv rama de la iteme."
