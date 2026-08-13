@@ -124,8 +124,23 @@ const SUPRA := 2
 const MODEL_ZAR := "res://harta/Upgrade Dubios/Dice.glb"
 
 const MARIME_ZAR := 0.9        # latura cubului, în unități 3D
-const ZAR_X := 0.9             # cât de departe de mijloc se opresc (±)
 const PODEA_Y := -MARIME_ZAR * 0.5
+
+# Unde se opresc. NU sunt în oglindă dinadins: două zaruri așezate perfect simetric arată a poză
+# de catalog, nu a masă pe care tocmai s-a aruncat. Unul stă mai în față, altul mai în spate, și
+# peste locurile astea se mai pune o zvâcnitură la fiecare aruncare (`_arunca`).
+#
+# ⚠️ Depărtarea pe Z (0.42 față de −0.40, adică aproape o lățime de zar) nu e doar de frumusețe:
+# al doilea zar trebuie să treacă pe deasupra locului primului ca s-ajungă în dreapta, iar cu
+# culoare apropiate cele două se suprapuneau pe ecran fix la mijlocul aruncării, de parcă unul
+# intra prin celălalt.
+const LOCURI := [Vector3(-1.06, 0.0, 0.50), Vector3(1.02, 0.0, -0.48)]
+
+# Cât de rotunjite sunt muchiile (0 = cub tăios, ca înainte; 0.5 = bilă). Un zar adevărat are
+# colțurile tocite, iar tocitura e cea care prinde lumina și îi dă volum — cubul tăios de dinainte
+# ieșea o pată plată, oricâtă lumină puneai pe el.
+const ROTUNJIME := 0.17
+const DIVIZIUNI := 7           # câte pătrățele are latura unei fețe (mai multe = rotunjire mai fină)
 
 # Camera: privește masa de sus-față. `KEEP_WIDTH` = `fov` e pe ORIZONTALĂ, deci încadrarea nu se
 # strică dacă schimbi `MASA_W`/`MASA_H`.
@@ -138,11 +153,46 @@ const CAM_POZ := Vector3(0.0, 5.2, 9.6)
 const CAM_TINTA := Vector3(0.0, 0.15, 0.0)
 const CAM_FOV := 33.0
 
-# Cât ține aruncarea: întâi se rostogolesc, apoi se așază pe fața care a ieșit.
-const T_ROSTOGOL := 0.95
-const T_ASEZARE := 0.5
-const SALT_MAX := 0.45         # cât de sus sar între rostogoliri
-const X_PORNIRE := [-4.6, -5.6]  # de unde vin aruncate (din stânga, ca din mână)
+# ---------------------------------------------------------------------------
+# CUM SE ARUNCĂ
+# ---------------------------------------------------------------------------
+# Prima variantă (dimineața lui 2026-08-13) muta zarurile de la stânga la locul lor cu o singură
+# frânare de 0.35s și le rotea cu viteză fixă, apoi le răsucea brusc pe fața care a ieșit. Ieșea
+# rău din trei motive, toate vizibile dacă filmezi aruncarea cadru cu cadru:
+#   1. ajungeau pe loc în prima treime și pe urmă STĂTEAU o jumătate de secundă, tremurând;
+#   2. nu atingeau niciodată masa — „săritura" era un sinus care le ridica, nu o cădere;
+#   3. făceau amândouă exact același lucru, în același moment.
+#
+# Acum: pe VERTICALĂ e gravitație adevărată, cu ciocnituri de masă și restituție (fiecare săritură
+# e mai mică și mai deasă decât cea de dinainte — ăsta e ritmul „tac … tac .. tac.tac" pe care
+# urechea îl știe de la barbut). Ciocnitura se calculează pe COLȚUL cel mai de jos al zarului
+# rotit, nu pe centrul lui, deci zarul chiar cade pe un colț și se răstoarnă de pe el.
+#
+# Pe ORIZONTALĂ, în schimb, drumul e desenat de mână (de la mână până la locul lui, cu frânare),
+# nu simulat. Motivul e practic: o simulare adevărată se oprește unde vrea ea, iar fereastra e o
+# fâșie îngustă — un zar care iese din cadru sau se urcă peste celălalt strică tot ecranul. Ce dă
+# senzația de fizică e săritura și rotația, nu traiectoria laterală; așa avem și una, și alta.
+const GRAVITATIE := 24.0       # unități/s²; masa e mică, deci „greutatea" e mai mare decât 9.8
+const RESTITUTIE := 0.52       # cât din viteza pe verticală se întoarce după o ciocnitură
+const OPRIRE := 1.95           # sub atâta nu mai sare: se lasă pe fața care a ieșit
+const SARITURI_MAX := 4        # plasă de siguranță, ca aruncarea să nu se lungească niciodată
+const T_ORIZONTAL := [0.68, 0.82]   # cât ține drumul lateral al fiecăruia, din mână până pe loc
+const T_ASEZARE := 0.34        # răsturnarea finală pe fața care a ieșit
+
+# Fiecare zar pleacă altfel: altă înălțime, altă întârziere, altă rotație. Diferențele sunt mici,
+# dar ele fac ca zarurile să nu se oprească în același cadru — și tocmai oprirea decalată e ce
+# deosebește o aruncare de o animație.
+#
+# ⚠️ `X_PORNIRE` stă LIPIT de marginea din stânga a cadrului (care e pe la −3.2), nu departe în
+# afara lui: prima încercare le trimitea de la −4.9 și zarurile intrau în ecran abia după o treime
+# din aruncare — te uitai o treime de secundă la o masă goală.
+const X_PORNIRE := [-3.3, -3.95]  # de unde vin aruncate (din stânga, ca din mână)
+const H_PORNIRE := [1.15, 1.32]
+const INTARZIERE := [0.0, 0.13]
+const SPIN := [14.5, 12.5]     # rad/s la plecare
+const SPIN_LOVIT := 0.62       # cât din rotație rămâne după o ciocnitură de masă
+const HOP_ASEZARE := 0.09      # cât se ridică zarul cât se răstoarnă pe ultima față
+const PAUZA_REZULTAT := 0.16   # o clipă de liniște după ce s-au oprit, înainte de cartonaș
 
 # Fața zarului: ce cifră stă pe ce direcție. Fețele opuse fac 7, ca la zarul adevărat.
 const FETE := [
@@ -164,8 +214,9 @@ const BULINE := {
 	6: [Vector2i(0, 0), Vector2i(2, 0), Vector2i(0, 1), Vector2i(2, 1), Vector2i(0, 2), Vector2i(2, 2)],
 }
 const CELULA_ZAR := 96         # cât de mare e o față în planșa desenată în cod
-const FILDES := Color8(236, 230, 218)
-const NEGRU_BULINA := Color8(38, 24, 18)
+const FILDES := Color8(238, 227, 205)
+const NEGRU_BULINA := Color8(24, 16, 13)    # peretele scobiturii, dinspre lumină
+const BULINA_FUND := Color8(88, 56, 41)     # fundul ei, unde se mai întoarce un pic de lumină
 
 # ---------------------------------------------------------------------------
 var _stare := "gata"       # gata (aștept să dai) | rostogolire | rezultat
@@ -181,14 +232,15 @@ var _card_desc: Label
 var _btn: Button
 
 var _vp: SubViewport
+var _cam: Camera3D
 var _zaruri := []          # Node3D × 2
+var _umbre := []           # pata de umbră de sub fiecare zar (MeshInstance3D × 2)
 var _d := [1, 1]           # ce a ieșit pe fiecare zar
-var _q_start := []         # rotația de la care începe așezarea
-var _q_tinta := []         # rotația pe care trebuie s-o aibă la final
-var _ax := []              # axa pe care se rostogolește fiecare
-var _viteza := []          # rad/s
-var _t := 0.0
-var _asezarea_pornita := false
+var _z := []               # starea aruncării, câte un dicționar de zar (vezi `_arunca`)
+var _t := 0.0              # cât e de când s-au oprit amândouă
+var _zguduie := 0.0        # cât mai tremură camera după ultima ciocnitură
+var _boxe := []            # boxele pentru ciocnituri (vezi `_bufnitura`)
+var _boxa := 0
 
 func _ready() -> void:
 	add_to_group("dubios_menu")
@@ -212,11 +264,12 @@ func open(npc: Node = null) -> void:
 	_npc = npc
 	_stare = "gata"
 	_t = 0.0
-	_asezarea_pornita = false
 	_lbl_stare.text = "Roll for your item"
 	_lbl_stare.add_theme_color_override("font_color", CENUSA)
 	_lbl_suma.text = ""
 	_card.modulate = Color(1, 1, 1, CARD_ASTEPTARE)
+	_card.scale = Vector2.ONE          # un „pumn" rămas de la aruncarea trecută (vezi `_pumn`)
+	_lbl_suma.scale = Vector2.ONE
 	_card_icon.texture = null
 	_card_nume.text = ""
 	_card_desc.text = ""
@@ -226,10 +279,13 @@ func open(npc: Node = null) -> void:
 	# fiecare dată aceeași pereche și ar arăta a poză, nu a masă de joc. Ce se vede acum nu
 	# înseamnă nimic: `_arunca()` trage din nou.
 	_d = [randi_range(1, 6), randi_range(1, 6)]
+	_z.clear()
+	_zguduie = 0.0
 	for i in 2:
 		var z: Node3D = _zaruri[i]
-		z.position = Vector3(ZAR_X * (1 if i == 1 else -1), 0.0, 0.0)
+		z.position = LOCURI[i]
 		z.basis = Basis(Vector3.UP, randf() * TAU) * _baza_pentru(_d[i])
+		_aseaza_umbra(i)
 	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	visible = true
 	get_tree().paused = true
@@ -268,73 +324,230 @@ func _pe_buton() -> void:
 func _arunca() -> void:
 	_stare = "rostogolire"
 	_t = 0.0
-	_asezarea_pornita = false
 	_btn.disabled = true
 	_lbl_stare.text = ""
 	_lbl_suma.text = ""
 
 	_d = [randi_range(1, 6), randi_range(1, 6)]
-	_q_start = [Quaternion.IDENTITY, Quaternion.IDENTITY]
-	_q_tinta = []
-	_ax = []
-	_viteza = []
+	_z.clear()
 	for i in 2:
-		# rotația de la final: fața care a ieșit ajunge în sus, plus o răsucire oarecare pe
-		# verticală (nu schimbă ce cifră e sus, doar așază zarul altfel pe masă)
-		_q_tinta.append((Basis(Vector3.UP, randf() * TAU) * _baza_pentru(_d[i])).get_rotation_quaternion())
-		# axă de rostogolire la întâmplare, dar niciodată aproape de verticală: un zar care se
-		# învârte doar în jurul lui Y arată ca un titirez, nu ca un zar aruncat
-		var ax := Vector3(randf_range(-1.0, 1.0), randf_range(-0.25, 0.25), randf_range(-1.0, 1.0))
-		if ax.length() < 0.2:
-			ax = Vector3(1.0, 0.1, 0.6)
-		_ax.append(ax.normalized())
-		_viteza.append(randf_range(13.0, 18.0))
+		var loc: Vector3 = LOCURI[i] + Vector3(randf_range(-0.09, 0.09), 0.0, randf_range(-0.12, 0.12))
 		var z: Node3D = _zaruri[i]
-		z.position = Vector3(X_PORNIRE[i], SALT_MAX, randf_range(-0.25, 0.25))
+		z.position = Vector3(X_PORNIRE[i], H_PORNIRE[i], loc.z + randf_range(-0.18, 0.18))
+		_z.append({
+			"faza": "asteapta",
+			"t": 0.0,
+			"intarziere": INTARZIERE[i],
+			"t_oriz": T_ORIZONTAL[i],
+			"loc": loc,
+			"x0": z.position.x,
+			"z0": z.position.z,
+			"vy": randf_range(0.1, 0.8),      # plecă ușor în sus, ca aruncat din palmă
+			"ax": _axa_de_rostogol(),
+			"spin": SPIN[i] * randf_range(0.9, 1.12),
+			"lovituri": 0,
+			"q_start": Quaternion.IDENTITY,
+			"q_tinta": Quaternion.IDENTITY,
+			"unghi": 0.0,
+			"p_start": Vector3.ZERO,
+		})
 	Audio.play("button", -3.0, 0.0)
 
+# Axă de rostogolire la întâmplare, dar niciodată aproape de verticală: un zar care se învârte
+# doar în jurul lui Y arată a titirez, nu a zar aruncat.
+func _axa_de_rostogol() -> Vector3:
+	var ax := Vector3(randf_range(-1.0, 1.0), randf_range(-0.3, 0.3), randf_range(-1.0, 1.0))
+	if ax.length() < 0.2:
+		ax = Vector3(1.0, 0.1, 0.6)
+	return ax.normalized()
+
 func _process(delta: float) -> void:
-	if not visible or _stare != "rostogolire":
+	if not visible:
 		return
+	# ⚠️ delta se plafonează: dacă jocul înțepenește un sfert de secundă (un shader compilat, o
+	# fereastră mutată), un pas de 0.25s ar trece zarul prin masă și l-ar arunca pe sub ea.
+	delta = minf(delta, 0.05)
+	_misca_camera(delta)
+	if _stare != "rostogolire":
+		return
+
+	var toate_stau := true
+	for i in _z.size():
+		_pas_zar(i, delta)
+		_aseaza_umbra(i)
+		if _z[i]["faza"] != "stat":
+			toate_stau = false
+	if not toate_stau:
+		_t = 0.0
+		return
+	# s-au oprit amândouă: o clipă de liniște, cât să apuci să citești ce a ieșit
 	_t += delta
-
-	if _t < T_ROSTOGOL:
-		var p := _t / T_ROSTOGOL
-		for i in 2:
-			var z: Node3D = _zaruri[i]
-			z.basis = Basis(_ax[i], _viteza[i] * delta) * z.basis
-			z.position.x = lerpf(X_PORNIRE[i], ZAR_X * (1 if i == 1 else -1), _franare(p))
-			z.position.y = _saltul(p)
-		return
-
-	# gata rostogolitul: se așază pe fața care a ieșit
-	if not _asezarea_pornita:
-		_asezarea_pornita = true
-		for i in 2:
-			_q_start[i] = (_zaruri[i] as Node3D).basis.get_rotation_quaternion()
-		# ⚠️ „ticul" de zar căzut pe masă. Sunetele de zaruri (`dice_roll_*.wav`) au existat cândva
-		# în proiect și s-au pierdut — până revin, împrumutăm ciocănitul cheii de cufăr.
-		Audio.play("key_pickup", -6.0, 0.12)
-
-	var q := clampf((_t - T_ROSTOGOL) / T_ASEZARE, 0.0, 1.0)
-	for i in 2:
-		var z: Node3D = _zaruri[i]
-		z.basis = Basis(_q_start[i].slerp(_q_tinta[i], _franare(q)))
-		z.position.y = lerpf(z.position.y, 0.0, minf(1.0, delta * 14.0))
-	if q >= 1.0:
-		for i in 2:
-			var z: Node3D = _zaruri[i]
-			z.basis = Basis(_q_tinta[i])
-			z.position.y = 0.0
+	if _t >= PAUZA_REZULTAT:
 		_arata_rezultatul()
 
-# Cât din drum s-a făcut, cu frânare la capăt (începe repede, se oprește moale).
-func _franare(p: float) -> float:
-	return 1.0 - pow(1.0 - clampf(p, 0.0, 1.0), 3.0)
+# Un cadru din viața unui zar.
+func _pas_zar(i: int, delta: float) -> void:
+	var s: Dictionary = _z[i]
+	var nod: Node3D = _zaruri[i]
+	var loc: Vector3 = s["loc"]
+	match s["faza"]:
+		"asteapta":
+			s["intarziere"] = float(s["intarziere"]) - delta
+			if float(s["intarziere"]) <= 0.0:
+				s["faza"] = "zbor"
 
-# Două salturi care se sting: zarul lovește masa, sare mai puțin, se potolește.
-func _saltul(p: float) -> float:
-	return absf(sin(p * PI * 2.4)) * SALT_MAX * (1.0 - p)
+		"zbor":
+			s["t"] = float(s["t"]) + delta
+			# ⚠️ înmulțim baze la fiecare cadru, iar erorile de virgulă se adună: după o mie de
+			# cadre zarul ar începe să se turtească. `orthonormalized()` îl ține cub.
+			nod.basis = (Basis(s["ax"], float(s["spin"]) * delta) * nod.basis).orthonormalized()
+
+			var p := clampf(float(s["t"]) / float(s["t_oriz"]), 0.0, 1.0)
+			var e := 1.0 - pow(1.0 - p, 2.0)   # frânare, dar nu atât de tare încât să se oprească devreme
+			var poz := nod.position
+			poz.x = lerpf(float(s["x0"]), loc.x, e)
+			poz.z = lerpf(float(s["z0"]), loc.z, e)
+			s["vy"] = float(s["vy"]) - GRAVITATIE * delta
+			poz.y += float(s["vy"]) * delta
+
+			# ciocnitura: se măsoară pe colțul cel mai de jos al zarului AȘA CUM E ROTIT ACUM
+			var jos := _cel_mai_jos(nod.basis)
+			if poz.y + jos <= PODEA_Y and float(s["vy"]) < 0.0:
+				poz.y = PODEA_Y - jos
+				var tarie := absf(float(s["vy"]))
+				s["vy"] = tarie * RESTITUTIE
+				s["lovituri"] = int(s["lovituri"]) + 1
+				s["spin"] = float(s["spin"]) * SPIN_LOVIT
+				# masa îi schimbă și axa: un zar lovit nu se mai învârte pe unde se învârtea
+				s["ax"] = _axa_de_rostogol()
+				_bufnitura(tarie)
+				nod.position = poz
+				if float(s["vy"]) < OPRIRE or int(s["lovituri"]) >= SARITURI_MAX:
+					_incepe_asezarea(i)
+					return
+			nod.position = poz
+
+		"asezare":
+			s["t"] = float(s["t"]) + delta
+			var p := clampf(float(s["t"]) / T_ASEZARE, 0.0, 1.0)
+			nod.basis = Basis((s["q_start"] as Quaternion).slerp(s["q_tinta"], _rasturnare(p)))
+			var neted := p * p * (3.0 - 2.0 * p)
+			var de_la: Vector3 = s["p_start"]
+			# se ridică un pic cât se răstoarnă — un zar care cade pe fața lui se salt-ă pe muchie
+			# înainte să se lase. Cu cât are mai mult de răsturnat, cu atât mai vizibil.
+			var salt := sin(p * PI) * HOP_ASEZARE * clampf(float(s["unghi"]) / 0.9, 0.12, 1.0)
+			nod.position = Vector3(
+				lerpf(de_la.x, loc.x, neted),
+				lerpf(de_la.y, 0.0, neted) + salt,
+				lerpf(de_la.z, loc.z, neted))
+			if p >= 1.0:
+				nod.basis = Basis(s["q_tinta"])
+				nod.position = Vector3(loc.x, 0.0, loc.z)
+				s["faza"] = "stat"
+				_bufnitura(1.1)   # ticul moale cu care se lasă pe față
+
+# Trecerea de la rostogolit la stat. Aici se hotărăște CUM se oprește zarul, și tot aici era
+# greșeala cea mare de dinainte: rotația finală se alegea la începutul aruncării, cu o răsucire
+# oarecare, deci zarul avea de multe ori de făcut o jumătate de tură ÎNAPOI ca s-o prindă — de
+# aia părea că se smucește și se oprește brusc.
+#
+# Acum se alege abia acum, dintre toate așezările care arată cifra cerută, cea mai APROPIATĂ de
+# cum stă zarul în clipa asta. Așa ultima mișcare e mereu scurtă: zarul se lasă pe fața pe care
+# oricum era gata să cadă.
+func _incepe_asezarea(i: int) -> void:
+	var s: Dictionary = _z[i]
+	var nod: Node3D = _zaruri[i]
+	s["faza"] = "asezare"
+	s["t"] = 0.0
+	s["q_start"] = nod.basis.get_rotation_quaternion()
+	s["q_tinta"] = _cea_mai_apropiata(s["q_start"], _d[i])
+	s["unghi"] = _unghi_intre(s["q_start"], s["q_tinta"])
+	s["p_start"] = nod.position
+
+# Dintre toate felurile în care zarul poate sta cu fața `val` în sus (adică `_baza_pentru(val)`
+# răsucit oricât pe verticală), îl alege pe cel mai apropiat de rotația de acum. 48 de încercări
+# = din 7,5 în 7,5 grade: mai fin decât poate să vadă ochiul pe o mișcare de trei zecimi de secundă.
+func _cea_mai_apropiata(q_acum: Quaternion, val: int) -> Quaternion:
+	var baza := _baza_pentru(val)
+	var cea_buna := baza.get_rotation_quaternion()
+	var scor := -1.0
+	for k in 48:
+		var cand := (Basis(Vector3.UP, TAU * k / 48.0) * baza).get_rotation_quaternion()
+		var d := absf(q_acum.dot(cand))     # |dot| = cât de aproape sunt, indiferent de semn
+		if d > scor:
+			scor = d
+			cea_buna = cand
+	return cea_buna
+
+func _unghi_intre(a: Quaternion, b: Quaternion) -> float:
+	return 2.0 * acos(clampf(absf(a.dot(b)), 0.0, 1.0))
+
+# Cât de jos ajunge colțul cel mai de jos al zarului, rotit cu baza `b`. Culcat pe o față dă
+# −jumătate de latură; căzut pe un colț dă jumătate de diagonală, adică mult mai jos — de aia
+# zarul care cade pe colț se oprește mai sus și se răstoarnă de acolo.
+func _cel_mai_jos(b: Basis) -> float:
+	var s := MARIME_ZAR * 0.5
+	var jos := INF
+	for sx in [-s, s]:
+		for sy in [-s, s]:
+			for sz in [-s, s]:
+				jos = minf(jos, (b * Vector3(sx, sy, sz)).y)
+	return jos
+
+# Răsturnarea finală: ajunge la capăt și trece un pic peste, apoi se întoarce. Fix cât face un
+# zar adevărat când se lasă pe ultima față — fără asta se oprește ca o poză.
+func _rasturnare(p: float) -> float:
+	var c1 := 1.1
+	var x := clampf(p, 0.0, 1.0) - 1.0
+	return 1.0 + (c1 + 1.0) * x * x * x + c1 * x * x
+
+# O ciocnitură de masă: sunetul ei și zguduitura de cameră. `tarie` = viteza cu care a lovit.
+#
+# ⚠️ Nu merge prin `Audio.play`: acolo același sunet nu se pornește mai des de `MIN_GAP_MS`, iar
+# ultimele săriturile vin la o zecime de secundă una după alta — s-ar fi auzit doar prima. Și mai
+# avem nevoie de ton, ca ciocniturile mici să sune mai subțire decât căderea grea de la început.
+func _bufnitura(tarie: float) -> void:
+	var t := clampf(tarie / 7.5, 0.0, 1.0)
+	_zguduie = minf(0.085, _zguduie + 0.012 + 0.055 * t)
+	if _boxe.is_empty():
+		return
+	var p: AudioStreamPlayer = _boxe[_boxa]
+	_boxa = (_boxa + 1) % _boxe.size()
+	p.pitch_scale = randf_range(1.26, 1.5) - 0.3 * t
+	p.volume_db = -21.0 + 13.0 * t + _db_sfx()
+	p.play()
+
+# Reglajul „SOUND FX" din Settings, în decibeli (ca în `audio.gd`).
+func _db_sfx() -> float:
+	var v: float = GameSettings.sfx_volume
+	return -60.0 if v <= 0.001 else linear_to_db(v)
+
+# Camera nu stă în cui: la fiecare ciocnitură primește un ghiont care se stinge repede. E mic
+# dinadins (sub o zecime de unitate) — cât să simți masa, nu cât să-ți fugă ecranul.
+func _misca_camera(delta: float) -> void:
+	if _cam == null:
+		return
+	_zguduie *= exp(-delta * 9.0)
+	if _zguduie < 0.0005:
+		_zguduie = 0.0
+	_cam.position = CAM_POZ + Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-0.4, 0.4)) * _zguduie
+	_cam.look_at(CAM_TINTA, Vector3.UP)
+
+# Pata de umbră de sub zar. Umbra „adevărată" (din lumina cu shadow_enabled) cade oblic și rămâne
+# la fel de moale oricât de sus e zarul, deci nu-ți spune niciodată dacă zarul ATINGE masa. Pata
+# asta face exact asta: se strânge și se întunecă pe măsură ce zarul coboară.
+func _aseaza_umbra(i: int) -> void:
+	if i >= _umbre.size():
+		return
+	var nod: Node3D = _zaruri[i]
+	var umbra: MeshInstance3D = _umbre[i]
+	var h := clampf((nod.position.y - PODEA_Y) / 1.3, 0.0, 1.0)
+	umbra.position = Vector3(nod.position.x, PODEA_Y + 0.004, nod.position.z)
+	var k := 0.9 + h * 1.3
+	umbra.scale = Vector3(k, 1.0, k)
+	var mat := umbra.material_override as StandardMaterial3D
+	if mat != null:
+		mat.albedo_color.a = (1.0 - h) * 0.5
 
 # ---------------------------------------------------------------------------
 # CE A IEȘIT
@@ -360,14 +573,32 @@ func _arata_rezultatul() -> void:
 		_lbl_stare.text = mesaj
 		_lbl_stare.add_theme_color_override("font_color", ACCENT_CLAR)
 
+	# suma sare o clipă în ochi: ea e vestea, ea primește accentul
+	_pumn(_lbl_suma, 1.35, 0.28)
+
 	# cartonașul apare crescând, nu pocnește pe ecran
 	_btn.text = "CONTINUE"
 	_btn.disabled = false
 	var t := create_tween()
 	t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)   # jocul e pe pauză, altfel n-ar curge
 	t.tween_interval(0.22)
-	t.tween_callback(func(): Audio.play("chest_anim", -3.0, 0.0))
+	t.tween_callback(func():
+		Audio.play("chest_anim", -3.0, 0.0)
+		_pumn(_card, 1.06, 0.34))
 	t.tween_property(_card, "modulate", Color(1, 1, 1, 1), 0.3)
+
+# Un „pumn" de mărime: sare la `cat` și se lasă înapoi la 1. E cel mai ieftin fel de a spune „uite
+# aici" fără să muți nimic din loc.
+#
+# ⚠️ `pivot_offset` se pune ACUM, nu la construire: până nu se așază containerele, `size` e zero,
+# iar creșterea ar porni din colțul de sus-stânga și ar arăta ca o alunecare.
+func _pumn(ctrl: Control, cat: float, durata: float) -> void:
+	ctrl.pivot_offset = ctrl.size * 0.5
+	ctrl.scale = Vector2(cat, cat)
+	var t := create_tween()
+	t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	t.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	t.tween_property(ctrl, "scale", Vector2.ONE, durata)
 
 # ---------------------------------------------------------------------------
 # EFECTELE
@@ -690,35 +921,71 @@ func _construieste_masa() -> void:
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	add_child(_vp)
 
-	var cam := Camera3D.new()
-	cam.position = CAM_POZ
-	cam.keep_aspect = Camera3D.KEEP_WIDTH   # `fov` e pe orizontală (vezi CAM_FOV)
-	cam.fov = CAM_FOV
-	cam.environment = _mediul()
-	_vp.add_child(cam)
-	cam.look_at(CAM_TINTA, Vector3.UP)
+	_cam = Camera3D.new()
+	_cam.position = CAM_POZ
+	_cam.keep_aspect = Camera3D.KEEP_WIDTH   # `fov` e pe orizontală (vezi CAM_FOV)
+	_cam.fov = CAM_FOV
+	_cam.environment = _mediul()
+	_vp.add_child(_cam)
+	_cam.look_at(CAM_TINTA, Vector3.UP)
 
-	# lumina principală, din stânga-sus-față, cu umbre pe postav
+	# Lumina e pusă „ca la studio", pe trei surse cu roluri diferite. Cu una singură zarul iese o
+	# pată plată — se vede în filmul aruncării de dinainte.
+	#
+	# 1. CHEIA: din stânga-sus-față, caldă, ea face umbra pe postav.
 	var lum := DirectionalLight3D.new()
-	lum.light_energy = 1.6
-	lum.light_color = Color8(255, 248, 238)
+	lum.light_energy = 1.9
+	lum.light_color = Color8(255, 246, 232)
 	lum.shadow_enabled = true
 	# ⚠️ Umbra NEATINSĂ iese un triunghi negru cu muchii tăiate cu cuțitul, care arată a greșeală,
 	# nu a umbră. Înmuiată și lăsată să se vadă postavul prin ea, zarul pare așezat pe masă.
-	lum.shadow_blur = 2.0
-	lum.shadow_opacity = 0.62
+	lum.shadow_blur = 1.6
+	lum.shadow_opacity = 0.66
 	lum.rotation_degrees = Vector3(-52.0, -38.0, 0.0)
+	# ⚠️ ASTA e reglajul fără de care zarurile arată bolnave. Din fabrică, umbra unei lumini
+	# direcționale se întinde pe 100 de unități, tăiate în patru felii — iar noi avem o masă de
+	# două unități. Pe atâta întindere un pixel din harta de umbră e mai mare decât o față de zar,
+	# așa că fața se umbrește singură: ies pete cenușii cu muchie dreaptă peste fețele luminate (se
+	# vedea limpede pe fața de sus). Strânsă pe 16 unități și pe o singură felie, aceiași pixeli cad
+	# toți pe masă, iar umbra iese curată.
+	lum.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	lum.directional_shadow_max_distance = 16.0
+	lum.shadow_bias = 0.02
+	lum.shadow_normal_bias = 0.8
 	_vp.add_child(lum)
 
-	# o a doua lumină, slabă și caldă, din dreapta: fără ea fețele din umbră ies plate
+	# 2. UMPLUTURA: slabă și caldă, din dreapta, ca fețele din umbră să nu iasă plate.
 	#
 	# ⚠️ NU pune aici `ACCENT` (arama plină) și nici energie mare: prima încercare a scos zaruri
 	# CĂRĂMIZII, nu de os. Zarul trebuie să rămână fildeș, iar arama doar să-l atingă.
 	var lum2 := DirectionalLight3D.new()
-	lum2.light_energy = 0.25
+	lum2.light_energy = 0.22
 	lum2.light_color = Color8(214, 168, 138)
 	lum2.rotation_degrees = Vector3(-18.0, 128.0, 0.0)
 	_vp.add_child(lum2)
+
+	# 3. CONTURUL: din spate, rece, razant. Nu luminează zarul, doar îi aprinde muchiile de sus —
+	# fără ea zarul de os se pierde în postavul întunecat exact acolo unde ar trebui să iasă în
+	# față. E lumina care face diferența dintre „un cub" și „un obiect".
+	var lum3 := DirectionalLight3D.new()
+	lum3.light_energy = 0.55
+	lum3.light_color = Color8(216, 218, 230)
+	lum3.rotation_degrees = Vector3(-12.0, 168.0, 0.0)
+	_vp.add_child(lum3)
+
+	# Becul de deasupra mesei: face o baltă de lumină în mijloc și lasă marginile în întuneric.
+	# Tot el ascunde locul unde se termină postavul, și dă senzația de masă pe care se joacă
+	# noaptea, la lumina unui bec chior. Fără umbre — ar costa degeaba, cheia le face deja.
+	var bec := SpotLight3D.new()
+	bec.position = Vector3(0.0, 4.2, 1.1)
+	bec.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	bec.light_color = Color8(255, 226, 190)
+	bec.light_energy = 4.0
+	bec.spot_range = 12.0
+	bec.spot_angle = 40.0
+	bec.spot_angle_attenuation = 1.8
+	bec.spot_attenuation = 1.4
+	_vp.add_child(bec)
 
 	var podea := MeshInstance3D.new()
 	var pm := PlaneMesh.new()
@@ -727,30 +994,102 @@ func _construieste_masa() -> void:
 	pm.size = Vector2(40.0, 30.0)
 	podea.mesh = pm
 	podea.position.y = PODEA_Y
-	var mat_podea := StandardMaterial3D.new()
-	mat_podea.albedo_color = Color8(28, 19, 24)
-	mat_podea.roughness = 0.95
-	podea.material_override = mat_podea
+	podea.material_override = _material_postav()
 	_vp.add_child(podea)
 
 	var mesh := _mesh_zar()
 	var mat := _material_zar()
+	var umbra_tex := _textura_umbra()
 	for i in 2:
+		# pata de umbră stă SUB zar și e desenată prima (vezi `_aseaza_umbra`)
+		var umbra := MeshInstance3D.new()
+		var qm := QuadMesh.new()
+		qm.size = Vector2(MARIME_ZAR * 1.5, MARIME_ZAR * 1.5)
+		qm.orientation = PlaneMesh.FACE_Y
+		umbra.mesh = qm
+		var mat_u := StandardMaterial3D.new()
+		mat_u.albedo_texture = umbra_tex
+		mat_u.albedo_color = Color(0, 0, 0, 0.0)
+		mat_u.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat_u.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat_u.cull_mode = BaseMaterial3D.CULL_DISABLED
+		umbra.material_override = mat_u
+		umbra.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_vp.add_child(umbra)
+		_umbre.append(umbra)
+
 		var z := Node3D.new()
 		var corp := _corpul_zarului(mesh, mat)
 		z.add_child(corp)
-		z.position = Vector3(ZAR_X * (1 if i == 1 else -1), 0.0, 0.0)
+		z.position = LOCURI[i]
 		_vp.add_child(z)
 		_zaruri.append(z)
+		_aseaza_umbra(i)
+
+	# trei boxe pentru ciocnituri: ultimele sărituri vin la o zecime de secundă una după alta, iar
+	# o singură boxă și-ar tăia singură sunetul din urmă (vezi `_bufnitura`)
+	for i in 3:
+		var p := AudioStreamPlayer.new()
+		p.bus = "Master"
+		p.stream = load("res://audio/Key Pickup.wav")
+		add_child(p)
+		_boxe.append(p)
 
 func _mediul() -> Environment:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CLEAR_COLOR
 	# ⚠️ Fără lumină ambientală fețele care nu prind lumină ies NEGRE, iar zarul pare o gaură.
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color8(148, 142, 156)
-	env.ambient_light_energy = 0.4
+	env.ambient_light_color = Color8(150, 146, 168)
+	env.ambient_light_energy = 0.16
+	# ACES în loc de nimic: cu becul de deasupra, fața zarului luminată direct ieșea albă tăiată,
+	# ca o hârtie. ACES îndoaie vârfurile, deci osul rămâne os și acolo unde bate lumina tare.
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_white = 2.2
 	return env
+
+# Postavul: verde-vânăt foarte închis, aspru, cu pete mărunte. Culoarea plată de dinainte arăta a
+# fundal de program de desenat; petele nu se văd ca pete, dar se simt când trece umbra peste ele.
+func _material_postav() -> StandardMaterial3D:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_texture = _textura_postav()
+	mat.albedo_color = Color8(26, 18, 23)
+	mat.roughness = 0.98
+	mat.metallic = 0.0
+	# ⚠️ Mărunt de tot: la prima încercare (14×10 pe o masă de 40 de unități) o pată ieșea de trei
+	# ori cât zarul, iar planșa se vedea repetându-se, ca o tapiserie ieftină.
+	mat.uv1_scale = Vector3(52.0, 39.0, 1.0)
+	return mat
+
+func _textura_postav() -> ImageTexture:
+	var n := 96
+	var img := Image.create(n, n, true, Image.FORMAT_RGBA8)
+	var zg := FastNoiseLite.new()
+	zg.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	zg.frequency = 0.09
+	zg.seed = 7
+	for y in n:
+		for x in n:
+			# ±12% în jurul albului: materialul îl înmulțește cu `albedo_color`, deci asta e doar
+			# „cât de tocit e postavul aici", nu o culoare de sine stătătoare
+			var v := 1.0 + zg.get_noise_2d(x, y) * 0.12
+			img.set_pixel(x, y, Color(v, v, v, 1.0))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
+# Pata de umbră de contact: un cerc negru cu marginea topită (vezi `_aseaza_umbra`).
+func _textura_umbra() -> ImageTexture:
+	var n := 96
+	var img := Image.create(n, n, true, Image.FORMAT_RGBA8)
+	var c := (n - 1) * 0.5
+	for y in n:
+		for x in n:
+			var d := Vector2(x - c, y - c).length() / c
+			# marginea nu se termină brusc: cade lin, cu coadă lungă, ca o umbră moale adevărată
+			var a := clampf(1.0 - d, 0.0, 1.0)
+			img.set_pixel(x, y, Color(0.0, 0.0, 0.0, a * a * (3.0 - 2.0 * a)))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 
 # Corpul unui zar: modelul lui Răzvan dacă există pe disc, altfel cubul desenat în cod.
 func _corpul_zarului(mesh: ArrayMesh, mat: StandardMaterial3D) -> Node3D:
@@ -794,13 +1133,21 @@ func _cuprinderea(nod: Node, tr: Transform3D) -> AABB:
 		are = true
 	return rez
 
-# Cubul desenat în cod: șase fețe, fiecare cu bucata ei din planșa cu buline.
+# Zarul desenat în cod: șase fețe, fiecare cu bucata ei din planșa cu buline, și cu MUCHIILE
+# TOCITE. Nu mai e un cub: e „cutia rotunjită", adică forma pe care o obții plimbând o bilă de rază
+# `r` pe dinafara unui cub mai mic. Zarurile adevărate sunt tocmai așa, iar tocitura e ce prinde
+# lumina — cubul tăios de dinainte ieșea o pată plată, oricâtă lumină puneai pe el.
 #
 # ⚠️ Fețele se construiesc de mână (nu cu `BoxMesh`) fiindcă `BoxMesh` își împarte UV-urile cum
 # vrea el, iar noi trebuie să știm EXACT ce cifră stă pe ce direcție — altfel n-am putea să
 # oprim zarul pe fața care a ieșit.
+#
+# Fiecare față se taie în DIVIZIUNI×DIVIZIUNI pătrățele, iar fiecare colț de pătrățel se împinge
+# pe suprafața rotunjită (`_pe_rotunjit`). Cele șase petice se închid EXACT unul în altul: pe
+# mijlocul unei muchii, și fața de sus, și cea din lateral ajung în același punct, la 45°.
 func _mesh_zar() -> ArrayMesh:
 	var s := MARIME_ZAR * 0.5
+	var r := s * ROTUNJIME
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for f in FETE:
@@ -811,53 +1158,99 @@ func _mesh_zar() -> ArrayMesh:
 		var cx := (val - 1) % 3
 		var cy := (val - 1) / 3
 		# un pic în interiorul celulei: fără marginea asta se vede o dungă din celula vecină
-		var m := 0.002
-		var u0 := cx / 3.0 + m
-		var u1 := (cx + 1) / 3.0 - m
-		var v0 := cy / 2.0 + m
-		var v1 := (cy + 1) / 2.0 - m
-		var p := [n * s - u * s - v * s, n * s + u * s - v * s,
-			n * s + u * s + v * s, n * s - u * s + v * s]
-		var uv := [Vector2(u0, v1), Vector2(u1, v1), Vector2(u1, v0), Vector2(u0, v0)]
-		for idx in [0, 1, 2, 0, 2, 3]:
-			st.set_normal(n)
-			st.set_uv(uv[idx])
-			st.add_vertex(p[idx])
+		var m := 0.004
+		for a in DIVIZIUNI:
+			for b in DIVIZIUNI:
+				# colțurile pătrățelului, în coordonate −1…1 pe fața plată
+				var a0 := -1.0 + 2.0 * a / float(DIVIZIUNI)
+				var a1 := -1.0 + 2.0 * (a + 1) / float(DIVIZIUNI)
+				var b0 := -1.0 + 2.0 * b / float(DIVIZIUNI)
+				var b1 := -1.0 + 2.0 * (b + 1) / float(DIVIZIUNI)
+				var ab := [Vector2(a0, b0), Vector2(a1, b0), Vector2(a1, b1), Vector2(a0, b1)]
+				# ⚠️ Ordinea asta NU e o preferință: de ea atârnă ce e „față" și ce e „spate" pentru
+				# placa video. Cu ea pe dos, zarul se randează invers pe dinafară și — mai rău —
+				# intră în harta de umbră cu ambele fețe, deci fața lui de sus SE UMBREȘTE SINGURĂ
+				# și iese cenușie. Exact așa arătau zarurile până acum: cenușii, cu lumina „lipsă"
+				# fix de unde bătea cel mai tare.
+				for idx in [0, 2, 1, 0, 3, 2]:
+					var t: Vector2 = ab[idx]
+					var pn := _pe_rotunjit(n * s + u * (t.x * s) + v * (t.y * s), s, r)
+					# UV din coordonata PLATĂ, nu din cea rotunjită: bulinele rămân unde le-am
+					# desenat, iar tocitura primește marginea curată a feței
+					var ux: float = (cx + clampf((t.x + 1.0) * 0.5, m, 1.0 - m)) / 3.0
+					var uy: float = (cy + clampf((1.0 - t.y) * 0.5, m, 1.0 - m)) / 2.0
+					st.set_normal(pn[1])
+					st.set_uv(Vector2(ux, uy))
+					st.add_vertex(pn[0])
 	return st.commit()
+
+# Împinge punctul `p` (de pe cubul tăios) pe cutia rotunjită și spune și încotro privește acolo.
+# Rețeta e cea știută: strângi punctul în cubul mai mic (latura − rotunjire), apoi îl scoți înapoi
+# la distanța `r` de el. În mijlocul feței iese fața plată; pe muchie, sfertul de cilindru; în
+# colț, optimea de bilă.
+func _pe_rotunjit(p: Vector3, s: float, r: float) -> Array:
+	var i := s - r
+	var q := Vector3(clampf(p.x, -i, i), clampf(p.y, -i, i), clampf(p.z, -i, i))
+	var d := p - q
+	if d.length() < 0.00001:
+		return [p, p.normalized()]
+	var nrm := d.normalized()
+	return [q + nrm * r, nrm]
 
 func _material_zar() -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_texture = _plansa_buline()
-	mat.roughness = 0.42
+	# osul e lucios, dar nu lăcuit: reflexia trebuie să fie o pată moale pe tocitură, nu un punct
+	mat.roughness = 0.33
 	mat.metallic = 0.0
-	# ⚠️ `CULL_DISABLED`: nu ne batem capul cu ordinea vârfurilor din `_mesh_zar`. Cubul e închis
+	# ⚠️ `CULL_DISABLED`: nu ne batem capul cu ordinea vârfurilor din `_mesh_zar`. Zarul e închis
 	# și luminat din afară, iar normalele sunt puse de mână, deci arată la fel de bine.
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.cull_mode = BaseMaterial3D.CULL_BACK
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	return mat
 
-# Planșa cu cele șase fețe, 3×2 celule, desenată în cod: fildeș, chenar arămiu, buline negre.
-# Bulinele au marginea netezită (se calculează cât din pixel intră în cerc), altfel la mărimea de
-# pe ecran ies în trepte.
+# Planșa cu cele șase fețe, 3×2 celule, desenată în cod. Bulinele au marginea netezită (se
+# calculează cât din pixel intră în cerc), altfel la mărimea de pe ecran ies în trepte.
+#
+# Bulinele nu sunt pete negre lipite pe os, sunt SCOBITE: peretele dinspre lumină (stânga-sus) e
+# cel mai întunecat, fundul scobiturii se deschide spre dreapta-jos, iar chiar pe buza de jos-
+# dreapta osul prinde o dungă de lumină. Sunt trei fire de păr de nuanță, dar ele fac diferența
+# dintre „cub cu puncte" și „zar".
+#
+# Chenarul arămiu de pe muchia feței a dispărut o dată cu cubul tăios: acum muchia e tocită și se
+# desenează singură, din lumină, iar dunga de vopsea peste ea arăta a autocolant.
 func _plansa_buline() -> ImageTexture:
 	var c := CELULA_ZAR
 	var img := Image.create(c * 3, c * 2, true, Image.FORMAT_RGBA8)
-	var raza := c * 0.093
+	var raza := c * 0.1
+	var spre_lumina := Vector2(-0.707, -0.707)   # de unde bate cheia, în coordonatele feței
 	for val in range(1, 7):
 		var cx := (val - 1) % 3
 		var cy := (val - 1) / 3
 		for y in c:
 			for x in c:
-				var culoare := FILDES
-				# chenarul arămiu de pe muchia feței
-				var d_marg: int = mini(mini(x, y), mini(c - 1 - x, c - 1 - y))
-				if d_marg < 4:
-					culoare = culoare.lerp(ACCENT_STINS, 1.0 - d_marg / 4.0)
+				# osul nu e o culoare plată: are un vânt de nuanță, ca fildeșul adevărat
+				var n := 1.0 + 0.022 * sin(x * 0.21 + val * 1.7) * cos(y * 0.17 - val)
+				var culoare := Color(FILDES.r * n, FILDES.g * n, FILDES.b * n)
 				for b in BULINE[val]:
 					var centru := Vector2((b.x + 1) * c / 4.0, (b.y + 1) * c / 4.0)
-					var d := (Vector2(x + 0.5, y + 0.5) - centru).length()
+					var dv := Vector2(x + 0.5, y + 0.5) - centru
+					var d := dv.length()
 					var a := clampf(raza - d + 0.5, 0.0, 1.0)
 					if a > 0.0:
-						culoare = culoare.lerp(NEGRU_BULINA, a)
+						# În scobitură: miezul rămâne întunecat, iar peretele dinspre partea opusă
+						# luminii se deschide. ⚠️ Deschiderea crește cu PĂTRATUL distanței de centru,
+						# nu liniar: la prima încercare pornea de la jumătate încă din mijlocul
+						# bulinei, iar bulinele ieșeau cenușii, ca șterse cu guma.
+						var spre := dv.normalized() if d > 0.01 else Vector2.ZERO
+						var f := clampf(-spre.dot(spre_lumina), 0.0, 1.0) * pow(d / raza, 2.0) * 0.9
+						culoare = culoare.lerp(NEGRU_BULINA.lerp(BULINA_FUND, f), a)
+					else:
+						# buza de jos-dreapta a scobiturii, cea care prinde lumina
+						var buza := clampf(1.0 - (d - raza) / 2.0, 0.0, 1.0)
+						if buza > 0.0 and d > 0.01:
+							buza *= clampf(dv.normalized().dot(-spre_lumina), 0.0, 1.0)
+							culoare = culoare.lerp(Color(1, 1, 1), buza * 0.45)
 				img.set_pixel(cx * c + x, cy * c + y, culoare)
 	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)

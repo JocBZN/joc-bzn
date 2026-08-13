@@ -18,6 +18,34 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-13 (Aruncarea zarurilor, refăcută: gravitație adevărată, zar tocit, lumină de studio)
+
+**Cerut de Răzvan:** „Zarurile nu se aruncă aesthetic, se văd urât. Poți te rog să le faci ca un studio de game development profesionist? Vreau să simți că ești acolo în experiența de barbut. Vreau animația să fie smooth."
+
+**Atins:** doar `dubios_menu.gd` (partea de aruncare + lumea 3D). Efectele itemelor, împărțeala pe perechi și restul meniului — neatinse.
+
+**Cum am judecat:** nu din ochi. Am scos aruncarea ca **film cadru cu cadru** (o scenă de test temporară care fotografiază `SubViewport`-ul la fiecare 100 ms și le lipește într-o singură planșă) și am citit planșa. Fără ea nu se vedea niciunul dintre cele patru lucruri de mai jos. ⚠️ Prima planșă a ieșit înșelătoare fiindcă lua **un cadru din N**, iar jocul mergea la 140 fps: acoperea doar prima treime a aruncării. Se ia pe **timp**, nu pe cadre.
+
+**1. ⚠️ BUG-UL DE FOND: ordinea vârfurilor era pe dos, iar zarul se umbrea singur.** Triunghiurile din `_mesh_zar` erau scrise în sensul acelor de ceasornic văzut din afară, iar materialul avea `CULL_DISABLED` — deci zarul intra în harta de umbră cu AMBELE fețe și fața lui de sus se umbrea pe ea însăși. De aici veneau zarurile cenușii și „plate", cu lumina lipsă fix de unde bătea cel mai tare. Acum ordinea e `[0,2,1,0,3,2]` + `CULL_BACK`. **Dacă vreodată zarul se face negru sau dispare, ăsta e primul lucru de verificat.** Al doilea (tot umbră): lumina direcțională împrăștia harta de umbră pe 100 de unități în 4 felii pentru o masă de 2 unități → pete cenușii cu muchie dreaptă peste fețele luminate; se repară cu `directional_shadow_max_distance = 16` + `SHADOW_ORTHOGONAL`.
+
+**2. Mișcarea.** Înainte: zarurile alunecau lateral cu o singură frânare de 0,35 s, se roteau cu viteză fixă și se răsuceau brusc pe fața finală. Rezultat: ajungeau pe loc în prima treime și **stăteau nemișcate o jumătate de secundă**, nu atingeau niciodată masa (saltul era un sinus care le RIDICA, nu o cădere), și făceau amândouă același lucru în același moment. Acum:
+- **pe verticală, gravitație adevărată** (`GRAVITATIE`, `RESTITUTIE`): fiecare săritură e mai mică și mai deasă decât precedenta — ritmul „tac … tac .. tac.tac" de la barbut;
+- **ciocnitura se calculează pe COLȚUL cel mai de jos al zarului rotit** (`_cel_mai_jos`, 8 colțuri), nu pe centrul lui, deci zarul chiar cade pe un colț și se răstoarnă de pe el;
+- **pe orizontală drumul rămâne desenat de mână** (frânare până la locul lui). Dinadins: o simulare adevărată se oprește unde vrea ea, iar fereastra e o fâșie de 560×190 — un zar ieșit din cadru sau urcat peste celălalt strică tot ecranul. Ce dă senzația de fizică e săritura și rotația, nu traiectoria laterală;
+- **fiecare zar are ale lui**: întârziere, înălțime, viteză de rotație, durată. Se opresc decalat — și tocmai asta deosebește o aruncare de o animație.
+
+**3. ⚠️ Rotația finală se alege ACUM, nu la începutul aruncării.** Asta era a doua cauză a smuciturii: ținta se trăgea la plecare cu o răsucire oarecare, deci de multe ori zarul avea de făcut o jumătate de tură ÎNAPOI ca s-o prindă. Acum, când s-a terminat de sărit, se caută dintre 48 de așezări (toate arată aceeași cifră) cea mai apropiată de cum stă zarul chiar atunci (`_cea_mai_apropiata`, prin `|dot|` de quaternioni) — ultima mișcare e mereu scurtă, ca o cădere pe fața pe care oricum era gata să cadă, cu o trecere mică peste țintă și înapoi (`_rasturnare`).
+
+**4. Cum arată.** Zarul nu mai e cub tăios, e **cutie rotunjită** (`_pe_rotunjit`: strângi punctul într-un cub mai mic, îl scoți la raza `r` — mijlocul feței rămâne plat, muchia devine sfert de cilindru, colțul optime de bilă), iar tocitura e ce prinde lumina. Bulinele sunt **scobite**, nu pete lipite: peretele dinspre lumină întunecat, fundul mai deschis, buza de jos-dreapta cu o dungă de lumină. ⚠️ Deschiderea crește cu PĂTRATUL distanței de centru — liniar ieșeau buline cenușii, ca șterse cu guma. Lumina e pe trei surse (cheie caldă cu umbră / umplutură / contur rece din spate) plus un **bec deasupra mesei** care face o baltă de lumină și lasă marginile în întuneric. Sub fiecare zar e o **pată de umbră de contact** care se strânge și se întunecă pe măsură ce zarul coboară — umbra „adevărată" cade oblic și nu-ți spune niciodată dacă zarul ATINGE masa.
+
+**5. Cum se simte.** Fiecare ciocnitură dă un tic (ton și tărie după cât de tare a lovit) și un **ghiont de cameră** care se stinge în ~0,1 s. ⚠️ Ticurile NU merg prin `Audio.play`: acolo același sunet nu se pornește mai des de `MIN_GAP_MS`, iar ultimele sărituri vin la o zecime de secundă una după alta — s-ar fi auzit doar prima. Meniul are trei boxe ale lui, altfel ultima săritură își tăia sunetul precedent. La final, suma și cartonașul primesc un „pumn" de mărime (`_pumn`).
+
+**Reglaje, dacă vrei altfel:** `GRAVITATIE` / `RESTITUTIE` (cât de vioaie e săritura), `OPRIRE` (cât de devreme se lasă pe față — mai mare = răsturnare finală mai vizibilă), `T_ORIZONTAL` (cât ține drumul lateral, per zar), `LOCURI` (unde se opresc; ⚠️ depărtarea pe Z e ce împiedică al doilea zar să treacă PRIN primul când îl depășește), `ROTUNJIME`, și energiile celor patru lumini.
+
+**Verificat rulând:** film cadru cu cadru al aruncării (de 5 ori, cu reglaje între), fiecare lumină izolată pe rând (așa a ieșit la iveală auto-umbrirea), toate cele 6 cifre puse pe rând în sus și numărate bulinele (1…6 corect), ecranul întreg în cele trei stări (așteptare / aruncare / rezultat), și un boot curat al jocului real. Aruncarea ține acum ~1,3 s, față de ~1,45 s înainte. Fișierele de test — șterse.
+
+---
+
 ## Session log — 2026-08-13 (Dubiosu: nu mai alegi, DAI CU ZARURILE — două zaruri 3D în chenare de aramă)
 
 **Cerut de Răzvan:** „ți-am pus în folderu Upgrade Dubios un fișier nou - Dice.max - e un fișier 3d cu niște zaruri. Vreau ca meniul de la dubios să fie schimbat cu Border EGT făcut profesional și în loc să îți alegi tu itemele vreau să dai cu zarul să îți pice random un item dintre upgrade-urile de la dubios."
