@@ -41,6 +41,7 @@ const IGNORATE := [
 	# potrivește cu „ALBA NEAGRA" — dar e tot nume propriu, nu se traduce
 	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "ALBA NEAGRA", "A L B A   N E A G R A",
 	"%d", "%s", "", " ", "MAX",
+	"%d + %d = %d",   # suma de pe masa de zaruri a dubiosului — cifre, n-are ce traduce
 	"keybinds", "graphics", "main", "settings", "language", "weapon", "character",
 	"leaderboard", "opstart", "same", "up", "down",
 ]

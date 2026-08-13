@@ -3,8 +3,9 @@ extends StaticBody2D
 # DUBIOSU — omul în palton negru și pălărie (`harta/dubiosu.png`), pus în lume pe 2026-08-12.
 # Unde apare → `dubiosi.gd`.
 #
-# Apeși E pe el și-ți scoate din palton 3 iteme (`dubios_menu.gd`) — patru iteme care NU există
-# în tragerea de la level up, în cufere, în cazinou sau la statuia Ender.
+# Apeși E pe el, îți întinde două zaruri și dai cu ele (`dubios_menu.gd`): ce pereche iese, ăla
+# e itemul — unul din patru care NU există în tragerea de la level up, în cufere, în cazinou sau
+# la statuia Ender. (Până pe 2026-08-13 îți scotea 3 cartonașe din 4 și alegeai tu.)
 #
 # ⚠️ Un om îți scoate marfa o SINGURĂ dată, ca omul de Alba-Neagra: după ce alegi, își strânge
 # paltonul și rămâne consumat chiar dacă pleci din zonă și te întorci, fiindcă `dubiosi.gd` ține

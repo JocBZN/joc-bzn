@@ -145,6 +145,10 @@ const TRAD := {
 # direct pe Label (le traduce Godot singur), deci `%` e semn obișnuit, NU se dublează — spre
 # deosebire de cele două de la urmă, care trec prin `tr(...) % ...`.
 "SHADY DEAL": ["可疑交易", "ZWIELICHTIGER DEAL", "TRATO TURBIO", "МУТНАЯ СДЕЛКА", "MARCHÉ LOUCHE", "怪しい取引", "PODEJRZANY UKŁAD", "KARANLIK ANLAŞMA"],
+# de pe 2026-08-13 nu mai alegi, dai cu zarurile. „%d + %d = %d" (suma de pe masă) e pur numeric,
+# deci n-are rând aici — stă în lista IGNORATE din `tool_check_i18n.gd`.
+"ROLL THE DICE": ["掷骰子", "WÜRFELN", "TIRA LOS DADOS", "БРОСИТЬ КОСТИ", "LANCER LES DÉS", "サイコロを振る", "RZUĆ KOŚĆMI", "ZAR AT"],
+"Roll for your item": ["掷骰决定你的道具", "Würfle um dein Item", "Tira los dados por tu objeto", "Брось кости за свой предмет", "Lance les dés pour ton objet", "アイテムはサイコロ次第", "Rzuć kośćmi po przedmiot", "Eşyan için zar at"],
 "Cursed Tome": ["诅咒之书", "Verfluchter Foliant", "Tomo Maldito", "Проклятый Том", "Grimoire Maudit", "呪いの書", "Przeklęta Księga", "Lanetli Kitap"],
 "Increase Spawnrate by 25%": ["敌人生成速度 +25%", "+25% Gegner-Spawnrate", "+25% de aparición de enemigos", "+25% к появлению врагов", "+25% d'apparition d'ennemis", "敵の出現率 +25%", "+25% tempa pojawiania się wrogów", "Düşman doğuşu +%25"],
 "Iron Helmet": ["铁盔", "Eisenhelm", "Yelmo de Hierro", "Железный Шлем", "Heaume de Fer", "アイアンヘルム", "Żelazny Hełm", "Demir Miğfer"],

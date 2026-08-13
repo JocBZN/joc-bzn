@@ -18,6 +18,34 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-13 (Dubiosu: nu mai alegi, DAI CU ZARURILE — două zaruri 3D în chenare de aramă)
+
+**Cerut de Răzvan:** „ți-am pus în folderu Upgrade Dubios un fișier nou - Dice.max - e un fișier 3d cu niște zaruri. Vreau ca meniul de la dubios să fie schimbat cu Border EGT făcut profesional și în loc să îți alegi tu itemele vreau să dai cu zarul să îți pice random un item dintre upgrade-urile de la dubios."
+
+**Atinse:** `dubios_menu.gd` (rescris pe jumătate), `dubiosu.gd` (comentariu), `i18n.gd` (2 chei), `tool_check_i18n.gd` (1 ignorat). Fără fișiere noi.
+
+**⚠️ `Dice.max` NU se poate folosi.** E format 3ds Max (fișier OLE compound, 384 KB) — Godot nu-l citește, și nici Blender. Trebuie exportat din 3ds Max ca **glTF Binary (`.glb`)** în `harta/Upgrade Dubios/Dice.glb`. Codul îl caută acolo (`MODEL_ZAR`) și, dacă îl găsește, îl folosește în locul cubului desenat în cod; până atunci merge cu cubul. **Când apare modelul, verifică pe ce direcție cade fiecare față** — `_baza_pentru()` presupune 1 sus, 6 jos, 3 pe +X, 4 pe −X, 5 pe +Z, 2 pe −Z; altă numerotare = zarul se oprește pe cifra greșită (itemul rămâne corect, el vine din pereche, dar cifra de pe masă minte). Modelul e scalat automat la `MARIME_ZAR` și centrat pe originea nodului (`_potriveste_marimea`), fiindcă un export din 3ds Max vine des în centimetri.
+
+**1. Chenarele.** Meniul a trecut de pe planșa lui verde (`harta/Upgrade Dubios/Border Dubios.png`) pe **arama casei** (`harta/EGT/Border EGT.png`), aceeași ca meniul principal, pauza, cazinoul, Alba-Neagra și level up. Planșa verde a rămas pe disc, nefolosită. ⚠️ La ramele puse PESTE ceva (masa de zaruri, cartonaș, chenarul iconiței) `draw_center = false` e obligatoriu: celulele EGT au mijlocul plin, bleumarin, nu transparent — aceeași capcană ca la `alba_menu.gd`.
+
+**2. Cine iese la zaruri — și de ce NU după sumă.** Cele 36 de perechi sunt egal probabile, dar **sumele nu**: 2…12 ies în proporția 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1. 36 ÷ 4 = 9, iar cumulatele sumelor sar de la 6 la 10 — **nu există nicio tăietură în sume care să dea patru felii de câte 9**. Orice hartă „suma 2-4 → itemul X" ar fi făcut un item de trei ori mai rar decât altul, exact contra regulii că toate patru sunt de aceeași calitate. Deci itemul îl dă **perechea**: perechile se numerotează 0…35 și se ia restul la 4 → **fix 9 perechi = 25% pentru fiecare item**. Zarurile rămân zaruri adevărate (ce vezi pe masă chiar s-a tras, nimic nu e trucat), iar pe ecran scrie și suma, ca la barbut.
+
+**3. Masa de zaruri.** Un `SubViewport` cu lumea LUI (`own_world_3d`), randat la dublu și strâns la loc într-un `TextureRect` (fără asta muchiile ies zimțate, fereastra e mică). ⚠️ `render_target_update_mode` stă pe **DISABLED cât meniul e închis** — altfel jocul ar plăti o randare 3D în fiecare cadru al rundei pentru un ecran pe care nu-l vede nimeni. Cubul se construiește de mână cu `SurfaceTool` (6 fețe, UV-uri într-o planșă 3×2 desenată în cod), **nu cu `BoxMesh`**: `BoxMesh` își împarte UV-urile cum vrea el, iar noi trebuie să știm EXACT ce cifră stă pe ce direcție, altfel n-am putea opri zarul pe fața care a ieșit.
+
+⚠️ **Camera stă DEPARTE (≈11 unități) cu unghi mic, nu aproape cu unghi mare.** Prima încercare era la 6,8 și **tăia zarurile de jos**: fereastra e o fâșie de 560×190, deci pe verticală încape foarte puțin. La `fov` 33 și distanța 11 se văd ~2,2 unități pe înălțime — zarul (0,9) plus saltul, cu aer împrejur.
+
+⚠️ **Lumina a doua NU are voie să fie `ACCENT` plin.** Prima încercare avea arama la energie 0,45 și a scos zaruri **cărămizii**, nu de os. Acum e 0,25 și decolorată; zarul rămâne fildeș, arama doar îl atinge. Tot așa, umbra neatinsă ieșea un triunghi negru cu muchii tăiate cu cuțitul (`shadow_blur = 2.0`, `shadow_opacity = 0.62`), iar postavul e mare de tot (40×30) ca marginea lui din spate să nu intre în cadru.
+
+**4. Cum decurge.** Deschizi → zarurile stau pe masă pe fețe la întâmplare (altfel te întâmpină de fiecare dată aceeași pereche și arată a poză) → **ROLL THE DICE** → vin aruncate din stânga, se rostogolesc 0,95 s, se așază 0,5 s pe fața care a ieșit → apare suma → cartonașul itemului crește în ecran și efectul se aplică → **CONTINUE** închide. ⚠️ Cartonașul nu e ascuns de tot cât aștepți, ci lăsat **stins** (alpha 0,22): locul lui e ținut oricum ca panoul să nu-și schimbe înălțimea la jumătatea aruncării, dar gol de tot lăsa o gaură mare între masă și buton, de parcă meniul era neterminat.
+
+ESC tot nu închide (omul s-a consumat deja când a scos marfa), iar butonul e blocat cât se rostogolesc. Sunetul: `dice_roll_*.wav` / `dice_shake_*.wav` **au existat cândva în proiect și s-au pierdut** (au rămas doar urme în `.godot/imported`, sursele nu sunt nici în git) — până revin, ticul de zar căzut e împrumutat de la cheia de cufăr.
+
+**Neatins dinadins:** efectele (`_apply`, `_blame_circle`, `_arcane_magic`, `_acelasi_fel`) sunt exact cele de dinainte. S-a schimbat doar CUM ajungi la item.
+
+**Verificat rulând** (`test_dubios.tscn`, temporar, șters după): toate 6 fețele se opresc chiar pe cifra cerută (verificat matematic, nu din ochi — se caută ce față ajunge pe +Y după `_baza_pentru`), împărțeala perechilor iese **9/9/9/9 din 36**, plus capturi de ecran la repaus, în timpul rostogolirii și la rezultat. `tool_check_i18n` → „✔ TOTUL E TRADUS".
+
+---
+
 ## Session log — 2026-08-12 (spawn aleator în lumea normală + damage/viteză îngroșate)
 
 **Cerut de Răzvan:** „vreau inamicii în lumea normală să se spawneze random (inamicii diferiți în sine nu mai vreau să aibă un timp anume la care se spawnează și câți, vreau din prima să fie spawn rate-ul și sprite-urile random). Damage-ul, hp-ul și movement speed-ul vreau să scaleze cu timpul, să fie puțin greu."
