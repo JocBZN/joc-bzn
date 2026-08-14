@@ -140,26 +140,24 @@ const TRAD := {
 "READY": ["准备就绪", "BEREIT", "LISTO", "ГОТОВ", "PRÊT", "準備完了", "GOTOWE", "HAZIR"],
 "PRIZE LADDER": ["奖品阶梯", "PREISLEITER", "ESCALERA DE PREMIOS", "ЛЕСТНИЦА ПРИЗОВ", "ÉCHELLE DES LOTS", "景品ラダー", "DRABINA NAGRÓD", "ÖDÜL MERDİVENİ"],
 
-# ---------- marfa dubiosului (dubios_menu.gd, 2026-08-12) ----------
-# ⚠️ Calitatea lor NU se scrie nicăieri, deci n-are cheie. Textele cu procente de mai jos ajung
-# direct pe Label (le traduce Godot singur), deci `%` e semn obișnuit, NU se dublează — spre
-# deosebire de cele două de la urmă, care trec prin `tr(...) % ...`.
+# ---------- barbutul cu dubiosu (dubios_menu.gd, 2026-08-12; 1v1 de pe 2026-08-14) ----------
+# ⚠️ Rândurile de la urmă trec prin `tr(...) % ...`, deci procentul literal se scrie „%%". Cele
+# puse direct pe un Label (le traduce Godot singur) au `%` obișnuit — aici nu mai e niciunul.
+# „%d + %d = %d" (suma de pe masă) e pur numeric, deci n-are rând aici — stă în lista IGNORATE
+# din `tool_check_i18n.gd`.
 "SHADY DEAL": ["可疑交易", "ZWIELICHTIGER DEAL", "TRATO TURBIO", "МУТНАЯ СДЕЛКА", "MARCHÉ LOUCHE", "怪しい取引", "PODEJRZANY UKŁAD", "KARANLIK ANLAŞMA"],
-# de pe 2026-08-13 nu mai alegi, dai cu zarurile. „%d + %d = %d" (suma de pe masă) e pur numeric,
-# deci n-are rând aici — stă în lista IGNORATE din `tool_check_i18n.gd`.
+"He rolls first": ["他先掷", "Er würfelt zuerst", "Tira él primero", "Он бросает первым", "Il lance en premier", "まずは彼が振る", "On rzuca pierwszy", "Önce o atar"],
+"A tie. Roll again": ["平局，再掷一次", "Unentschieden. Nochmal würfeln", "Empate. Tira otra vez", "Ничья. Бросай снова", "Égalité. Relance", "引き分け。もう一度", "Remis. Rzuć jeszcze raz", "Berabere. Yeniden at"],
+"HIM": ["他", "ER", "ÉL", "ОН", "LUI", "彼", "ON", "O"],
+"YOU": ["你", "DU", "TÚ", "ТЫ", "TOI", "あなた", "TY", "SEN"],
 "ROLL THE DICE": ["掷骰子", "WÜRFELN", "TIRA LOS DADOS", "БРОСИТЬ КОСТИ", "LANCER LES DÉS", "サイコロを振る", "RZUĆ KOŚĆMI", "ZAR AT"],
-"Roll for your item": ["掷骰决定你的道具", "Würfle um dein Item", "Tira los dados por tu objeto", "Брось кости за свой предмет", "Lance les dés pour ton objet", "アイテムはサイコロ次第", "Rzuć kośćmi po przedmiot", "Eşyan için zar at"],
-"Cursed Tome": ["诅咒之书", "Verfluchter Foliant", "Tomo Maldito", "Проклятый Том", "Grimoire Maudit", "呪いの書", "Przeklęta Księga", "Lanetli Kitap"],
-"Increase Spawnrate by 25%": ["敌人生成速度 +25%", "+25% Gegner-Spawnrate", "+25% de aparición de enemigos", "+25% к появлению врагов", "+25% d'apparition d'ennemis", "敵の出現率 +25%", "+25% tempa pojawiania się wrogów", "Düşman doğuşu +%25"],
-"Iron Helmet": ["铁盔", "Eisenhelm", "Yelmo de Hierro", "Железный Шлем", "Heaume de Fer", "アイアンヘルム", "Żelazny Hełm", "Demir Miğfer"],
-"Take 100% Less Damage, Deal 25% Less Damage": ["受到伤害 -100%，造成伤害 -25%", "-100% erlittener Schaden, -25% eigener Schaden", "-100% de daño recibido, -25% de daño infligido", "-100% получаемого урона, -25% наносимого", "-100% de dégâts subis, -25% de dégâts infligés", "被ダメージ -100%、与ダメージ -25%", "-100% otrzymywanych obrażeń, -25% zadawanych", "Alınan hasar -%100, verilen hasar -%25"],
-"Blame Circle": ["指责之环", "Schuldkreis", "Círculo de Culpas", "Круг Обвинений", "Cercle du Blâme", "責任転嫁の輪", "Krąg Oskarżeń", "Suçlama Çemberi"],
-"Double one random stat, -25% of a random stat": ["随机一项属性翻倍，随机一项属性 -25%", "Ein zufälliger Wert verdoppelt, ein zufälliger -25%", "Duplica una estadística al azar, -25% en otra", "Случайная характеристика ×2, другая -25%", "Double une stat au hasard, -25% sur une autre", "ランダムな能力が2倍、別の能力が -25%", "Losowa statystyka ×2, inna -25%", "Rastgele bir özellik iki katı, bir diğeri -%25"],
-"Arcane Magic": ["奥术魔法", "Arkane Magie", "Magia Arcana", "Тайная Магия", "Magie Arcanique", "アルカナマジック", "Magia Arkanów", "Gizemli Büyü"],
-"Reset all your items with ones of the same quality": ["将你的所有道具换成同品质的其他道具", "Tauscht all deine Items gegen andere gleicher Güte", "Cambia todos tus objetos por otros de la misma calidad", "Меняет все твои предметы на другие того же качества", "Remplace tous tes objets par d'autres de même qualité", "所持アイテムを同じ品質の別のものに入れ替える", "Zamienia wszystkie przedmioty na inne tej samej jakości", "Tüm eşyalarını aynı kalitede başkalarıyla değiştirir"],
-# astea DOUĂ trec prin `tr(...) % ...`, deci procentul literal se scrie „%%"
-"%s doubled, %s down 25%%": ["%s 翻倍，%s -25%%", "%s verdoppelt, %s -25%%", "%s duplicado, %s -25%%", "%s ×2, %s -25%%", "%s doublé, %s -25%%", "%s が2倍、%s が -25%%", "%s podwojone, %s -25%%", "%s iki katı, %s -%%25"],
-"%d items rerolled": ["重掷了 %d 件道具", "%d Items neu gewürfelt", "%d objetos recambiados", "Переброшено предметов: %d", "%d objets relancés", "%d 個のアイテムを引き直した", "Przelosowano %d przedmiotów", "%d eşya yeniden çekildi"],
+"ROLL AGAIN": ["再掷一次", "NOCHMAL WÜRFELN", "TIRAR OTRA VEZ", "БРОСИТЬ СНОВА", "RELANCER", "もう一度振る", "RZUĆ PONOWNIE", "YENİDEN AT"],
+"WALK AWAY": ["转身离开", "GEHEN", "MARCHARSE", "УЙТИ", "S'EN ALLER", "立ち去る", "ODEJDŹ", "ÇEKİL GİT"],
+# astea PATRU trec prin `tr(...) % ...`, deci procentul literal se scrie „%%"
+"Beat him: +%d%% to a random stat": ["赢过他：随机一项属性 +%d%%", "Schlag ihn: +%d%% auf einen zufälligen Wert", "Gánale: +%d%% en una estadística al azar", "Обыграй его: +%d%% к случайной характеристике", "Bats-le : +%d%% sur une stat au hasard", "彼に勝てば ランダムな能力 +%d%%", "Pokonaj go: +%d%% do losowej statystyki", "Onu yen: rastgele bir özellik +%%%d"],
+"Lose: -%d%% to a random stat, +%d%% Difficulty": ["输了：随机一项属性 -%d%%，难度 +%d%%", "Verlierst du: -%d%% auf einen zufälligen Wert, +%d%% Schwierigkeit", "Si pierdes: -%d%% en una estadística al azar y +%d%% de dificultad", "Проиграешь: -%d%% к случайной характеристике и +%d%% сложности", "Si tu perds : -%d%% sur une stat au hasard, +%d%% de difficulté", "負けたら ランダムな能力 -%d%%、難易度 +%d%%", "Przegrasz: -%d%% do losowej statystyki, +%d%% trudności", "Kaybedersen: rastgele bir özellik -%%%d, zorluk +%%%d"],
+"You win — %s up %d%%": ["你赢了 — %s +%d%%", "Du gewinnst — %s +%d%%", "Ganas — %s +%d%%", "Ты выиграл — %s +%d%%", "Tu gagnes — %s +%d%%", "あなたの勝ち — %s +%d%%", "Wygrywasz — %s +%d%%", "Kazandın — %s +%%%d"],
+"You lose — %s down %d%%": ["你输了 — %s -%d%%", "Du verlierst — %s -%d%%", "Pierdes — %s -%d%%", "Ты проиграл — %s -%d%%", "Tu perds — %s -%d%%", "あなたの負け — %s -%d%%", "Przegrywasz — %s -%d%%", "Kaybettin — %s -%%%d"],
 "TAKE %s": ["拿走 %s", "%s NEHMEN", "LLEVARSE %s", "ЗАБРАТЬ %s", "PRENDRE %s", "%s を受け取る", "WEŹ %s", "%s AL"],
 "PLAY": ["开始", "SPIELEN", "JUGAR", "ИГРАТЬ", "JOUER", "プレイ", "GRAJ", "OYNA"],
 "CONTINUE": ["继续", "WEITER", "SEGUIR", "ПРОДОЛЖИТЬ", "CONTINUER", "続ける", "DALEJ", "DEVAM"],

@@ -179,66 +179,6 @@ func bonus_arma(pentru: String) -> float:
 # level up, cufere, statuia însăși.
 var run_items: Array = []
 
-# --- ITEMELE DUBIOSULUI (`dubios_menu.gd`, 2026-08-12) ---
-# Stau aici, nu în meniul lor, fiindcă sunt statusuri de PLAYER: le citesc spawner-ul, `take_damage`
-# și `damage_mult`, iar Arcane Magic le pune la loc prin `reset_la_start` fără să știe de ele.
-var spawn_rate_mult: float = 1.0    # Cursed Tome: ×1.25 la câți inamici curg pe secundă (se compune)
-var damage_taken_mult: float = 1.0  # Iron Helmet: 0 = nu mai încasezi NIMIC (vezi `take_damage`)
-var damage_dealt_mult: float = 1.0  # Iron Helmet: prețul lui — lovești mai slab (vezi `damage_mult`)
-
-# --- STAREA DE LA ÎNCEPUTUL RUNDEI — o cere Arcane Magic (itemul dubiosului) ---
-# „Reset all your items" nu se poate face desfăcând efectele la loc: `_apply` scrie direct în
-# statusuri (`p.speed += 60`), iar din „viteza e 275" nu mai afli ce a adunat-o acolo. Deci ținem
-# o COPIE a tuturor variabilelor player-ului, luată la capătul lui `_ready` — adică după armă,
-# după magazinul permanent (META) și după OP start, dar înainte de orice item. Resetul le pune
-# înapoi și meniul rejoacă itemele noi peste ele.
-#
-# Se copiază TOATE variabilele scriptului, nu o listă scrisă de mână: altfel, la fiecare item nou
-# care atinge un câmp nou, Arcane Magic ar fi început să-l uite în tăcere.
-var _start_state := {}
-
-# Ce NU se pune înapoi, și de ce:
-#   hp, dead                → viața de acum e a ta, resetul nu te vindecă și nici nu te învie
-#   xp, level               → Arcane Magic schimbă itemele, nu progresul
-#   xp_to_next              → ⚠️ e AMESTECAT: îl taie Grinder / Tome of Knowledge, dar îl și crește
-#                             fiecare nivel (×1.2). Pus înapoi la valoarea de la nivelul 1 ai fi
-#                             urcat 10 niveluri pe loc. Deci rămâne cum e — singurul efect de item
-#                             pe care resetul NU-l desface. Itemele noi se aplică peste.
-#   undying_used            → a doua șansă cheltuită rămâne cheltuită. Pusă înapoi pe `false`,
-#                             Arcane Magic ar fi devenit „mai dă-mi o viață": mori, te întorci din
-#                             Limbo, iei itemul de la dubios și ești iar cu viața de rezervă
-#   run_items               → îl reface meniul, item cu item
-#   _start_state            → s-ar mânca pe el însuși
-#   restul (_trauma, _slashes, _facing…) → stare de moment, n-are treabă cu itemele
-const NU_SE_RESETEAZA := ["hp", "dead", "xp", "level", "xp_to_next", "undying_used",
-	"run_items", "_start_state",
-	"_stats_base", "_slashes", "_sweeps", "_trauma", "_shaking", "_quake_left", "_quake_total",
-	"_quake_strength", "_shake_next", "_hedgehog_next", "_arce_vii", "ultima_directie", "_facing"]
-
-func _prinde_starea_de_start() -> void:
-	_start_state.clear()
-	for prop in get_property_list():
-		if not (int(prop["usage"]) & PROPERTY_USAGE_SCRIPT_VARIABLE):
-			continue
-		var nume := String(prop["name"])
-		if NU_SE_RESETEAZA.has(nume):
-			continue
-		var v = get(nume)
-		# copie adâncă la liste/dicționare: altfel am ține chiar obiectul pe care îl schimbă jocul
-		_start_state[nume] = v.duplicate(true) if (v is Array or v is Dictionary) else v
-
-# Înapoi la statusurile de la începutul rundei. O cheamă DOAR Arcane Magic.
-func reset_la_start() -> void:
-	if _start_state.is_empty():
-		return
-	for nume in _start_state:
-		var v = _start_state[nume]
-		set(nume, v.duplicate(true) if (v is Array or v is Dictionary) else v)
-	# `fire_interval` s-a schimbat, dar timer-ul nu află singur (vezi `upgrade_fire_rate`)
-	_seteaza_cadenta()
-	# viața maximă a scăzut la loc, deci viața de acum poate fi peste ea
-	hp = mini(hp, max_hp)
-
 # Norocul TOTAL: cel strâns din iteme + bonusul de nivel al Mage Staff-ului. Ăsta e numărul pe
 # care trebuie să-l citească toată lumea (`luck_bonus` aici, `_norocul_meu` în `levelup.gd`,
 # panoul de statusuri) — `luck` gol e doar partea din iteme.
@@ -545,9 +485,6 @@ func _ready() -> void:
 	ice_timer.timeout.connect(_drop_ice)
 	add_child(ice_timer)
 	ice_timer.start()
-	# ⚠️ ULTIMA linie din `_ready`: de aici încolo tot ce se schimbă sunt ITEME, iar Arcane Magic
-	# trebuie să poată reveni exact în punctul ăsta. Muți ceva sub ea → nu se mai resetează.
-	_prinde_starea_de_start()
 
 # Adaugă „traumă" (tremurat). Se cheamă de ex. la lovitură critică.
 # ⚠️ Are un RĂGAZ MINIM între două zguduituri, și nu e cosmetic: fiecare critic adăuga 0.35
@@ -760,10 +697,7 @@ func damage_mult() -> float:
 	# Diesel Power: cu cât mergi mai repede
 	if diesel_stacks > 0:
 		m += diesel_per_stack * diesel_stacks * speed_ratio()
-	# Iron Helmet (dubiosu): prețul nemuririi. ÎNMULȚIT la final, nu scăzut din bonusuri — „cu 25%
-	# mai puțin damage" înseamnă un sfert din cât dai ACUM, cu tot ce ai adunat, nu −0.25 dintr-o
-	# sumă în care Cigarette Pack ar fi putut să-l acopere.
-	return m * damage_dealt_mult
+	return m
 
 # Cât de repede mergi ACUM, raportat la viteza cu care ai pornit runda: 0 dacă stai pe loc,
 # 1 la viteza de start, plafonat la speed_ratio_cap. Reperul lui Diesel Power ȘI al lui
@@ -1840,14 +1774,6 @@ func _drop_god() -> void:
 	patch.global_position = global_position - Vector2(0, 4)
 
 func take_damage(amount: int) -> void:
-	# Iron Helmet (dubiosu). La 0 nu e „o lovitură de 0 damage", e „nu te-a atins": fără viață
-	# scăzută și fără sunet de durere, altfel ai auzi cum te mușcă tot ecranul fără să pățești
-	# nimic. ⚠️ Reflectul (Old Reliable, Mike's Hedgehog) pleacă din `_take_contact_damage`, ÎNAINTE
-	# de aici, deci el trimite înapoi lovitura întreagă — nemuritor și cu spini.
-	if damage_taken_mult <= 0.0:
-		return
-	if damage_taken_mult < 1.0:
-		amount = maxi(1, int(round(amount * damage_taken_mult)))
 	hp -= amount
 	Audio.play("hurt", -4.5)  # player lovit
 	if hp <= 0:

@@ -234,11 +234,6 @@ func rata_curenta() -> float:
 	var n := get_tree().get_first_node_in_group("nether")
 	if n != null and n.get("active") == true and n.has_method("spawn_mult"):
 		rate *= n.spawn_mult()
-	# Cursed Tome (itemul dubiosului): +25% inamici pe secundă, cumulat. Aici, în formula comună,
-	# nu în `_spawn_tick` — altfel Limbo, care își naște singur inamicii din ea, l-ar fi ignorat.
-	var p = get_tree().get_first_node_in_group("player")
-	if p != null and "spawn_rate_mult" in p:
-		rate *= float(p.spawn_rate_mult)
 	# Ritmul aleator al valului (vezi „VALURILE"). DOAR în lumea normală: Nether-ul și Ender-ul își
 	# au fiecare formula lui, calibrată pe promisiuni exacte („aici nu e niciodată mai gol decât
 	# lumea la 2:00"), iar un multiplicator care se plimbă între 0.55 și 1.45 peste ea ar face

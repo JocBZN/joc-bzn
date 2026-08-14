@@ -1,15 +1,16 @@
 extends StaticBody2D
 
 # DUBIOSU — omul în palton negru și pălărie (`harta/dubiosu.png`), pus în lume pe 2026-08-12.
-# Unde apare → `dubiosi.gd`.
+# De pe 2026-08-14 stă NUMAI în Nether → vezi `dubiosi.gd`.
 #
-# Apeși E pe el, îți întinde două zaruri și dai cu ele (`dubios_menu.gd`): ce pereche iese, ăla
-# e itemul — unul din patru care NU există în tragerea de la level up, în cufere, în cazinou sau
-# la statuia Ender. (Până pe 2026-08-13 îți scotea 3 cartonașe din 4 și alegeai tu.)
+# Apeși E pe el și joci un 1v1 de barbut (`dubios_menu.gd`): dă el primul, îți spune miza și
+# alegi dacă dai și tu. Îl bați → un status la întâmplare crește cu 25%; pierzi → un status scade
+# cu 25% și jocul devine cu 10% mai greu. (Până pe 2026-08-14 îți vindea patru iteme care nu
+# existau nicăieri altundeva; au fost scoase de tot din joc.)
 #
-# ⚠️ Un om îți scoate marfa o SINGURĂ dată, ca omul de Alba-Neagra: după ce alegi, își strânge
-# paltonul și rămâne consumat chiar dacă pleci din zonă și te întorci, fiindcă `dubiosi.gd` ține
-# minte locul (același tipar ca la cufere, `chests.gd::marcheaza_folosit`).
+# ⚠️ Cu un om joci o SINGURĂ dată, ca la omul de Alba-Neagra: după aia își strânge paltonul și
+# rămâne consumat chiar dacă pleci din zonă și te întorci, fiindcă `dubiosi.gd` ține minte locul
+# (același tipar ca la cufere, `chests.gd::marcheaza_folosit`).
 #
 # Poziția nodului = linia de SORTARE (Y-sort), NU talpa artei: arta coboară `ACOPERIRE_JOS`
 # pixeli sub ea, ca player-ul care trece prin fața lui să fie desenat PESTE el. Același truc ca
@@ -77,7 +78,7 @@ func _respira(spr: Sprite2D) -> void:
 # ---------------------------------------------------------------------------
 # INTERACȚIUNEA (`interact_ui.gd` cere metodele astea de la orice „interactable")
 # ---------------------------------------------------------------------------
-# Mai poate fi folosit? `false` după ce ți-a scos marfa o dată, ca la cufărul deschis: un „Press E"
+# Mai poate fi folosit? `false` după ce ai jucat o dată cu el, ca la cufărul deschis: un „Press E"
 # care nu face nimic arată a bug.
 func poate_invoca() -> bool:
 	return not _folosit
@@ -88,9 +89,9 @@ func invoca() -> void:
 	var meniu = get_tree().get_first_node_in_group("dubios_menu")
 	if meniu == null:
 		return
-	# Se consumă la DESCHIDERE, nu la alegere (invers față de omul de Alba-Neagra, unde poți doar
-	# să te uiți și să pleci): aici marfa a ieșit deja din palton, iar meniul nici nu te lasă să
-	# pleci fără să alegi (ESC nu-l închide, vezi `dubios_menu.gd`).
+	# Se consumă la DESCHIDERE, nu la sfârșitul mâinii: zarurile au ieșit deja din palton, iar el
+	# a și dat. Dacă apeși WALK AWAY după ce-i vezi suma, omul rămâne ars — atâta te costă
+	# retragerea (vezi capul lui `dubios_menu.gd`).
 	consuma()
 	meniu.open(self)
 

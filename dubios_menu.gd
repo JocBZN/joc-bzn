@@ -1,65 +1,45 @@
 extends CanvasLayer
 
-# MENIUL DUBIOSULUI — marfa pe care ți-o scoate omul în palton (`dubiosu.gd`) când apeși E pe el.
+# BARBUT CU DUBIOSU — 1v1 la zaruri cu omul în palton (`dubiosu.gd`), în Nether.
 #
-# De pe 2026-08-13 NU mai alegi: DAI CU ZARURILE. Două zaruri 3D se rostogolesc pe masă, se
-# opresc, iar perechea care iese îți dă unul din cele patru iteme de aici — iteme care NU există
-# în tragerea de la level up, în cufere, în cazinou sau la statuia Ender. (Înainte îți scotea 3
-# din 4 cartonașe și alegeai unul, în chenarele verzi din folderul lui.)
+# De pe 2026-08-14 omul nu mai vinde NIMIC: cele patru iteme ale lui (Cursed Tome, Iron Helmet,
+# Blame Circle, Arcane Magic) au fost scoase de tot din joc, iar în locul lor a rămas un pariu.
+# Cum decurge:
+#   1. dă EL primul, cu două zaruri — nu-l întreabă nimeni, el ține banca;
+#   2. îți spune miza și te lasă să alegi: ROLL sau WALK AWAY;
+#   3. dai și tu două zaruri. Sumă mai mare = câștigi, mai mică = pierzi, egal = se dă din nou.
+#
+# Miza:
+#   • câștigi → un status la întâmplare crește cu 25%;
+#   • pierzi  → un status la întâmplare scade cu 25% ȘI jocul devine cu 10% mai greu
+#     (`Difficulty.add_trade_penalty`, exact mecanismul de la Alba-Neagra și de la statuia Ender).
+#
+# ⚠️ WALK AWAY e GRATIS — cerut așa de Răzvan pe 2026-08-14, după ce i-am arătat gaura: îi vezi
+# zarul ÎNAINTE să te hotărăști, deci poți să joci doar când el a dat mic și să pleci când a dat
+# mare. Jucat perfect, pariul iese aproape mereu în favoarea ta. Dacă vrei să-l închizi, sunt două
+# schimbări mici: ori scoți butonul (vezi `_pe_pleaca`), ori îi pui un preț (ex. numai `PEDEAPSA`,
+# fără minusul pe stat).
 #
 # Cum se leagă: E pe om → `dubiosu.gd::invoca()` → `open()` de aici. Jocul se OPREȘTE
 # (`get_tree().paused`), iar meniul merge mai departe fiindcă nodul e `PROCESS_MODE_ALWAYS`.
-# Un om îți scoate marfa o SINGURĂ dată (vezi `dubiosu.gd::consuma`).
-#
-# ⚠️ Toate patru sunt de ACEEAȘI calitate, iar calitatea aia NU se scrie nicăieri pe ecran (cerut
-# de Răzvan) — de aia cartonașul n-are rând de raritate, spre deosebire de cele de la level up.
-# Tot de aia nu există nici câmp „rar" în lista de mai jos: „aceeași calitate" înseamnă, la
-# Arcane Magic, „tot din lista asta", și n-are nevoie de un nume ca s-o știe.
-#
-# ⚠️ Itemele astea sunt INVIZIBILE pentru cazinou (`casino.gd`) și pentru masa de schimb a
-# statuii Ender (`trade.gd`): amândouă caută id-ul cu `levelup.item_dupa_id`, care întoarce null
-# pentru ele, și sar peste. Așa și trebuie — nu se pariază și nu se schimbă pe altceva.
+# Un om joacă o SINGURĂ dată (vezi `dubiosu.gd::consuma`) — dacă pleci fără să dai, l-ai ars.
 
-const ICON_DIR := "res://harta/Upgrade Dubios/"
+# --- MIZA (schimbă-le liniștit) ---
+const CASTIG := 1.25       # +25% la un status, dacă îl bați
+const PIERDERE := 0.75     # -25% la un status, dacă pierzi
+const PEDEAPSA := 0.10     # +10% dificultate pe deasupra, dacă pierzi (aceeași cifră ca la Alba-Neagra)
 
-# "desc" = ce scrie sub nume. Efectele reale sunt în `_apply`.
-var UPGRADES := [
-	{"id": "cursed_tome", "nume": "Cursed Tome", "icon": "Upgrade Dubios 1.png",
-		"desc": "Increase Spawnrate by 25%"},
-	{"id": "iron_helmet", "nume": "Iron Helmet", "icon": "Upgrade Dubios 2.png",
-		"desc": "Take 100% Less Damage, Deal 25% Less Damage"},
-	{"id": "blame_circle", "nume": "Blame Circle", "icon": "Upgrade Dubios 3.png",
-		"desc": "Double one random stat, -25% of a random stat"},
-	{"id": "arcane_magic", "nume": "Arcane Magic", "icon": "Upgrade Dubios 4.png",
-		"desc": "Reset all your items with ones of the same quality"},
-]
-
-# Statusurile pe care le poate atinge Blame Circle. Numele sunt EXACT cele din panoul de statusuri
+# Statusurile pe care le poate atinge pariul. Numele sunt EXACT cele din panoul de statusuri
 # (`player.stat_lines`), deci se traduc singure și îți spun în aceiași termeni ce ai pățit.
 #
 # ⚠️ Sunt doar statusuri care NU pot fi zero la începutul rundei. Crit și Luck pornesc de la 0, iar
-# „dublu" din 0 tot 0 face — ai fi luat un item care nu face nimic și ai fi crezut că e stricat.
-const BLAME_STATS := ["Damage", "Attack Speed", "Move Speed", "Max HP", "Weapon Size"]
-const BLAME_UP := 2.0     # „double one random stat"
-const BLAME_DOWN := 0.75  # „-25% of a random stat"
+# +25% din 0 tot 0 face — ai fi câștigat un pariu care nu-ți dă nimic și ai fi crezut că e stricat.
+const STATS := ["Damage", "Attack Speed", "Move Speed", "Max HP", "Weapon Size"]
 
-# ---------------------------------------------------------------------------
-# CINE IESE LA ZARURI
-# ---------------------------------------------------------------------------
-# Zarurile se dau CINSTIT: fiecare are 1…6 cu șanse egale, deci cele 36 de perechi sunt egal
-# probabile. Itemul îl dă PERECHEA, nu suma — și asta e important:
-#
-# ⚠️ După SUMĂ nu se poate împărți drept în patru. Sumele 2…12 nu ies egal de des (1, 2, 3, 4, 5,
-# 6, 5, 4, 3, 2, 1 din 36), iar 36 ÷ 4 = 9 — nu există nicio tăietură în sume care să dea patru
-# felii de câte 9. Orice hartă „suma 2-4 → itemul X" face un item de trei ori mai rar decât altul,
-# ceea ce bate fix regula casei de mai sus (toate patru sunt de aceeași calitate).
-#
-# Perechea, în schimb, se împarte perfect: numerotăm cele 36 de perechi 0…35 și luăm restul la 4,
-# deci fiecare item primește exact 9 perechi = 25% fix. Zarurile rămân zaruri adevărate (ce vezi
-# pe masă chiar a fost tras), iar pe ecran îți scriem și suma, ca la barbut.
-func _item_din_zaruri(d1: int, d2: int) -> Dictionary:
-	var perechea := (d1 - 1) * 6 + (d2 - 1)     # 0…35, egal probabile
-	return UPGRADES[perechea % UPGRADES.size()]
+# Pe masă sunt PATRU zaruri: 0 și 1 sunt ale lui (stânga), 2 și 3 ale tale (dreapta). Constantele
+# astea două sunt indexul primului zar din fiecare pereche și se plimbă peste tot ca „cine dă acum".
+const EL := 0
+const TU := 2
 
 # ---------------------------------------------------------------------------
 # ASPECTUL
@@ -75,13 +55,13 @@ const SHEET := "res://harta/EGT/Border EGT.png"
 const CELULA := 64
 const CH_PANOU := Vector2i(2, 0)     # rama mare din jurul ecranului (spirale în colțuri)
 const CH_MASA := Vector2i(3, 2)      # rama din jurul mesei de zaruri (dublă, colțuri tăiate)
-const CH_CARD := Vector2i(1, 1)      # cartonașul itemului (dublă, simplă)
-const CH_ITEM := Vector2i(0, 1)      # chenarul din jurul iconiței (ține locul rarității)
+const CH_SCOR := Vector2i(1, 1)      # cele două cutii de scor, HIM și YOU (dublă, simplă)
 const CH_BUTON := Vector2i(1, 3)     # butonul (subțire, cu bumbi în colțuri)
 
 const ACCENT := Color8(198, 118, 80)
 const ACCENT_CLAR := Color8(222, 152, 116)
 const ACCENT_STINS := Color8(116, 62, 42)
+const ROSU := Color8(206, 78, 62)      # rândul de rezultat când ai pierdut pariul
 const OS_ALB := Color8(232, 224, 214)
 const CENUSA := Color8(150, 142, 138)
 const FUNDAL := Color8(17, 14, 20)
@@ -90,13 +70,12 @@ const PANOU_W := 780.0
 const PANOU_H := 560.0
 const MASA_W := 560.0      # fereastra prin care se vede masa de zaruri
 const MASA_H := 190.0
-const CARD_H := 100.0      # cartonașul itemului câștigat
-const CELL := 76.0         # latura chenarului cu iconița
+const SCOR_H := 88.0       # cutiile cu sumele de pe masă (HIM | YOU)
 
-# ⚠️ Cartonașul NU e ascuns de tot cât aștepți, ci lăsat stins: locul lui e ținut oricum (altfel
-# panoul și-ar schimba înălțimea la jumătatea aruncării), iar gol de tot lăsa o gaură mare între
-# masă și buton, de parcă meniul era neterminat. Stins, se citește ca „aici o să cadă itemul".
-const CARD_ASTEPTARE := 0.22
+# ⚠️ Cutia de scor a cui n-a dat încă NU e ascunsă de tot, ci lăsată stinsă: locul ei e ținut
+# oricum (altfel panoul și-ar schimba înălțimea la jumătatea aruncării), iar goală de tot lăsa o
+# gaură mare între masă și buton, de parcă meniul era neterminat.
+const SCOR_ASTEPTARE := 0.22
 
 # ---------------------------------------------------------------------------
 # MASA DE ZARURI (3D)
@@ -126,15 +105,25 @@ const MODEL_ZAR := "res://harta/Upgrade Dubios/Dice.glb"
 const MARIME_ZAR := 0.9        # latura cubului, în unități 3D
 const PODEA_Y := -MARIME_ZAR * 0.5
 
-# Unde se opresc. NU sunt în oglindă dinadins: două zaruri așezate perfect simetric arată a poză
-# de catalog, nu a masă pe care tocmai s-a aruncat. Unul stă mai în față, altul mai în spate, și
-# peste locurile astea se mai pune o zvâcnitură la fiecare aruncare (`_arunca`).
+# Unde se opresc cele PATRU zaruri: două în stânga (ale LUI), două în dreapta (ale TALE). Masa e
+# împărțită în două tabere, ca la orice 1v1 — de pe ce jumătate stau zarurile știi a cui e suma,
+# fără să mai citești nimic.
 #
-# ⚠️ Depărtarea pe Z (0.42 față de −0.40, adică aproape o lățime de zar) nu e doar de frumusețe:
-# al doilea zar trebuie să treacă pe deasupra locului primului ca s-ajungă în dreapta, iar cu
+# În fiecare pereche zarurile NU sunt în oglindă dinadins: două zaruri așezate perfect simetric
+# arată a poză de catalog, nu a masă pe care tocmai s-a aruncat. Unul stă mai în față, altul mai în
+# spate, și peste locurile astea se mai pune o zvâcnitură la fiecare aruncare (`_arunca`).
+#
+# ⚠️ Depărtarea pe Z (0.50 față de −0.48, adică aproape o lățime de zar) nu e doar de frumusețe:
+# al doilea zar trebuie să treacă pe deasupra locului primului ca s-ajungă la al lui, iar cu
 # culoare apropiate cele două se suprapuneau pe ecran fix la mijlocul aruncării, de parcă unul
 # intra prin celălalt.
-const LOCURI := [Vector3(-1.06, 0.0, 0.50), Vector3(1.02, 0.0, -0.48)]
+#
+# ⚠️ Nu le împinge mai în lături de ±2.1: camera vede ±3.2 unități pe orizontală (`CAM_FOV` cu
+# `KEEP_WIDTH`, de la distanța ei), iar zarul e lat de 0.9 — de pe la ±2.8 muchia lui iese din cadru.
+const LOCURI := [
+	Vector3(-2.02, 0.0, 0.50), Vector3(-0.98, 0.0, -0.48),   # ale lui
+	Vector3(0.98, 0.0, -0.48), Vector3(2.02, 0.0, 0.50),     # ale tale
+]
 
 # Cât de rotunjite sunt muchiile (0 = cub tăios, ca înainte; 0.5 = bilă). Un zar adevărat are
 # colțurile tocite, iar tocitura e cea care prinde lumina și îi dă volum — cubul tăios de dinainte
@@ -176,23 +165,29 @@ const GRAVITATIE := 24.0       # unități/s²; masa e mică, deci „greutatea"
 const RESTITUTIE := 0.52       # cât din viteza pe verticală se întoarce după o ciocnitură
 const OPRIRE := 1.95           # sub atâta nu mai sare: se lasă pe fața care a ieșit
 const SARITURI_MAX := 4        # plasă de siguranță, ca aruncarea să nu se lungească niciodată
-const T_ORIZONTAL := [0.68, 0.82]   # cât ține drumul lateral al fiecăruia, din mână până pe loc
+const T_ORIZONTAL := [0.68, 0.82, 0.68, 0.82]   # cât ține drumul lateral al fiecăruia, din mână până pe loc
 const T_ASEZARE := 0.34        # răsturnarea finală pe fața care a ieșit
 
 # Fiecare zar pleacă altfel: altă înălțime, altă întârziere, altă rotație. Diferențele sunt mici,
 # dar ele fac ca zarurile să nu se oprească în același cadru — și tocmai oprirea decalată e ce
 # deosebește o aruncare de o animație.
 #
-# ⚠️ `X_PORNIRE` stă LIPIT de marginea din stânga a cadrului (care e pe la −3.2), nu departe în
-# afara lui: prima încercare le trimitea de la −4.9 și zarurile intrau în ecran abia după o treime
-# din aruncare — te uitai o treime de secundă la o masă goală.
-const X_PORNIRE := [-3.3, -3.95]  # de unde vin aruncate (din stânga, ca din mână)
-const H_PORNIRE := [1.15, 1.32]
-const INTARZIERE := [0.0, 0.13]
-const SPIN := [14.5, 12.5]     # rad/s la plecare
+# ⚠️ `X_PORNIRE` stă LIPIT de marginea cadrului (care e pe la ±3.2), nu departe în afara lui:
+# prima încercare le trimitea de la −4.9 și zarurile intrau în ecran abia după o treime din
+# aruncare — te uitai o treime de secundă la o masă goală.
+#
+# Fiecare aruncă de la el de-acasă: EL din stânga, TU din dreapta. Al doilea zar al fiecăruia
+# pleacă de mai departe și zboară peste locul primului — de aia perechea nu cade „în bloc".
+const X_PORNIRE := [-3.6, -4.0, 3.6, 4.0]   # de unde vin aruncate, ca din mână
+const H_PORNIRE := [1.15, 1.32, 1.15, 1.32]
+const INTARZIERE := [0.0, 0.13, 0.0, 0.13]
+const SPIN := [14.5, 12.5, -14.5, -12.5]   # rad/s la plecare (ale tale se rostogolesc invers, vin din partea cealaltă)
 const SPIN_LOVIT := 0.62       # cât din rotație rămâne după o ciocnitură de masă
 const HOP_ASEZARE := 0.09      # cât se ridică zarul cât se răstoarnă pe ultima față
-const PAUZA_REZULTAT := 0.16   # o clipă de liniște după ce s-au oprit, înainte de cartonaș
+const PAUZA_REZULTAT := 0.16   # o clipă de liniște după ce s-au oprit, înainte de sumă
+# Cât stai cu masa goală în față până ia el zarurile. Fără pauza asta meniul se deschide DEJA cu
+# zarurile lui în aer, iar tu nu apuci să vezi că el a fost primul — pare că ai dat tu.
+const PAUZA_EL := 0.55
 
 # Fața zarului: ce cifră stă pe ce direcție. Fețele opuse fac 7, ca la zarul adevărat.
 const FETE := [
@@ -219,25 +214,34 @@ const NEGRU_BULINA := Color8(24, 16, 13)    # peretele scobiturii, dinspre lumin
 const BULINA_FUND := Color8(88, 56, 41)     # fundul ei, unde se mai întoarce un pic de lumină
 
 # ---------------------------------------------------------------------------
-var _stare := "gata"       # gata (aștept să dai) | rostogolire | rezultat
+# asteapta = masa goală, el ia zarurile | rostogolire = zboară perechea cuiva |
+# alegi = i-ai văzut suma, ROLL sau WALK AWAY | rezultat = s-a socotit mâna (sau a ieșit egal și
+# se dă din nou) | inchis = meniul nu e pe ecran
+var _stare := "inchis"
+var _cine := EL            # a cui pereche e în aer acum
 var _npc: Node = null
 var _sheet_img: Image = null
 
 var _lbl_stare: Label
-var _lbl_suma: Label
-var _card: Control
-var _card_icon: TextureRect
-var _card_nume: Label
-var _card_desc: Label
-var _btn: Button
+var _lbl_risc: Label       # rândul de sub scor: ce pățești dacă pierzi
+var _lbl_el: Label         # suma lui, în cutia din stânga
+var _lbl_tu: Label         # a ta, în cea din dreapta
+var _cutie_el: Control
+var _cutie_tu: Control
+var _btn: Button           # ROLL THE DICE / ROLL AGAIN / CONTINUE
+var _btn_pleaca: Button    # WALK AWAY (numai cât alegi)
 
 var _vp: SubViewport
 var _cam: Camera3D
-var _zaruri := []          # Node3D × 2
-var _umbre := []           # pata de umbră de sub fiecare zar (MeshInstance3D × 2)
-var _d := [1, 1]           # ce a ieșit pe fiecare zar
-var _z := []               # starea aruncării, câte un dicționar de zar (vezi `_arunca`)
-var _t := 0.0              # cât e de când s-au oprit amândouă
+var _zaruri := []          # Node3D × 4 (0,1 ale lui; 2,3 ale tale)
+var _umbre := []           # pata de umbră de sub fiecare zar (MeshInstance3D × 4)
+var _d := [1, 1, 1, 1]     # ce a ieșit pe fiecare zar
+var _z := []               # starea aruncării, câte un dicționar de zar ARUNCAT ACUM (vezi `_arunca`)
+var _t := 0.0              # cât e de când s-au oprit toate
+var _pauza := 0.0          # cât mai are de așteptat până dă el (starea „asteapta")
+var _suma_el := 0          # sumele mâinii de acum; 0 = n-a dat încă
+var _suma_tu := 0
+var _egalitate := false    # ultima mână a ieșit egal → butonul dă din nou, nu închide
 var _zguduie := 0.0        # cât mai tremură camera după ultima ciocnitură
 var _boxe := []            # boxele pentru ciocnituri (vezi `_bufnitura`)
 var _boxa := 0
@@ -262,39 +266,68 @@ func open(npc: Node = null) -> void:
 	if visible:
 		return
 	_npc = npc
-	_stare = "gata"
-	_t = 0.0
-	_lbl_stare.text = "Roll for your item"
-	_lbl_stare.add_theme_color_override("font_color", CENUSA)
-	_lbl_suma.text = ""
-	_card.modulate = Color(1, 1, 1, CARD_ASTEPTARE)
-	_card.scale = Vector2.ONE          # un „pumn" rămas de la aruncarea trecută (vezi `_pumn`)
-	_lbl_suma.scale = Vector2.ONE
-	_card_icon.texture = null
-	_card_nume.text = ""
-	_card_desc.text = ""
-	_btn.text = "ROLL THE DICE"
-	_btn.disabled = false
-	# Zarurile stau cuminți pe masă până dai, pe fețe la întâmplare — altfel te-ar întâmpina de
-	# fiecare dată aceeași pereche și ar arăta a poză, nu a masă de joc. Ce se vede acum nu
-	# înseamnă nimic: `_arunca()` trage din nou.
-	_d = [randi_range(1, 6), randi_range(1, 6)]
-	_z.clear()
 	_zguduie = 0.0
-	for i in 2:
+	# Zarurile stau cuminți pe masă până se aruncă, pe fețe la întâmplare — altfel te-ar întâmpina
+	# de fiecare dată aceeași masă și ar arăta a poză, nu a masă de joc. Ce se vede acum nu
+	# înseamnă nimic: contează doar ce e scris în cutiile de scor.
+	_d = [randi_range(1, 6), randi_range(1, 6), randi_range(1, 6), randi_range(1, 6)]
+	_z.clear()
+	for i in _zaruri.size():
 		var z: Node3D = _zaruri[i]
 		z.position = LOCURI[i]
 		z.basis = Basis(Vector3.UP, randf() * TAU) * _baza_pentru(_d[i])
 		_aseaza_umbra(i)
+	_mana_noua()
 	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	visible = true
 	get_tree().paused = true
 	Audio.pause_forest_ambient()
 	Audio.play("levelup", -4.0, 0.0)
 
+# Începutul unei MÂINI: masa se șterge (nicio sumă nu mai contează), butoanele se ascund și el se
+# pregătește să dea. Se cheamă și la deschidere, și la egalitate („ROLL AGAIN").
+#
+# Nu întoarcem zarurile pe alte fețe: ele rămân unde au căzut, doar cutiile de scor se sting. Un
+# zar care își schimbă singur fața stând pe masă se vede ca o eroare, iar cutia stinsă spune deja
+# limpede că ce e pe masă nu mai e în joc.
+func _mana_noua() -> void:
+	_stare = "asteapta"
+	_pauza = PAUZA_EL
+	_t = 0.0
+	_egalitate = false
+	_suma_el = 0
+	_suma_tu = 0
+	_lbl_el.text = ""
+	_lbl_tu.text = ""
+	for c in [_cutie_el, _cutie_tu]:
+		c.modulate = Color(1, 1, 1, SCOR_ASTEPTARE)
+		c.scale = Vector2.ONE          # un „pumn" rămas de la mâna trecută (vezi `_pumn`)
+	# masa se golește DE TOT: zarurile care n-au fost aruncate în mâna asta nu se văd. Lăsate pe
+	# masă, arătau niște fețe care nu însemnau nimic (rămase din mâna trecută sau de la deschidere),
+	# iar ochiul le citea ca pe o sumă care contează.
+	for i in _zaruri.size():
+		_arata_zar(i, false)
+	_spune("He rolls first", CENUSA)
+	_lbl_risc.text = ""
+	_btn.visible = false
+	_btn_pleaca.visible = false
+
+# Un zar pe masă sau luat de pe ea. Umbra lui merge la fel — altfel ar rămâne o pată de umbră sub
+# un zar care nu se vede.
+func _arata_zar(i: int, on: bool) -> void:
+	if i < _zaruri.size():
+		(_zaruri[i] as Node3D).visible = on
+	if i < _umbre.size():
+		(_umbre[i] as MeshInstance3D).visible = on
+
+# Rândul de sub linia de titlu: ce ai de făcut acum, sau ce ai pățit.
+func _spune(text: String, culoare: Color) -> void:
+	_lbl_stare.text = text
+	_lbl_stare.add_theme_color_override("font_color", culoare)
+
 func _inchide() -> void:
 	visible = false
-	_stare = "gata"
+	_stare = "inchis"
 	# ⚠️ oprim randarea 3D: altfel masa de zaruri se desenează în continuare, în fiecare cadru,
 	# în spatele jocului
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -304,9 +337,8 @@ func _inchide() -> void:
 # ⚠️ Ca să nu se deschidă meniul de pauză PESTE noi, `pause.gd::_blocked()` întreabă și de grupul
 # „dubios_menu".
 #
-# ESC NU închide meniul, spre deosebire de Alba-Neagra: acolo poți pleca fără să joci, aici omul
-# s-a consumat deja când a scos marfa, deci un ESC ar fi însemnat un om irosit din greșeală.
-# Trebuie să dai cu zarurile.
+# ESC nu face nimic: ieșirea e butonul WALK AWAY, care există doar cât ai de ales. Cât zboară
+# zarurile n-ai ce anula — ai intrat în mână.
 func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
@@ -316,25 +348,45 @@ func _unhandled_input(event: InputEvent) -> void:
 # ---------------------------------------------------------------------------
 func _pe_buton() -> void:
 	match _stare:
-		"gata":
-			_arunca()
+		"alegi":
+			_arunca(TU)
 		"rezultat":
-			_inchide()
+			if _egalitate:
+				_mana_noua()     # a ieșit egal: mâna se dă de la capăt, el primul
+			else:
+				_inchide()
 
-func _arunca() -> void:
+# WALK AWAY: pleci fără să dai. Nu te costă nimic (vezi avertismentul din capul fișierului) — dar
+# omul rămâne consumat, fiindcă s-a consumat când ai apăsat E pe el (`dubiosu.gd::invoca`).
+func _pe_pleaca() -> void:
+	if _stare != "alegi":
+		return
+	_inchide()
+
+# Aruncă perechea lui `cine` (EL sau TU). Cealaltă pereche rămâne exact unde e.
+func _arunca(cine: int) -> void:
+	_cine = cine
 	_stare = "rostogolire"
 	_t = 0.0
-	_btn.disabled = true
-	_lbl_stare.text = ""
-	_lbl_suma.text = ""
+	_btn.visible = false
+	_btn_pleaca.visible = false
+	# cutia celui care dă se stinge: cifra din ea era din mâna trecută
+	var cutie: Control = _cutie_el if cine == EL else _cutie_tu
+	var lbl: Label = _lbl_el if cine == EL else _lbl_tu
+	lbl.text = ""
+	cutie.modulate = Color(1, 1, 1, SCOR_ASTEPTARE)
+	cutie.scale = Vector2.ONE
 
-	_d = [randi_range(1, 6), randi_range(1, 6)]
 	_z.clear()
-	for i in 2:
+	for k in 2:
+		var i: int = cine + k
+		_arata_zar(i, true)          # intră pe masă chiar acum, din mâna lui / a ta
+		_d[i] = randi_range(1, 6)
 		var loc: Vector3 = LOCURI[i] + Vector3(randf_range(-0.09, 0.09), 0.0, randf_range(-0.12, 0.12))
 		var z: Node3D = _zaruri[i]
 		z.position = Vector3(X_PORNIRE[i], H_PORNIRE[i], loc.z + randf_range(-0.18, 0.18))
 		_z.append({
+			"i": i,                           # care zar de pe masă e ăsta (0…3)
 			"faza": "asteapta",
 			"t": 0.0,
 			"intarziere": INTARZIERE[i],
@@ -368,14 +420,21 @@ func _process(delta: float) -> void:
 	# fereastră mutată), un pas de 0.25s ar trece zarul prin masă și l-ar arunca pe sub ea.
 	delta = minf(delta, 0.05)
 	_misca_camera(delta)
+	if _stare == "asteapta":
+		# clipa de dinaintea aruncării lui. Numărăm aici, nu cu un `Timer`/tween: jocul e pe pauză,
+		# iar nodul ăsta e singurul care mai merge.
+		_pauza -= delta
+		if _pauza <= 0.0:
+			_arunca(EL)
+		return
 	if _stare != "rostogolire":
 		return
 
 	var toate_stau := true
-	for i in _z.size():
-		_pas_zar(i, delta)
-		_aseaza_umbra(i)
-		if _z[i]["faza"] != "stat":
+	for s in _z:
+		_pas_zar(s, delta)
+		_aseaza_umbra(int(s["i"]))
+		if s["faza"] != "stat":
 			toate_stau = false
 	if not toate_stau:
 		_t = 0.0
@@ -383,12 +442,12 @@ func _process(delta: float) -> void:
 	# s-au oprit amândouă: o clipă de liniște, cât să apuci să citești ce a ieșit
 	_t += delta
 	if _t >= PAUZA_REZULTAT:
-		_arata_rezultatul()
+		_gata_aruncarea()
 
-# Un cadru din viața unui zar.
-func _pas_zar(i: int, delta: float) -> void:
-	var s: Dictionary = _z[i]
-	var nod: Node3D = _zaruri[i]
+# Un cadru din viața unui zar. `s` e dicționarul lui din `_z`, iar `s["i"]` spune care zar de pe
+# masă e — `_z` ține doar perechea care zboară ACUM, nu toate patru.
+func _pas_zar(s: Dictionary, delta: float) -> void:
+	var nod: Node3D = _zaruri[int(s["i"])]
 	var loc: Vector3 = s["loc"]
 	match s["faza"]:
 		"asteapta":
@@ -423,7 +482,7 @@ func _pas_zar(i: int, delta: float) -> void:
 				_bufnitura(tarie)
 				nod.position = poz
 				if float(s["vy"]) < OPRIRE or int(s["lovituri"]) >= SARITURI_MAX:
-					_incepe_asezarea(i)
+					_incepe_asezarea(s)
 					return
 			nod.position = poz
 
@@ -454,8 +513,8 @@ func _pas_zar(i: int, delta: float) -> void:
 # Acum se alege abia acum, dintre toate așezările care arată cifra cerută, cea mai APROPIATĂ de
 # cum stă zarul în clipa asta. Așa ultima mișcare e mereu scurtă: zarul se lasă pe fața pe care
 # oricum era gata să cadă.
-func _incepe_asezarea(i: int) -> void:
-	var s: Dictionary = _z[i]
+func _incepe_asezarea(s: Dictionary) -> void:
+	var i: int = int(s["i"])
 	var nod: Node3D = _zaruri[i]
 	s["faza"] = "asezare"
 	s["t"] = 0.0
@@ -552,40 +611,74 @@ func _aseaza_umbra(i: int) -> void:
 # ---------------------------------------------------------------------------
 # CE A IEȘIT
 # ---------------------------------------------------------------------------
-func _arata_rezultatul() -> void:
-	_stare = "rezultat"
-	var u := _item_din_zaruri(_d[0], _d[1])
+# S-a oprit perechea care zbura. Scriem suma în cutia celui care a dat, apoi mergem mai departe:
+# după el urmează alegerea ta, după tine urmează socoteala.
+func _gata_aruncarea() -> void:
+	var i := _cine
+	var suma: int = int(_d[i]) + int(_d[i + 1])
+	var cutie: Control = _cutie_el if _cine == EL else _cutie_tu
+	var lbl: Label = _lbl_el if _cine == EL else _lbl_tu
 	# ⚠️ pur numeric, nu se traduce (vezi lista IGNORATE din `tool_check_i18n.gd`)
-	_lbl_suma.text = "%d + %d = %d" % [_d[0], _d[1], _d[0] + _d[1]]
+	lbl.text = "%d + %d = %d" % [_d[i], _d[i + 1], suma]
+	cutie.modulate = Color(1, 1, 1, 1)
+	_pumn(cutie, 1.12, 0.3)     # suma sare o clipă în ochi: ea e vestea
+	if _cine == EL:
+		_suma_el = suma
+		_ofera_pariul()
+	else:
+		_suma_tu = suma
+		_judeca()
 
-	_card_icon.texture = load(ICON_DIR + String(u["icon"]))
-	_card_nume.text = String(u["nume"])
-	_card_desc.text = String(u["desc"])
+# I-ai văzut suma. De aici încolo hotărăști tu: dai sau pleci.
+func _ofera_pariul() -> void:
+	_stare = "alegi"
+	_spune(tr("Beat him: +%d%% to a random stat") % _procent(CASTIG), ACCENT_CLAR)
+	# aceeași formulare ca la Alba-Neagra, ca să se citească drept ce e: prețul pierderii
+	_lbl_risc.text = tr("Lose: -%d%% to a random stat, +%d%% Difficulty") \
+		% [_procent(PIERDERE), int(round(PEDEAPSA * 100.0))]
+	_btn.text = "ROLL THE DICE"
+	_btn.visible = true
+	_btn_pleaca.visible = true
 
+# Cine a dat mai mult. Egalitatea nu e nici câștig, nici pierdere: se dă mâna din nou, ca la
+# barbutul adevărat (cerut de Răzvan pe 2026-08-14).
+func _judeca() -> void:
+	_stare = "rezultat"
+	_btn.visible = true
+	_btn_pleaca.visible = false
+	_lbl_risc.text = ""
+	if _suma_tu == _suma_el:
+		_egalitate = true
+		_spune("A tie. Roll again", CENUSA)
+		_btn.text = "ROLL AGAIN"
+		Audio.play("button", -3.0, 0.0)
+		return
+
+	_egalitate = false
+	_btn.text = "CONTINUE"
 	var p = get_tree().get_first_node_in_group("player")
 	if p == null:
 		_inchide()
 		return
-	var mesaj := _apply(String(u["id"]), p)
-	# Blame Circle și Arcane Magic au ceva de POVESTIT (ce stat s-a dublat, câte iteme s-au
-	# schimbat); restul n-au — ce fac scrie deja pe cartonaș.
-	if mesaj != "":
-		_lbl_stare.text = mesaj
-		_lbl_stare.add_theme_color_override("font_color", ACCENT_CLAR)
-
-	# suma sare o clipă în ochi: ea e vestea, ea primește accentul
-	_pumn(_lbl_suma, 1.35, 0.28)
-
-	# cartonașul apare crescând, nu pocnește pe ecran
-	_btn.text = "CONTINUE"
-	_btn.disabled = false
-	var t := create_tween()
-	t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)   # jocul e pe pauză, altfel n-ar curge
-	t.tween_interval(0.22)
-	t.tween_callback(func():
+	var stat: String = STATS[randi() % STATS.size()]
+	if _suma_tu > _suma_el:
+		_scaleaza_stat(p, stat, CASTIG)
+		# tr() explicit: textul e ASAMBLAT, deci nici el, nici numele statusului din el nu mai trec
+		# singure prin traducere (vezi i18n.gd).
+		_spune(tr("You win — %s up %d%%") % [tr(stat), _procent(CASTIG)], ACCENT_CLAR)
 		Audio.play("chest_anim", -3.0, 0.0)
-		_pumn(_card, 1.06, 0.34))
-	t.tween_property(_card, "modulate", Color(1, 1, 1, 1), 0.3)
+	else:
+		_scaleaza_stat(p, stat, PIERDERE)
+		# +10% dificultate, exact mecanismul de la Alba-Neagra și de la statuia Ender
+		Difficulty.add_trade_penalty(PEDEAPSA)
+		_spune(tr("You lose — %s down %d%%") % [tr(stat), _procent(PIERDERE)], ROSU)
+		_lbl_risc.text = tr("The game got %d%% harder") % int(round(PEDEAPSA * 100.0))
+		Audio.play("hurt", -2.0, 0.0)
+
+# Cât la sută înseamnă un factor de miză: 1.25 → 25, 0.75 → 25. Scris o dată, ca cifra de pe ecran
+# să nu poată rămâne în urma constantei.
+func _procent(factor: float) -> int:
+	return int(round(absf(factor - 1.0) * 100.0))
 
 # Un „pumn" de mărime: sare la `cat` și se lasă înapoi la 1. E cel mai ieftin fel de a spune „uite
 # aici" fără să muți nimic din loc.
@@ -603,48 +696,11 @@ func _pumn(ctrl: Control, cat: float, durata: float) -> void:
 # ---------------------------------------------------------------------------
 # EFECTELE
 # ---------------------------------------------------------------------------
-# Întoarce textul care se arată după aruncare, sau "" dacă itemul n-are nimic de povestit (ce face
-# scrie deja pe cartonaș).
+# Tot ce poate ieși din pariu trece pe aici: `CASTIG` dacă l-ai bătut, `PIERDERE` dacă nu.
 #
-# Registrul rundei (`player.run_items`) se scrie ȘI de aici, exact ca în `levelup.gd::_apply` —
-# altfel Arcane Magic n-ar ști că ai luat vreodată itemele astea.
-func _apply(id: String, p) -> String:
-	if p != null and "run_items" in p:
-		p.run_items.append(id)
-	match id:
-		"cursed_tome":
-			# mai mulți inamici pe secundă: și mai mult XP, și mai multe dinți. Se compune, deci
-			# două tomuri fac ×1.5625, nu ×1.5.
-			p.spawn_rate_mult *= 1.25
-			return ""
-		"iron_helmet":
-			# ⚠️ „Take 100% Less Damage" e chiar 100%: cu casca pe cap nu mai încasezi NIMIC (vezi
-			# `player.take_damage`). Dacă vrei doar o reducere, pune aici cât să rămână — 0.25
-			# înseamnă „încasezi un sfert". Prețul e damage-ul tău, care se compune la fiecare
-			# luare (0.75 × 0.75 = 0.5625 la a doua cască).
-			p.damage_taken_mult = 0.0
-			p.damage_dealt_mult *= 0.75
-			return ""
-		"blame_circle":
-			return _blame_circle(p)
-		"arcane_magic":
-			return _arcane_magic(p)
-	return ""
-
-# Blame Circle: un stat se dublează, altul scade cu 25%. Cele două sunt mereu DIFERITE — altfel
-# ai fi putut nimeri „dublu și minus 25% pe damage", adică un item care face ×1.5 pe un singur
-# rând și pare că nu s-a întâmplat nimic.
-func _blame_circle(p) -> String:
-	var lista := BLAME_STATS.duplicate()
-	lista.shuffle()
-	var sus: String = lista[0]
-	var jos: String = lista[1]
-	_scaleaza_stat(p, sus, BLAME_UP)
-	_scaleaza_stat(p, jos, BLAME_DOWN)
-	# tr() explicit: textul e ASAMBLAT, deci nici el, nici numele statusurilor din el nu mai trec
-	# singure prin traducere (vezi i18n.gd).
-	return tr("%s doubled, %s down 25%%") % [tr(sus), tr(jos)]
-
+# ⚠️ Nu se scrie nimic în `player.run_items`: pariul NU e un item, deci n-are ce căuta nici la masa
+# de schimb a statuii Ender, nici în contractele cazinoului — ele arată lista aia.
+#
 # Înmulțește un status cu `f`. Numele sunt cele din panoul de statusuri, ca să se potrivească cu
 # ce scrie pe ecran după aceea.
 #
@@ -669,63 +725,6 @@ func _scaleaza_stat(p, stat: String, f: float) -> void:
 				p.hp = mini(p.hp, p.max_hp)
 		"Weapon Size":
 			p.weapon_size_mult *= f
-
-# Arcane Magic: fiecare item pe care îl ai se schimbă pe ALTUL de aceeași calitate, din același
-# pool — cele de la level up rămân în lista de la level up, cele de la dubios în lista de aici.
-#
-# ⚠️ NU se poate face desfăcând efectele: `_apply` scrie direct în statusuri, iar din „viteza e
-# 275" nu mai afli ce a adunat-o acolo. Deci player-ul se întoarce la starea de la începutul
-# rundei (`reset_la_start`, copia luată la capătul lui `player._ready`) și se rejoacă peste ea o
-# listă nouă, item cu item. Singurul efect care NU se desface e XP-ul necesar pe nivel — vezi
-# `NU_SE_RESETEAZA` în `player.gd`.
-func _arcane_magic(p) -> String:
-	var lu = get_tree().get_first_node_in_group("levelup_menu")
-	if lu == null or not ("run_items" in p):
-		return ""
-	var vechi: Array = p.run_items.duplicate()
-	vechi.pop_back()      # ultimul e chiar Arcane Magic, pus de `_apply` acum o clipă
-	if vechi.is_empty():
-		return tr("%d items rerolled") % 0
-	# Itemele „unice" (Undying Spirit, Mike's Hedgehog) ies din carantina lor: nu le mai ai, deci
-	# au voie să reintre în tragere. Fără asta, un unic pierdut aici n-ar mai fi putut fi luat
-	# niciodată în runda aia.
-	for id in vechi:
-		lu.uita_unic(String(id))
-	p.reset_la_start()
-	p.run_items.clear()
-	var cate := 0
-	for id in vechi:
-		var nou = _acelasi_fel(String(id), lu)
-		if nou == null:
-			continue
-		if _item_dupa_id(String(nou["id"])) != null:
-			_apply(String(nou["id"]), p)   # item de-al dubiosului → trece prin `_apply`-ul de aici
-		else:
-			lu.da_item(nou, p)             # item de level up → prin al lui, ca să țină „unicele"
-		cate += 1
-	p.run_items.append("arcane_magic")
-	return tr("%d items rerolled") % cate
-
-# Alt item, de aceeași calitate și din același pool ca `id`.
-func _acelasi_fel(id: String, lu):
-	if _item_dupa_id(id) != null:
-		# de la dubios. ⚠️ Arcane Magic iese din tragere: altfel s-ar rechema pe el însuși, la
-		# nesfârșit (aceeași regulă ca la Lucky Die în cufere, vezi `levelup.da_random_acum`).
-		var pool := []
-		for u in UPGRADES:
-			if u["id"] != "arcane_magic" and u["id"] != id:
-				pool.append(u)
-		return pool[randi() % pool.size()] if not pool.is_empty() else null
-	var vechi = lu.item_dupa_id(id)
-	if vechi == null:
-		return null    # id necunoscut (item șters între timp) — îl lăsăm pierdut, nu ghicim
-	return lu.item_random_de_raritate(String(vechi["rar"]), [id])
-
-func _item_dupa_id(id: String):
-	for u in UPGRADES:
-		if u["id"] == id:
-			return u
-	return null
 
 # ---------------------------------------------------------------------------
 # INTERFAȚA
@@ -767,37 +766,45 @@ func _build() -> void:
 
 	box.add_child(_linie(320.0, 12))
 
-	# Rândul de sub linie are DOUĂ vieți: până dai cu zarurile scrie ce ai de făcut, după aceea
-	# scrie ce ți-a ieșit (Blame Circle, Arcane Magic). Un al doilea rând, gol tot timpul cât
-	# aștepți, ar fi lăsat o gaură în panou.
+	# Rândul de sub linie are TREI vieți: „el dă primul", apoi miza, apoi ce ți-a ieșit. Un rând
+	# pentru fiecare, gol cât nu-i vremea lui, ar fi lăsat găuri în panou.
 	_lbl_stare = Label.new()
-	_lbl_stare.text = "Roll for your item"
+	_lbl_stare.text = "He rolls first"
 	_lbl_stare.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_lbl_stare.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_lbl_stare.add_theme_font_size_override("font_size", 16)
+	_lbl_stare.add_theme_font_size_override("font_size", 18)
 	_lbl_stare.add_theme_color_override("font_color", CENUSA)
 	_add_outline(_lbl_stare)
 	box.add_child(_lbl_stare)
 
 	box.add_child(_spatiu(4))
 	box.add_child(_fereastra_masa())
+	box.add_child(_spatiu(6))
+	box.add_child(_tabela())
 
-	_lbl_suma = Label.new()
-	_lbl_suma.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_lbl_suma.add_theme_font_size_override("font_size", 22)
-	_lbl_suma.add_theme_color_override("font_color", ACCENT_CLAR)
-	_add_outline(_lbl_suma)
-	box.add_child(_lbl_suma)
+	# Rândul de risc: ce te costă dacă pierzi. Stă sub tabelă (nu lângă miză) fiindcă e vorba
+	# despre ACEEAȘI aruncare, doar despre partea urâtă a ei — la fel ca la Alba-Neagra.
+	_lbl_risc = Label.new()
+	_lbl_risc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_risc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_risc.add_theme_font_size_override("font_size", 15)
+	_lbl_risc.add_theme_color_override("font_color", CENUSA)
+	_add_outline(_lbl_risc)
+	box.add_child(_lbl_risc)
 
-	box.add_child(_card_item())
 	box.add_child(_spatiu(6))
 
-	# butonul, centrat: singur într-un VBox s-ar fi întins pe toată lățimea panoului
+	# butoanele, centrate: singure într-un VBox s-ar fi întins pe toată lățimea panoului
 	var rand := HBoxContainer.new()
 	rand.alignment = BoxContainer.ALIGNMENT_CENTER
+	rand.add_theme_constant_override("separation", 18)
 	box.add_child(rand)
 	_btn = _buton("ROLL THE DICE", _pe_buton)
 	rand.add_child(_btn)
+	_btn_pleaca = _buton("WALK AWAY", _pe_pleaca)
+	rand.add_child(_btn_pleaca)
+	_btn.visible = false
+	_btn_pleaca.visible = false
 
 # Fereastra prin care se vede masa de zaruri: postavul, imaginea din viewport și rama peste ele.
 func _fereastra_masa() -> Control:
@@ -832,82 +839,64 @@ func _fereastra_masa() -> Control:
 	wrap.add_child(rama)
 	return rand
 
-# Cartonașul itemului câștigat. Se construiește o dată și stă invizibil (alpha 0) până cad
-# zarurile — locul lui e ținut oricum, ca panoul să nu-și schimbe înălțimea la jumătatea aruncării.
-func _card_item() -> Control:
-	_card = Control.new()
-	_card.custom_minimum_size = Vector2(0, CARD_H)
-	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_card.modulate = Color(1, 1, 1, CARD_ASTEPTARE)
+# TABELA: două cutii lipite, HIM în stânga și YOU în dreapta — în aceeași ordine în care stau
+# zarurile pe masă, ca să nu trebuiască să te gândești a cui e suma.
+#
+# Cutia celui care n-a dat încă stă STINSĂ, nu goală: locul ei e ținut oricum (altfel panoul și-ar
+# schimba înălțimea la jumătatea aruncării), iar stinsă se citește ca „aici o să cadă suma".
+func _tabela() -> Control:
+	var rand := HBoxContainer.new()
+	rand.add_theme_constant_override("separation", 14)
+	rand.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var rama := _cadru(CH_CARD, 1, false)
+	_cutie_el = _cutie("HIM")
+	_lbl_el = _cutie_el.get_meta("suma") as Label
+	rand.add_child(_cutie_el)
+
+	_cutie_tu = _cutie("YOU")
+	_lbl_tu = _cutie_tu.get_meta("suma") as Label
+	rand.add_child(_cutie_tu)
+	return rand
+
+# O cutie de scor: rama, capul de tabel (HIM / YOU) și suma de dedesubt. Label-ul sumei se dă
+# înapoi prin `set_meta`, ca să nu întoarcem două lucruri dintr-o funcție.
+func _cutie(cap: String) -> Control:
+	var cutie := Control.new()
+	cutie.custom_minimum_size = Vector2(0, SCOR_H)
+	cutie.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cutie.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutie.modulate = Color(1, 1, 1, SCOR_ASTEPTARE)
+
+	var rama := _cadru(CH_SCOR, 1, false)
 	rama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_card.add_child(rama)
+	cutie.add_child(rama)
 
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_card.add_child(margin)
+	var vb := VBoxContainer.new()
+	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_theme_constant_override("separation", 0)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cutie.add_child(vb)
 
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 16)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_child(hb)
+	var lbl_cap := Label.new()
+	lbl_cap.text = cap
+	lbl_cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_cap.add_theme_font_size_override("font_size", 15)
+	lbl_cap.add_theme_color_override("font_color", CENUSA)
+	lbl_cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(lbl_cap)
+	vb.add_child(lbl_cap)
 
-	# celula cu iconița. La level up chenarul ei spune raritatea; aici raritatea nu se scrie, deci
-	# chenarul e mereu același — o celulă din aceeași planșă, ca să nu plutească iconița în aer.
-	var cell := Control.new()
-	cell.custom_minimum_size = Vector2(CELL, CELL)
-	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hb.add_child(cell)
+	var lbl_suma := Label.new()
+	lbl_suma.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_suma.add_theme_font_size_override("font_size", 30)
+	lbl_suma.add_theme_color_override("font_color", ACCENT_CLAR)
+	lbl_suma.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_add_outline(lbl_suma)
+	vb.add_child(lbl_suma)
 
-	var rama_item := _cadru(CH_ITEM, 1, false)
-	rama_item.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	cell.add_child(rama_item)
-
-	_card_icon = TextureRect.new()
-	_card_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_card_icon.offset_left = 15
-	_card_icon.offset_top = 15
-	_card_icon.offset_right = -15
-	_card_icon.offset_bottom = -15
-	_card_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_card_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_card_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_card_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cell.add_child(_card_icon)
-
-	var text := VBoxContainer.new()
-	text.alignment = BoxContainer.ALIGNMENT_CENTER
-	text.add_theme_constant_override("separation", 2)
-	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hb.add_child(text)
-
-	_card_nume = Label.new()
-	_card_nume.add_theme_font_size_override("font_size", 24)
-	_card_nume.add_theme_color_override("font_color", OS_ALB)
-	_card_nume.clip_text = true
-	_card_nume.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_add_outline(_card_nume)
-	text.add_child(_card_nume)
-
-	_card_desc = Label.new()
-	_card_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card_desc.add_theme_font_size_override("font_size", 16)
-	_card_desc.add_theme_color_override("font_color", CENUSA)
-	_card_desc.max_lines_visible = 2
-	_card_desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_add_outline(_card_desc)
-	text.add_child(_card_desc)
-
-	return _card
+	cutie.set_meta("suma", lbl_suma)
+	return cutie
 
 # ---------------------------------------------------------------------------
 # MASA DE ZARURI: lumea 3D
@@ -981,9 +970,13 @@ func _construieste_masa() -> void:
 	bec.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	bec.light_color = Color8(255, 226, 190)
 	bec.light_energy = 4.0
-	bec.spot_range = 12.0
-	bec.spot_angle = 40.0
-	bec.spot_angle_attenuation = 1.8
+	bec.spot_range = 14.0
+	# ⚠️ Unghiul a crescut de la 40° la 58° odată cu a doua pereche de zaruri: becul stă la ~4.65
+	# deasupra postavului, iar la 40° balta lui de lumină avea raza `tan(20°) × 4.65 ≈ 1.7` — adică
+	# zarurile de la marginile mesei (±2.02) cădeau COMPLET în afara ei și se vedeau mult mai
+	# întunecate decât cele din mijloc, de parcă erau de altă culoare.
+	bec.spot_angle = 58.0
+	bec.spot_angle_attenuation = 1.6
 	bec.spot_attenuation = 1.4
 	_vp.add_child(bec)
 
@@ -1000,7 +993,7 @@ func _construieste_masa() -> void:
 	var mesh := _mesh_zar()
 	var mat := _material_zar()
 	var umbra_tex := _textura_umbra()
-	for i in 2:
+	for i in LOCURI.size():
 		# pata de umbră stă SUB zar și e desenată prima (vezi `_aseaza_umbra`)
 		var umbra := MeshInstance3D.new()
 		var qm := QuadMesh.new()

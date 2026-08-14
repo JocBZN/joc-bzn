@@ -15,10 +15,10 @@ extends Node
 #      aici sunt și rezultate false (simboluri, formate), de aia se afișează ca AVERTISMENT.
 # Iese cu cod 1 dacă găsește o problemă din primele trei categorii.
 
-# Listele de ITEME (nume + descriere). `dubios_menu.gd` are pool-ul lui, care nu trece prin
-# `levelup.gd`, deci fără el numele itemelor dubiosului ar fi rămas englezești în 8 limbi fără să
-# se plângă nimeni.
-const LISTE_ITEME := ["res://levelup.gd", "res://dubios_menu.gd"]
+# Listele de ITEME (nume + descriere). A fost aici și `dubios_menu.gd` (2026-08-12 → 08-14), cât
+# omul în palton avea pool-ul lui de patru iteme, care nu trecea prin `levelup.gd`. Acum el nu mai
+# vinde nimic, joacă barbut — textele meniului lui sunt prinse de verificările [4] și [5].
+const LISTE_ITEME := ["res://levelup.gd"]
 # fișierele care desenează text; restul n-au UI
 const FISIERE_UI := [
 	"res://menu.gd", "res://settings_ui.gd", "res://pause.gd", "res://gameover.gd",
@@ -119,7 +119,7 @@ func _verifica_tr() -> void:
 func _avertizeaza_text_direct() -> void:
 	print("[5] texte puse direct pe noduri (doar avertisment)")
 	var re := RegEx.new()
-	re.compile('(?:\\.text\\s*=\\s*|_center_label\\(|_header\\(|_menu_button\\(|_button\\(|_title\\(|_buton\\(|_volume_row\\(|_toggle_row\\(|announce\\(|_announce\\(|text_popup\\([^,]+,\\s*)"((?:[^"\\\\]|\\\\.)*)"')
+	re.compile('(?:\\.text\\s*=\\s*|_center_label\\(|_header\\(|_menu_button\\(|_button\\(|_title\\(|_buton\\(|_volume_row\\(|_toggle_row\\(|announce\\(|_announce\\(|_spune\\(|_cutie\\(|text_popup\\([^,]+,\\s*)"((?:[^"\\\\]|\\\\.)*)"')
 	var vazute := {}
 	for f in FISIERE_UI:
 		for m in re.search_all(_citeste(f)):
