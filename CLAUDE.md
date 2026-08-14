@@ -18,6 +18,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-14 (monumentul: „Swarm has started" + cronometrul hoardei sub cel al rundei)
+
+**Cerut de Răzvan:** „Când apeși pe monument spawner vreau să scrie «Swarm has started» și să ai sub timer-ul normal să scrie «Swarm Timer:» (și timpul cât e rămas)."
+
+**Atinse:** `monument.gd`, `hud.gd`, `i18n.gd`.
+
+- Bannerul de la invocare zice acum **„Swarm has started"** în loc de „THE MONUMENT AWAKENS" (subtitlul „Double XP. Triple speed. Triple damage." a rămas). Cheia veche a ieșit din `i18n.gd`.
+- **Cronometrul hoardei** — `hud.swarm_label`, exact sub cel al rundei (`offset_top = 14 + TIMER_SIZE + 14`), roșu ca Final Swarm, corp 24. Scrie „Swarm Timer: 0:10" și numără invers cât curge hoarda, adică `spawn_duration` (10 s) — atât ține hoarda, nu există altă durată de măsurat. Rotunjit în SUS (ca la Nether), ca prima cifră să fie 0:10 și ultima 0:00.
+- ⚠️ **Cine numără: monumentul, nu HUD-ul.** `monument.gd::_scoate_hoarda` avea deja un ceas propriu, adunat din delta cadrelor și oprit pe pauză (Level Up) — un al doilea ceas în HUD ar fi arătat alte cifre decât hoarda care chiar curge. Deci monumentul cheamă `hud.swarm_timer(cât a mai rămas)` la fiecare cadru.
+- ⚠️ **Stingerea merge pe „tăcere", nu pe un semnal de final** (`SWARM_TTL = 0.4`): bucla hoardei se poate rupe la mijloc (mori, dai restart, dispare lumea) și atunci n-ar mai apuca nimeni să anunțe „gata". Așa, dacă monumentul tace 0,4 s, HUD-ul stinge singur eticheta. Nu se stinge nedorit pe pauză, fiindcă și HUD-ul stă (`PROCESS_MODE_INHERIT`), deci TTL-ul nu scade.
+- Se ascunde odată cu cronometrul rundei în Limbo/Nether/Ender — acolo dimensiunea își desenează propriul ceas fix în locul ăla și s-ar fi suprapus.
+
+**Verificat rulând** (scenă de test peste `main.tscn`, ștearsă după: Celesto marcat ca învins, monument pus lângă player, `invoca()`): banner-ul apare, „SWARM TIMER: 0:09" stă sub „9:57", la 5 secunde scrie 0:05, iar după ce se termină vărsatul eticheta e `visible = false` cu ultimul text 0:00; 108 inamici în lume. `tool_check_i18n` → „✔ TOTUL E TRADUS".
+
+---
+
 ## Session log — 2026-08-14 (Dubiosu: doar în Nether, fără iteme, 1v1 de barbut)
 
 **Cerut de Răzvan:** „Vreau shady guy să se spawneze doar în nether. Scoate de tot upgrade-urile de la el. Vreau să fie un 1v1 de barbut. Mai întâi dă el un roll și apoi te întreabă dacă îl bați primești bonus pe un stat random. +25% la un stat dacă câștigi și dacă pierzi -25% la un stat random + 10% difficulty."

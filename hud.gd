@@ -10,6 +10,7 @@ var health_bar: ProgressBar
 var xp_bar: ProgressBar
 var level_label: Label
 var timer_label: Label      # cronometrul mare, sus-centru
+var swarm_label: Label      # cronometrul hoardei de la monument, chiar sub cel de sus
 var kills_label: Label      # numărul de inamici uciși, sus-dreapta
 var keys_label: Label       # câte chei de cufăr ai (sub kill-uri), lângă iconița de cheie
 
@@ -17,6 +18,10 @@ const TIMER_NORMAL := Color(1, 1, 1)             # alb cât e liniște
 const TIMER_WARN := Color(1.0, 0.75, 0.2)        # galben sub 1 minut rămas
 const TIMER_SWARM := Color(1.0, 0.25, 0.25)      # roșu în Final Swarm
 const TIMER_SIZE := 44                           # mărimea cronometrului de rundă
+const SWARM_SIZE := 24                           # mărimea cronometrului de hoardă (mai mic, e secundar)
+# Cât mai stă pe ecran cronometrul hoardei fără vești de la monument. Vezi `swarm_timer()`.
+const SWARM_TTL := 0.4
+var _swarm_ttl := 0.0       # >0 = monumentul încă varsă hoardă (scade singur, vezi `_update_swarm`)
 
 # --- Banner mare pe ecran (anunțuri de val: "VALUL 3", "BOSS!", ...) ---
 var banner: Label
@@ -67,6 +72,24 @@ func _ready() -> void:
 	timer_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	timer_label.add_theme_constant_override("outline_size", 7)
 	add_child(timer_label)
+
+	# --- Cronometrul HOARDEI (sub cel al rundei) ---
+	# Cât își varsă monumentul hoarda, aici scrie cât mai are de curs. Nu-l numără HUD-ul: îl
+	# hrănește `monument.gd` cadru cu cadru, cu ceasul LUI (vezi `_scoate_hoarda`) — altfel două
+	# ceasuri separate ar arăta cifre diferite, fiindcă al monumentului stă pe loc pe pauză.
+	# Se stinge singur când monumentul tace mai mult de `SWARM_TTL` (hoarda s-a terminat, ai murit,
+	# ai dat restart) — așa nu rămâne agățat pe ecran dacă monumentul dispare pe neașteptate.
+	swarm_label = Label.new()
+	swarm_label.anchor_left = 0.0
+	swarm_label.anchor_right = 1.0
+	swarm_label.offset_top = 14 + TIMER_SIZE + 14   # sub cronometrul de rundă (care începe la 14)
+	swarm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	swarm_label.add_theme_font_size_override("font_size", SWARM_SIZE)
+	swarm_label.add_theme_color_override("font_color", TIMER_SWARM)
+	swarm_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	swarm_label.add_theme_constant_override("outline_size", 5)
+	swarm_label.visible = false
+	add_child(swarm_label)
 
 	# --- Kill count (sus-dreapta) ---
 	kills_label = Label.new()
@@ -171,8 +194,9 @@ func announce(text: String, sub: String = "") -> void:
 	# se stinge
 	_banner_tween.tween_property(_banner_box, "modulate:a", 0.0, 0.6)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_update_timer()
+	_update_swarm(delta)
 	# tr(...) explicit peste tot unde textul are %d: cu numărul deja pus în el, traducerea
 	# automată n-ar mai găsi cheia din i18n.gd. (Se reface la fiecare cadru, deci se
 	# schimbă imediat dacă jucătorul schimbă limba.)
@@ -210,6 +234,22 @@ func _update_timer() -> void:
 		timer_label.text = _mmss(ramas)
 		# ultimul minut se face galben, ca avertisment că vine Final Swarm
 		timer_label.add_theme_color_override("font_color", TIMER_WARN if ramas <= 60.0 else TIMER_NORMAL)
+
+# `monument.gd` strigă asta la fiecare cadru cât curge hoarda, cu câte secunde mai are.
+# Rotunjim în SUS, ca la Nether: în clipa invocării scrie 0:10, nu 0:09, și abia la capăt 0:00.
+func swarm_timer(ramas: float) -> void:
+	_swarm_ttl = SWARM_TTL
+	swarm_label.text = tr("Swarm Timer: %s") % _mmss(ceilf(maxf(0.0, ramas)))
+
+# Ține aprins cronometrul hoardei cât monumentul dă semne de viață. `timer_label.visible` e deja
+# calculat de `_update_timer()` (rulează înaintea noastră): în Limbo/Nether/Ender cronometrul
+# rundei e ascuns fiindcă dimensiunea își desenează unul propriu ÎN ACELAȘI LOC — dacă l-am lăsa
+# pe al nostru, ar sta peste el.
+func _update_swarm(delta: float) -> void:
+	if _swarm_ttl <= 0.0:
+		return
+	_swarm_ttl -= delta
+	swarm_label.visible = timer_label.visible and _swarm_ttl > 0.0
 
 func _mmss(secunde: float) -> String:
 	var s := int(secunde)

@@ -13,6 +13,9 @@ extends StaticBody2D
 #   · `boss_count` (3) Gărzi, boss-ul statuii, care ies din pământ ca la invocarea normală.
 # Nu apar deodată: curg unul câte unul, în ritm egal, pe `spawn_duration` (10) secunde, iar
 # monumentul rămâne în picioare cât îi varsă și abia apoi intră în pământ.
+# Cât curge, jucătorul vede pe ecran (cerut de Răzvan pe 2026-08-14): bannerul „Swarm has started"
+# și, sub cronometrul rundei, „Swarm Timer: 0:10" care numără invers până se termină vărsatul.
+# Cronometrul e desenat de `hud.gd`, dar numărat AICI — vezi `_scoate_hoarda`.
 # Toți primesc aceleași trei modificări, față de un inamic obișnuit DIN CLIPA INVOCĂRII:
 #   · ×`xp_mult` (2) XP la moarte,   · ×`speed_mult` (3) viteză,   · ×`damage_mult_h` (3) damage.
 #
@@ -170,7 +173,7 @@ func invoca() -> void:
 func _anunta() -> void:
 	var hud := get_tree().get_first_node_in_group("hud")
 	if hud != null and hud.has_method("announce"):
-		hud.announce("THE MONUMENT AWAKENS", "Double XP. Triple speed. Triple damage.")
+		hud.announce("Swarm has started", "Double XP. Triple speed. Triple damage.")
 
 # --- HOARDA ---------------------------------------------------------------------------
 
@@ -203,10 +206,20 @@ func _scoate_hoarda(lume: Node) -> void:
 	var pas := spawn_duration / float(total)   # cât ține un „loc" din șir
 	var trecut := 0.0
 	var scosi := 0
+	# Cronometrul de sub cel al rundei („Swarm Timer: 0:10"). Îl hrănim NOI, cadru cu cadru, cu
+	# ceasul de mai jos — nu-l lăsăm pe HUD să numere singur, fiindcă ceasul ăsta stă pe loc pe
+	# pauză (Level Up) și cele două ar rămâne cu cifre diferite. Dacă murim sau se dă restart în
+	# mijlocul hoardei, bucla iese fără să mai anunțe pe nimeni, iar HUD-ul stinge cronometrul
+	# singur, când vede că am tăcut (vezi `hud.gd::SWARM_TTL`).
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null and not hud.has_method("swarm_timer"):
+		hud = null
 	while scosi < total:
 		# Lumea poate dispărea sub noi cât așteptăm (moarte, restart, meniu).
 		if not is_instance_valid(lume) or not is_inside_tree():
 			return
+		if hud != null:
+			hud.swarm_timer(spawn_duration - trecut)
 		if not get_tree().paused:
 			trecut += get_process_delta_time()
 			var tinta := total if pas <= 0.0 else mini(total, int(floor(trecut / pas)) + 1)
@@ -220,6 +233,8 @@ func _scoate_hoarda(lume: Node) -> void:
 				scosi += 1
 		if scosi < total:
 			await get_tree().process_frame
+	if hud != null:
+		hud.swarm_timer(0.0)   # ultima cifră e 0:00, nu 0:01; se stinge singur după SWARM_TTL
 
 # Un punct la întâmplare într-un inel în jurul monumentului: unghi uniform, rază între
 # `spawn_min_dist` și `spawn_max_dist`.

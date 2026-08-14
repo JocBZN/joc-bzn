@@ -233,9 +233,11 @@ const TRAD := {
 "CELESTO REAPS": ["CELESTO 开始收割", "CELESTO ERNTET", "CELESTO SIEGA", "CELESTO ЖНЁТ", "CELESTO MOISSONNE", "セレストが刈り取る", "CELESTO ŻNIE", "CELESTO BİÇİYOR"],
 "A greater scythe, twice as often": ["更大的镰刀，频率翻倍", "Eine größere Sense, doppelt so oft", "Una guadaña mayor, el doble de seguido", "Коса больше и вдвое чаще", "Une faux plus grande, deux fois plus souvent", "より大きな鎌が、二倍の頻度で", "Większa kosa, dwa razy częściej", "Daha büyük bir tırpan, iki kat sık"],
 
-# ---------- monumentul din lumea normală (monument.gd) ----------
-# „Celesto" rămâne nume propriu și aici, ca peste tot.
-"THE MONUMENT AWAKENS": ["纪念碑苏醒了", "DAS MONUMENT ERWACHT", "EL MONUMENTO DESPIERTA", "МОНУМЕНТ ПРОБУЖДАЕТСЯ", "LE MONUMENT S’ÉVEILLE", "モニュメントが目覚める", "MONUMENT SIĘ BUDZI", "ANIT UYANIYOR"],
+# ---------- monumentul din lumea normală (monument.gd + cronometrul din hud.gd) ----------
+# „Celesto" rămâne nume propriu și aici, ca peste tot. „Swarm" se traduce ca la FINAL SWARM de
+# mai sus (虫潮 / Schwarm / Enjambre / Волна / Nuée / スウォーム / Rój / Akın), să se lege între ele.
+"Swarm has started": ["虫潮开始了", "Der Schwarm hat begonnen", "El enjambre ha comenzado", "Волна началась", "La nuée a commencé", "スウォームが始まった", "Rój się zaczął", "Akın başladı"],
+"Swarm Timer: %s": ["虫潮计时: %s", "Schwarm-Timer: %s", "Temporizador de enjambre: %s", "Таймер волны: %s", "Minuteur de la nuée : %s", "スウォーム残り時間: %s", "Czas roju: %s", "Akın süresi: %s"],
 "Double XP. Triple speed. Triple damage.": ["双倍经验。三倍速度。三倍伤害。", "Doppelte XP. Dreifaches Tempo. Dreifacher Schaden.", "XP doble. Velocidad triple. Daño triple.", "Двойной опыт. Тройная скорость. Тройной урон.", "XP doublée. Vitesse triplée. Dégâts triplés.", "経験値2倍。速度3倍。ダメージ3倍。", "Podwójne XP. Potrójna szybkość. Potrójne obrażenia.", "İki kat XP. Üç kat hız. Üç kat hasar."],
 "Defeat Celesto to awaken it": ["击败 Celesto 才能唤醒它", "Besiege Celesto, um es zu erwecken", "Derrota a Celesto para despertarlo", "Победи Celesto, чтобы пробудить его", "Bats Celesto pour le réveiller", "セレストを倒せば目覚める", "Pokonaj Celesto, by go obudzić", "Onu uyandırmak için Celesto’yu yen"],
 
