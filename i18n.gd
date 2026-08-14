@@ -189,7 +189,8 @@ const TRAD := {
 "Move Speed": ["移速", "Tempo", "Velocidad", "Скорость", "Vitesse", "移動速度", "Szybkość", "Hız"],
 "Max HP": ["最大生命", "Max. HP", "HP máx.", "Макс. HP", "PV max", "最大HP", "Maks. HP", "Maks. CAN"],
 "HP Regen": ["生命回复", "HP-Regen", "Regen. HP", "Реген. HP", "Régén. PV", "HP回復", "Regen. HP", "CAN Yenil."],
-"Damage Taken": ["受到伤害", "Erlitt. Schaden", "Daño recibido", "Получ. урон", "Dégâts subis", "被ダメージ", "Otrzym. obraż.", "Alınan Hasar"],
+# „Damage Taken" a stat aici până pe 2026-08-14, când statul a ieșit de tot din joc (nu mai apare
+# nici în panoul de la level up, nici în lista cazinoului).
 
 # ---------- anunțurile de pe ecran ----------
 "LIMBO": ["灵薄狱", "LIMBUS", "LIMBO", "ЛИМБ", "LIMBES", "リンボ", "LIMBO", "LİMBO"],
@@ -343,7 +344,7 @@ const TRAD := {
 "+3 HP/sec, Heal 30 HP": ["+3 生命/秒, 恢复 30 生命", "+3 HP/Sek., heilt 30 HP", "+3 HP/seg, cura 30 HP", "+3 HP/сек, лечит 30 HP", "+3 PV/sec, soigne 30 PV", "+3 HP/秒、30 HP 回復", "+3 HP/sek, leczy 30 HP", "+3 CAN/sn, 30 CAN iyileştir"],
 "+7 Bullet damage": ["+7 子弹伤害", "+7 Geschossschaden", "+7 Daño de bala", "+7 урон пули", "+7 Dégâts de balle", "+7 弾のダメージ", "+7 Obrażenia pocisku", "+7 Mermi hasarı"],
 "+35 Max HP": ["+35 最大生命", "+35 Max. HP", "+35 HP máx.", "+35 макс. HP", "+35 PV max", "+35 最大HP", "+35 Maks. HP", "+35 Maks. CAN"],
-"-3 Damage taken": ["-3 受到伤害", "-3 erlittener Schaden", "-3 Daño recibido", "-3 получаемый урон", "-3 Dégâts subis", "-3 被ダメージ", "-3 Otrzymywane obrażenia", "-3 Alınan hasar"],
+"+3 Damage, Reflect 10% of damage taken": ["+3 伤害, 反弹 10% 所受伤害", "+3 Schaden, 10% Schaden reflektieren", "+3 Daño, refleja 10% del daño recibido", "+3 урон, отражает 10% урона", "+3 Dégâts, renvoie 10% des dégâts subis", "+3 攻撃力、被ダメージの10%を反射", "+3 Obrażenia, odbija 10% obrażeń", "+3 Hasar, alınan hasarın %10’unu yansıt"],
 "+10 Damage +18% Attack Speed": ["+10 伤害 +18% 攻速", "+10 Schaden +18% Angriffstempo", "+10 Daño +18% Vel. ataque", "+10 урон +18% скорострельность", "+10 Dégâts +18% Cadence", "+10 攻撃力 +18% 攻撃速度", "+10 Obrażenia +18% Szybkostrzelność", "+10 Hasar +18% Saldırı Hızı"],
 "+10% Attack speed": ["+10% 攻速", "+10% Angriffstempo", "+10% Vel. de ataque", "+10% скорострельность", "+10% Cadence", "+10% 攻撃速度", "+10% Szybkostrzelność", "+10% Saldırı hızı"],
 "-15% XP to level": ["升级所需经验 -15%", "-15% XP bis Level-up", "-15% XP para subir", "-15% опыта до уровня", "-15% XP pour monter", "レベルアップ必要XP -15%", "-15% XP do awansu", "Seviye için -15% XP"],

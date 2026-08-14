@@ -172,7 +172,7 @@ const STATS := [
 	{"id": "speed",     "nume": "Move Speed"},
 	{"id": "maxhp",     "nume": "Max HP"},
 	{"id": "regen",     "nume": "HP Regen"},
-	{"id": "dmgtaken",  "nume": "Damage Taken", "jos_e_bine": true},
+	# „Damage Taken" a fost aici până pe 2026-08-14, când statul a ieșit de tot din joc.
 ]
 
 # ---------------------------------------------------------------------------
@@ -1040,7 +1040,6 @@ func _valoare(p, id: String) -> float:
 		"speed":     return p.speed
 		"maxhp":     return float(p.max_hp)
 		"regen":     return float(p.hp_regen)
-		"dmgtaken":  return float(p.contact_damage)
 	return 0.0
 
 # Cum se scrie statusul pe ecran — aceleași formate ca în panoul din meniul de Level Up.
@@ -1058,7 +1057,6 @@ func _afisare(p, id: String) -> String:
 		"speed":     return str(int(round(p.speed)))
 		"maxhp":     return str(p.max_hp)
 		"regen":     return "%d/s" % p.hp_regen
-		"dmgtaken":  return str(p.contact_damage)
 	return ""
 
 # Înmulțește un status cu `f` — factorul vine deja calculat din `_aplica_pariul()`: la câștig e
@@ -1111,9 +1109,6 @@ func _aplica(p, id: String, f: float) -> void:
 			p.hp = clampi(p.hp + delta, 1, p.max_hp)
 		"regen":
 			p.hp_regen = maxi(0, _intreg(p.hp_regen, f))
-		"dmgtaken":
-			# și aici mai mic = mai bun. Minimul 1 ca să nu ajungi invulnerabil la atingere.
-			p.contact_damage = maxi(1, _intreg(p.contact_damage, 1.0 / f))
 
 # Înmulțire pe numere ÎNTREGI: la câștig rotunjim normal, la pierdere TĂIEM în jos (1 → 0),
 # altfel `round(1 * 0.5)` ar da tot 1 și un status pe 1 n-ar putea fi pierdut niciodată.

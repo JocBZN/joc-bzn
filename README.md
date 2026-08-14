@@ -143,6 +143,13 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-14, "Damage Taken" is no longer a stat, and Vodka hits back)
+- 🗑 **"Damage Taken" is gone as a stat.** It left all three places where it lived as one: the row in the level-up panel (`player.stat_lines`), its baseline in `_stats_base`, and the `dmgtaken` entry in the casino (the `STATS` list plus `_valoare` / `_afisare` / `_aplica`), so it can no longer be gambled on the roulette either.
+- ⚠️ **The number stayed, the stat left.** `player.contact_damage` (5) is still where contact damage starts from — without it enemies would deal none. It lost its `@export` (nothing changes it any more, so it has no business in the inspector) but stayed a `var` rather than a `const`, so test scenes with big dummy grids can still zero it. It was never in META, so the permanent shop needed no change.
+- 🍾 **Vodka: `-3 Damage taken` → `+3 Damage, Reflect 10% of damage taken`** (`bullet_damage += 3`, `reflect_pct += 0.10`). The reflect is the **same mechanic as Old Reliable** — `reflect_pct`, applied in `_take_contact_damage` on its own branch, separate from Mike's Hedgehog — so the two **stack**: verified by running, 0.10 + 0.15 = 0.25. It blocks nothing, it only returns the hit, and it floors at 1 damage (a net Old Reliable already needed).
+- ⚖️ Worth knowing for balance: Old Reliable is **Common** for 15%, Vodka is **Uncommon** for 10% plus 3 damage. That is what was asked; the number lives in one place (`"vodca"` in `_apply`) if it should change.
+- ✅ **Verified by running:** the stats panel is down to 12 rows with no "Damage Taken", the Vodka card reads "+3 DAMAGE, REFLECT 10% OF DAMAGE TAKEN" on a single line, `bullet_damage` 24 → 27, `reflect_pct` 0 → 0.1, `contact_damage` untouched. The codex was updated and republished.
+
 ## Current state (2026-08-14, the monument announces itself: "Swarm has started" + a swarm clock)
 - 📣 **The banner now reads "Swarm has started"** when you press the monument (it used to say "THE MONUMENT AWAKENS"); the subtitle "Double XP. Triple speed. Triple damage." stayed.
 - ⏱ **A second clock under the round clock:** `hud.swarm_label` — "Swarm Timer: 0:10", Final-Swarm red, counting down for as long as the horde pours, i.e. `spawn_duration` (10 s). That is the whole of the swarm; there is no other duration to show. Rounded **up**, like the Nether clock, so the first figure is 0:10 and the last is 0:00.

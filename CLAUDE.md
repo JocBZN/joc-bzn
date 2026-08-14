@@ -18,6 +18,26 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-14 (statusul „Damage Taken", scos din joc + Vodka refăcută)
+
+**Cerut de Răzvan:** „Vreau să scoți statusul de damage taken din joc. La Vodka vreau acum să îi dea +3 Damage, Reflect 10% of damage taken."
+
+**Atinse:** `player.gd`, `casino.gd`, `levelup.gd`, `i18n.gd`, `codex.html` (+ artifact-ul republicat).
+
+**1. „Damage Taken" nu mai e status.** A ieșit din cele trei locuri unde trăia ca status: rândul din panoul de la level up (`player.stat_lines`), reperul lui din `_stats_base` și intrarea `dmgtaken` din cazinou (lista `STATS` + `_valoare` / `_afisare` / `_aplica`, deci nu mai poate fi nici pariat la ruletă).
+- ⚠️ **Cifra a rămas, statul a plecat.** `player.contact_damage` (5) e de unde pornește damage-ul de contact — fără el inamicii n-ar mai face damage deloc. L-am scos din `@export` (nu mai are ce căuta în inspector, nimic nu-l mai schimbă) dar l-am lăsat `var`, nu `const`, ca scenele de test cu grile mari de dummy-uri să-l poată pune pe 0 (vezi nota veche din log-ul de la grile).
+- Nu era în META (`game_settings.gd`), deci magazinul permanent n-a trebuit atins.
+
+**2. Vodka: `-3 Damage taken` → `+3 Damage, Reflect 10% of damage taken`.** `p.bullet_damage += 3` și `p.reflect_pct += 0.10`.
+- 🔑 **Reflexia e ACEEAȘI mecanică cu Old Reliable** (`reflect_pct`, aplicat în `player._take_contact_damage`, ramură separată de Mike's Hedgehog), deci cele două **se adună**: verificat prin rulare, 0.10 + 0.15 = 0.25. Nu blochează lovitura, doar o întoarce, și are minim 1 damage — plasa aia era deja acolo pentru Old Reliable.
+- ⚠️ De remarcat pentru balans: Old Reliable e **Common** și dă 15%, Vodka e **Uncommon** și dă 10% + 3 damage. Așa a fost cerut; dacă pare pe dos, cifra se schimbă într-un singur loc (`"vodca"` din `_apply`).
+
+**3. Codexul.** `codex.html`: cardul Vodka rescris (cu `isNew: true`, deci apare cu eticheta „nou" — nu e item nou, dar tot ce scrie pe el e nou), nota de la Old Reliable spune acum că se adună cu Vodka, rândul „Damage Taken" scos din tabelul „Statusuri de start", iar cifra (5 la fiecare 0.5 s sub 60px) mutată în nota de la Max HP, ca informația să nu se piardă. Republicat pe același URL.
+
+**Verificat rulând** (scenă de test peste `main.tscn`, ștearsă după): panoul de statusuri are acum 12 rânduri și niciunul „Damage Taken"; cartonașul Vodka scrie „+3 DAMAGE, REFLECT 10% OF DAMAGE TAKEN" pe un rând; `bullet_damage` 24 → 27, `reflect_pct` 0 → 0.1, `contact_damage` neatins; `casino.gd` compilează. `tool_check_i18n` → „✔ TOTUL E TRADUS". Codexul randat în Chrome headless: 102 carduri, pagina nu e goală.
+
+---
+
 ## Session log — 2026-08-14 (monumentul: „Swarm has started" + cronometrul hoardei sub cel al rundei)
 
 **Cerut de Răzvan:** „Când apeși pe monument spawner vreau să scrie «Swarm has started» și să ai sub timer-ul normal să scrie «Swarm Timer:» (și timpul cât e rămas)."

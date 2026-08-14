@@ -25,7 +25,7 @@ var UPGRADES := [
 	{"id": "iarba",     "nume": "Wine",      "icon": "upgrade_13.png", "rar": "common",    "desc": "+3 HP/sec, Heal 30 HP"},
 	{"id": "seringa",   "nume": "Last Resort", "icon": "upgrade_35.png", "rar": "uncommon",  "desc": "+7 Bullet damage"},
 	{"id": "bere",      "nume": "Beer",      "icon": "upgrade_4.png", "rar": "common",    "desc": "+35 Max HP"},
-	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "-3 Damage taken"},
+	{"id": "vodca",     "nume": "Vodka",     "icon": "upgrade_5.png", "rar": "uncommon",  "desc": "+3 Damage, Reflect 10% of damage taken"},
 	{"id": "stroh",     "nume": "Stroh",     "icon": "upgrade_6.png", "rar": "epic",      "desc": "+10 Damage +18% Attack Speed"},
 	{"id": "foite",     "nume": "Rolling Papers", "icon": "upgrade_7.png", "rar": "common",    "desc": "+10% Attack speed"},
 	{"id": "grinder",   "nume": "Grinder",   "icon": "upgrade_8.png", "rar": "common",    "desc": "-15% XP to level"},
@@ -787,8 +787,12 @@ func _apply(id: String, p) -> void:
 			# tanky: mai multă viață maximă (te și vindecă)
 			p.upgrade_max_hp(35)
 		"vodca":
-			# amorțeală / curaj lichid: primești mai puțin damage
-			p.contact_damage = max(1, p.contact_damage - 3)
+			# curaj lichid: lovești mai tare ȘI dai înapoi. Din 2026-08-14 — până atunci scădea
+			# damage-ul primit, dar statul ăla a ieșit de tot din joc.
+			# Reflexia e ACEEAȘI mecanică ca la Old Reliable (`reflect_pct`), deci cele două se
+			# adună dacă le ai pe amândouă: 10% + 15% = 25% din fiecare lovitură, înapoi în inamic.
+			p.bullet_damage += 3
+			p.reflect_pct += 0.10
 		"stroh":
 			# 80% alcool, foc: damage + cadență. Glonțul rămâne normal;
 			# doar ÎMPREUNĂ cu Weird Concoction devine glonțul combinat (sinergie ascunsă).

@@ -308,9 +308,10 @@ const ITEMS = [
   { id: "seringa", name: "Last Resort", icon: "upgrade_35.png", rar: "uncommon", isNew: true,
     game: "+7 Bullet damage",
     eff: "<b>+7 Bullet damage.</b> (Fostul „Knight's Power”, redenumit, cu iconiță nouă.)" },
-  { id: "vodca", name: "Vodka", icon: "upgrade_5.png", rar: "uncommon",
-    game: "-3 Damage taken",
-    eff: "<b>−3 Damage taken</b> (minim 1)." },
+  { id: "vodca", name: "Vodka", icon: "upgrade_5.png", rar: "uncommon", isNew: true,
+    game: "+3 Damage, Reflect 10% of damage taken",
+    eff: "<b>+3 damage</b> pe proiectil <i>și</i> <b>10% din damage-ul primit</b> se întoarce în inamicul care te-a lovit, la <b>FIECARE</b> lovitură, fără cooldown. Tu încasezi normal — nu blochează nimic. Aceeași mecanică cu Old Reliable, deci se <b>adună</b> cu el: 10% + 15% = 25%. (Până pe 2026-08-14 dădea −3 Damage taken; statul acela a fost scos din joc.)",
+    warn: "Nu blochează lovitura, doar o întoarce" },
   { id: "glont_mare", name: "Double Dose", icon: "upgrade_14.png", rar: "uncommon",
     game: "Bigger Projectiles +5 damage",
     eff: "Gloanțe <b>mai mari</b> (sprite + hitbox) · <b>+5 damage</b>." },
@@ -377,7 +378,7 @@ const ITEMS = [
     warn: "Întâi străpunge, abia apoi sare" },
   { id: "old_reliable", name: "Old Reliable", icon: "upgrade_55.png", rar: "common", isNew: true,
     game: "Reflect 15% of damage taken",
-    eff: "<b>15% din damage-ul primit</b> se întoarce în inamicul care te-a lovit (+15% pe luare), la <b>FIECARE</b> lovitură, fără cooldown. Tu încasezi normal — nu blochează nimic. Minim <b>1 damage</b>, altfel în primele minute (5 × 15% = 0.75) s-ar rotunji la zero și itemul ar părea stricat.",
+    eff: "<b>15% din damage-ul primit</b> se întoarce în inamicul care te-a lovit (+15% pe luare), la <b>FIECARE</b> lovitură, fără cooldown. Tu încasezi normal — nu blochează nimic. Minim <b>1 damage</b>, altfel în primele minute (5 × 15% = 0.75) s-ar rotunji la zero și itemul ar părea stricat. Se adună cu procentul dat de <b>Vodka</b> (același `reflect_pct`).",
     warn: "Nu blochează lovitura, doar o întoarce" },
   { id: "tower_5g", name: "5G Tower", icon: "upgrade_58.png", rar: "epic", isNew: true,
     game: "Enemies drop 15% more xp",
@@ -405,7 +406,7 @@ const ARME = [
 ];
 
 const BASE = [
-  { name: "Max HP", val: "100", note: "Viața de plecare. Pornești cu ea plină." },
+  { name: "Max HP", val: "100", note: "Viața de plecare. Pornești cu ea plină. Cât încasezi nu mai e status (până pe 2026-08-14 scria <b>Damage Taken</b> aici): un inamic mai aproape de <b>60px</b> îți ia <b>5</b> la fiecare <b>0.5 s</b>, cifră fixă, înmulțită doar cu dificultatea și cu cât lovește creatura aia." },
   { name: "HP Regen", val: "0/s", note: "Nu regenerezi nimic până nu iei un upgrade sau nivel de Regen din magazin." },
   { name: "Move Speed", val: "250", note: "Polițiștii pornesc de la 120 și se accelerează cu timpul. Police Skinny (de la minutul 1) vine cu 160, creaturile din Nether cu 190, iar cele din Ender cu 380 — pe alea nu le întreci." },
   { name: "Crit", val: "0%", note: "Criticul face <b>×2</b> damage. Peste 100% se lovește de două ori (multi-crit). Cu <b>Throwing Knife</b> pornești de la <b>1%</b> și crește singur cu nivelul." },
@@ -415,7 +416,6 @@ const BASE = [
   { name: "Pierce", val: "0", note: "Glonțul se oprește în primul inamic atins." },
   { name: "Weapon Size", val: "100%", note: "Mărimea armei/proiectilului. O cresc Pufferfish (+px) și Rat's Burger (×%). Cu <b>Celesto's Scythe</b> pornești de la <b>101%</b> și crește cu 1% pe nivel." },
   { name: "Knockback", val: "0", note: "Inamicii nu sunt împinși înapoi când îi lovești." },
-  { name: "Damage Taken", val: "5", note: "Cât încasezi la fiecare <b>0.5 s</b> cât un inamic e mai aproape de <b>60px</b> de tine. Vodka îl scade." },
   { name: "XP → nivelul 2", val: "20", note: "Pragul crește cu <b>20%</b> la fiecare nivel (20 → 24 → 28 → …)." },
 ];
 

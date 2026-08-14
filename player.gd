@@ -360,7 +360,12 @@ var _speed_base: float = 300.0               # viteza la începutul rundei (dup�
 
 @export var max_hp: int = 100
 @export var contact_range: float = 60.0
-@export var contact_damage: int = 5
+# Cât îți ia o atingere de inamic, ÎNAINTE de `Difficulty.enemy_damage_mult()` și de `damage_mult`-ul
+# inamicului. ⚠️ Din 2026-08-14 NU mai e status: nu se mai vede în panoul de la level up, nu mai poate
+# fi pariat la cazinou și niciun item nu-l mai schimbă (Vodka scădea din el; acum dă altceva). E doar
+# cifra de bază de la care pornește damage-ul de contact. A rămas `var`, nu `const`, ca scenele de test
+# să-l poată pune pe 0 — vezi nota din CLAUDE.md despre grilele mari de dummy-uri.
+var contact_damage: int = 5
 @export var damage_interval: float = 0.5
 @export var hedgehog: bool = false         # Mike's Hedgehog: reflectă damage-ul primit înapoi în inamic
 var _hedgehog_next: float = 0.0            # momentul (sec) când reflectul redevine disponibil (cooldown 6s)
@@ -443,7 +448,6 @@ func _ready() -> void:
 		"speed": speed,
 		"max_hp": float(max_hp),
 		"hp_regen": float(hp_regen),
-		"contact_damage": float(contact_damage),
 	}
 	anim.play("idle_south")  # pornim stând pe loc, uitându-ne în jos
 	# material de flash alb pentru block-ul lui Mike's Hedgehog (vezi _show_block); flash=0 = normal
@@ -777,7 +781,6 @@ func stat_lines() -> Array:
 		_stat_row("Move Speed", speed, b["speed"], false, str(int(round(speed)))),
 		_stat_row("Max HP", max_hp, b["max_hp"], false, str(max_hp)),
 		_stat_row("HP Regen", hp_regen, b["hp_regen"], false, "%d/s" % hp_regen),
-		_stat_row("Damage Taken", contact_damage, b["contact_damage"], true, str(contact_damage)),
 	]
 
 # Câte proiectile pleacă GARANTAT la o salvă: cele paralele + cele trase în alți inamici
@@ -1667,9 +1670,9 @@ func _nearest_enemy() -> Node2D:
 
 func _take_contact_damage() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
-	# Cât lovesc inamicii ACUM: `contact_damage` e statul TĂU (îl scade Vodka), iar
-	# `Difficulty.enemy_damage_mult()` e cât de duri au devenit ei cu timpul (×1 în primele
-	# 1:30, ×2 la minutul 10). Minimul de 1 ca un stat foarte bun să nu ducă damage-ul la 0.
+	# Cât lovesc inamicii ACUM: `contact_damage` e cifra de bază, fixă (5, nu mai e status și
+	# nimic n-o mai schimbă), iar `Difficulty.enemy_damage_mult()` e cât de duri au devenit ei
+	# cu timpul (×1 în primele 1:30, ×2 la minutul 10). Minimul de 1 e o plasă de siguranță.
 	var dmg_baza := contact_damage * Difficulty.enemy_damage_mult()
 	for e in get_tree().get_nodes_in_group("enemy"):
 		var enemy := e as Node2D
