@@ -138,6 +138,7 @@ var _main_plate: PanelContainer      # placa de aramă de sub butoanele paginii 
 var _settings_btn: Button           # roata dințată din colțul dreapta-sus (deschide Settings)
 var _settings_ui: SettingsUI        # blocul refolosibil de setări (volume + remapare taste)
 var _lang_btn: Button               # steagul de lângă rotiță (deschide alegerea limbii)
+var _lang_steag: TextureRect        # desenul steagului din butonul de mai sus (vezi _steag_centrat)
 var _lang_buttons := {}             # cod limbă -> butonul din panoul LANGUAGE (pentru evidențiere)
 var _op_btn: Button                 # „OP", al treilea din colț (deschide OP START)
 var _op_toggle: Button              # butonul ON/OFF din panoul OP START
@@ -567,18 +568,17 @@ func _build_main() -> void:
 	_panels["main"].add_child(_settings_btn)
 
 	_lang_btn = _corner_button(_show.bind("language"), 1)
-	_lang_btn.expand_icon = true
-	# pixel art: fără filtrare, altfel steagul de 24x16 iese neclar când e mărit
-	_lang_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	# Marginile normale (14 px lateral) ar lăsa steagului doar 24px din cei 52 ai butonului,
-	# deci ar ieși un timbru pierdut în mijloc. Aici le strângem, ca să umple butonul.
-	for stare in ["normal", "hover", "pressed"]:
-		var sb: StyleBoxFlat = _lang_btn.get_theme_stylebox(stare).duplicate()
-		sb.content_margin_left = 6
-		sb.content_margin_right = 6
-		sb.content_margin_top = 6
-		sb.content_margin_bottom = 6
-		_lang_btn.add_theme_stylebox_override(stare, sb)
+	# Steagul din colț are ACEEAȘI problemă ca cele din panoul LANGUAGE, deci același leac: un nod
+	# separat, ancorat pe tot butonul, nu `Button.icon` (vezi `_steag_centrat`). Marginea e mai mică
+	# decât în panou — butonul are doar 52 px și steagul ar ieși un timbru pierdut în mijloc.
+	# 8 pe toate laturile: rămâne o casetă de 36×36 în butonul de 52, iar steagul intră fix pe
+	# lățime (36 = 24×1.5) și lasă 12 px pe verticală, adică 6 și 6 — tot fără jumătăți de pixel.
+	_lang_steag = _steag_centrat(null)
+	_lang_steag.offset_left = 8
+	_lang_steag.offset_top = 8
+	_lang_steag.offset_right = -8
+	_lang_steag.offset_bottom = -8
+	_lang_btn.add_child(_lang_steag)
 	_panels["main"].add_child(_lang_btn)
 	_refresh_lang_button()
 
@@ -986,6 +986,11 @@ func _lb_rand(rank: int, timp: String, nivel: String, kills: String, marcaj: Str
 # nodurile, iar Label/Button își traduc singure textul (vezi i18n.gd). Aici doar mutăm
 # evidențierea pe limba nouă și schimbăm steagul de pe butonul din colț.
 const LANG_CELL := Vector2(132, 74)   # mărimea butonului cu steag (numele stă sub el)
+# Cât fundal rămâne în jurul steagului, în buton. 9, nu 8, ca socoteala să iasă FĂRĂ jumătăți de
+# pixel: rămâne o casetă de 114×56, în care un steag de 24×16 intră exact pe înălțime (56 = 16×3.5)
+# și lasă 30 px pe orizontală, adică 15 și 15. Cu 8 rămâneau 29 px, deci 14,5 — și steagul ieșea
+# cu un pixel mai la dreapta.
+const LANG_MARGINE := 9.0
 
 func _build_language() -> void:
 	var box := _make_panel("language", "LANGUAGE")
@@ -1005,12 +1010,9 @@ func _build_language() -> void:
 		grid.add_child(slot)
 		var b := Button.new()
 		b.custom_minimum_size = LANG_CELL
-		b.icon = I18n.steag(cod)
-		b.expand_icon = true
-		# pixel art: fără filtrare, altfel steagul de 24x16 iese neclar când e mărit
-		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 		b.pressed.connect(_on_language_chosen.bind(cod))
+		b.add_child(_steag_centrat(I18n.steag(cod)))
 		slot.add_child(b)
 		_lang_buttons[cod] = b
 		# numele scris ÎN limba lui, deci NU se traduce (de-aia nu e o cheie în i18n.gd)
@@ -1018,6 +1020,31 @@ func _build_language() -> void:
 	_refresh_language_selection()
 	box.add_child(_spacer(22))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
+
+# Steagul, ca NOD SEPARAT peste buton — nu ca `Button.icon` (cerut de Răzvan pe 2026-08-15:
+# „centrează bine la limbi steagurile cu textu").
+#
+# De ce nu `icon` + `expand_icon`: butonul își împarte lățimea între iconiță și text, iar spațiul
+# pentru text îl rezervă ȘI CÂND TEXTUL E GOL. Măsurat pe o poză: steagul rămânea la 18 px de
+# marginea din stânga și la 33,6 de cea din dreapta, adică împins cu ~8 px într-o parte — se vedea
+# imediat, fiindcă numele limbii de dedesubt e centrat cinstit.
+#
+# Un `TextureRect` ancorat pe tot butonul se centrează singur, exact, pe amândouă axele, și
+# `STRETCH_KEEP_ASPECT_CENTERED` îi păstrează forma (toate steagurile sunt 24×16).
+func _steag_centrat(tex: Texture2D) -> TextureRect:
+	var t := TextureRect.new()
+	t.texture = tex
+	# pixel art: fără filtrare, altfel steagul de 24x16 iese neclar când e mărit
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE  # clicul trebuie să ajungă la buton
+	t.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	t.offset_left = LANG_MARGINE
+	t.offset_top = LANG_MARGINE
+	t.offset_right = -LANG_MARGINE
+	t.offset_bottom = -LANG_MARGINE
+	return t
 
 func _on_language_chosen(cod: String) -> void:
 	I18n.schimba_limba(cod)
@@ -1036,8 +1063,8 @@ func _refresh_language_selection() -> void:
 		b.add_theme_stylebox_override("pressed", _sb(bg.lightened(0.20), bd.lightened(0.20), 3))
 
 func _refresh_lang_button() -> void:
-	if _lang_btn != null:
-		_lang_btn.icon = I18n.steag(GameSettings.language)
+	if _lang_steag != null:
+		_lang_steag.texture = I18n.steag(GameSettings.language)
 
 # ---------- OP START ----------
 # Cheat de testare: runda pornește cu statusuri de final, ca să se poată ajunge repede la Nether,

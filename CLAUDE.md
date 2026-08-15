@@ -18,6 +18,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-15 (steagurile de la LANGUAGE, centrate cu adevărat)
+
+**Cerut de Răzvan:** „centrează bine la limbi steagurile cu textu."
+
+**Atinse:** `menu.gd` (funcție nouă `_steag_centrat`, folosită în panoul LANGUAGE și la butonul din colț).
+
+- **Cauza:** steagul era pus ca `Button.icon` + `expand_icon`. Butonul își împarte lățimea între iconiță și text, iar **spațiul pentru text îl rezervă și când textul e gol** — steagul stătea la 18 px de marginea stângă și la 33,6 de cea dreaptă, adică împins cu ~8 px. Se vedea imediat, fiindcă numele limbii de dedesubt e centrat cinstit.
+- **Leacul:** un `TextureRect` copil al butonului, ancorat `PRESET_FULL_RECT` cu o margine, `EXPAND_IGNORE_SIZE` + `STRETCH_KEEP_ASPECT_CENTERED` și `MOUSE_FILTER_IGNORE` (clicul trebuie să treacă mai departe la buton). Se centrează singur, exact, pe amândouă axele.
+- **Marginile sunt alese să nu iasă jumătăți de pixel:** 9 în panou (casetă 114×56 → steag 84×56, rămâne 30 pe orizontală = 15+15) și 8 la butonul din colț (casetă 36×36 → steag 36×24, rămâne 12 pe verticală = 6+6). Cu 8 în panou ieșeau 29 px, adică 14,5 — un pixel în plus într-o parte.
+- Butonul din colț a pierdut și cele patru `content_margin` puse pe stylebox: erau acolo doar ca să facă loc iconiței, iar acum steagul e nod separat și nu le mai vede.
+- ⚠️ **`_refresh_lang_button()` scrie acum în `_lang_steag.texture`, nu în `_lang_btn.icon`.**
+
+**Verificat rulând meniul** (scenă de test ștearsă după), pe geometria nodurilor, nu pe praguri de culoare: steag **84×56** în butonul de 132×74, cu **24,0 stânga / 24,0 dreapta / 9,0 sus / 9,0 jos** la toate cele 9 limbi; la butonul din colț centrele coincid la virgulă (1048,0 și 1048,0). Plus poze cu panoul și cu meniul principal.
+- 🧪 **Notă pentru data viitoare:** măsurarea „unde e steagul" citind pixeli din poză e înșelătoare — pragul de culoare pierde zonele închise (steagul Germaniei ieșea 35 px înălțime în loc de 56, din cauza dungii negre) și prinde fundalul verde al limbii selectate. Geometria nodurilor e sursa de adevăr.
+
+---
+
 ## Session log — 2026-08-15 (Settings: aceeași mărime pe KEYBINDS și pe GRAPHICS)
 
 **Cerut de Răzvan:** „când dau între keybinds și graphics se schimbă mărimea ferestrei, dar eu vreau doar o mărime consistentă la ambele."
