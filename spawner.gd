@@ -30,6 +30,10 @@ const ENEMY_SKINNY := preload("res://enemy_police_skinny.tscn")
 # Arta e a lui Răzvan, pusă pe 2026-08-07 în `homeless directii/Swat/`.
 const ENEMY_SWAT := preload("res://enemy_swat.tscn")
 # Amândoi apar de la SECUNDA 0, la fel ca polițistul obișnuit — vezi „VALURILE" mai jos.
+# ...și POMPIERUL: cel mai tare inamic al lumii normale, singurul care NU e pe masă de la început
+# (intră la 3:00 — vezi `minut_politisti`). Arta e a lui Răzvan, pusă pe 2026-08-15 în
+# `homeless directii/Firefighter/`.
+const ENEMY_FIREFIGHTER := preload("res://enemy_firefighter.tscn")
 
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
@@ -75,11 +79,27 @@ const ENEMY_SWAT := preload("res://enemy_swat.tscn")
 # fiecare val spune cât de mult se abate valul ăsta de la regulă. Amândouă sunt `@export`, deci se
 # reglează din inspector fără cod.
 #
+# ⚠️ O singură excepție de la „fără ore fixe", adăugată pe 2026-08-15: POMPIERUL. Cererea era
+# explicit „nu se spawnează de la început, doar după ce trec 3 minute" — și are sens tocmai
+# fiindcă e cel mai tare inamic al lumii normale. Restul rămân cum i-a vrut: din prima, la sorți.
+#
 # ⚠️ `ritm_min`/`ritm_max` sunt așezate ca MEDIA lor să fie 1.0. Ritmul aleator e TEXTURĂ, nu o
 # îngroșare pe furiș: dificultatea trebuie să rămână cea din `difficulty.gd`, altfel curbele de
 # acolo n-ar mai însemna nimic și n-ai mai ști pe ce reglezi.
-const POLITISTI := [ENEMY, ENEMY_SKINNY, ENEMY_SWAT]
-@export var pond_politisti: Array[float] = [1.0, 0.7, 0.35]
+const POLITISTI := [ENEMY, ENEMY_SKINNY, ENEMY_SWAT, ENEMY_FIREFIGHTER]
+@export var pond_politisti: Array[float] = [1.0, 0.7, 0.35, 0.18]
+# De la a câta secundă SCURSĂ de rundă intră fiecare fel în tragerea la sorți (`Difficulty.time`).
+# 0 = de la început, cum sunt primii trei.
+#
+# ⚠️ Singurul cu ceas e POMPIERUL, la 180 = 3:00, cerut de Răzvan pe 2026-08-15: „nu se spawnează
+# de la început, doar după ce trec 3 minute din joc". E cronometrul CRESCĂTOR (cât ai jucat), nu
+# cel care scade pe ecran — „3 minute trecute" e `time >= 180`, nu `time_left() <= 180`. Genul de
+# cifră care ar fi trecut neobservată: la SWAT, „mai are 6:00" însemna `time >= 240`, nu 360.
+#
+# ⚠️ Ceasul se citește în `_politist()`, la fiecare inamic născut — NU în `_val_nou()`. Ponderile se
+# trag la sorți o dată la 10–22 s, deci un val pornit la 2:59 ar fi ținut pompierul afară până la
+# 3:21. Așa intră fix la secunda 180.
+@export var minut_politisti: Array[float] = [0.0, 0.0, 0.0, 180.0]
 @export var haos_amestec: float = 2.2     # de câte ori poate urca/coborî o pondere într-un val
 @export var ritm_min: float = 0.55
 @export var ritm_max: float = 1.45
@@ -285,6 +305,11 @@ func _spawn_enemy() -> void:
 	# ăla", iar `power_mult = 2` l-ar face 100% din ea — adică un boss de-a dreptul, din întâmplare,
 	# și numai pe rundele în care ai trecut prin Nether. Promisiunea trebuie să fie adevărată în
 	# orice secundă, deci îngroșarea se oprește la Skinny.
+	#
+	# ⚠️ Nici POMPIERUL, din același motiv, dar mai apăsat: are 225 din cei 300 ai Gărzii, adică 75%.
+	# Dublat ar fi ajuns la 450 — o rundă în care te-ai plimbat prin Nether ți-ar fi scos pe cap, la
+	# 8% din spawnuri, un inamic cu de UNU-ȘI-JUMĂTATE viața boss-ului. „Cel mai tare din lumea
+	# normală" e una, „mai tare decât boss-ul" e alta.
 	if (scena == ENEMY or scena == ENEMY_SKINNY) and _scapat_din_nether():
 		enemy.power_mult = escaped_power_mult
 	# Inamicii apar într-un con de ±`spawn_cone_deg` în jurul privirii. Cu 180 (implicit de pe
@@ -345,25 +370,36 @@ func _scena_inamic() -> PackedScene:
 		return ENEMY_ENDER
 	return _politist()
 
-# Ce fel de polițist iese acum în lumea normală: cel obișnuit, Skinny (mai iute și mai tare) sau
-# SWAT (la fel de iute ca Skinny, dar de cinci ori mai gras). Toți trei sunt pe masă de la secunda
-# 0; cine iese se trage la sorți din ponderile valului de acum (vezi „VALURILE" sus).
+# Ce fel de polițist iese acum în lumea normală: cel obișnuit, Skinny (mai iute și mai tare), SWAT
+# (la fel de iute ca Skinny, dar de cinci ori mai gras) sau POMPIERUL (cel mai tare din lume, dar
+# abia de la 3:00). Primii trei sunt pe masă de la secunda 0; cine iese se trage la sorți din
+# ponderile valului de acum (vezi „VALURILE" sus).
 #
 # Roata clasică: aduni ponderile, tragi un număr în intervalul ăsta și mergi până cade. NU e nici
 # un fel de rezervor („exact 2 SWAT din 10") — asta e cerința, sorți curați: poți primi trei SWAT
 # la rând, sau niciunul un minut întreg.
 func _politist() -> PackedScene:
 	var total := 0.0
-	for w in _ponderi:
-		total += w
+	for i in _ponderi.size():
+		total += _pondere(i)
 	if total <= 0.0:
 		return ENEMY   # ponderi toate pe 0 (reglaj greșit din inspector) → nu rămânem fără inamici
 	var r := randf() * total
 	for i in _ponderi.size():
-		r -= _ponderi[i]
+		r -= _pondere(i)
 		if r <= 0.0:
 			return POLITISTI[i] as PackedScene
 	return ENEMY
+
+# Ponderea felului `i` ACUM: cea trasă la sorți pentru valul curent, sau 0 dacă încă nu i-a venit
+# ceasul (vezi `minut_politisti`). Un fel blocat iese complet din roată — nu-i „mută" felia altcuiva
+# după niciun calcul: pur și simplu ceilalți împart un total mai mic, deci ponderile lor relative
+# rămân exact cele de dinainte, iar numărul TOTAL de inamici nu se schimbă.
+func _pondere(i: int) -> float:
+	var ceas: float = minut_politisti[i] if i < minut_politisti.size() else 0.0
+	if Difficulty.time < ceas:
+		return 0.0
+	return _ponderi[i]
 
 # Te-ai întors VIU din Nether? Cât ești ÎNCĂ acolo nu se aplică nimic din îngroșarea de mai sus:
 # Nether-ul își are dificultatea lui (`nether.gd::_diff_time`), n-are rost să o dublăm și noi peste.

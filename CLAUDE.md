@@ -18,6 +18,60 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-15 (POMPIERUL — cel mai tare inamic al lumii normale, dar abia de la 3:00)
+
+**Cerut de Răzvan:** „ți-am adăugat un folder nou în homeless directii — Firefighter — vreau să fie cel mai op din inamicii din lumea normală, doar că el nu se spawnează de la început, doar după ce trec 3 minute din joc."
+
+**Atinse:** `enemy_firefighter.tscn` (nou), `spawner.gd`, `homeless directii/Firefighter/frames/` (48 PNG-uri noi).
+
+### Poarta de 3 minute
+
+`minut_politisti` — un `@export var Array[float]` nou, paralel cu `pond_politisti`: de la a câta secundă SCURSĂ intră fiecare fel în roată. `[0, 0, 0, 180]` — primii trei de la început, pompierul la 3:00.
+
+- ⚠️ **`Difficulty.time >= 180`, nu `time_left() <= 180`.** Ceasul de pe ecran SCADE de la 10:00. „După ce trec 3 minute" e cronometrul care URCĂ. (La SWAT, „mai are 6:00" însemna `time >= 240` — aceeași capcană, altă față.)
+- ⚠️ **Ceasul se citește în `_politist()`, la fiecare inamic născut — NU în `_val_nou()`.** Ponderile se trag la sorți o dată la 10–22 s (vezi „VALURILE"), deci un val pornit la 2:59 ar fi ținut pompierul afară până la 3:21. Așa intră fix la secunda 180.
+- Un fel blocat întoarce pondere **0**, deci iese complet din roată. Nu i se „mută" felia nimănui după vreun calcul: ceilalți împart un total mai mic, ponderile lor RELATIVE rămân exact cele de dinainte, iar numărul TOTAL de inamici nu se schimbă (asta o face `rata_curenta()`, care nu știe de feluri).
+- E **singura excepție** de la „fără ore fixe", regula pusă pe 2026-08-12 când au dispărut `skinny_after`/`swat_after`. A cerut-o explicit, și are sens tocmai fiindcă e cel mai tare.
+
+### Statele — 225 HP, 210 viteză, damage dublu
+
+Judecata mea peste „cel mai op", cu cifrele alese să spună o poveste verificabilă:
+
+| | viteză | HP | dmg | XP |
+|---|---|---|---|---|
+| polițist | 120 | 30 | 1.0 | 1.0 |
+| Skinny | 160 | 45 | 1.3 | 1.0 |
+| SWAT | 160 | 150 | 1.3 | 3.0 |
+| creatura Ender (după Celesto) | 380 | 50 | 2.0 | 1.0 |
+| **POMPIER** | **210** | **225** | **2.0** | **5.0** |
+| Garda (boss) | 70 | 300 | — | — |
+
+- **225 = 75% din Garda**, la fel de stabil ca cei 50% ai SWAT-ului: `garda.gd` și `enemy.gd` își înmulțesc amândoi viața cu ACELAȘI `Difficulty.enemy_hp_mult()`, deci raportul se ține în orice secundă. Verificat la t=240: **952 față de 1269** = 0,750.
+- **210 = cel mai iute polițist**, peste creatura din Nether (190). **Nu** peste cea din Ender (380) — dinadins: 225 HP + damage dublu la 380 viteză n-ar fi „greu", ar fi „imposibil". Vrea și viteza aia? `speed` din `enemy_firefighter.tscn`.
+- **`damage_mult = 2.0`** — cel mai mult din joc, la egalitate cu creatura Ender.
+- **`xp_drop_mult = 5.0`** — același raționament ca la SWAT (3.0 pentru 5× viața polițistului): 7,5× viața trebuie să lase mai mult, altfel e timp pierdut curat. Rămâne sub raportul de viață, ca la el.
+- **Pondere de bază 0,18**, cam jumătate din a SWAT-ului → **~8% din polițiști** după 3:00. Ținut mic: e cel mai gras lucru care nu e boss.
+- ⚠️ **NU intră în îngroșarea de după Nether** (`escaped_power_mult = 2`) — condiția din `_spawn_enemy` e pe `ENEMY`/`ENEMY_SKINNY`, deci îl ocolește de la sine. Dublat ar fi ajuns la **450**, adică 150% din viața boss-ului. „Cel mai tare din lumea normală" e una, „mai tare decât boss-ul" e alta.
+
+### Arta — 7 GIF-uri primite, 8 direcții livrate
+
+GIF-uri de 6 cadre, tăiate cu `tool_taie_gifuri.ps1` + `--headless --import`. Două lucruri **nu erau gata de folosit**, amândouă găsite măsurând, nu privind:
+
+1. **Lipsea `north-east`** (celelalte 7 erau toate acolo, md5-uri diferite). Făcut prin **oglindirea lui `north-west`** — ambele arată spatele cu butelia, deci întoarcerea dă exact poza care lipsea. Oglindirea păstrează centrul și tălpile (silueta e la 16..47 pe o pânză de 64, simetrică).
+2. **`south` era desenat la altă scară ȘI pe altă pânză** (92×92, siluetă 47 px, față de 64×64 și 56–58 la restul). Două probleme într-una: pânza diferită ar fi mutat tălpile cu 6 px (12 pe ecran, adică o săltare la fiecare întoarcere), iar scara ar fi făcut pompierul să se micșoreze cu 17% exact când vine spre tine. **`Idle_rotations_8dir.gif` a fost arbitrul**: toate cele 8 poze de acolo au silueta de ~59 px, deci `south`-ul alergând era cel greșit, nu celelalte. Mărit ×1,213 (64→78 nearest) și decupat înapoi la 64×64. Rezultat: **30×58**, identic cu `east`/`west`.
+
+**Toate 8 direcțiile au acum: pânză 64, centru_x 31,5, tălpi la y=61.** Asta e proba că nu sare și nu se leagănă când se întoarce — nu „arată bine în poză".
+
+- **Mărimea:** siluetă 58 × `scale = 2.0` = **116 px pe ecran**, adică cel mai înalt polițist (Skinny și SWAT au amândoi 104). Cel mai tare trebuie și să se vadă că e cel mai tare.
+- **`stop_dist = 47`** = jumătate din cea mai lată poză (32 × 2) + jumătatea player-ului (15). Plafonul dur rămâne 54.
+- ⚠️ **`Idle_rotations_8dir.gif` a rămas în folder** (e arta lui). Dacă mai rulezi vreodată `tool_taie_gifuri.ps1` pe folderul ăsta, scoate 8 fișiere `run_8dir_*.png` — direcția se ia din coada numelui. Se șterg, nu strică nimic.
+
+**Verificat rulând:** cele 48 de cadre randate în grilă (8×6, orientări corecte — spatele cu butelia la `north`, profil curat la `east`/`west`, diagonalele la fel), fundal transparent, fără cadre lipsă la instanțiere prin `enemy.gd`; cei patru polițiști aliniați pe același pământ, cu pompierul vizibil cel mai înalt; **4000 de trageri la zar** pe fiecare moment → **0,00% la t=0, 60 și 179; 8,3% la t=180**; și o rulare a jocului ADEVĂRAT cu ceasul împins la 200 — pompier viu în lume, alergând spre player cu animația direcției potrivite, fără nicio eroare în consolă.
+
+**Rămas neatins dinadins:** hoarda monumentului (`monument.gd::FELURI`) n-a primit pompier, exact ca SWAT-ul — acolo toți primesc ×3 viteză și ×3 damage, iar un tanc de 225 HP în plus e o schimbare de echilibru pe care n-a cerut-o. Se adaugă cu **un rând** dacă vrea.
+
+---
+
 ## Session log — 2026-08-15 (steagurile de la LANGUAGE, centrate cu adevărat)
 
 **Cerut de Răzvan:** „centrează bine la limbi steagurile cu textu."
