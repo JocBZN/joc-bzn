@@ -143,6 +143,13 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-15, weapon size is all percentages now: Pufferfish +10%, Double Dose +5%)
+- 🐡 **Pufferfish: `weapon_size_px += 10` → `weapon_size_mult *= 1.10`** ("+10% Weapon size"). Those 10 px were measured against `BULLET_BASE_PX` (27), so the first pick was really **~+37%** and every repeat gave less than the last. It is a percentage now, and it **compounds** like Rat's Burger: two picks = ×1.21.
+- 💊 **Double Dose: `bullet_scale += 0.3` → `weapon_size_mult *= 1.05`** ("+5% Weapon size +5 damage"; the damage stayed). ⚠️ **Not just a label change:** it used to inflate the *projectile* only — and `BULLET_SIZE_CAP` clamped that away on the pistol and the knife anyway — while now it grows the **weapon**, so it also reaches the sword slash, the scythe blade and the fire/frost trails.
+- ✖️ **All three size upgrades now feed the same `weapon_size_mult`**, so they multiply: Pufferfish ×2 + Double Dose + Rat's Burger = 1.10² × 1.05 × 1.30 = **165%** (measured).
+- 🧹 **`weapon_size_px` and `bullet_scale` are no longer touched by any upgrade.** They stay in `player.gd` as inspector knobs (`weapon_size_scale()` / `bullet_size_scale()` still read them), with comments saying so.
+- ✅ **Verified by running:** `weapon_size_scale()` 1.0000 → 1.1000 → 1.2100 → 1.2705 → 1.6517 across the picks, `weapon_size_px` still 0, `bullet_scale` still 1.00, and a screenshot of the Level Up screen showing the three cards read "+10% WEAPON SIZE", "+5% WEAPON SIZE +5 DAMAGE", "+30% WEAPON SIZE". `tool_check_i18n` → "✔ TOTUL E TRADUS". The codex was updated and republished.
+
 ## Current state (2026-08-14, "Damage Taken" is no longer a stat, and Vodka hits back)
 - 🗑 **"Damage Taken" is gone as a stat.** It left all three places where it lived as one: the row in the level-up panel (`player.stat_lines`), its baseline in `_stats_base`, and the `dmgtaken` entry in the casino (the `STATS` list plus `_valoare` / `_afisare` / `_aplica`), so it can no longer be gambled on the roulette either.
 - ⚠️ **The number stayed, the stat left.** `player.contact_damage` (5) is still where contact damage starts from — without it enemies would deal none. It lost its `@export` (nothing changes it any more, so it has no business in the inspector) but stayed a `var` rather than a `const`, so test scenes with big dummy grids can still zero it. It was never in META, so the permanent shop needed no change.

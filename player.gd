@@ -320,13 +320,18 @@ func luck_bonus() -> float:
 # pe traiectorie; ricoșeul îl ÎNTOARCE spre alt inamic ales din jur. Se aplică după ce
 # străpungerea s-a epuizat (vezi `bullet.gd`), deci cele două se adună, nu se bat cap în cap.
 @export var ricochet: int = 0
-@export var bullet_scale: float = 1.0      # mărimea glonțului (1 = normal)
+# Mărimea glonțului (1 = normal). Niciun upgrade nu-l mai schimbă de pe 2026-08-15 (Double Dose
+# a trecut pe mărime de ARMĂ, procentual); rămâne ca reglaj de bază din inspector.
+@export var bullet_scale: float = 1.0
 # --- mărimea ARMEI (sprite + hitbox), comună tuturor armelor ---
 # Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui) — dar PLAFONAT, vezi
 # `BULLET_SIZE_CAP`. Sabie: tăietura. Coasă: lama și raza cercului. Toate: dârele de foc/gheață.
 const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran (193px × 1.4 sprite × 0.1 root)
-@export var weapon_size_px: float = 0.0    # Pufferfish: +10 px adăugați la mărimea armei
-@export var weapon_size_mult: float = 1.0  # Rat's Burger: × 1.30 peste mărimea curentă
+# Pixeli adăugați la mărimea armei. Niciun upgrade nu-l mai folosește de pe 2026-08-15
+# (Pufferfish a trecut pe procent); rămâne ca reglaj de bază din inspector.
+@export var weapon_size_px: float = 0.0
+# Procent peste mărimea curentă: Pufferfish ×1.10, Double Dose ×1.05, Rat's Burger ×1.30 (se compun)
+@export var weapon_size_mult: float = 1.0
 @export var knockback: float = 0.0         # cât împinge inamicul înapoi
 @export var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără) — Jean's Bomb
 @export var explosion_damage: int = 0      # damage FIX al exploziei (nefolosit acum, vezi mai jos)
@@ -653,8 +658,8 @@ func _update_anim(directie: Vector2) -> void:
 		anim.play(ultima_directie)
 		anim.set_frame_and_progress(cadru, progres)
 
-# Mărimea armei ca factor de scalare: pixelii ceruți (Pufferfish) se traduc în scară
-# raportat la glonțul de bază, apoi se aplică procentul (Rat's Burger).
+# Mărimea armei ca factor de scalare: pixelii ceruți se traduc în scară raportat la glonțul de
+# bază, apoi se aplică procentele (Pufferfish, Double Dose, Rat's Burger — toate în `weapon_size_mult`).
 func weapon_size_scale() -> float:
 	# Celesto's Scythe: +1% mărime pe nivel. Intră aici, în STATUL de mărime, nu doar în lama ei:
 	# așa se vede și în panou, și crește tot ce ține de „cât de mare lovești" cu coasa în mână.

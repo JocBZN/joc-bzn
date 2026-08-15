@@ -18,6 +18,22 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-15 (mărimea armei, toată pe procente: Pufferfish +10%, Double Dose +5%)
+
+**Cerut de Răzvan:** „Pufferfish vreau să dea +10% size nu +10 size și double dose să scrie nu bigger projectiles ci +5% weapon size."
+
+**Atinse:** `levelup.gd`, `player.gd`, `i18n.gd`, `codex.html` (+ artifact-ul republicat).
+
+- **Pufferfish: `weapon_size_px += 10` → `weapon_size_mult *= 1.10`**, descriere „+10% Weapon size". Cei 10 px se raportau la `BULLET_BASE_PX` (27), deci prima luare dădea de fapt **~+37%**, iar fiecare repetare tot mai puțin (aditiv pe px, împărțit la aceeași bază). Acum e procentual și **se compune**, ca Rat's Burger: două luări = ×1.21.
+- **Double Dose: `bullet_scale += 0.3` → `weapon_size_mult *= 1.05`** (`+5 damage` a rămas), descriere „+5% Weapon size +5 damage". ⚠️ **Nu e doar text:** înainte umfla DOAR proiectilul (și era oricum tăiat de `BULLET_SIZE_CAP` la pistol/cuțit); acum crește mărimea ARMEI, deci lucrează și la tăietura sabiei, lama coasei și dârele de foc/gheață. Pentru pistol e o pierdere curată (plafonul lui e 1.0), pentru corp la corp e un câștig nou.
+- **Toate trei intră acum în același `weapon_size_mult`**, deci se înmulțesc între ele: Pufferfish ×2 + Double Dose + Rat's Burger = 1.10² × 1.05 × 1.30 = **165%** (măsurat).
+- 🧹 **`weapon_size_px` și `bullet_scale` nu mai sunt schimbate de niciun upgrade.** Le-am lăsat în `player.gd` (rămân reglaje din inspector, iar formulele `weapon_size_scale()` / `bullet_size_scale()` le folosesc mai departe), dar cu comentariul actualizat — altfel data viitoare cauți degeaba cine le mișcă.
+- **i18n:** cheia „+10 Weapon size" → „+10% Weapon size", iar „Bigger Projectiles +5 damage" → „+5% Weapon size +5 damage", cu cele 8 traduceri refăcute.
+
+**Verificat rulând** (două scene de test, șterse după): `weapon_size_scale()` 1.0000 → 1.1000 → 1.2100 (Pufferfish ×2) → 1.2705 (+ Double Dose) → 1.6517 (+ Rat's Burger), `weapon_size_px` rămâne 0 și `bullet_scale` 1.00; screenshot cu ecranul de Level Up unde cele trei cartonașe scriu „+10% WEAPON SIZE", „+5% WEAPON SIZE +5 DAMAGE", „+30% WEAPON SIZE". `tool_check_i18n` → „✔ TOTUL E TRADUS". Codexul: cardurile Pufferfish/Double Dose rescrise + nota statului „Weapon Size"; verificat că `id|iconiță|raritate` și textele `game:` sunt identice cu `levelup.gd` (51 iteme, zero diferențe).
+
+---
+
 ## Session log — 2026-08-14 (statusul „Damage Taken", scos din joc + Vodka refăcută)
 
 **Cerut de Răzvan:** „Vreau să scoți statusul de damage taken din joc. La Vodka vreau acum să îi dea +3 Damage, Reflect 10% of damage taken."

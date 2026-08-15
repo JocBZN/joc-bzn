@@ -35,9 +35,9 @@ var UPGRADES := [
 	{"id": "gloante_paralele", "nume": "Twin Comets", "icon": "upgrade_19.png", "rar": "legendary", "desc": "+2 projectiles"},
 	{"id": "strapungere", "nume": "Drill", "icon": "upgrade_16.png", "rar": "rare", "desc": "Bullets pierce +1 enemy"},
 	{"id": "critic", "nume": "Adrenaline", "icon": "upgrade_3.png", "rar": "rare", "desc": "+7% Crit chance"},
-	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "Bigger Projectiles +5 damage"},
+	{"id": "glont_mare", "nume": "Double Dose", "icon": "upgrade_14.png", "rar": "uncommon", "desc": "+5% Weapon size +5 damage"},
 	{"id": "recul", "nume": "Knockback Stick", "icon": "upgrade_22.png", "rar": "uncommon", "desc": "Bullets knock enemies back"},
-	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+10 Weapon size"},
+	{"id": "pufferfish", "nume": "Pufferfish", "icon": "upgrade_17.png", "rar": "common", "desc": "+10% Weapon size"},
 	{"id": "burger", "nume": "Rat's Burger", "icon": "upgrade_18.png", "rar": "rare", "desc": "+30% Weapon size"},
 	{"id": "rabbit_foot", "nume": "Rabbit's Foot", "icon": "upgrade_20.png", "rar": "uncommon", "desc": "-5 Damage +25% Move speed"},
 	{"id": "hedgehog", "nume": "Mike's Hedgehog", "icon": "upgrade_21.png", "rar": "epic", "desc": "Reflect 100% damage (once/6s)", "unic": true},
@@ -859,15 +859,17 @@ func _apply(id: String, p) -> void:
 			# (vezi player.roll_crit) — 200% garantează ×4, 300% ×8 etc.
 			p.crit_chance += 0.07
 		"glont_mare":
-			# gloanțe mai mari (hitbox + sprite) și puțin mai puternice
-			p.bullet_scale += 0.3
+			# arma crește cu 5% peste mărimea curentă (sprite + hitbox) și lovește puțin mai tare.
+			# Procentual, ca Pufferfish/Rat's Burger — deci se compune dacă îl iei de mai multe ori.
+			p.weapon_size_mult *= 1.05
 			p.bullet_damage += 5
 		"recul":
 			# gloanțele împing inamicii înapoi
 			p.knockback += 250.0
 		"pufferfish":
-			# arma se umflă: +10px la sprite ȘI la hitbox (glonț / sferă mage / tăietură / lama coasei)
-			p.weapon_size_px += 10.0
+			# arma se umflă cu 10% peste mărimea curentă: sprite ȘI hitbox
+			# (glonț / sferă mage / tăietură / lama coasei). Se compune la fiecare luare.
+			p.weapon_size_mult *= 1.10
 		"burger":
 			# arma crește cu 30% peste mărimea curentă (se compune dacă îl iei de mai multe ori)
 			p.weapon_size_mult *= 1.30
