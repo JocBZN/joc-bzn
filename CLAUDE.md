@@ -18,6 +18,54 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-15 (PRIMUL MINUT e al polițistului obișnuit — cotă garantată de 70%)
+
+**Cerut de Răzvan:** „Vreau să vină în primul minut 70% din spawn să fie Faceless Police Officer. Și după primul minut cum e spawnul acum."
+
+**Atinse:** `spawner.gd` (doar el).
+
+**Cine e „Faceless Police Officer":** `ENEMY` / `enemy.tscn`, primul din `POLITISTI`, polițistul obișnuit. Numele vine din arta lui: GIF-urile `A_faceless_police_officer_in_walk_*.gif` stau direct în `homeless directii/`, iar cadrele tăiate din ele sunt în `homeless directii/frames/` → `enemy_frames.tres`. (Nu confunda cu `homeless directii/Police Skinny/`, care e alt inamic.)
+
+### COTĂ, nu pondere — și de ce contează diferența
+
+Reflexul ar fi să urci `pond_politisti[0]` până iese 70% pe hârtie. **Ar fi fost greșit.** De pe 2026-08-12 fiecare val înmulțește ponderile cu un număr aleator între `1/haos_amestec` și `haos_amestec` (adică ÷2,2 … ×2,2). Cu ponderi, „70%" ar fi însemnat oriunde între ~45% și ~85%, altfel la fiecare rundă — exact lucrul pe care o cerință cu procent în ea îl exclude.
+
+Deci se rescrie ponderea, nu se reglează. `_cota_primului_minut(p)` rezolvă ecuația roții:
+
+```
+w0 / (w0 + restul) = cotă   →   w0 = restul * cotă / (1 − cotă)
+```
+
+`restul` se calculează DUPĂ ce s-au aplicat porțile de ceas, deci formula se auto-corectează: la 0:30 pompierul e închis (pondere 0), la 3:00+ ar fi deschis — dar regula e stinsă până atunci oricum. Dacă haosul valului umflă Skinny-ul, `restul` crește și `w0` crește odată cu el, deci cota rămâne 70%.
+
+- 🔑 **Ceilalți nu se ating între ei** — se rescrie DOAR indexul 0. Deci în cei 30% rămași proporțiile valului sunt fix cele trase la sorți: un val „de SWAT" rămâne un val de SWAT, doar că se joacă într-o treime din spawnuri. Verificat: într-un val cu SWAT umflat ×2,2, raportul Skinny/SWAT e 0,404 la t=0 și 0,398 la t=60 — același.
+- **Numărul TOTAL de inamici nu se schimbă.** Aici se alege doar CINE iese; CÂȚI vine din `rata_curenta()`, care nu știe de feluri.
+- Reglabil din inspector: `primul_minut` (60,0) și `cota_politist_intai` (0,70). `primul_minut = 0` stinge regula complet.
+- ⚠️ Capetele sunt tratate explicit: `cota = 1.0` sau „n-a mai rămas nimeni în roată" ar fi împărțit la zero. Se pun ceilalți pe 0 și `p[0] = maxf(p[0], 1.0)`, ca totalul să nu iasă 0 și să nu cădem pe ramura de avarie.
+
+### A doua excepție de la „fără ore fixe"
+
+Regula din 2026-08-12 („fără ore fixe, sorți curați") are acum **două** excepții, amândouă cerute, amândouă la capetele rundei: pompierul la 3:00 (`minut_politisti`) și cota primului minut. Restul rămân cum i-a vrut. Le-am scris pe amândouă în blocul „VALURILE", ca următorul care citește să nu creadă că cineva a strecurat înapoi vechiul `skinny_after`.
+
+⚠️ Tot `Difficulty.time`, deci tot ceasul CRESCĂTOR: „primul minut" e `time < 60`. Și tot el îngheață în Limbo/Nether/Ender — aici e exact ce trebuie: un minut de joc în lumea normală rămâne un minut de joc în lumea normală, chiar dacă între timp ai fost dincolo.
+
+### Verificat rulând (20.000 de trageri pe fiecare moment)
+
+| | Faceless | Skinny | SWAT | Pompier |
+|---|---|---|---|---|
+| t=0 | **69,84%** | 20,06% | 10,10% | 0% |
+| t=30 | **69,70%** | 20,06% | 10,23% | 0% |
+| t=59,9 | **70,37%** | 19,73% | 9,90% | 0% |
+| t=60 | 49,15% | 34,16% | 16,69% | 0% |
+| t=120 | 49,22% | 33,53% | 17,25% | 0% |
+| t=180 | 45,27% | 31,59% | 15,28% | 7,86% |
+
+Și dovada că sortul valului nu mai contează în primul minut: pe un val cu SWAT umflat ×2,2 iese tot **70,11%** la t=0 (față de 29,25% la t=60); pe un val cu Faceless umflat ×2,2, tot **69,72%** (față de 82,55% la t=60). Rândurile de la t≥60 sunt identice cu cele de dinainte de schimbare, adică „după primul minut cum e spawnul acum" se ține.
+
+Capetele de interval, fără erori: `cotă 1.0` → 100/0/0/0; `cotă 0.0` → 0/66,28/33,73/0; `primul_minut = 0` → 48,60/33,85/17,54/0 (regula stinsă, exact spawnul normal).
+
+---
+
 ## Session log — 2026-08-15 (POMPIERUL — cel mai tare inamic al lumii normale, dar abia de la 3:00)
 
 **Cerut de Răzvan:** „ți-am adăugat un folder nou în homeless directii — Firefighter — vreau să fie cel mai op din inamicii din lumea normală, doar că el nu se spawnează de la început, doar după ce trec 3 minute din joc."

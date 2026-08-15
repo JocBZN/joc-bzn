@@ -79,9 +79,14 @@ const ENEMY_FIREFIGHTER := preload("res://enemy_firefighter.tscn")
 # fiecare val spune cât de mult se abate valul ăsta de la regulă. Amândouă sunt `@export`, deci se
 # reglează din inspector fără cod.
 #
-# ⚠️ O singură excepție de la „fără ore fixe", adăugată pe 2026-08-15: POMPIERUL. Cererea era
-# explicit „nu se spawnează de la început, doar după ce trec 3 minute" — și are sens tocmai
-# fiindcă e cel mai tare inamic al lumii normale. Restul rămân cum i-a vrut: din prima, la sorți.
+# ⚠️ DOUĂ excepții de la „fără ore fixe", amândouă cerute pe 2026-08-15, amândouă la capetele
+# rundei:
+#   · POMPIERUL nu intră deloc în roată până la 3:00 (vezi `minut_politisti`) — are sens tocmai
+#     fiindcă e cel mai tare inamic al lumii normale;
+#   · PRIMUL MINUT e al polițistului obișnuit: `cota_politist_intai` din spawnuri sunt garantat el
+#     (vezi `_cota_primului_minut`). Adică începutul rundei e blând și lizibil, iar de la 1:00
+#     încolo lumea e exact cea de dinainte — sorți curați, fără ore fixe.
+# În rest, cum i-a vrut Răzvan: din prima, la sorți.
 #
 # ⚠️ `ritm_min`/`ritm_max` sunt așezate ca MEDIA lor să fie 1.0. Ritmul aleator e TEXTURĂ, nu o
 # îngroșare pe furiș: dificultatea trebuie să rămână cea din `difficulty.gd`, altfel curbele de
@@ -100,6 +105,24 @@ const POLITISTI := [ENEMY, ENEMY_SKINNY, ENEMY_SWAT, ENEMY_FIREFIGHTER]
 # trag la sorți o dată la 10–22 s, deci un val pornit la 2:59 ar fi ținut pompierul afară până la
 # 3:21. Așa intră fix la secunda 180.
 @export var minut_politisti: Array[float] = [0.0, 0.0, 0.0, 180.0]
+
+# --- Primul minut e al polițistului obișnuit (cerut de Răzvan pe 2026-08-15) ---
+# „Vreau să vină în primul minut 70% din spawn să fie Faceless Police Officer, și după primul minut
+# cum e spawnul acum." Faceless Police Officer = `ENEMY`, cel din `enemy.tscn`, primul din
+# `POLITISTI` (arta lui sunt GIF-urile `A_faceless_police_officer_in_walk_*` din `homeless directii/`).
+#
+# `cota_politist_intai` e o cotă GARANTATĂ, nu o pondere: cât ține `primul_minut`, fix atâta parte
+# din polițiști e el, oricât de sălbatic ar fi ieșit valul la sorți. De-aia nu s-a rezolvat pur și
+# simplu urcând `pond_politisti[0]`: haosul de val (`haos_amestec`) plimbă ponderile de 2,2 ori în
+# sus sau în jos, deci „70%" ar fi însemnat oriunde între ~45% și ~85%, altfel la fiecare rundă.
+# Vezi `_cota_primului_minut` pentru cum se rescrie ponderea.
+#
+# ⚠️ Tot `Difficulty.time`, deci tot ceasul CRESCĂTOR: „primul minut" e `time < 60`. Și tot el
+# îngheață în Limbo/Nether/Ender, ceea ce aici e exact ce trebuie — un minut de joc în lumea
+# normală rămâne un minut de joc în lumea normală, chiar dacă între timp ai fost dincolo.
+@export var primul_minut: float = 60.0
+@export_range(0.0, 1.0) var cota_politist_intai: float = 0.70
+
 @export var haos_amestec: float = 2.2     # de câte ori poate urca/coborî o pondere într-un val
 @export var ritm_min: float = 0.55
 @export var ritm_max: float = 1.45
@@ -373,23 +396,58 @@ func _scena_inamic() -> PackedScene:
 # Ce fel de polițist iese acum în lumea normală: cel obișnuit, Skinny (mai iute și mai tare), SWAT
 # (la fel de iute ca Skinny, dar de cinci ori mai gras) sau POMPIERUL (cel mai tare din lume, dar
 # abia de la 3:00). Primii trei sunt pe masă de la secunda 0; cine iese se trage la sorți din
-# ponderile valului de acum (vezi „VALURILE" sus).
+# ponderile valului de acum (vezi „VALURILE" sus). Cât ține primul minut, o cotă fixă din ei e
+# garantat cel obișnuit (`_cota_primului_minut`).
 #
 # Roata clasică: aduni ponderile, tragi un număr în intervalul ăsta și mergi până cade. NU e nici
 # un fel de rezervor („exact 2 SWAT din 10") — asta e cerința, sorți curați: poți primi trei SWAT
 # la rând, sau niciunul un minut întreg.
 func _politist() -> PackedScene:
-	var total := 0.0
+	# Ponderile de ACUM: cele trase la sorți pentru valul curent, cu porțile de ceas aplicate...
+	var p: Array[float] = []
 	for i in _ponderi.size():
-		total += _pondere(i)
+		p.append(_pondere(i))
+	# ...și cu cota garantată a primului minut peste ele, dacă mai suntem în el.
+	_cota_primului_minut(p)
+	var total := 0.0
+	for w in p:
+		total += w
 	if total <= 0.0:
 		return ENEMY   # ponderi toate pe 0 (reglaj greșit din inspector) → nu rămânem fără inamici
 	var r := randf() * total
-	for i in _ponderi.size():
-		r -= _pondere(i)
+	for i in p.size():
+		r -= p[i]
 		if r <= 0.0:
 			return POLITISTI[i] as PackedScene
 	return ENEMY
+
+# Rescrie ponderea polițistului obișnuit cât ține primul minut, ca din roată să iasă EXACT
+# `cota_politist_intai` din el. Roata dă felii proporționale cu ponderile, deci ecuația e:
+#
+#     w0 / (w0 + restul) = cota   →   w0 = restul * cota / (1 − cota)
+#
+# La cota 0,70 și restul 1,05 (Skinny 0,7 + SWAT 0,35, pompierul e încă închis) iese w0 = 2,45,
+# adică 2,45 / 3,5 = 70%. Exact, la orice val: dacă haosul umflă Skinny-ul, `restul` crește și w0
+# crește odată cu el.
+#
+# 🔑 Ceilalți NU se ating între ei — doar primul se rescrie. Deci în cei 30% rămași, proporțiile
+# valului sunt fix cele trase la sorți: un val „de SWAT" rămâne un val de SWAT, doar că se joacă
+# într-o treime din spawnuri în loc de tot. Și numărul TOTAL de inamici nu se schimbă nicăieri:
+# aici se alege doar CINE iese, nu CÂȚI (ăia vin din `rata_curenta()`).
+func _cota_primului_minut(p: Array[float]) -> void:
+	if p.is_empty() or Difficulty.time >= primul_minut:
+		return
+	var restul := 0.0
+	for i in range(1, p.size()):
+		restul += p[i]
+	# cota 1,0 („numai el") sau n-a mai rămas nimeni în roată → împărțirea de mai jos ar fi pe zero.
+	# `maxf(..., 1.0)` ne asigură că totalul nu iese 0 și nu ajungem pe ramura de avarie.
+	if cota_politist_intai >= 1.0 or restul <= 0.0:
+		for i in range(1, p.size()):
+			p[i] = 0.0
+		p[0] = maxf(p[0], 1.0)
+		return
+	p[0] = restul * cota_politist_intai / (1.0 - cota_politist_intai)
 
 # Ponderea felului `i` ACUM: cea trasă la sorți pentru valul curent, sau 0 dacă încă nu i-a venit
 # ceasul (vezi `minut_politisti`). Un fel blocat iese complet din roată — nu-i „mută" felia altcuiva
