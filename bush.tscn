@@ -1,0 +1,37 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Texture2D" uid="uid://cjfrhxqsaqiy7" path="res://harta/Bush.png" id="1_tex"]
+
+[sub_resource type="Gradient" id="Gradient_umbra"]
+offsets = PackedFloat32Array(0, 0.72, 1)
+colors = PackedColorArray(0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_umbra"]
+gradient = SubResource("Gradient_umbra")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bush"]
+size = Vector2(28, 14)
+
+[node name="Bush" type="StaticBody2D"]
+
+[node name="Umbra" type="Sprite2D" parent="."]
+z_index = -1
+modulate = Color(1, 1, 1, 0.32)
+position = Vector2(0, 16.9)
+scale = Vector2(0.296, 0.0889)
+texture = SubResource("GradientTexture2D_umbra")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("1_tex")
+offset = Vector2(0, -13.5)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 12)
+shape = SubResource("RectangleShape2D_bush")
