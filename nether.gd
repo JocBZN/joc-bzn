@@ -82,7 +82,7 @@ const SHAKE_TIME := 0.9
 # ⚠️ „Dubiosi" NU e în listă, și e singura excepție: de pe 2026-08-14 omul în palton apare NUMAI
 # aici, deci el trebuie să rămână aprins exact când toate celelalte se sting. Regula lui e scrisă
 # invers, la el în generator (`dubiosi.gd` se uită la `nether.active`), nu aici.
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments", "AlbaNeagras"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments", "AlbaNeagras"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 
 var active := false

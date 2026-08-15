@@ -18,6 +18,24 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-15 (TUFELE — Bush + Tall Bush, decor numai în pădure)
+
+**Cerut de Răzvan:** „ți-am adăugat în folderul harta 2 imagini noi — Bush și Tall Bush — vreau să se spawneze doar în pădure, nu fac nimic sunt ca copacii."
+
+**Atinse:** `bushes.gd` (NOU), `main.tscn`, `nether.gd`, `limbo.gd`, `ender.gd`.
+
+- **Generator nou `bushes.gd`** pe nodul `World/Bushes`, copiat după `props.gd`/`rocks.gd`: chunk-uri de 512 px, determinist (`hash(key) ^ SEED_SALT`), încărcare/descărcare pe rază de 3 chunk-uri. Decor pur — fără loot, fără interacțiune.
+- **Doar în pădure:** aceeași verificare ca la copaci, `BiomeMap.desertness_at_chunk(pos) > 0.0` → sărim poziția. Deci nimic nici pe nisip, nici pe gradientul de tranziție.
+- **Solide, ca și copacii** (`solid = true`, cutie mică fix la bază). E `@export`, deci se trece pe `false` din inspector dacă vrea să treacă prin ele.
+- **Reglaje:** `bushes_per_chunk = 3` (maxim, deci ~1,5 în medie — mai dese decât copacii), `bush_scale = 0.6` → 54 px (Bush) și 67 px (Tall Bush) pe ecran, lângă un player de ~62 px și copaci de ~258 px. Umbra de la bază e aceeași din `ground_shadow.gd`.
+- **Tufele cedează în fața TUTUROR** (sunt ultimele venite): copaci, pietre, poteci și orice frate din `World` care expune convenția `chunk_<x>_pos(key) -> Vector2`. Lista aia **se descoperă singură** prin `get_method_list()`, deci prinde automat și generatoarele viitoare. Excepție scrisă în cod: `Chests` — cuferele stau lângă poteci (de care ne ferim oricum), iar funcția lor are nevoie de nodul `Paths`, pe care ele îl caută abia la primul `_process` (ar crăpa dacă am întreba mai devreme). Din același motiv `bushes.gd` nu generează nimic până nu are el însuși `Paths`.
+- **Trecut în `WORLD_NODES` din `nether.gd`, `limbo.gd` ȘI `ender.gd`** — regula de mai sus. `preload_all.gd` NU trebuia atins: scanează `res://harta` recursiv, deci a luat singur cele două PNG-uri.
+- ⚠️ **PNG-urile n-aveau `.import`** (Răzvan le-a pus pe disc, nu prin editor). Rulat `--headless --import` înainte de orice test, altfel `preload` crapă.
+
+**Verificat rulând lumea adevărată** (scenă de test ștearsă după): 61 de tufe încărcate în jurul player-ului, **0** în deșert sau pe gradient, **0** pe potecă, cea mai mică distanță între două tufe 76 px; mutat player-ul în inima unui deșert (3,5 chunk-uri adâncime) → **0** tufe acolo; screenshot pe iarbă cu tufele lângă copaci și pietre, la mărimea potrivită.
+
+---
+
 ## Session log — 2026-08-15 (mărimea armei, toată pe procente: Pufferfish +10%, Double Dose +5%)
 
 **Cerut de Răzvan:** „Pufferfish vreau să dea +10% size nu +10 size și double dose să scrie nu bigger projectiles ci +5% weapon size."

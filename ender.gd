@@ -47,7 +47,7 @@ const SHAKE_TIME := 0.9
 # Identic cu lista din `nether.gd`. ⚠️ Când adaugi un generator nou în `World` (main.tscn),
 # treci-l ȘI aici, ȘI în `nether.gd` — altfel rămâne aprins și-i vezi obiectele plutind
 # într-o dimensiune în care n-au ce căuta.
-const WORLD_NODES := ["Props", "Rocks", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 # Generatoare care merg PE DOS: stinse în lumea normală, aprinse doar cât ești aici. Deocamdată
 # unul singur — statuile de schimb (`ender_statues.gd`). NU au ce căuta în lista de sus: acolo
