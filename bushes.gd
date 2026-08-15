@@ -36,25 +36,39 @@ const GroundShadow := preload("res://ground_shadow.gd")
 
 @export var chunk_size: int = 512          # mărimea unui pătrat de lume (px)
 @export var load_radius: int = 3           # câte pătrate în jurul player-ului ținem încărcate
-@export var bushes_per_chunk: int = 3      # câte tufe (maxim) într-un pătrat — mai dese decât copacii
-@export var min_gap_hitboxes: float = 1.2  # distanța minimă între tufe, în „lățimi de tufă" (mic: tufele pot crește în pâlcuri)
+# Câte tufe (maxim) încercăm într-un pătrat. E o ÎNCERCARE, nu o garanție: cele care ar cădea peste
+# altceva se aruncă. Urcat de la 3 la 6 pe 2026-08-15, odată cu regula strictă de suprapunere —
+# altfel pădurea rămânea prea goală, fiindcă un copac blochează acum o suprafață mare în jurul lui.
+@export var bushes_per_chunk: int = 6
 # Tufa te blochează, ca un copac. Pe `false` stinge cutia de coliziune din scenă (poți trece prin ele).
-# ⚠️ MĂRIMEA nu mai e aici: o dai din `bush.tscn` / `tall_bush.tscn` (scale la Sprite2D).
+# ⚠️ MĂRIMEA nu mai e aici: o dai din `bush.tscn` / `tall_bush.tscn` (scale la Sprite2D sau la rădăcină).
 @export var solid: bool = true
 
-@export var path_clearance: int = 1  # câte tile-uri de potecă (64px) ținem libere în jur — nicio tufă pe potecă
-@export var tree_clearance: float = 16.0    # iarbă lăsată între tufă și trunchiul unui copac (px)
-@export var rock_clearance: float = 10.0    # idem, față de o piatră
-@export var struct_clearance: float = 90.0  # cât ținem tufele la distanță de structuri (statui, EGT, monumente, portaluri...)
+# SPAȚIUL LIBER DIN JURUL FIECĂREI TUFE (cerut de Răzvan pe 2026-08-15: „nu vreau să se suprapună
+# cu alte obiecte, vreau să aibă un spațiu între ele de spawnare"). E o singură cifră, în PIXELI de
+# lume, și se măsoară **de la marginea desenului la marginea desenului** — nu de la centru la centru.
+# Adică: între tufă și ORICE altceva (altă tufă, copac, piatră, structură) rămâne atâta iarbă goală.
+# O crești → tufe mai rare, dar mai aerisite; o scazi → cresc în pâlcuri.
+#
+# Comparăm DREPTUNGHIURILE VIZIBILE, nu distanțe între centre: două cercuri pe lățime ziceau „e
+# bine" pentru o tufă înaltă care intra cu vârful peste ce era deasupra ei. Acum umflăm dreptunghiul
+# tufei cu `spatiu_liber` în toate părțile și cerem să nu atingă dreptunghiul nimănui.
+@export var spatiu_liber: float = 24.0
+@export var path_clearance: int = 2  # câte tile-uri de potecă (64px) ținem libere în jur — nicio tufă pe potecă
+# Cât de mare socotim o structură (statuie, EGT, monument, portal, Alba, Dubiosu), măsurat de la
+# centrul ei. Generatoarele lor spun doar POZIȚIA, nu și mărimea, deci nu putem să le măsurăm ca pe
+# copaci — cifra asta e „raza" cu care le tratăm pe toate. Peste ea se adaugă tufa + `spatiu_liber`.
+@export var struct_clearance: float = 140.0
 
 var _loaded := {}          # Vector2i (chunk) -> Node2D (containerul cu tufele lui)
 var _paths: Node = null    # nodul Paths (pathways.gd) — nicio tufă pe poteci
 var _props: Node2D = null  # nodul Props (copacii) — tufele se feresc de trunchiuri
 var _rocks: Node2D = null  # nodul Rocks (pietrele) — idem
-# Cât se întinde în lateral fiecare scenă de tufă (px de lume), măsurat O SINGURĂ DATĂ la pornire.
-# Verificarea distanței dintre tufe are nevoie de mărime FĂRĂ să construiască noduri, iar mărimea
-# stă acum în scenă (scale la Sprite2D), nu într-un `@export` de aici — deci o citim de acolo.
-var _raze: Array[float] = []
+# DREPTUNGHIUL VIZIBIL al fiecărei scene de tufă, față de punctul în care o plantăm — măsurat O
+# SINGURĂ DATĂ la pornire (vezi `_masoara_scenele`). Verificarea suprapunerilor are nevoie de
+# mărime FĂRĂ să construiască noduri, iar mărimea stă acum în scenă (scale la Sprite2D și la
+# rădăcină), nu într-un `@export` de aici — deci o citim de acolo.
+var _cutii: Array[Rect2] = []
 # Frații din World care își pot spune poziția fără să construiască noduri: orice metodă
 # `chunk_<ceva>_pos(key) -> Vector2` (Vector2.INF = chunk-ul n-are nimic). Convenția e deja
 # folosită de statui, EGT, monumente, portaluri, Alba-Neagra și Dubiosu — o descoperim singuri,
@@ -81,18 +95,23 @@ func _ready() -> void:
 			if nume.begins_with("chunk_") and nume.ends_with("_pos") and m["args"].size() == 1:
 				_structuri.append([n, nume])
 
-# Lățimea fiecărei scene: instanțiem o dată fiecare tufă, măsurăm și aruncăm nodul. Contează
+# Mărimea fiecărei scene: instanțiem o dată fiecare tufă, măsurăm și aruncăm nodul. Contează
 # conturul OPAC al texturii, nu canvasul (ambele imagini au 128×128, dar desenul din ele e mai
-# îngust), înmulțit cu scale-ul pus în scenă.
+# îngust), trecut prin `offset` și prin AMBELE scale-uri din scenă (Sprite2D și rădăcină — Răzvan
+# le folosește pe amândouă). Iese un dreptunghi față de originea scenei, adică față de locul în
+# care plantăm tufa.
 func _masoara_scenele() -> void:
 	for scena in BUSHES:
 		var n: Node2D = scena.instantiate()
 		var sp := _sprite_din(n)
-		var raza := 20.0  # plasă de siguranță, dacă cineva scoate sprite-ul din scenă
+		var cutie := Rect2(-20, -20, 40, 40)  # plasă de siguranță, dacă cineva scoate sprite-ul
 		if sp != null and sp.texture != null:
-			raza = float(GroundShadow.used_rect(sp.texture).size.x) * 0.5 \
-				* absf(sp.scale.x) * absf(n.scale.x)
-		_raze.append(raza)
+			var u := GroundShadow.used_rect(sp.texture)
+			var t := Vector2(sp.texture.get_width(), sp.texture.get_height())
+			# un pixel din textură ajunge la: rădăcină.scale × (sprite.position + sprite.scale × pixel)
+			var colt := n.scale * (sp.position + sp.scale * (Vector2(u.position) + sp.offset - t * 0.5))
+			cutie = Rect2(colt, n.scale * sp.scale * Vector2(u.size))
+		_cutii.append(cutie)
 		n.free()
 
 # Desenul tufei = primul Sprite2D care nu e umbra. Căutat pe nume, cu căutare de rezervă, ca
@@ -178,7 +197,7 @@ func _build_chunk(key: Vector2i) -> Node2D:
 			continue  # ar ieși înfiptă într-un trunchi
 		if _langa_piatra(me["pos"], me["idx"], key):
 			continue
-		if _langa_structura(me["pos"], structuri):
+		if _langa_structura(me["pos"], me["idx"], structuri):
 			continue
 		var bush: Node2D = BUSHES[me["idx"]].instantiate()
 		# Poziția e chiar originea scenei = linia de sortare pe Y. Nicio corecție de făcut aici:
@@ -208,25 +227,30 @@ func _stinge_coliziunea(bush: Node) -> void:
 # de altul, pe potecă etc.), deci ne ferim și de locuri unde până la urmă nu crește nimic.
 # E partea sigură a greșelii: pierdem câteva tufe, dar nu punem niciuna în trunchi.
 
+# ⚠️ Aici măsurăm COPACUL ÎNTREG (coroana), nu trunchiul. Până pe 2026-08-15 ne feream doar de
+# trunchi, ca pietrele — o tufă crescută sub coroană părea firească pe hârtie, dar în joc însemna
+# tufe intrate peste desenul copacului, exact ce nu voia Răzvan.
 func _langa_copac(pos: Vector2, idx: int, key: Vector2i) -> bool:
 	if _props == null or not _props.has_method("_chunk_trees_raw"):
 		return false
-	var raza := _raza(idx) + tree_clearance
+	var a := _cutie_tufa(idx, pos).grow(spatiu_liber)
+	var scara := _scara(_props, "tree_scale")
 	for dx in [-1, 0, 1]:
 		for dy in [-1, 0, 1]:
 			for t in _props._chunk_trees_raw(Vector2i(key.x + dx, key.y + dy)):
-				if pos.distance_to(t["pos"]) < raza + _raza_trunchi(t["tex"]):
+				if a.intersects(_cutie_prop(t["tex"], scara, t["pos"])):
 					return true
 	return false
 
 func _langa_piatra(pos: Vector2, idx: int, key: Vector2i) -> bool:
 	if _rocks == null or not _rocks.has_method("_chunk_rocks_raw"):
 		return false
-	var raza := _raza(idx) + rock_clearance
+	var a := _cutie_tufa(idx, pos).grow(spatiu_liber)
+	var scara := _scara(_rocks, "rock_scale")
 	for dx in [-1, 0, 1]:
 		for dy in [-1, 0, 1]:
 			for r in _rocks._chunk_rocks_raw(Vector2i(key.x + dx, key.y + dy)):
-				if pos.distance_to(r["pos"]) < raza + _raza_tex(r["tex"], _scara(_rocks, "rock_scale")):
+				if a.intersects(_cutie_prop(r["tex"], scara, r["pos"])):
 					return true
 	return false
 
@@ -248,9 +272,10 @@ func _pozitii_structuri(key: Vector2i) -> Array:
 					out.append(p)
 	return out
 
-func _langa_structura(pos: Vector2, structuri: Array) -> bool:
+func _langa_structura(pos: Vector2, idx: int, structuri: Array) -> bool:
+	var raza := _raza(idx) + struct_clearance + spatiu_liber
 	for p in structuri:
-		if pos.distance_to(p) < struct_clearance:
+		if pos.distance_to(p) < raza:
 			return true
 	return false
 
@@ -261,38 +286,45 @@ func _scara(nod: Node, prop: String, implicit: float = 1.0) -> float:
 		return implicit
 	return float(nod.get(prop))
 
-# Cât se întinde în lateral tufa nr. `idx` (px de lume) — măsurat la pornire, vezi `_masoara_scenele`.
+# Dreptunghiul vizibil al tufei nr. `idx`, plantată la `pos` — vezi `_masoara_scenele`.
+func _cutie_tufa(idx: int, pos: Vector2) -> Rect2:
+	var c: Rect2 = _cutii[idx] if idx < _cutii.size() else Rect2(-20, -20, 40, 40)
+	return Rect2(pos + c.position, c.size)
+
+# Cât se întinde tufa în jurul ei, ca rază (jumătatea celei mai mari laturi). Folosit doar la
+# structuri, unde n-avem dreptunghi cu care să comparăm, ci doar poziția lor.
 func _raza(idx: int) -> float:
-	return _raze[idx] if idx < _raze.size() else 20.0
+	var c: Rect2 = _cutii[idx] if idx < _cutii.size() else Rect2(-20, -20, 40, 40)
+	return maxf(c.size.x, c.size.y) * 0.5
 
-# Aceeași măsurătoare, dar pentru arta altui generator (care are altă scară).
-func _raza_tex(tex: Texture2D, scara: float) -> float:
-	return float(GroundShadow.used_rect(tex).size.x) * 0.5 * scara
+# Dreptunghiul vizibil al unui copac / al unei pietre, în coordonate de lume, calculat din poziția
+# lui BRUTĂ (cea din lista „raw"). `props.gd` și `rocks.gd` construiesc la fel: sprite-ul primește
+# `offset.y = h*(sort_anchor-0.5)`, iar nodul e apoi ridicat cu `sort_anchor*h*scara` — cele două
+# se anulează, așa că rămâne o formulă scurtă, fără `sort_anchor` în ea. Practic: poziția brută e
+# chiar punctul în care obiectul atinge pământul.
+func _cutie_prop(tex: Texture2D, scara: float, pos: Vector2) -> Rect2:
+	var u := GroundShadow.used_rect(tex)
+	var w := float(tex.get_width())
+	var h := float(tex.get_height())
+	var colt := Vector2(float(u.position.x) - w * 0.5, float(u.position.y) - h) * scara
+	return Rect2(pos + colt, Vector2(u.size) * scara)
 
-# Cât se întinde TRUNCHIUL unui copac în lateral (nu coroana — o tufă sub coroană arată firesc,
-# una prin trunchi nu). Aceeași socoteală ca în `rocks.gd::_raza_trunchi`.
-func _raza_trunchi(tex: Texture2D) -> float:
-	var tr := GroundShadow.trunk_rect(tex)
-	var mijloc := float(tex.get_width()) * 0.5
-	var centru_trunchi := float(tr.position.x) + float(tr.size.x) * 0.5 - mijloc
-	return (absf(centru_trunchi) + float(tr.size.x) * 0.5) * _scara(_props, "tree_scale")
-
-# Distanța minimă (centru-centru) admisă între două tufe = min_gap_hitboxes × media lățimilor lor.
-func _min_dist(a: int, b: int) -> float:
-	return min_gap_hitboxes * (_raza(a) + _raza(b))
+# Două tufe se „ating" dacă dreptunghiul uneia, umflat cu `spatiu_liber`, dă peste al celeilalte.
+func _se_ating(a: Dictionary, b: Dictionary) -> bool:
+	return _cutie_tufa(a["idx"], a["pos"]).grow(spatiu_liber) \
+		.intersects(_cutie_tufa(b["idx"], b["pos"]))
 
 # O tufă e „prea aproape" dacă se suprapune cu una deja acceptată. Departajare stabilă (aceeași
 # decizie indiferent de ordinea generării): în același pătrat renunțăm la indicele mai mare;
 # față de vecini renunțăm doar dacă vecinul are cheia „mai mică" lexicografic.
 func _too_close(me: Dictionary, my_index: int, mine: Array, neighbors: Array) -> bool:
 	for j in my_index:
-		var other: Dictionary = mine[j]
-		if me["pos"].distance_to(other["pos"]) < _min_dist(me["idx"], other["idx"]):
+		if _se_ating(me, mine[j]):
 			return true
 	var my_key: Vector2i = me["key"]
 	for other in neighbors:
 		var ok: Vector2i = other["key"]
 		var key_smaller := ok.x < my_key.x or (ok.x == my_key.x and ok.y < my_key.y)
-		if key_smaller and me["pos"].distance_to(other["pos"]) < _min_dist(me["idx"], other["idx"]):
+		if key_smaller and _se_ating(me, other):
 			return true
 	return false

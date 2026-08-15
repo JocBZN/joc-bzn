@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene format=3 uid="uid://cb50h3bhks1w4"]
 
 [ext_resource type="Texture2D" uid="uid://d06o5qd1mhutm" path="res://harta/Tall_Bush.png" id="1_tex"]
 
@@ -15,23 +15,24 @@ fill_from = Vector2(0.5, 0.5)
 fill_to = Vector2(1, 0.5)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_tall"]
-size = Vector2(20, 10)
+size = Vector2(51.5, 10)
 
-[node name="TallBush" type="StaticBody2D"]
+[node name="TallBush" type="StaticBody2D" unique_id=1324888729]
+scale = Vector2(2, 2)
 
-[node name="Umbra" type="Sprite2D" parent="."]
-z_index = -1
+[node name="Umbra" type="Sprite2D" parent="." unique_id=1616945384]
 modulate = Color(1, 1, 1, 0.32)
+z_index = -1
 position = Vector2(0, 21.5)
 scale = Vector2(0.218, 0.0654)
 texture = SubResource("GradientTexture2D_umbra")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=571967277]
 texture_filter = 1
 scale = Vector2(0.6, 0.6)
 texture = ExtResource("1_tex")
 offset = Vector2(0, -16.8)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(0, 18.5)
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1368328241]
+position = Vector2(-0.25, 1.5)
 shape = SubResource("RectangleShape2D_tall")
