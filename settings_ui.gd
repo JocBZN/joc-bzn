@@ -36,7 +36,26 @@ func _ready() -> void:
 	_pagini["graphics"] = _pagina_graphics()
 	for nume in _pagini:
 		add_child(_pagini[nume])
+	_egalizeaza_paginile()
 	arata_pagina("keybinds")
+
+# AMÂNDOUĂ PAGINILE OCUPĂ CÂT CEA MAI MARE (cerut de Răzvan pe 2026-08-15: „când dau între
+# keybinds și graphics se schimbă mărimea ferestrei, dar eu vreau doar o mărime consistentă la
+# ambele"). Comutarea ascunde o pagină și o arată pe cealaltă; un `Control` ascuns nu mai intră în
+# socoteala containerului, așa că blocul se strângea la mărimea paginii deschise — și odată cu el
+# rama ornată din meniu și cea din pauză, care se croiesc după conținut.
+#
+# Leacul: le dăm amândurora aceeași mărime minimă, cea mai mare dintre ele (și pe lățime, și pe
+# înălțime). Pagina mai mică rămâne centrată în spațiul rezervat, deci rama nu mai mișcă deloc.
+# Se face O SINGURĂ DATĂ, aici — dacă mai adaugi rânduri într-o pagină, se recalculează singur.
+func _egalizeaza_paginile() -> void:
+	var maxim := Vector2.ZERO
+	for nume in _pagini:
+		var m: Vector2 = _pagini[nume].get_combined_minimum_size()
+		maxim.x = maxf(maxim.x, m.x)
+		maxim.y = maxf(maxim.y, m.y)
+	for nume in _pagini:
+		_pagini[nume].custom_minimum_size = maxim
 
 # ---------- paginile ----------
 func _pagina_keybinds() -> VBoxContainer:

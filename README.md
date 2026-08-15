@@ -144,6 +144,11 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-08-15, the Settings frame no longer resizes between tabs)
+- 📐 **KEYBINDS and GRAPHICS now reserve the same space.** Switching tabs sets `visible = false` on the other page, and a hidden `Control` drops out of the container's minimum size — so the block shrank to whatever page was open, and the copper frame, which is a `PanelContainer` sized to its content, jumped with it. Both in the main menu and in the pause menu, since they share `SettingsUI`.
+- 🔧 `SettingsUI._egalizeaza_paginile()` gives both pages a `custom_minimum_size` equal to the larger of their two `get_combined_minimum_size()` values, width and height. The shorter page stays centred in the reserved space. Computed once in `_ready`, so adding rows to a page re-fits it automatically.
+- ✅ **Verified by running the menu:** frame **520×474**, block **436×342**, identical on both pages (difference `(0, 0)`), with screenshots showing the tab bar and the BACK button holding still across the switch. Nothing grew: KEYBINDS was already both the taller page and the default one.
+
 ## Current state (2026-08-15, BUSHES — forest-only shrubbery, pure decoration)
 - 🌿 **Two new props, `harta/Bush.png` and `harta/Tall_Bush.png`**, drawn by Răzvan, spawned by a new generator `bushes.gd` on a new `World/Bushes` node. They do nothing at all: no loot, no interaction, no damage — small trees, scenery only.
 - 🌲 **Forest only.** The check is the same one the trees use — `BiomeMap.desertness_at_chunk(pos) > 0.0` skips the spot — so nothing grows on the sand *or* on the soft gradient that fades into it.

@@ -18,6 +18,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-15 (Settings: aceeași mărime pe KEYBINDS și pe GRAPHICS)
+
+**Cerut de Răzvan:** „când dau între keybinds și graphics se schimbă mărimea ferestrei, dar eu vreau doar o mărime consistentă la ambele."
+
+**Atinse:** `settings_ui.gd` (o funcție nouă, `_egalizeaza_paginile`).
+
+- **Cauza:** comutarea taburilor face `visible = false` pe pagina inactivă, iar un `Control` ascuns nu mai intră în socoteala containerului. Blocul se strângea pe pagina deschisă, iar **rama de aramă se croiește după conținut** (`PanelContainer` + `StyleBoxTexture`, vezi `menu.gd::_rama_container`) — deci sărea și ea. La fel în pauză, care folosește același `SettingsUI`.
+- **Leacul:** amândouă paginile primesc `custom_minimum_size` = cea mai mare dintre mărimile lor minime (`get_combined_minimum_size()`), și pe lățime, și pe înălțime. Pagina mai mică rămâne centrată în spațiul rezervat. Se calculează o singură dată, în `_ready` — dacă mai adaugi rânduri într-o pagină, se recalculează singur.
+- Nimic nu crește peste ce era: KEYBINDS era oricum pagina cea mai mare ȘI cea deschisă implicit, deci rama rămâne exact cât era înainte pe ea.
+
+**Verificat rulând meniul** (scenă de test ștearsă după): rama **520×474** și blocul **436×342**, IDENTICE pe ambele pagini (diferență `(0, 0)`); două poze care arată bara de taburi și butonul BACK stând pe loc la comutare.
+
+---
+
 ## Session log — 2026-08-15 (TUFELE — Bush + Tall Bush, decor numai în pădure)
 
 **Cerut de Răzvan:** „ți-am adăugat în folderul harta 2 imagini noi — Bush și Tall Bush — vreau să se spawneze doar în pădure, nu fac nimic sunt ca copacii."
