@@ -77,6 +77,8 @@ var UPGRADES := [
 	{"id": "aussie_special", "nume": "Aussie Special", "icon": "upgrade_57.png", "rar": "legendary", "desc": "Projectiles ricochet +1 time"},
 	{"id": "old_reliable", "nume": "Old Reliable", "icon": "upgrade_55.png", "rar": "common", "desc": "Reflect 15% of damage taken"},
 	{"id": "tower_5g", "nume": "5G Tower", "icon": "upgrade_58.png", "rar": "epic", "desc": "Enemies drop 15% more xp"},
+	{"id": "electrolytes", "nume": "Water and electrolytes", "icon": "upgrade_59.png", "rar": "uncommon", "desc": "+2 HP/sec +10% Move speed"},
+	{"id": "big_cigar", "nume": "Big Black Cigar", "icon": "upgrade_60.png", "rar": "epic", "desc": "+40% Damage -25% Move speed"},
 ]
 
 const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
@@ -1044,3 +1046,24 @@ func _apply(id: String, p) -> void:
 			# LA FIECARE lovitură (+15% pe luare). Fără cooldown, fără block — vezi `reflect_pct`
 			# în player.gd pentru diferența față de Mike's Hedgehog, cu care se adună.
 			p.reflect_pct += 0.15
+		"electrolytes":
+			# apă cu electroliți: hidratare = regenerare + picioare mai iuți.
+			# Regenerarea se ADUNĂ (+2 HP/s pe luare), ca la Wine — care dă 3, dar e Common și te
+			# și vindecă pe loc; aici plusul e că vine la pachet cu viteza. `hp_regen` e `int`,
+			# deci trebuie să rămână număr întreg: nu-l face procent, s-ar pierde la rotunjire.
+			# Viteza e PROCENT pe valoarea CURENTĂ (ca Hellas / Alex's Protection), deci se
+			# compune la fiecare luare. Fiind pe viteză, umflă indirect și Diesel Power /
+			# Megane's Katana, care se uită la cât de repede te miști față de viteza de start.
+			p.hp_regen += 2
+			p.speed *= 1.10
+		"big_cigar":
+			# trabucul: cel mai mare plus de damage dintr-o singură luare, plătit în viteză.
+			# Amândouă sunt PROCENTE pe valoarea curentă (ca The Nightclub / Death Sentence),
+			# deci se compun: a doua luare taie 25% din ce mai aveai, nu 50% din viteza de start.
+			# ⚠️ Ca la Death Sentence, NU are plasă de siguranță pe viteză — luat de multe ori te
+			# lasă aproape pe loc. Și e o pierdere dublă: încetinirea taie și din Diesel Power /
+			# Megane's Katana, care măsoară viteza CURENTĂ față de cea de start (`speed_ratio()`).
+			# Fratele mare al lui Cigarette Pack, dar pe altă mecanică: ăla adună în `cig_bonus`
+			# (procent citit la fiecare lovitură), ăsta scrie direct în `bullet_damage`.
+			p.bullet_damage = int(round(p.bullet_damage * 1.40))
+			p.speed *= 0.75

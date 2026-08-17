@@ -338,6 +338,8 @@ const TRAD := {
 "Aussie Special": ["澳洲特调", "Aussie-Spezial", "Especial Australiano", "Австралийский Особый", "Spécial Aussie", "オージースペシャル", "Australijski Specjał", "Avustralya Özel"],
 "Old Reliable": ["老伙计", "Der Bewährte", "El Viejo Confiable", "Старый Надёжный", "Le Vieux Fidèle", "頼れる相棒", "Stary Niezawodny", "Eski Güvenilir"],
 "5G Tower": ["5G 信号塔", "5G-Mast", "Torre 5G", "Вышка 5G", "Tour 5G", "5Gタワー", "Wieża 5G", "5G Kulesi"],
+"Water and electrolytes": ["水与电解质", "Wasser und Elektrolyte", "Agua y electrolitos", "Вода и электролиты", "Eau et électrolytes", "水と電解質", "Woda i elektrolity", "Su ve Elektrolit"],
+"Big Black Cigar": ["大黑雪茄", "Große schwarze Zigarre", "Gran Puro Negro", "Большая чёрная сигара", "Gros Cigare Noir", "大きな黒い葉巻", "Wielkie Czarne Cygaro", "Büyük Siyah Puro"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -391,6 +393,8 @@ const TRAD := {
 "Projectiles ricochet +1 time": ["弹射 +1 次", "Geschosse prallen +1x ab", "Los proyectiles rebotan +1 vez", "Снаряды рикошетят +1 раз", "Les projectiles ricochent +1 fois", "弾が+1回跳ね返る", "Pociski odbijają się +1 raz", "Mermiler +1 kez sekiyor"],
 "Reflect 15% of damage taken": ["反弹 15% 所受伤害", "15% des erlittenen Schadens reflektieren", "Refleja 15% del daño recibido", "Отражает 15% полученного урона", "Renvoie 15% des dégâts subis", "受けたダメージの15%を反射", "Odbija 15% otrzymanych obrażeń", "Alınan hasarın %15’ini yansıt"],
 "Enemies drop 15% more xp": ["敌人掉落经验 +15%", "Gegner lassen 15% mehr XP fallen", "Los enemigos sueltan 15% más de XP", "Враги дают на 15% больше опыта", "Les ennemis lâchent 15% d’XP en plus", "敵のXPドロップ +15%", "Wrogowie dają 15% więcej XP", "Düşmanlar %15 daha fazla XP düşürür"],
+"+2 HP/sec +10% Move speed": ["+2 生命/秒 +10% 移速", "+2 HP/Sek. +10% Tempo", "+2 HP/seg +10% Velocidad", "+2 HP/сек +10% скорость", "+2 PV/sec +10% Vitesse", "+2 HP/秒 +10% 移動速度", "+2 HP/sek +10% Szybkość", "+2 CAN/sn +10% Hız"],
+"+40% Damage -25% Move speed": ["+40% 伤害 -25% 移速", "+40% Schaden -25% Tempo", "+40% Daño -25% Velocidad", "+40% урон -25% скорость", "+40% Dégâts -25% Vitesse", "+40% 攻撃力 -25% 移動速度", "+40% Obrażenia -25% Szybkość", "+40% Hasar -25% Hız"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 

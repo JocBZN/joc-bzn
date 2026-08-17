@@ -9,12 +9,62 @@ Quick rules:
 - This is a **survivors-like / bullet-heaven** game (Vampire Survivors style), cyberpunk theme, for Android. See the roadmap in `README.md`.
 - **Repo activ:** `C:\Users\stefan-razvan.dogaru\joc-bzn` (clonă pe `main`, remote `JocBZN/joc-bzn`) — verificat pe 2026-08-17, e SINGURA clonă de pe disc. Notele vechi care zic „Desktop\joc-bzn" sau „Downloads\joc-bzn-main" sunt depășite (folderele alea nu mai există). **Godot: `Downloads\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64.exe`**, nu e în PATH — se cheamă cu calea întreagă.
 - **Există un CODEX al upgrade-urilor**, artifact pe claude.ai: `https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e`. Când schimbi ceva în `levelup.gd` (item nou, raritate, efect, iconiță) sau în `game_settings.gd` (META), **actualizează-l și pe el** — altfel rămâne în urmă în tăcere. **De pe 2026-07-17 e generat data-driven** din `codex.html` (în repo): editezi array-ul `ITEMS` / `SYN` de sus (efectele reale din cod), iconițele+chenarele se re-encodează base64 și se injectează în placeholder-ul `/*__ASSETS__*/` cu scriptul PowerShell (vezi session log 2026-07-17 „Codex regenerat”), apoi republici pe același URL cu `url=`. Mult mai simplu decât chirurgia pe base64. **De pe 2026-07-28 codexul are și o secțiune „Statusuri de start"** (prima, sub titlu): tabelele `ARME` + `BASE`. Ea se strică ÎN TĂCERE dacă umbli la valorile implicite din `player.gd` — `speed`, `max_hp`, `contact_damage`, `xp_to_next`, tabelul `ARME`, `sword_base_damage`, `scythe_base_damage`. Cifrele de acolo NU se citesc din cod: se scot **rulând** o scenă care instanțiază player-ul cu fiecare armă și tipărește `stat_lines()`, cu `GameSettings.upgrades` golit doar în RAM (altfel prinzi și magazinul permanent din salvarea lui Răzvan). **⚠️ Randează-l ÎNTÂI în Chrome headless** (`--headless=new --enable-logging=stderr --log-level=0 --screenshot=...`): tot conținutul e generat din JS, deci o singură ghilimea greșită într-un string face pagina complet albă, fără niciun semn. S-a întâmplat (vezi log-ul din 2026-07-26 „codexul arată textul EXACT din joc"). Și încă ceva: câmpul `game:` (textul exact de pe cardul din joc) e **generat din `levelup.gd`**, nu scris de mână — dacă schimbi o descriere, o schimbi în `levelup.gd` (`desc`) și regenerezi, nu invers.
+- ⚠️ **ARTIFACTUL CODEXULUI NU POATE FI REPUBLICAT de pe contul de lucru** (`razvanstefan.dogaru@gmail.com`, sesiunile Claude Code din `C:\Users\stefan-razvan.dogaru`). Verificat pe 2026-08-17: `Artifact action:list scope:all` îl întoarce ca **(shared)**, adică e publicat de pe ALT cont și doar împărtășit încoace — iar artifact-urile shared se pot citi, nu rescrie (`WebFetch` pe el dă „served to you as a public (non-member) reader"). Deci: **`codex.html` din repo rămâne sursa de adevăr și se actualizează normal**, dar pagina de pe claude.ai o reîmprospătează Răzvan de pe contul lui. Nu publica o versiune nouă pe alt URL — ar despărți codexul în două.
 - **Jocul e în 9 limbi (din 2026-07-27).** Textele afișate se scriu **în ENGLEZĂ direct în cod** — Godot le traduce singur pe Label/Button, pe baza tabelului din `i18n.gd`. Când adaugi un text nou, adaugi și rândul în `TRAD`. `tr()` se folosește **doar** la textele cu `%d`/`%s` (pe o etichetă simplă ar STRICA schimbarea limbii). Verifică cu `godot --headless --path . res://tool_check_i18n.tscn` înainte de commit.
 - **Testele care lasă player-ul să moară scriu în leaderboard-ul REAL** (`show_gameover` → `add_score` → `user://scores.save`). M-a prins de trei ori pe 2026-07-27. Ori ții inamicii departe, ori cureți scorul fals după verificare.
 - **⚠️ Și un test care schimbă ceva în `GameSettings` DOAR ÎN RAM poate ajunge în salvarea reală** (prins pe 2026-08-04 cu `op_start`): jocul cheamă `_save()` de la sine, iar `_save()` scrie TOATE valorile din memorie. Deci: ori nu atingi `GameSettings` înainte să pornești `main.tscn`, ori pui valoarea înapoi ȘI salvezi. Verifică la final ce-a rămas în fișier.
 - **Uneltele care au nevoie de autoload-uri se rulează ca SCENĂ, nu cu `--script`** — altfel dau „Identifier not found: GameSettings".
 - **Generator nou în `World` (main.tscn) → trece-l în `WORLD_NODES` din `nether.gd`, `limbo.gd` ȘI `ender.gd`.** Sunt trei liste separate; dacă lipsește dintr-una, generatorul rămâne aprins acolo și-i vezi obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de trei ori (EGT-uri, portaluri). **Singura excepție (din 2026-08-14): `Dubiosi`** — omul în palton apare NUMAI în Nether, deci lipsește dinadins din lista lui `nether.gd`, iar regula lui e scrisă invers, la el în generator (`dubiosi.gd` se uită la `nether.active` și se golește singur când nu ești acolo). În `limbo.gd` și `ender.gd` e trecut normal.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
+
+---
+
+## Session log — 2026-08-17 (2 iteme noi: Water and electrolytes · Big Black Cigar)
+
+**Cerut de Răzvan:** „am pozele astea 2 în downloads, bagă-mi-le în joc la iteme. Electroliții se vor numi «Water and electrolytes» și va da health regen și speed, iar cigar va fi «Big Black Cigar» și va da damage mare dar va încetini ms-ul jucătorului."
+
+**Atinse:** `Upgrades/upgrade_59.png` + `upgrade_60.png` (noi), `levelup.gd`, `i18n.gd`, `codex.html`, README. **Pool: 51 → 53 de iteme.**
+
+### Arta — una era gata, cealaltă nu
+
+- **`electrolytes.png` era deja bun:** 128×128, RGBA, fundal transparent. Copiat ca `upgrade_59.png`, fără nicio prelucrare.
+- **`cigar.jpg` NU era folosibil:** 1200×896, JPG fără alfa, cu un **fundal de cărămidă** care trebuia scos.
+
+**Cum s-a decupat, fiindcă „scoate fundalul închis" n-ar fi mers:** conturul țigării e negru PUR, adică **mai închis decât cărămida** — orice prag pe luminozitate ar fi mâncat exact conturul. Separatorul adevărat e **tenta**: cărămida e violetă (`B−G ≈ +12`: 27,21,33), pe când țigara, fumul și jarul sunt **neutre** (R≈G≈B) sau roșii. Deci regula e `(B − G) >= 5`, nu „e închis".
+
+⚠️ **Dar nu s-a aplicat pe JPEG-ul brut.** Compresia lasă halou în jurul muchiilor, deci marginile ar fi ieșit cu franjuri. Poza e **pixel art mărit**: i-am detectat grila (energia de schimbare pe coloane/rânduri, testată pe perioade candidate → **perioadă 30px, offset 0 pe orizontală, 28 pe verticală**, scor de 2,4× peste următoarea variantă), apoi am reconstruit arta la rezoluția ei nativă, **40×28**, mediind centrul fiecărui bloc (9..21 din 30 — se sare peste muchii, unde stă zgomotul). Pe paleta curată de acolo, testul de tentă e exact.
+
+Verificat ca **hartă ASCII** înainte de a scrie vreun PNG: silueta iese curat (fum în stânga sus, țigara pe diagonală, jarul jos-stânga) și **zero pixeli de cărămidă rămași** în fundal. Apoi decupat la bbox (25×22 blocuri) și mărit ×4 cu **NEAREST** → 100×88, centrat în 128×128. Scara întreagă e obligatorie: la o scară fracționară pixel art-ul iese cu rânduri de grosimi diferite.
+
+### Statele — și de ce astea
+
+| item | raritate | efect |
+|---|---|---|
+| **Water and electrolytes** | Uncommon | `hp_regen += 2` · `speed *= 1.10` |
+| **Big Black Cigar** | Epic | `bullet_damage = round(bullet_damage * 1.40)` · `speed *= 0.75` |
+
+- **Regenerarea e un întreg fix (+2), nu procent.** `player.hp_regen` e `int`, deci un procent s-ar pierde la rotunjire — aceeași capcană ca la 5G Tower (vezi log-ul din 2026-07-28). Wine dă +3 și e Common, dar te și vindecă pe loc; aici plusul e că vine la pachet cu viteza, de-aia Uncommon.
+- **Viteza e procent pe valoarea CURENTĂ la amândouă**, deci se compune (ca Hellas / The Nightclub / Death Sentence). Măsurat: două luări de electroliți = **×1.21**, nu ×1.20.
+- **Trabucul e cel mai mare plus de damage dintr-o singură luare** (+40% față de +35% la The Nightclub), și e singurul care plătește în **viteză de mișcare**, nu în cadență.
+- ⚠️ **Încetinirea trabucului e o pierdere DUBLĂ**, și merită știut la balans: `speed_ratio()` măsoară viteza curentă față de cea de start, deci încetinirea taie și din **Diesel Power** și din **Megane's Katana**. Invers, electroliții îi umflă.
+- ⚠️ **Fără plasă de siguranță pe viteză**, ca la Death Sentence: luat de multe ori te lasă aproape pe loc. Convenția casei, nu o scăpare.
+- Trabucul scrie **direct în `bullet_damage`**, spre deosebire de Cigarette Pack, care adună în `cig_bonus` (procent citit la fiecare lovitură). Deci nu sunt același lucru la scară diferită.
+
+### Verificat RULÂND jocul adevărat (scenă de test ștearsă după)
+
+- `hp_regen` 0 → **2** → **4**; viteza 215 → 236.50 → **260.15** (×1.21, deci chiar se compune); iar regenerarea **chiar intră în viață**: hp 100 → **104** după `_regen()`, nu doar un număr în panou (bug-ul Cigarette Pack din 2026-08-04 a fost exact ăsta — statul mergea, panoul mințea).
+- Trabucul: damage 15 → 21 → 29, raport **×1.400** exact; viteza **×0.750** la fiecare luare.
+- **Poză din meniul REAL de level up:** ambele carduri cu chenarul de raritate corect și iconițele întregi, iar panoul de STATS arată compromisul cum trebuie — **DAMAGE verde, MOVE SPEED roșu, HP REGEN verde**.
+- `tool_check_i18n` → **„✔ TOTUL E TRADUS"**, 283 chei × 8 limbi (4 chei noi: 2 nume + 2 descrieri).
+- **`scores.save` neatins** (ultima modificare rămasă 2026-07-07): player-ul a fost făcut nemuritor ÎNAINTE de orice și `GameSettings` n-a fost atins deloc.
+
+### De reținut
+
+- 🧹 **Nota veche „`levelup.gd` are CRLF, deci Edit pe mai multe linii eșuează" e DEPĂȘITĂ.** Măsurat pe 2026-08-17: `levelup.gd` are 1046 terminații LF și **0 CRLF**, la fel `i18n.gd`. Se editează normal.
+- **Iconițele de item sunt 128×128 și codul se bazează pe asta** (`chest_fx.gd` are chiar comentariul). Se afișează la 64×64 pe cardul de level up (celulă 88 − 12 margine ×2), ~92px la cufăr (cel mai mare loc din joc) și 48px în cazinou — deci 128 e destul peste tot, nu are rost mai mare. Pătrate obligatoriu (`STRETCH_KEEP_ASPECT_CENTERED` lasă benzi goale la dreptunghiuri) și **desenate gândind la 64**, fiindcă 128→64 e fix înjumătățire cu filtru NEAREST: detaliile de 1px dispar.
+- **Numere libere de iconițe** (fișiere pe disc pe care nu le folosește niciun item): **1, 2, 12, 26, 27, 37, 46**. Următorul nefolosit: `upgrade_61.png`.
+- ⚠️ **Chrome headless are nevoie de `--user-data-dir`** în mediul ăsta, altfel iese cu cod 0 și **nu scrie poza deloc** — arată exact ca o randare reușită dacă nu verifici că fișierul există. Codexul randat: **964.7 KB** (pagina albă ar fi ~154 KB), zero erori de consolă.
+- **Codexul e actualizat în repo dar NU republicat** — vezi regula nouă de sus: artifactul e *shared*, nu al contului de lucru.
 
 ---
 
