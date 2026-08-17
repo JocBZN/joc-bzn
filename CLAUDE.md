@@ -14,8 +14,87 @@ Quick rules:
 - **Testele care lasă player-ul să moară scriu în leaderboard-ul REAL** (`show_gameover` → `add_score` → `user://scores.save`). M-a prins de trei ori pe 2026-07-27. Ori ții inamicii departe, ori cureți scorul fals după verificare.
 - **⚠️ Și un test care schimbă ceva în `GameSettings` DOAR ÎN RAM poate ajunge în salvarea reală** (prins pe 2026-08-04 cu `op_start`): jocul cheamă `_save()` de la sine, iar `_save()` scrie TOATE valorile din memorie. Deci: ori nu atingi `GameSettings` înainte să pornești `main.tscn`, ori pui valoarea înapoi ȘI salvezi. Verifică la final ce-a rămas în fișier.
 - **Uneltele care au nevoie de autoload-uri se rulează ca SCENĂ, nu cu `--script`** — altfel dau „Identifier not found: GameSettings".
-- **Generator nou în `World` (main.tscn) → trece-l în `WORLD_NODES` din `nether.gd`, `limbo.gd` ȘI `ender.gd`.** Sunt trei liste separate; dacă lipsește dintr-una, generatorul rămâne aprins acolo și-i vezi obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de trei ori (EGT-uri, portaluri). **Singura excepție (din 2026-08-14): `Dubiosi`** — omul în palton apare NUMAI în Nether, deci lipsește dinadins din lista lui `nether.gd`, iar regula lui e scrisă invers, la el în generator (`dubiosi.gd` se uită la `nether.active` și se golește singur când nu ești acolo). În `limbo.gd` și `ender.gd` e trecut normal.
+- **Generator nou în `World` (main.tscn) → trece-l în `WORLD_NODES` din `nether.gd`, `limbo.gd`, `ender.gd` ȘI `prison.gd`** (a patra listă din 2026-08-17). Sunt patru liste separate; dacă lipsește dintr-una, generatorul rămâne aprins acolo și-i vezi obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de trei ori (EGT-uri, portaluri). **Singura excepție (din 2026-08-14): `Dubiosi`** — omul în palton apare NUMAI în Nether, deci lipsește dinadins din lista lui `nether.gd`, iar regula lui e scrisă invers, la el în generator (`dubiosi.gd` se uită la `nether.active` și se golește singur când nu ești acolo). În `limbo.gd` și `ender.gd` e trecut normal.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
+
+---
+
+## Session log — 2026-08-17 (PUȘCĂRIA — a patra dimensiune + THE WARDEN, boss cu 3 faze)
+
+**Cerut de Răzvan:** „vreau să adaug o dimensiune nouă finală ca o pușcărie și aș vrea să nu fie accesibilă decât după ce joci toate celelalte dimensiuni. Prison bg-ul pentru podea, prison statue pentru a spawna boss-ul, final_boss_directions e static sunt cele 4 poziții, final_boss_walking_animations sunt animațiile de mers — trebuie să le extragi singur din poză, și am 3 animații pentru atacurile boss-ului. Boss-ul va avea 3 faze: primul doar cu un atac, al 2lea cu 2 atacuri și al 3lea cu toate cele 3 și să devină mai rapid. Folosește enemy-ii care există deja, doar fă-i mai OP deocamdată."
+
+**Fișiere noi:** `prison.gd`, `prison_statue.gd` + `.tscn`, `final_boss.gd` + `.tscn`, `prison_inel.gd`, `prison_bolovan.gd`, `prison_laser.gd`, `harta/prison/` (49 PNG-uri tăiate). **Atinse:** `portals.gd`, `portal_ender.gd`, `ender.gd`, `nether.gd`, `limbo.gd`, `ground.gd`, `atmosphere.gd`, `spawner.gd`, `hud.gd`, `player.gd`, `i18n.gd`, `tool_check_i18n.gd`, `main.tscn`.
+
+### Cum se ajunge acolo — regula „doar după celelalte dimensiuni"
+
+**Nu e o verificare la ușă, e chiar lanțul lumii.** `portals.gd` avea două vârste; acum are **trei**, pe ACELEAȘI locuri din hartă (poziția e deterministă și nu se uită la vârstă):
+
+> portal Nether → *(cade Saratalin)* → fântână Ender → *(cade Celesto)* → **poartă de pușcărie**
+
+Deci până nu-i bați pe amândoi, poarta pur și simplu nu există. `ender.gd::_inchide_fantana` nu mai cheamă `portals.opreste()`, ci `treci_pe_prison()` — închiderea definitivă s-a mutat cu o dimensiune mai încolo, în `prison.gd::_inchide_poarta`.
+
+- **N-am făcut artă nouă de poartă**, fiindcă n-a venit niciuna: e tot `portal_ender.tscn`, cu un steag `prison` pus ÎNAINTE de `add_child` (își citește pielea în `_ready`). Se deosebește prin **culoare** (`prison_tint`, verde-piatră) și prin eticheta de deasupra.
+- ⚠️ **`eticheta()` întoarce text SIMPLU, fără `%s` și fără `tr()`** — `interact_ui.gd` îl pune ca atare pe Label, iar Godot îl traduce singur. Dacă i-aș fi lipit tasta („Press E to…"), cheia căutată ar fi fost textul deja compus și n-ar mai fi existat în tabel: rămânea englezesc în toate cele 9 limbi.
+
+### Arta — partea cea mai grea a sesiunii
+
+Cinci poze, din care **doar una era gata de folosit**. Ce a ieșit, în ordinea în care contează:
+
+**1. Podeaua.** Măsurat că `prison_bg.png` e **tileabilă** (diferența margine-stânga/margine-dreapta 15, față de 60 între două coloane oarecare). Micșorată de la 1254 la **209** — factor ÎNTREG (1254 = 6 × 209), altfel cusătura se strică.
+
+**2. Statuia.** Fundal gri-verzui plat (58,65,68), dar statuia e **tot gri**, deci o cheie pe culoare i-ar fi mâncat umbrele. Scoasă cu **flood fill de la margini**: se șterge doar fundalul LEGAT de bordură, interiorul rămâne orice culoare ar avea.
+
+**3. Boss-ul — trei încercări până a ieșit bine.** Foile au fundal magenta, iar cea de mers e **JPEG**, cu text negru peste („FRONT WALK CYCLE", „FRAME 1").
+   - **v1** (prag pe „magenta") → text rămas în cadre + franjuri roz pe lanțuri.
+   - **v2** (cheie pe alfa + „unmixing", `fg = (P − (1−a)·BG)/a`) → **mai rău**: JPEG-ul nu amestecă liniar, ci lasă un halou de ringing, iar împărțirea la alfa mic l-a amplificat și a scos magenta APRINS. De reținut: **unmixing-ul e corect matematic doar pe surse fără compresie.**
+   - **v3, cea bună:** cheie **BINARĂ** pe „magenta dominant" (`R > G+40 și B > G+40`) + **eroziune de 1px**, care mănâncă exact inelul contaminat. Plus o de-franjurare blândă (dacă și R, și B sunt peste G, le trag înapoi) — ⚠️ scrisă să NU atingă ochii roșii (la ei B rămâne mic) și nici muschiul verde (la el G e cel mare).
+   - **Textul negru** nu se scoate cu cheia (nu e magenta): fiecare cadru se taie la **bbox-ul pixelilor COLORAȚI** (`max(R,G,B) > 70`), în care textul nu intră.
+
+**4. ⚠️ Scara a trebuit NORMALIZATĂ între foi.** Pozițiile statice sunt desenate la ~540px înălțime, mersul la ~194 — dacă le lăsam așa, **boss-ul își schimba mărimea când se întorcea**. Fiecare foaie primește propriul factor (×0,256 și ×0,711), calculat ca personajul să iasă **138px** pe o pânză de 160. Și toate cadrele se așază cu **tălpile pe aceeași linie** și centrul pe aceeași coloană (lecția de la pompier).
+
+**5. ⚠️ Boss-ul ARE DOAR 4 DIRECȚII**, nu 8 — atâtea sunt desenate. `_uita_spre` rotunjește la cel mai apropiat SFERT de cerc, iar pe diagonale câștigă orizontala: profilul spune limpede încotro merge, fața/spatele nu. Mersul lateral are 3 cadre, cel din față/spate are 4, deci `_build_frames` nu presupune un număr fix — încarcă până nu mai găsește fișier.
+
+### Boss-ul: 3 faze, 3 atacuri
+
+| fază | prag | ce face |
+|---|---|---|
+| 1 | 100% → 70% | doar **INELUL** de piatră — undă care pleacă din el, „dă-te de pe mine" |
+| 2 | sub 70% | + **BOLOVANUL** care cade peste locul în care ești |
+| 3 | sub 40% | + **RAZA**, ȘI devine mai rapid: viteză **×1,45**, atacuri de **1,5× mai dese**, 3 bolovani odată |
+
+Pragurile sunt PROCENTE din viață (ca la Celesto/Saratalin), deci înseamnă același lucru la orice rundă. Viață **fixă 260 000**, nescalată — din același motiv.
+
+- **Inelul:** damage-ul se dă **când frontul ajunge la tine**, o singură dată (`_lovit`). Fugi în afara razei maxime → nu te atinge deloc. Ăsta e tot rostul lui.
+- **Bolovanul:** ținta se **îngheață la lansare** (unul care te urmărește până aterizează n-ar mai putea fi evitat), damage-ul e **la impact**, nu în cădere, iar pe pământ e desenat un **cerc de avertizare** care se strânge. Fără el atacul ar fi necinstit: vezi ceva căzând, dar nu ai de unde ști unde.
+- **Raza:** direcția se îngheață la începutul încărcării, deci ai `timp_incarcare` să ieși de pe linie. ⚠️ Cadrele sunt desenate cu raza pornind din STÂNGA pânzei → `offset.x = jumătate din pânză`, ca originea nodului să cadă pe capătul din care pleacă; altfel s-ar roti în jurul mijlocului ei.
+- **Contur roșu pe boss** (`contur_1px.gdshader`, ca la Celesto): e piatră gri-verzuie pe pavaj gri-verzui, deci fără el se pierde în fundal. Prins pe prima captură, nu în cod.
+
+### Inamicii: aceiași, dar mai OP
+
+Cerut explicit așa. `PRISON_FELURI` din `spawner.gd` trage la sorți din **toate cele 6 feluri existente**, iar `_ingroasa_pentru_puscarie()` le pune **×3 viață, ×1,25 viteză, ×1,6 damage** — cifrele stau în `prison.gd` (`ENEMY_POWER` / `ENEMY_SPEED` / `ENEMY_DAMAGE`), acolo unde se reglează dimensiunea. ⚠️ Se aplică ÎNAINTE de `add_child`, altfel viața e deja coaptă.
+
+### Două bug-uri prinse RULÂND, nu citind
+
+1. **`atmosphere.gd` ieșea din funcție dacă dimensiunea n-are shader propriu.** Pușcăria n-are (nu s-a cerut unul) → nici tenta nu se aplica, adică temnița arăta exact ca lumea normală. „Nu are shader" ≠ „shaderul lipsește de pe disc".
+2. **Tween pe `shader_parameter/amount` pe un material FĂRĂ shader** = „The tweened property does not exist", și rupea tot lanțul de stingere la ieșire. `set_shader_parameter` pe un material fără shader **nu înregistrează nimic**, deci garda trebuie pusă pe `_dim_mat.shader != null`, nu pe parametru.
+
+Plus: `load()` pe un cadru inexistent scrie o EROARE roșie înainte să întoarcă null — cu 4 direcții însemna 4 erori la fiecare invocare. Se verifică întâi cu `ResourceLoader.exists()`.
+
+### Verificat RULÂND cap-coadă (scenă de test ștearsă după)
+
+Lanțul: `ender=false/prison=false` → după Saratalin `ender=true` → după Celesto **`prison=true`** ✓ · intrare: copaci **49 → 0**, podea `grass → prison_bg.png`, `frozen=true`, `xp_bonus=4.0` ✓ · statuia la **933px** de poartă (inel cerut 750–1250) ✓ · **27 de inamici, toate cele 6 feluri**, `power_mult=3.0` ✓ · statuia scoate boss-ul, cadre **east=3 south=4 west=3 north=4** + pozele de stat pe loc ✓ · fazele **1 → 2 → 3**, viteza **62 → 90 (×1.45)** ✓ · toate trei atacurile chiar ies în lume ✓ · **poarta refuză să se deschidă cu boss-ul viu**, se deschide după ce cade ✓ · ieșire: copaci 49, podea iarbă, `frozen=false`, `xp_bonus=1.0`, `portals.oprit=true` ✓ · **zero erori în consolă** · boss **165px pe ecran față de 59px la un inamic** (×2,8).
+
+`tool_check_i18n` → **„✔ TOTUL E TRADUS"**, 304 chei × 8 limbi (22 chei noi).
+
+⚠️ **`scores.save` a fost REscris de joc** (nu de test): niciun scor fals adăugat, cel mai mic rămâne 39,5s, 330 monede, setările neatinse. Player-ul a fost făcut nemuritor înainte de orice, iar `GameSettings` n-a fost atins — dar jocul cheamă `_save()` de la sine, deci **data fișierului se schimbă oricum**. Verifică CONȚINUTUL, nu data.
+
+### Rămas de făcut / de știut
+
+- **Numele boss-ului („THE WARDEN") e ales de mine** — Răzvan nu i-a dat unul. Se schimbă în `final_boss.gd` (`@export var nume`) + rândurile din `i18n.gd`.
+- **N-are shader de atmosferă propriu** (Nether are scântei, Ender are stele). Pușcăria are doar culoarea + vinieta. Se adaugă în `DIM_SHADERS` dacă se vrea.
+- **N-are muzică proprie:** împrumută bucla Nether-ului, ca Ender-ul.
+- **Boss-ul n-are animație de atac sau de moarte** (arta are doar mers), deci atacurile pleacă din clipa deciziei, iar moartea e un tween — exact ca la Celesto.
+- **Statuia se pune de `prison.gd`, nu de un generator pe chunk-uri**, deci NU trebuie trecută în listele `WORLD_NODES` — capcana aia n-a fost atinsă aici.
 
 ---
 

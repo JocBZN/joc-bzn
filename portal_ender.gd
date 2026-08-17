@@ -26,6 +26,14 @@ const GroundShadow := preload("res://ground_shadow.gd")   # aceeași umbră ca l
 @export var interact_range: float = 200.0   # cât de aproape trebuie să fii ca să apară textul
 @export var retur: bool = false             # true doar pe fântâna de întoarcere din Ender
 
+# A TREIA VÂRSTĂ (2026-08-17): după ce cade Celesto, ACELEAȘI locuri scot PORȚI DE PUȘCĂRIE.
+# Aceeași artă, alt rol și altă culoare — deci nu e o scenă nouă, e un steag.
+# ⚠️ Se pune ÎNAINTE de `add_child` (o face `portals.gd`): pielea se scrie în `_ready()`.
+@export var prison: bool = false
+# Verde-piatră stinsă, ca mucegaiul de pe pavajul temniței. Ca să nu confunzi o poartă de
+# pușcărie cu o fântână Ender de la distanță — sunt același desen.
+@export var prison_tint: Color = Color(0.62, 0.78, 0.60)
+
 # Închiderea definitivă (după ce ai ieșit învingător): intră în pământ, ca portalul Nether-ului.
 @export var sink_duration: float = 1.0
 @export var sink_depth: float = 90.0
@@ -78,6 +86,26 @@ func _ready() -> void:
 	add_to_group("interactable")   # de aici vine textul „Press E to interact" (`interact_ui.gd`)
 	_material_propriu()
 	_construieste_talpa()
+	if prison:
+		# poarta de pușcărie: aceeași piatră, altă culoare, ca să se vadă de departe că e altceva
+		var m := _mat()
+		if m != null:
+			var c := prison_tint
+			c.a = 1.0
+			m.set_shader_parameter("tint", c)
+
+# Textul de deasupra. `interact_ui.gd` îl folosește dacă există (vezi cufărul încuiat). Fântâna
+# Ender n-avea nevoie de el — „Press E to interact" era destul; poarta de pușcărie da, fiindcă
+# altfel arată exact ca o fântână și n-ai de unde ști unde duce.
+#
+# ⚠️ FĂRĂ `%s` și fără `tr()`. `interact_ui.gd` pune textul ăsta ca atare pe Label, iar Godot îl
+# traduce singur — deci trebuie să fie exact cheia din `i18n.gd`. Dacă i-am lipi tasta („Press E
+# to…"), cheia căutată ar fi textul deja compus și n-ar mai exista în tabel: ar rămâne englezesc
+# în toate cele 9 limbi. Aceeași capcană ca la rândurile cu cifre din HUD.
+func eticheta() -> String:
+	if not prison:
+		return ""
+	return "Leave the Prison" if retur else "Enter the Prison"
 
 # Piatra fântânii se stinge și se colorează prin `shader_parameter/tint`, NU prin `modulate`
 # (vezi comentariul din `portal_ender.gdshader`: shaderul își citește singur textura, deci
@@ -158,6 +186,17 @@ func poate_invoca() -> bool:
 	return true
 
 func invoca() -> void:
+	# A treia vârstă: aceeași artă, altă dimensiune. Steagul îl pune `portals.gd` la naștere.
+	if prison:
+		var pris := get_tree().get_first_node_in_group("prison")
+		if pris == null:
+			return
+		if retur:
+			pris.exit_prison()
+		else:
+			var p := get_tree().get_first_node_in_group("player") as Node2D
+			pris.enter(p, self)
+		return
 	var ender := get_tree().get_first_node_in_group("ender")
 	if ender == null:
 		return

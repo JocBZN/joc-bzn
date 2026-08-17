@@ -1816,6 +1816,11 @@ func die() -> void:
 	var ender := get_tree().get_first_node_in_group("ender")
 	if ender != null and ender.active:
 		ender.exit_ender(false)
+	# ...și pentru Pușcărie (a patra). Fără linia asta ai rămâne mort într-o temniță fără decor,
+	# cu `Difficulty.frozen` agățat pe true în runda următoare.
+	var prison := get_tree().get_first_node_in_group("prison")
+	if prison != null and prison.active:
+		prison.exit_prison(false)
 	dead = true
 	var screen := get_tree().get_first_node_in_group("gameover_screen")
 	if screen != null:

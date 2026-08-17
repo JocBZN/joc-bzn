@@ -33,9 +33,14 @@ var _loaded := {}
 # Fiindcă poziția e calculată determinist, fără să se uite la vârstă, fiecare fântână răsare
 # EXACT unde stătea portalul ei.
 var ender := false
-# Închiderea definitivă pentru runda asta: după ce cade și Undead Executioner-ul și ai ieșit
-# din Ender (vezi `ender.gd`). Cât e `true` nu mai generăm nimic — nici în chunk-urile în care
-# ai fi ajuns abia peste zece minute.
+# ...și a TREIA vârstă (2026-08-17): după ce cade Celesto și ai ieșit din Ender, aceleași locuri
+# scot PORȚI DE PUȘCĂRIE. Tot `portal_ender.tscn`, dar cu `prison = true` — vezi `portal_ender.gd`.
+# Asta e, de fapt, regula „pușcăria nu e accesibilă până n-ai jucat celelalte dimensiuni": nu e o
+# verificare la intrare, e chiar lanțul lumii — până nu cad amândoi boșii, poarta nu există.
+var prison := false
+# Închiderea definitivă pentru runda asta: după ce cade și WARDEN-ul și ai ieșit din Pușcărie
+# (vezi `prison.gd`). Cât e `true` nu mai generăm nimic — nici în chunk-urile în care ai fi ajuns
+# abia peste zece minute. (Până pe 2026-08-17 se oprea o dimensiune mai devreme, după Ender.)
 var oprit := false
 var _props: Node2D = null     # nodul Props (copacii)
 var _rocks: Node2D = null     # nodul Rocks (pietrele)
@@ -132,6 +137,18 @@ func treci_pe_ender() -> void:
 	ender = true
 	_goleste()
 
+# Celesto a căzut și te-ai întors în lume: de aici încolo locurile astea scot PORȚI DE PUȘCĂRIE.
+# Aceeași mecanică ca `treci_pe_ender` — poziția e deterministă și nu se uită la vârstă, deci
+# fiecare poartă răsare fix unde stătea fântâna ei. Poarta prin care tocmai ai ieșit din Ender NU
+# e printre cele șterse: `ender.gd` o scoate din generator înainte să ne cheme, ca să apuce să
+# intre frumos în pământ.
+func treci_pe_prison() -> void:
+	if prison or oprit:
+		return
+	prison = true
+	ender = true     # rămâne pe arta de fântână, doar rolul se schimbă
+	_goleste()
+
 # Gata cu tot în runda asta: nu mai generăm nimic și ștergem ce e deja pe hartă. Chemată din
 # `ender.gd`, după ce ai bătut Undead Executioner-ul și ai ieșit; fântâna prin care ai ieșit
 # e și ea scoasă din generator înainte, ca să se scufunde la vedere.
@@ -152,6 +169,11 @@ func _build_chunk(key: Vector2i) -> Node2D:
 	var pos := chunk_portal_pos(key)
 	if pos != Vector2.INF:
 		var s: Node2D = (FANTANA if ender else PORTAL).instantiate()
+		# ⚠️ `prison` se pune ÎNAINTE de `add_child`: `portal_ender.gd` își citește pielea (culoarea
+		# și eticheta) în `_ready()`, adică fix la intrarea în arbore. Pus după, ar rămâne fântână
+		# la vedere, deși ar duce în pușcărie.
+		if prison:
+			s.prison = true
 		s.position = pos
 		container.add_child(s)
 	return container

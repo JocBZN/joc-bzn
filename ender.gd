@@ -139,8 +139,8 @@ func _ready() -> void:
 func enter(player: Node2D, fantana: Node2D) -> void:
 	if active or player == null or player.dead or fantana == null:
 		return
-	# Nu intrăm peste Limbo sau peste Nether: și ele opresc decorul și rescriu dificultatea.
-	for g in ["limbo", "nether"]:
+	# Nu intrăm peste Limbo, Nether sau Pușcărie: și ele opresc decorul și rescriu dificultatea.
+	for g in ["limbo", "nether", "prison"]:
 		var alta := get_tree().get_first_node_in_group(g)
 		if alta != null and alta.active:
 			return
@@ -225,7 +225,7 @@ func exit_ender(anunt: bool = true) -> void:
 	if anunt:
 		Audio.play("teleport", TELEPORT_DB, 0.0)
 		_flash_screen()
-		_announce("BACK", "The well is closing")
+		_announce("BACK", "The wells have become gates")
 		_inchide_fantana()
 
 func _process(delta: float) -> void:
@@ -350,7 +350,13 @@ func _bara_boss(on: bool) -> void:
 # Se cheamă doar de pe drumul VOLUNTAR de ieșire, care există numai după ce boss-ul a căzut.
 func _inchide_fantana() -> void:
 	var portals := _generator("Portals")
-	if portals != null and portals.has_method("opreste"):
+	# ⚠️ SCHIMBAT pe 2026-08-17: până acum aici se chema `opreste()` și runda se termina cu Ender-ul.
+	# Acum locurile astea trec la a TREIA vârstă și scot PORȚI DE PUȘCĂRIE (`prison.gd`) — exact așa
+	# se ține regula „pușcăria nu e accesibilă până n-ai jucat celelalte dimensiuni". Închiderea
+	# definitivă s-a mutat cu o dimensiune mai încolo, în `prison.gd::_inchide_poarta`.
+	if portals != null and portals.has_method("treci_pe_prison"):
+		portals.treci_pe_prison()
+	elif portals != null and portals.has_method("opreste"):
 		portals.opreste()
 	if _fantana == null or not is_instance_valid(_fantana):
 		return

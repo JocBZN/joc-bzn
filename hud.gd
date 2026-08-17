@@ -221,9 +221,11 @@ func _update_timer() -> void:
 	var limbo := get_tree().get_first_node_in_group("limbo")
 	var nether := get_tree().get_first_node_in_group("nether")
 	var ender := get_tree().get_first_node_in_group("ender")   # la fel ca Nether-ul: 6:00-ul lui și-l desenează singur
+	var prison := get_tree().get_first_node_in_group("prison") # ...și 5:00-ul Pușcăriei, tot al ei
 	timer_label.visible = not ((limbo != null and limbo.active) \
 		or (nether != null and nether.active) \
-		or (ender != null and ender.active))
+		or (ender != null and ender.active) \
+		or (prison != null and prison.active))
 	if not timer_label.visible:
 		return
 	if Difficulty.is_final_swarm():

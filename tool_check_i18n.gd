@@ -34,6 +34,9 @@ const FISIERE_UI := [
 	"res://casino.gd", "res://egt.gd",
 	"res://alba_menu.gd",   # Alba-Neagra (2026-08-11)
 	"res://dubios_menu.gd", # marfa dubiosului (2026-08-12)
+	# Pușcăria, a patra dimensiune (2026-08-17): dimensiunea, statuia care scoate boss-ul, boss-ul
+	# însuși, plus `portal_ender.gd` — el dă acum din `eticheta()` textul de deasupra porții.
+	"res://prison.gd", "res://prison_statue.gd", "res://final_boss.gd", "res://portal_ender.gd",
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [
@@ -119,7 +122,7 @@ func _verifica_tr() -> void:
 func _avertizeaza_text_direct() -> void:
 	print("[5] texte puse direct pe noduri (doar avertisment)")
 	var re := RegEx.new()
-	re.compile('(?:\\.text\\s*=\\s*|_center_label\\(|_header\\(|_menu_button\\(|_button\\(|_title\\(|_buton\\(|_volume_row\\(|_toggle_row\\(|announce\\(|_announce\\(|_spune\\(|_cutie\\(|text_popup\\([^,]+,\\s*)"((?:[^"\\\\]|\\\\.)*)"')
+	re.compile('(?:\\.text\\s*=\\s*|_center_label\\(|_header\\(|_menu_button\\(|_button\\(|_title\\(|_buton\\(|_volume_row\\(|_toggle_row\\(|announce\\(|_announce\\(|_anunta\\(|_spune\\(|_cutie\\(|text_popup\\([^,]+,\\s*)"((?:[^"\\\\]|\\\\.)*)"')
 	var vazute := {}
 	for f in FISIERE_UI:
 		for m in re.search_all(_citeste(f)):

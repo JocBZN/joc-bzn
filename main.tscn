@@ -23,6 +23,7 @@
 [ext_resource type="Script" path="res://egts.gd" id="22_egts"]
 [ext_resource type="Script" path="res://casino.gd" id="23_casino"]
 [ext_resource type="Script" path="res://ender.gd" id="24_ender"]
+[ext_resource type="Script" path="res://prison.gd" id="30_prison"]
 [ext_resource type="Script" path="res://monuments.gd" id="25_monuments"]
 [ext_resource type="Script" path="res://ender_statues.gd" id="26_ender_statues"]
 [ext_resource type="Script" path="res://trade.gd" id="27_trade"]
@@ -140,6 +141,9 @@ script = ExtResource("19_nether")
 
 [node name="Ender" type="CanvasLayer" parent="."]
 script = ExtResource("24_ender")
+
+[node name="Prison" type="CanvasLayer" parent="."]
+script = ExtResource("30_prison")
 
 [node name="BossBar" type="CanvasLayer" parent="."]
 script = ExtResource("20_bossbar")

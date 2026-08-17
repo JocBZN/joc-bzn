@@ -172,10 +172,13 @@ func _ready() -> void:
 func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	if active or player == null or player.dead:
 		return
-	# Nu intrăm peste Limbo: și el oprește decorul și rescrie dificultatea, s-ar bate cap în cap.
-	var limbo := get_tree().get_first_node_in_group("limbo")
-	if limbo != null and limbo.active:
-		return
+	# Nu intrăm peste Limbo sau peste Pușcărie: și ele opresc decorul și rescriu dificultatea,
+	# s-ar bate cap în cap. (Ender-ul nu poate fi activ aici — portalurile Nether nu mai există
+	# după ce s-a trecut la fântâni.)
+	for g in ["limbo", "prison"]:
+		var alta := get_tree().get_first_node_in_group(g)
+		if alta != null and alta.active:
+			return
 	active = true
 	_player = player
 	_elapsed = 0.0

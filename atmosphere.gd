@@ -34,6 +34,10 @@ const DIM_TINT := {
 	"": Color(1.0, 1.0, 1.0),
 	"nether": Color(1.05, 0.80, 0.72),
 	"ender": Color(0.68, 0.80, 1.12),
+	# PUȘCĂRIA: lumină rece de temniță, stinsă și ușor verzuie (mucegai pe piatră). Nu coborâm
+	# tare toate canalele — pavajul e deja închis, iar inamicii trebuie să rămână vizibili pe el.
+	# N-are shader propriu (nu i s-a cerut unul): doar culoarea + vinieta obișnuită.
+	"prison": Color(0.74, 0.82, 0.74),
 }
 const DIM_FADE := 0.8         # în câte secunde intră/iese atmosfera (fulgerul de teleportare ține 0.45)
 
@@ -129,9 +133,14 @@ func _setup_dimension() -> void:
 func set_dimension(kind: String) -> void:
 	if _dim_modulate == null or kind == _dim_kind:
 		return
+	# ⚠️ O dimensiune poate să NU aibă efect pe ecran, și e în regulă: Pușcăria are doar culoarea
+	# lumii (n-a fost cerut un shader pentru ea). Până pe 2026-08-17 lipsa lui era tratată ca
+	# eroare și se ieșea din funcție — adică nici tenta nu se mai aplica, iar temnița ar fi arătat
+	# exact ca lumea normală. Deci: „nu are shader" ≠ „shaderul lipsește de pe disc".
 	var shader: Shader = null
-	if kind != "":
-		shader = load(DIM_SHADERS.get(kind, "")) as Shader
+	var cale: String = DIM_SHADERS.get(kind, "")
+	if kind != "" and cale != "":
+		shader = load(cale) as Shader
 		if shader == null:
 			push_warning("Atmosphere: lipsește shaderul dimensiunii " + kind)
 			return
@@ -145,10 +154,20 @@ func set_dimension(kind: String) -> void:
 	_dim_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	_dim_tween.set_parallel(true)
 	_dim_tween.tween_property(_dim_modulate, "color", DIM_TINT.get(kind, DIM_TINT[""]), DIM_FADE)
-	if kind == "":
-		_dim_tween.tween_property(_dim_mat, "shader_parameter/amount", 0.0, DIM_FADE)
-		# ascuns abia DUPĂ stingere, altfel efectul ar dispărea dintr-o bucată
-		_dim_tween.chain().tween_callback(_hide_dimension)
+	if shader == null:
+		# ori ieșim din dimensiune (`kind == ""`), ori dimensiunea asta n-are efect pe ecran
+		# (Pușcăria) — în amândouă cazurile stingem stratul de deasupra și lăsăm doar culoarea.
+		#
+		# ⚠️ Tween-ul pe `shader_parameter/amount` merge DOAR dacă materialul are deja un shader.
+		# Dacă intri direct din lume în Pușcărie, nu i s-a pus niciodată vreunul, iar Godot dă
+		# „The tweened property does not exist" și rupe tot lanțul de stingere. `set_shader_parameter`
+		# pe un material FĂRĂ shader nu înregistrează nimic, deci nu ajută — trebuie verificat shaderul.
+		if _dim_mat.shader != null and _dim_mat.get_shader_parameter("amount") != null:
+			_dim_tween.tween_property(_dim_mat, "shader_parameter/amount", 0.0, DIM_FADE)
+			# ascuns abia DUPĂ stingere, altfel efectul ar dispărea dintr-o bucată
+			_dim_tween.chain().tween_callback(_hide_dimension)
+		else:
+			_hide_dimension()   # n-are ce se stinge: stratul n-a fost aprins niciodată
 	else:
 		_dim_mat.shader = shader
 		# prima intrare: parametrul n-a fost scris niciodată, iar un tween nu poate porni de la

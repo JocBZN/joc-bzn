@@ -35,6 +35,11 @@ const ENEMY_SWAT := preload("res://enemy_swat.tscn")
 # `homeless directii/Firefighter/`.
 const ENEMY_FIREFIGHTER := preload("res://enemy_firefighter.tscn")
 
+# Ce curge în PUȘCĂRIE: toate felurile din joc, amestecate în părți egale. Nu sunt inamici noi —
+# sunt exact ăștia, doar îngroșați (vezi `prison.gd::ENEMY_POWER` și `_spawn_enemy` mai jos).
+# Dacă adaugi vreodată un inamic nou și vrei să apară și acolo, îl treci aici.
+const PRISON_FELURI := [ENEMY, ENEMY_SKINNY, ENEMY_SWAT, ENEMY_FIREFIGHTER, ENEMY_NETHER, ENEMY_ENDER]
+
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
 @export var spawn_distance: float = 700.0
@@ -287,7 +292,7 @@ func rata_curenta() -> float:
 
 # Suntem în lumea obișnuită (sau în Limbo, care e tot ea, cu un minut în urmă)?
 func _in_lumea_normala() -> bool:
-	for grup in ["nether", "ender"]:
+	for grup in ["nether", "ender", "prison"]:
 		var d := get_tree().get_first_node_in_group(grup)
 		if d != null and d.get("active") == true:
 			return false
@@ -335,6 +340,7 @@ func _spawn_enemy() -> void:
 	# normală" e una, „mai tare decât boss-ul" e alta.
 	if (scena == ENEMY or scena == ENEMY_SKINNY) and _scapat_din_nether():
 		enemy.power_mult = escaped_power_mult
+	_ingroasa_pentru_puscarie(enemy)
 	# Inamicii apar într-un con de ±`spawn_cone_deg` în jurul privirii. Cu 180 (implicit de pe
 	# 2026-07-28) conul e cercul întreg, deci te înconjoară — nu mai vin doar din față.
 	# Când stai pe loc, privirea rămâne ultima direcție de mers.
@@ -353,6 +359,34 @@ func _spawn_enemy() -> void:
 	var ground := get_tree().get_first_node_in_group("ground")
 	if ground != null and ground.has_method("loc_in_margine"):
 		poz = ground.loc_in_margine(player.global_position, poz)
+	enemy.global_position = poz
+
+# PUȘCĂRIA: aceiași inamici, dar mai OP. Cele trei cifre stau în `prison.gd` (ENEMY_POWER /
+# ENEMY_SPEED / ENEMY_DAMAGE), nu aici — acolo e locul unde se reglează dimensiunea.
+#
+# ⚠️ Se cheamă ÎNAINTE de `add_child`, ca tot ce se coace în `enemy.gd::_ready()` (viața, viteza
+# finală) să apuce valorile astea. După `add_child` n-ar mai avea niciun efect pe viață.
+#
+# ⚠️ Se aplică PESTE `power_mult` pus mai sus, nu în locul lui — dar în pușcărie `_scapat_din_nether()`
+# e oricum fals (verifică să nu fii într-o dimensiune), deci în practică nu se suprapun.
+func _ingroasa_pentru_puscarie(enemy: Node) -> void:
+	var pr := get_tree().get_first_node_in_group("prison")
+	if pr == null or pr.get("active") != true:
+		return
+	enemy.power_mult = float(enemy.power_mult) * float(pr.ENEMY_POWER)
+	enemy.speed = float(enemy.speed) * float(pr.ENEMY_SPEED)
+	enemy.damage_mult = float(enemy.damage_mult) * float(pr.ENEMY_DAMAGE)
+
+# Naște un inamic la o poziție anume, cu toate îngroșările la locul lor. O cere `prison.gd`
+# pentru valul de la intrare — ca să nu-și facă el o copie a logicii de mai sus și să rămână
+# în urmă la prima schimbare.
+func naste_inamic_aici(poz: Vector2) -> void:
+	var player := get_tree().get_first_node_in_group("player") as Node2D
+	if player == null:
+		return
+	var enemy := _scena_inamic().instantiate()
+	_ingroasa_pentru_puscarie(enemy)
+	player.get_parent().add_child(enemy)
 	enemy.global_position = poz
 
 # De la ce distanță apar. Niciodată mai aproape decât colțul ecranului + `spawn_margin`, ca să
@@ -375,6 +409,13 @@ func _distanta_spawn() -> float:
 # Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el ține
 # atât `active`, cât și `escaped`. Dacă lipsește (o scenă de test fără el), rămân cei normali.
 func _scena_inamic() -> PackedScene:
+	# PUȘCĂRIA (a patra) n-are inamici desenați ai ei: cerut explicit — „folosește enemy-ii care
+	# există deja, doar fă-i mai OP deocamdată". Deci trage la sorți din TOATE felurile din joc,
+	# cu ponderi egale, iar îngroșarea o face `_spawn_enemy` (viață, viteză, damage).
+	# Se întreabă PRIMA: în pușcărie nu poți fi în altă dimensiune.
+	var pr := get_tree().get_first_node_in_group("prison")
+	if pr != null and pr.get("active") == true:
+		return PRISON_FELURI[randi() % PRISON_FELURI.size()]
 	# Ender-ul (a treia dimensiune) ÎȘI ARE inamicii lui de pe 2026-08-04 (`enemy_ender.tscn`).
 	# Se întreabă primul: în Ender nu poți fi și în Nether.
 	var e := get_tree().get_first_node_in_group("ender")

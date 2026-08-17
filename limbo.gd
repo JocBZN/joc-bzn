@@ -225,7 +225,7 @@ func time_left() -> float:
 # În ce dimensiune ai murit? `null` = lumea normală. Nu poți fi în două deodată (`ender.gd` și
 # `nether.gd` se refuză reciproc la intrare), deci primul găsit e cel bun.
 func _dimensiunea_activa() -> Node:
-	for g in ["nether", "ender"]:
+	for g in ["nether", "ender", "prison"]:
 		var d := get_tree().get_first_node_in_group(g)
 		if d != null and d.get("active") == true and d.has_method("suspenda"):
 			return d
