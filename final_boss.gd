@@ -36,7 +36,12 @@ const INEL := preload("res://prison_inel.gd")
 const BOLOVAN := preload("res://prison_bolovan.gd")
 const LASER := preload("res://prison_laser.gd")
 
-@export var speed: float = 62.0          # greoi: e un munte de piatră, nu un alergător
+# ⚠️ 140, nu 62 (urcat pe 2026-08-17). Judecata inițială — „e un munte de piatră, deci greoi" —
+# era greșită în practică: player-ul merge cu 215+, iar Warden-ul, spre deosebire de Saratalin
+# (care cade peste tine) și Celesto (care se teleportează în spatele tău), **n-are cum să se
+# apropie**. La 62 îl lăsai în urmă la pas și lupta devenea o plimbare. La 140 te ajunge din urmă
+# dacă stai, iar în faza 3 (×1.45 = 203) te presează serios fără să te întreacă.
+@export var speed: float = 140.0
 # Viață FIXĂ, nescalată cu dificultatea — ca la Saratalin (10 000) și Celesto (100 000), și din
 # același motiv: pragurile de fază trebuie să cadă în același loc la fiecare rundă. Mai mult
 # decât Celesto, fiindcă ca să ajungi aici trebuie să-l fi bătut deja pe el.

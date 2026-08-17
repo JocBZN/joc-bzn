@@ -23,7 +23,10 @@ const STATUIE := preload("res://prison_statue.tscn")
 # --- reglaje ---
 const PRISON_TIME := 300.0      # 5:00 — mai scurt decât Ender-ul (6:00): e ultima, deci mai apăsată
 const XP_BONUS := 4.0           # Nether 2, Ender 3, aici 4
-const BURST := 26               # câți inamici apar DEODATĂ la intrare
+# ⚠️ 8, nu 26 (2026-08-17, după ce Răzvan a jucat-o): la 26 mureai în prima secundă și nici nu
+# apucai să pleci de lângă poartă. Nether-ul scoate 25, dar acolo inamicii au 50 HP și damage 1.0;
+# aici sunt cei mai duri din joc, îngroșați. Valul e un „bun venit", nu execuția.
+const BURST := 8                # câți inamici apar DEODATĂ la intrare
 const BURST_RADIUS := 640.0
 const FLASH := 0.45
 const CLOCK_SIZE := 64
@@ -32,10 +35,11 @@ const CLOCK_WARN := Color(1.0, 0.82, 0.20)
 const CLOCK_SWARM := Color(1.0, 0.10, 0.10)
 const COMPASS_MARGIN := 96.0
 const TELEPORT_DB := -4.0
-# Unde punem statuia: un INEL în jurul porții. Destul de departe cât s-o cauți, destul de aproape
-# cât s-o găsești cu busola.
-const STATUIE_MIN_DIST := 750.0
-const STATUIE_MAX_DIST := 1250.0
+# Unde punem statuia: un INEL în jurul porții. ⚠️ APROPIATĂ pe 2026-08-17 (era 750–1250): Răzvan
+# n-o găsea, fiindcă murea pe drum. La 380–620 o vezi aproape imediat ce aterizezi, iar busola te
+# duce la ea oricum. Boss-ul e miezul dimensiunii — n-are rost s-o faci o vânătoare.
+const STATUIE_MIN_DIST := 380.0
+const STATUIE_MAX_DIST := 620.0
 const SHAKE_STRENGTH := 24.0
 const SHAKE_TIME := 0.9
 
@@ -49,10 +53,39 @@ var active := false
 
 # Cât de îngroșați sunt inamicii de aici. Cerut de Răzvan: „folosește enemy-ii care există deja,
 # doar fă-i mai OP deocamdată". Îl citește `spawner.gd` și îl pune pe `enemy.gd::power_mult`
-# ÎNAINTE de `add_child` (acolo se coace viața), plus un plus de viteză și de damage la contact.
-const ENEMY_POWER := 3.0        # de câte ori mai multă viață
-const ENEMY_SPEED := 1.25       # de câte ori mai iuți
-const ENEMY_DAMAGE := 1.6       # de câte ori lovesc mai tare la contact
+# ÎNAINTE de `add_child` (acolo se coace viața), plus un plus de viteză.
+#
+# ⚠️ CIFRELE ASTEA AU FOST TĂIATE pe 2026-08-17, după ce Răzvan a jucat-o: „se buguiește,
+# monstrul nu apare și mă bagă random în Limbo". Nu era un bug — MUREA în prima secundă și nu mai
+# apuca să găsească statuia. Erau 3.0 / 1.25 / 1.6.
+#
+# 🔑 Ce l-a omorât e DAMAGE-UL, nu viața. Damage-ul de contact se plătește PER INAMIC LIPIT DE
+# TINE, la fiecare 0,5 s (`player._take_contact_damage`), și se înmulțește deja de două ori:
+# o dată cu `damage_mult` al felului (creatura Ender are 2.0, pompierul 2.0, SWAT 1.3) și o dată
+# cu `Difficulty.enemy_damage_mult()`, care la minutul la care ajungi în pușcărie e ~×2,5. Un al
+# treilea multiplicator de la mine peste ele înmulțea, nu aduna: 5 × 2,5 × 2,0 × 1,6 = 40 de damage
+# per creatură, la fiecare jumătate de secundă. Cu cinci pe tine, 400/s dintr-o viață de ~150.
+#
+# Deci „mai OP" înseamnă acum: mai GRAȘI (îi tai mai greu) și puțin mai iuți — dar damage-ul îl
+# lăsăm în pace, fiindcă el e cel care se înmulțește cu numărul lor.
+# ⚠️ 1.25, nu 3.0 cum era la prima scriere. Viața în plus e cea care te omoară INDIRECT: la
+# minutul 8 inamicii au deja ×16,3 din dificultate, iar dacă nu-i mai poți curăța se adună pe
+# tine, iar damage-ul de contact se plătește per inamic. Îngroșarea adevărată a pușcăriei nu e
+# multiplicatorul ăsta, ci FAPTUL CĂ VIN TOATE FELURILE DEODATĂ: în lumea normală te bat mai ales
+# polițiști, aici îți vin SWAT, pompieri și creaturi de Ender în același val.
+const ENEMY_POWER := 1.25       # de câte ori mai multă viață
+const ENEMY_SPEED := 1.10       # de câte ori mai iuți
+const ENEMY_DAMAGE := 1.0       # NU-l urca fără să măsori întâi cât încasezi pe secundă
+
+# 🔑 CÂT DE DEASĂ E PLOAIA. Ăsta e butonul care chiar a salvat dimensiunea, și merită explicat.
+# Ca să ajungi în pușcărie trebuie să treci prin Nether ȘI Ender, adică ajungi târziu în rundă —
+# măsurat la 8:00: `Difficulty.spawn_mult()` e **6,48**, iar viața inamicilor ×16,3. Cu atâția pe
+# secundă și cu ei îngroșați pe deasupra, nu-i mai poți curăța, se adună pe tine, iar damage-ul de
+# contact se plătește PER INAMIC — 109 damage/secundă măsurat, adică 1,4 secunde de viață.
+#
+# Deci problema nu era „cât de tare lovește unul", ci CÂȚI ajung pe tine. Aici e o luptă cu boss,
+# nu o hoardă: gloata trebuie să fie fundal, nu execuție. Îl citește `spawner.gd::rata_curenta()`.
+const SPAWN_MULT := 0.35
 
 var _flash: ColorRect
 var _clock: Label
@@ -277,7 +310,11 @@ func reia() -> void:
 	_park_boss(false)
 	_bara_boss(true)
 
-func _arata_obiect(n: Node2D, on: bool) -> void:
+# ⚠️ Parametrul e NETIPIZAT dinadins. Statuia se șterge singură după ce scoate boss-ul, deci
+# `_statuie` rămâne o referință MOARTĂ — iar dacă parametrul e `Node2D`, Godot crapă la APEL
+# („The Object-derived class of argument 1 (previously freed)…"), înainte să apuce `_ready`-ul
+# funcției să verifice `is_instance_valid`. Prins rulând: crăpa la întoarcerea din Limbo.
+func _arata_obiect(n, on: bool) -> void:
 	if n == null or not is_instance_valid(n):
 		return
 	n.visible = on

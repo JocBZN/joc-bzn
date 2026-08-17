@@ -26,12 +26,10 @@ const CADRE_IMPACT := 4     # frame_5 .. frame_8
 @export var timp_impact: float = 0.55
 
 var _anim: AnimatedSprite2D
-var _tinta := Vector2.ZERO
 var _t := 0.0
 var _in_impact := false
 
 func _ready() -> void:
-	_tinta = global_position
 	_anim = AnimatedSprite2D.new()
 	_anim.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var frames := SpriteFrames.new()
@@ -96,7 +94,13 @@ func _impact() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null or player.dead:
 		return
-	if _tinta.distance_to(player.global_position) <= raza_impact:
+	# ⚠️ Ținta se citește ACUM, din `global_position`, NU dintr-o copie luată în `_ready()`.
+	# Bug prins rulând (2026-08-17): cine naște bolovanul face `add_child` și ABIA APOI îi pune
+	# poziția — adică `_ready()` rula pe poziția veche, iar bolovanul cădea la vedere peste tine
+	# dar socotea damage-ul față de alt punct. Rezultat: atacul arăta perfect și nu lovea NICIODATĂ.
+	# Nodul nu se mișcă pe orizontală (coboară doar sprite-ul), deci `global_position` E locul
+	# impactului. Aceeași capcană ca la `scythe.gd` — vezi comentariul din `celesto.gd::_coasa`.
+	if global_position.distance_to(player.global_position) <= raza_impact:
 		player.take_damage(maxi(1, int(round(damage * Difficulty.enemy_damage_mult()))))
 
 # Cercul de avertizare de pe pământ, cât cade bolovanul.

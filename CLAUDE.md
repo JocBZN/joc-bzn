@@ -88,6 +88,29 @@ Lanțul: `ender=false/prison=false` → după Saratalin `ender=true` → după C
 
 ⚠️ **`scores.save` a fost REscris de joc** (nu de test): niciun scor fals adăugat, cel mai mic rămâne 39,5s, 330 monede, setările neatinse. Player-ul a fost făcut nemuritor înainte de orice, iar `GameSettings` n-a fost atins — dar jocul cheamă `_save()` de la sine, deci **data fișierului se schimbă oricum**. Verifică CONȚINUTUL, nu data.
 
+### ⚠️ RUNDA A DOUA, în aceeași zi: „se buguiește, monstrul nu apare și mă bagă random în Limbo"
+
+Răzvan a jucat-o și a raportat asta. **Nu-l băga nimeni din greșeală în Limbo — chiar murea**, în ~1 secundă de la aterizare, deci nu apuca nici să găsească statuia, nici să vadă boss-ul. Trei lucruri, toate găsite MĂSURÂND, nu citind:
+
+**1. Pușcăria era imposibilă. Măsurat: 109–143 damage/secundă → un player cu 150 viață rezistă 1,4 secunde.**
+- 🔑 **Ce-l omora era NUMĂRUL de inamici, nu cât lovește unul.** Ca să ajungi în pușcărie treci prin Nether ȘI Ender, deci ajungi târziu: la 8:00 `Difficulty.spawn_mult()` e **6,48** și viața inamicilor **×16,3**. Peste asta pusesem ×3 viață — adică nu-i mai puteai curăța, se adunau (27 pe hartă) iar damage-ul de contact se plătește **per inamic lipit de tine**, la fiecare 0,5 s.
+- Și pusesem ×1.6 damage peste `damage_mult`-ul lor propriu (creatura Ender are 2.0) și peste `enemy_damage_mult()` (2,24 la minutul 8) — **trei multiplicatori care se înmulțesc**: 5 × 2,24 × 2,0 × 1,6 = 36 per creatură la fiecare jumătate de secundă.
+- **Reglat:** `ENEMY_DAMAGE` 1.6 → **1.0**, `ENEMY_POWER` 3.0 → **1.25**, `ENEMY_SPEED` 1.25 → **1.10**, `BURST` 26 → **8**, plus **`SPAWN_MULT = 0.35`** (nou, citit de `spawner.gd::rata_curenta`). Statuia adusă de la 750–1250 la **380–620**, ca s-o vezi de la aterizare.
+- 🔑 **Îngroșarea adevărată a pușcăriei nu e un multiplicator, ci că vin TOATE FELURILE DEODATĂ** — în lumea normală te bat mai ales polițiști, aici îți vin SWAT, pompieri și creaturi de Ender în același val.
+- **Rezultat, remăsurat: 34 damage/secundă**, inamicii se țin la 5–11 în loc de 27.
+
+**2. ⚠️ Prima măsurătoare a fost NEDREAPTĂ și era să mă ducă în direcția greșită.** Testam cu un player **fără niciun upgrade**, cu pistolul de start, aruncat în dificultatea de la minutul 8 — normal că se topea. Cine ajunge în pușcărie are un build. Cu unul realist (70 damage, cadență dublă, 3 proiectile, străpungere) cifra a scăzut de la 143 la 34. **Când măsori o dimensiune de final, dă-i player-ului build-ul cu care s-ar ajunge acolo.**
+
+**3. ⚠️ Și a doua măsurătoare a ieșit falsă, în alt fel:** cu build bun player-ul urcă în nivel, iar **ecranul de Level Up pune tot arborele pe pauză** — inamicii îngheață, boss-ul stă pe loc, iar `upgrade_max_hp` te și vindecă, deci „damage-ul încasat" ieșea **negativ**. Se blochează cu `p.xp_to_next = 1_000_000_000`. (Capcana e scrisă de mult în CLAUDE.md; am reintrat în ea.)
+
+**Două bug-uri adevărate, prinse tot rulând:**
+- **BOLOVANUL NU FĂCEA DAMAGE NICIODATĂ.** Îmi copiam ținta în `_ready()`, dar cine îl naște face `add_child` și **abia apoi** îi pune poziția — deci `_ready` rula pe poziția veche. Atacul arăta perfect și lovea în alt punct. Acum ținta se citește la impact, din `global_position`. (Aceeași familie cu capcana din `celesto.gd::_coasa`: ce scrii DUPĂ `add_child` nu mai ajunge la `_ready`.)
+- **`prison.gd::reia()` crăpa la întoarcerea din Limbo.** Statuia se șterge singură după ce scoate boss-ul, iar `_arata_obiect(n: Node2D, ...)` primea o referință MOARTĂ — Godot crapă la APEL („previously freed"), înainte ca `is_instance_valid` din corp să apuce să verifice. Parametrul e acum netipizat.
+
+**Boss-ul mergea prea încet ca să conteze:** 62 px/s față de 215 ai player-ului, și — spre deosebire de Saratalin (cade peste tine) și Celesto (se teleportează) — **n-are cum să se apropie**. Urcat la **140** (faza 3: 203). Verificat: te ajunge din 595 px în 3 secunde.
+
+---
+
 ### Rămas de făcut / de știut
 
 - **Numele boss-ului („THE WARDEN") e ales de mine** — Răzvan nu i-a dat unul. Se schimbă în `final_boss.gd` (`@export var nume`) + rândurile din `i18n.gd`.

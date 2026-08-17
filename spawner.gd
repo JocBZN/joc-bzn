@@ -288,6 +288,12 @@ func rata_curenta() -> float:
 	# promisiunile alea false o parte din timp.
 	if _in_lumea_normala():
 		rate *= _ritm
+	# PUȘCĂRIA subțiază ploaia (2026-08-17). Ajungi acolo târziu în rundă, deci `spawn_mult()` e
+	# deja uriaș (6,5 la 8:00) — iar acolo e o luptă cu boss, nu o hoardă. Vezi comentariul lung
+	# de la `prison.gd::SPAWN_MULT`: fără el mureai în ~1,4 secunde de la aterizare.
+	var pr := get_tree().get_first_node_in_group("prison")
+	if pr != null and pr.get("active") == true:
+		rate *= float(pr.SPAWN_MULT)
 	return rate
 
 # Suntem în lumea obișnuită (sau în Limbo, care e tot ea, cu un minut în urmă)?
