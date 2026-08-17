@@ -30,6 +30,12 @@ const XP_BONUS := 3.0           # de câte ori mai mult XP lasă inamicii de aic
 const BURST := 20               # câți inamici apar DEODATĂ la intrare
 const BURST_RADIUS := 640.0     # la ce distanță de tine apar (cerc în jurul tău)
 const FLASH := 0.45             # cât ține fulgerul alb de teleportare
+# ⚠️ La INTRARE fulgerul e mult mai scurt. Motivul se vede pe captură (2026-08-17): cinematica lui
+# Celesto începe în aceeași clipă, iar 0,45s de alb peste ea înseamnă că bubuitura de îngheț, benzile
+# și prima jumătate din materializarea lui se petrec în spatele unui geam lăptos — adică nu se văd.
+# 0,18s e tot un fulger, dar unul care se dă la o parte la timp. La IEȘIRE rămâne cel lung: acolo nu
+# mai are peste ce să stea.
+const FLASH_CUT := 0.18
 const CLOCK_SIZE := 64
 const CLOCK_COLOR := Color(0.45, 0.78, 1.0)       # albastru rece, ca nebuloasa
 const CLOCK_WARN := Color(1.0, 0.82, 0.20)        # galben — ultimul minut
@@ -57,6 +63,9 @@ const ENDER_ONLY_NODES := ["EnderStatues"]
 var active := false
 
 var _flash: ColorRect
+var _banda_sus: ColorRect    # benzile cinematice, numai în cinematica lui Celesto
+var _banda_jos: ColorRect
+var _vinieta: TextureRect    # întunecarea marginilor, tot pentru ea
 var _clock: Label
 var _arrow: Label            # săgeata care arată încotro e obiectivul
 var _dist: Label             # distanța până la el (px de lume)
@@ -91,6 +100,13 @@ func _ready() -> void:
 	_flash.modulate.a = 0.0
 	_flash.visible = false
 	add_child(_flash)
+
+	# Cadrul cinematicii de intrare. Făcut o dată, aici, și ținut ascuns tot restul jocului —
+	# se aprinde numai în `_cutscene_celesto`. Vinieta ÎNAINTEA benzilor, ca benzile să rămână
+	# deasupra ei (altfel marginile de sus și de jos ar fi ieșit cenușii, nu negre).
+	_vinieta = _fa_vinieta()
+	_banda_sus = _fa_banda(true)
+	_banda_jos = _fa_banda(false)
 
 	_clock = Label.new()
 	_clock.anchor_left = 0.0
@@ -180,7 +196,7 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	_clock.text = _mmss(ENDER_TIME)
 	_clock.add_theme_color_override("font_color", CLOCK_COLOR)
 	_clock.visible = true
-	_flash_screen()
+	_flash_screen(FLASH_CUT)   # scurt: peste el începe imediat cinematica (vezi FLASH_CUT)
 
 	# ⚠️ Anunțul „THE ENDER" NU se dă aici, ci la capătul cinematicii (`_cutscene_gata`). Bannerul
 	# HUD-ului e un tween al unui nod pauzabil: pornit acum, ar îngheța la jumătatea „pop"-ului
@@ -456,11 +472,13 @@ func _update_compass() -> void:
 	_dist.position = poz - Vector2(80, -34)
 	_dist.text = "%d" % int(_player.global_position.distance_to(tinta.global_position))
 
-func _flash_screen() -> void:
+func _flash_screen(durata: float = FLASH) -> void:
 	_flash.visible = true
 	_flash.modulate.a = 1.0
-	var t := create_tween()
-	t.tween_property(_flash, "modulate:a", 0.0, FLASH)
+	# ⚠️ Merge ȘI pe pauză: la intrare, cinematica lui Celesto îngheață jocul în aceeași clipă, iar
+	# un tween pauzabil ar fi lăsat ecranul ALB tot filmulețul.
+	var t := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	t.tween_property(_flash, "modulate:a", 0.0, durata)
 	t.tween_callback(func(): _flash.visible = false)
 
 # ---------- CINEMATICA DE INTRARE ----------
@@ -469,15 +487,40 @@ func _flash_screen() -> void:
 # și REFĂCUTĂ pe 2026-08-05: „cand intrii in ender se opreste totul si se da zoom in pe el cum se
 # teleporteaza stanga dreapta de 2-3 ori si vreau ca bara de hp si numele sa fie sus".
 #
-# Cum decurge, în patru bătăi:
-#   1. jocul ÎNGHEAȚĂ și camera intră pe locul gol de deasupra ta, strângând zoom-ul;
-#   2. Celesto SE MATERIALIZEAZĂ în DREAPTA cadrului (nu în mijloc), transparent → opac, iar bara
-#      lui coboară din marginea de sus ÎN ACELAȘI TIMP — nu una după alta;
-#   3. după `CUT_PANA_LA_SARITURI` (o clipă, nu o pauză) începe să se teleporteze STÂNGA-DREAPTA
-#      de `CUT_SARITURI` ori, în cadrul strâns — camera stă pe loc, el clipește dintr-o parte în
-#      alta, ca să se vadă că ăsta e trucul lui;
-#   4. DISPARE dintr-un cadru în altul, odată cu sunetul de teleportare, camera iese, jocul
-#      repornește, el te așteaptă departe în inel și abia atunci curg inamicii.
+# REFĂCUTĂ A TREIA OARĂ pe 2026-08-17, cerută de Răzvan („nu îmi place animația de la Celesto de
+# la început … fă animația să fie topul topului din domeniul gaming-ului"), odată cu biblioteca de
+# sunete `Soundpack/`. Ce era înainte: se materializa, clipea de 3 ori stânga-dreapta la interval
+# egal și dispărea, tot cu ACELAȘI sunet de teleportare de cinci ori la rând. Ce lipsea, în ordinea
+# în care se simte:
+#   • un CADRU (banda de sus/jos + vinietă) — fără el e o secvență de joc, nu o cinematică;
+#   • un RITM: trei salturi identice se citesc ca o buclă; unul care se STRÂNGE se citește ca o
+#     apropiere;
+#   • o URMĂ după teleportare — ochiul nu poate urmări ceva ce sare instantaneu (`celesto.gd::umbra`);
+#   • LINIȘTEA dinaintea loviturii finale — cel mai ieftin efect din meserie și cel mai puternic;
+#   • un MIX: 8 sunete cu roluri diferite în loc de unul singur, cu muzica coborâtă sub ele.
+#
+# Cum decurge acum, în cinci bătăi (secundele sunt de la începutul cinematicii):
+#   0:00  ÎNGHEAȚĂ TIMPUL. Bubuitură joasă + bas, muzica coboară cu 16 dB, benzile intră, lumea se
+#         întunecă pe margini, camera primește un pumn scurt (zguduitură de 14px) și pleacă spre
+#         locul gol de deasupra ta, strângând zoom-ul DINCOLO de unde trebuie (2,18) — apoi se
+#         așază înapoi pe 2,0. Fără depășirea aia, apropierea camerei e o mișcare de macara; cu ea,
+#         e o smucitură de cameraman.
+#   0:00  Pe dedesubt urcă un „riser" tăiat FIX cât trebuie ca să se termine în bătaia următoare.
+#   0:90  E SOLID: sunetul de materializare + sclipirea lui albastră. Apare direct în DREAPTA
+#         cadrului (cerut pe 2026-08-06), transparent → opac, dar și puțin mai MARE → mărimea lui
+#         normală, ca și cum s-ar condensa din aer. Bara lui coboară de sus în paralel, de la 0:00.
+#   1:50  Bara aterizează cu numele — un clic tonal exact pe cadrul în care se oprește.
+#   1:80  SALTURILE, cu ritmul STRÂNGÂNDU-SE: 0,42 → 0,30 → 0,20 → 0,16 s. Patru, nu trei, și nu
+#         înainte-înapoi la nesfârșit: dreapta → stânga → dreapta → aproape de mijloc → MIJLOC.
+#         Fiecare salt lasă o umbră albastră în locul părăsit, are un foșnet de aer în boxa de unde
+#         PLEACĂ și un pocnet în boxa unde AJUNGE (cu tonul urcând la fiecare salt), plus o
+#         împingere scurtă de cameră în sens invers. Camera NU îl urmărește — vezi mai jos.
+#   2:88  LINIȘTE. 0,4 secunde în care nu se aude și nu se mișcă nimic, decât camera care se
+#         strânge pe el cu 6%. Aici se face toată tensiunea.
+#   3:28  DISPARE într-un singur cadru (fără fade, cerut pe 2026-08-06), cu explozia lui, basul
+#         sub ea, trei umbre care se destramă și o zguduitură de 26px. Benzile ies, vinieta se
+#         stinge, camera iese, muzica urcă înapoi în 1,4s, jocul repornește, el te așteaptă departe
+#         în inel și abia atunci curg inamicii.
 #
 # Refăcută pe 2026-08-06, cerut de Răzvan („sa inceapa in partea dreapta direct sa nu fie in mijloc
 # si sa inceapa direct sa se teleporteze fara sa astepte… la final… nu vreau sa isi ia fade out,
@@ -497,16 +540,50 @@ func _flash_screen() -> void:
 # `_cut_activ` ține `_process`-ul nostru mut: cronometrul Ender-ului NU trebuie să curgă în
 # secundele astea, altfel ai pierde din cele 6 minute uitându-te la un filmuleț.
 #
-# Timpii sunt în secunde, unul după altul; schimbă-i liniștit.
-const CUT_APARE := 1.1        # cât durează materializarea lui
-const CUT_BARA := 1.7         # cât coboară bara („slow cinematic"), în paralel cu materializarea
-const CUT_PANA_LA_SARITURI := 0.6   # cât stă în dreapta, deja opac, înainte de PRIMUL salt
-const CUT_SARITURI := 3       # de câte ori se teleportează stânga-dreapta
-const CUT_SARE_LAT := 170.0   # câți pixeli în lateral sare de fiecare dată
-const CUT_SARE_PAUZA := 0.42  # cât stă într-un capăt înainte să sară în celălalt
+# Timpii sunt în secunde; schimbă-i liniștit, dar citește întâi desfășurarea de mai sus — sunt
+# potriviți unul după altul, iar sunetele sunt tăiate pe ei (riser-ul, de exemplu, e făcut fix cât
+# `CUT_MATERIAL`).
+const CUT_APARE := 0.75       # cât durează materializarea lui (transparent → opac)
+const CUT_MATERIAL := 0.90    # în ce secundă e SOLID: sunetul de materializare + sclipirea
+const CUT_BARA := 1.4         # cât coboară bara („slow cinematic") — pornește la 0:00, aterizează la 1:40
+const CUT_PANA_LA_SARITURI := 0.20  # cât mai stă după ce a aterizat bara, înainte de PRIMUL salt
+# ⚠️ Cele două de mai sus sunt strânse dinadins ca primul salt să cadă la 1,6s — adică EXACT unde
+# cădea și în versiunea veche (măsurat: 1,71s). Tot ce s-a adăugat (înghețul, benzile, riser-ul,
+# condensarea, bara cu clic) intră în același timp, nu peste el: Răzvan a cerut o dată, explicit, să
+# nu se aștepte la început, iar asta rămâne valabil oricât de frumos ar fi ce pui acolo.
+# Unde sare, în pixeli față de mijlocul cadrului, și cât stă acolo. Cele două liste merg la pas.
+# ⚠️ Ritmul care se STRÂNGE e tot spectacolul: patru pauze egale ar fi o buclă, astea patru sunt o
+# apropiere. Iar pozițiile nu se plimbă la nesfârșit — se adună spre MIJLOC, deci ultimul salt îl
+# aduce în față, gata să dispară.
+const CUT_SARITURI_X := [-170.0, 170.0, -95.0, 0.0]
+const CUT_SARITURI_T := [0.42, 0.30, 0.20, 0.16]
+const CUT_SARE_LAT := 170.0   # de unde pornește: atâția pixeli în DREAPTA mijlocului
+const CUT_LINISTE := 0.40     # liniștea dinaintea dispariției (nici sunet, nici mișcare)
 const CUT_ZOOM := 2.0         # de câte ori strânge camera pe el
-const CUT_ZOOM_IN := 0.7      # cât durează apropierea
+const CUT_ZOOM_PESTE := 2.18  # cât DEPĂȘEȘTE la intrare, înainte să se așeze pe `CUT_ZOOM`
+const CUT_ZOOM_IN := 0.55     # cât durează apropierea (până la depășire)
+const CUT_ZOOM_ASEZA := 0.35  # cât durează așezarea înapoi pe `CUT_ZOOM`
+const CUT_ZOOM_STRANS := 2.12 # cât se mai strânge, lent, în liniștea de la final
 const CUT_ZOOM_OUT := 0.6     # ...și depărtarea la loc
+# --- cadrul cinematic (benzile + vinieta) ---
+const CUT_BENZI := 0.35       # cât intră/ies benzile
+const CUT_BENZI_H := 0.085    # cât de înalte sunt, din înălțimea ecranului
+const CUT_VINIETA := 0.85     # cât de tare se întunecă MARGINILE (mijlocul rămâne curat)
+# --- mixul cinematicii, într-un singur loc ---
+# Fișierele sunt toate normalizate la vârf -1 dBFS (vezi `audio.gd`), deci echilibrul dintre ele e
+# AICI. Cifrele nu sunt la nimereală: le-am ales față de un sunet obișnuit de joc („Enemy Hit",
+# care se aude la 0 dB), ca lovitura cea mai tare din cinematică să fie cu ~4 dB peste el și cu
+# ~12 dB sub cutremur (`Audio.QUAKE_DB`), care rămâne cel mai tare lucru din joc.
+const CUT_DB_FREEZE := -3.0
+const CUT_DB_SUB := -6.0      # basul de sub îngheț
+const CUT_DB_RISER := -8.0    # patul de dedesubt: se simte, nu se ascultă
+const CUT_DB_MATERIAL := -4.0
+const CUT_DB_NUME := -6.0
+const CUT_DB_SWISH := -9.0    # aerul din locul părăsit
+const CUT_DB_ZAP := -4.0      # pocnetul de la aterizare
+const CUT_DB_VANISH := 0.0    # cel mai tare din toată cinematica
+const CUT_DB_SUB_FINAL := -2.0
+const CUT_DUCK := -16.0       # cu cât coboară muzica sub cinematică
 # ⚠️ Apare DEASUPRA ta pe ecran, nu „în direcția în care te uiți". Am încercat varianta a doua și
 # se vede pe captură de ce nu merge: dacă te uiți în jos (cum stai implicit la aterizare), el
 # cade fix peste banda de sus. Sus e curat și e oricum încadrarea clasică de „apare boss-ul".
@@ -555,69 +632,158 @@ func _cutscene_celesto() -> void:
 		neted_vechi = cam.position_smoothing_enabled
 		cam.position_smoothing_enabled = false
 
-	# --- 2) camera intră, el se materializează în dreapta, bara coboară peste toate ---
-	Audio.play("celesto_teleport", -2.0, 0.0)
+	# Camera trece prin `_cut_cam`: de aici încolo poziția ei se scrie într-un singur loc
+	# (`_cut_aplica`), fiindcă acum două lucruri se bat pe `offset` — încadrarea și zguduiturile.
+	# Puse amândouă direct pe proprietate, ultimul tween creat l-ar fi anulat pe celălalt.
+	_cut_cam = cam
+	_cut_baza = offset_vechi
+	_cut_shake = Vector2.ZERO
+
+	# --- 0) LOVITURA DE TIMP: se oprește totul, intră cadrul, muzica se dă la o parte ---
+	_cinema_intra(CUT_BENZI)
+	Audio.duck_music(CUT_DUCK, 0.25)
+	Audio.play_ex("celesto_freeze", CUT_DB_FREEZE)
+	Audio.play_ex("celesto_sub", CUT_DB_SUB)
+	# Riser-ul e tăiat FIX cât ține bătaia asta (0,9s), ca să se termine exact pe materializare.
+	# Un riser care se termină „pe undeva pe acolo" e zgomot; unul care aterizează pe cadru e mixaj.
+	Audio.play_ex("celesto_riser", CUT_DB_RISER)
+	_cut_zguduie(14.0, 0.28)
+
+	# --- 1) camera intră, el se materializează în dreapta, bara coboară peste toate ---
 	# Bara pornește ODATĂ cu el, nu după. NU o așteptăm (`arata_cinematic` își are tween-ul ei, care
-	# merge singur în paralel): CUT_BARA e cât coboară ea, nu cât stăm noi. Coborârea ei de 1,7s se
-	# termină aproape fix când el dă primul salt (1,1 + 0,6), deci nu se pierde nimic din ea.
+	# merge singur în paralel): CUT_BARA e cât coboară ea, nu cât stăm noi.
 	var bara := get_tree().get_first_node_in_group("boss_bar")
 	if bara != null and bara.has_method("arata_cinematic"):
 		bara.arata_cinematic(_boss.nume, _boss.max_hp, CUT_BARA)
+	# Zoom-ul are tween-ul LUI, separat: are două bătăi una după alta (depășește, apoi se așază), iar
+	# tween-ul de mai jos e pus pe „toate odată". Două tween-uri sunt mai simple decât un `chain()`
+	# într-unul paralel — și nu se calcă, fiindcă lucrează pe proprietăți diferite.
+	if cam != null:
+		var tz := _cut_tween()
+		tz.tween_property(cam, "zoom", zoom_vechi * CUT_ZOOM_PESTE, CUT_ZOOM_IN) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tz.tween_property(cam, "zoom", zoom_vechi * CUT_ZOOM, CUT_ZOOM_ASEZA) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	var t := _cut_tween()
 	t.set_parallel(true)
 	# Bătaia de bază, care ține tween-ul viu chiar dacă n-ar exista nici camera, nici sprite-ul.
 	# ⚠️ Un `Tween` fără nicio comandă se anulează singur și NU-și mai trimite `finished` — adică
 	# `await`-ul de mai jos ar aștepta la nesfârșit, cu jocul înghețat. Merită linia asta.
-	t.tween_interval(CUT_APARE)
+	t.tween_interval(CUT_MATERIAL)
 	if cam != null:
-		t.tween_property(cam, "offset", centru - _player.global_position, CUT_ZOOM_IN) \
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		t.tween_property(cam, "zoom", zoom_vechi * CUT_ZOOM, CUT_ZOOM_IN) \
+		t.tween_method(_cut_pune_baza, offset_vechi, centru - _player.global_position, CUT_ZOOM_IN) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	if anim != null:
 		t.tween_property(anim, "modulate:a", 1.0, CUT_APARE)
+		# ...și se CONDENSEAZĂ: pornește cu 15% mai mare și se strânge la mărimea lui. Doar
+		# transparența ar fi însemnat „cineva dă încet volumul la o poză"; cu scăderea asta, arată ca
+		# ceva care se adună din aer. Mărimea de bază se ia din scenă (3.2), nu se scrie aici.
+		var scara := anim.scale
+		anim.scale = scara * 1.15
+		t.tween_property(anim, "scale", scara, CUT_APARE) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	await t.finished
 
-	# --- 3) stânga-dreapta, în cadrul strâns ---
-	# Doar o clipă cât să se vadă că e acolo, apoi sare. Camera NU îl urmărește: stă pe `centru`,
-	# iar el clipește în stânga și în dreapta ei. Dacă l-ar urma, saltul n-ar mai fi vizibil deloc —
-	# ar părea că lumea se mișcă, nu el.
+	# --- 2) E SOLID ---
+	Audio.play_ex("celesto_materialize", CUT_DB_MATERIAL)
+	Audio.play("celesto_teleport", -6.0, 0.0)   # sunetul lui dintotdeauna, acum doar un strat dedesubt
+	if is_instance_valid(_boss) and _boss.has_method("puf"):
+		_boss.puf()
+	_cut_zguduie(6.0, 0.18)
+
+	# Bara aterizează abia acum (a pornit la 0:00 și coboară CUT_BARA secunde): clicul tonal cade pe
+	# cadrul în care se oprește, nu „pe undeva pe lângă". De-aia așteptăm diferența, nu o constantă.
+	await _cut_asteapta(maxf(CUT_BARA - CUT_MATERIAL, 0.0))
+	Audio.play_ex("celesto_name", CUT_DB_NUME)
+
+	# --- 3) SALTURILE, cu ritmul strângându-se ---
+	# Camera NU îl urmărește: stă pe `centru`, iar el clipește în stânga și în dreapta ei. Dacă l-ar
+	# urma, saltul n-ar mai fi vizibil deloc — ar părea că lumea se mișcă, nu el.
+	# ⚠️ Primul salt e spre STÂNGA (`CUT_SARITURI_X[0]` e negativ), fiindcă s-a materializat în
+	# dreapta. Cu semnele invers, primul „salt" l-ar muta exact unde era deja: sunet și sclipire, dar
+	# el nemișcat — exact impresia de așteptare pe care o scoatem de aici.
 	await _cut_asteapta(CUT_PANA_LA_SARITURI)
-	for i in CUT_SARITURI:
-		# ⚠️ Primul salt e spre STÂNGA (`-1` pe `i == 0`), fiindcă s-a materializat în dreapta. Cu
-		# semnele invers, primul „salt" l-ar muta exact unde era deja: sunet și sclipire, dar el
-		# nemișcat — exact impresia de așteptare pe care o scoatem de aici.
-		var semn := -1.0 if i % 2 == 0 else 1.0
+	for i in CUT_SARITURI_X.size():
+		var dx: float = CUT_SARITURI_X[i]
 		if is_instance_valid(_boss):
-			_boss.global_position = centru + Vector2(semn * CUT_SARE_LAT, 0.0)
-			# Freeze frame, din profil, uitându-se spre mijlocul cadrului: în dreapta → spre
-			# vest, în stânga → spre est. Cerut de Răzvan pe 2026-08-06 („sa nu se uite in sud").
+			var de_unde: Vector2 = _boss.global_position
+			# Foșnetul de aer rămâne în boxa de unde PLEACĂ, pocnetul se aude de unde AJUNGE. Asta
+			# cere fișiere mono și `play_pan` (vezi `audio.gd`) — un stereo își are deja stânga și
+			# dreapta scrise în el și n-ar urma boss-ul.
+			Audio.play_pan("celesto_swish", de_unde, CUT_DB_SWISH)
+			# Urma din locul părăsit: fără ea, ochiul nu are ce urmări între cele două capete.
+			if _boss.has_method("umbra"):
+				_boss.umbra(de_unde)
+			_boss.global_position = centru + Vector2(dx, 0.0)
+			# Freeze frame, din profil, uitându-se spre mijlocul cadrului: în dreapta → spre vest, în
+			# stânga → spre est. Cerut de Răzvan pe 2026-08-06 („sa nu se uite in sud"). La ultimul
+			# salt e chiar în mijloc (`dx == 0`) — îl lăsăm tot din profil, tot pentru regula aia.
 			if _boss.has_method("ingheata_lateral"):
-				_boss.ingheata_lateral(semn > 0.0)
-			Audio.play("celesto_teleport", -2.0, 0.0)
+				_boss.ingheata_lateral(dx > 0.0)
+			# Tonul urcă la fiecare salt (un semiton, apoi încă unul...): aceeași lovitură repetată de
+			# patru ori se aude ca o buclă, una care urcă se aude ca o acumulare.
+			Audio.play_pan("celesto_zap", _boss.global_position, CUT_DB_ZAP, 1.0 + 0.06 * float(i))
 			if _boss.has_method("puf"):
 				_boss.puf()
-		await _cut_asteapta(CUT_SARE_PAUZA)
+			# Camera primește o împingere scurtă în sensul OPUS saltului — reacția, nu urmărirea.
+			# 6 pixeli, cât să se simtă că a fost lovită, nu cât să se vadă că se mișcă.
+			_cut_imbrancire(Vector2(-signf(dx) * 6.0, 0.0))
+		await _cut_asteapta(float(CUT_SARITURI_T[i]))
 
-	# --- 4) DISPARE, camera iese, jocul repornește ---
+	# --- 4) LINIȘTEA ---
+	# 0,4 secunde în care nu se aude NIMIC și nu se mișcă nimic, decât camera care se strânge foarte
+	# puțin pe el. E cel mai ieftin efect din meserie și cel mai puternic: urechea, rămasă brusc fără
+	# nimic după patru pocnete tot mai dese, așteaptă lovitura — și de-aia lovitura de la 3:28 pare
+	# de două ori mai mare decât e.
+	# ⚠️ Are și un rol tehnic: sclipirea albastră a ultimului salt (`puf`, 0,25s) apucă să se termine
+	# aici. Fără pauza asta, tween-ul ei ar mai fi mișcat `modulate` DUPĂ ce noi punem alfa pe 0 la
+	# dispariție — adică boss-ul ar fi reapărut pentru o clipă, fantomatic, exact în cadrul în care
+	# trebuia să nu mai fie.
+	if cam != null:
+		var tl := _cut_tween()
+		tl.tween_property(cam, "zoom", zoom_vechi * CUT_ZOOM_STRANS, CUT_LINISTE) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await _cut_asteapta(CUT_LINISTE)
+
+	# --- 5) DISPARE, camera iese, jocul repornește ---
 	# FĂRĂ fade, cerut de Răzvan pe 2026-08-06 („cand se aude teleportarea nu vreau sa isi ia fade
 	# out, vreau doar sa dispara de pe ecran"). Are dreptate: ceva care se stinge lent se citește ca
-	# „moare", nu ca „a plecat". Acum sunetul și dispariția cad în ACELAȘI cadru, exact ca la
-	# saltul dintr-un capăt în celălalt de mai sus — doar că de data asta nu mai reapare.
-	# ⚠️ `modulate:a`, nu `visible`: sclipirea albastră (`puf`) de la ultimul salt e un tween pe
-	# `modulate` al lui, iar el rămâne în lume și după cinematică. Alpha e ce restaurăm mai jos.
-	Audio.play("celesto_teleport", -2.0, 0.0)
+	# „moare", nu ca „a plecat". Sunetul și dispariția cad în ACELAȘI cadru, exact ca la salturi —
+	# doar că de data asta nu mai reapare.
+	# ⚠️ `modulate:a`, nu `visible`: sclipirea albastră (`puf`) e un tween pe `modulate` al lui, iar
+	# el rămâne în lume și după cinematică. Alpha e ce restaurăm mai jos.
+	Audio.play_ex("celesto_vanish", CUT_DB_VANISH)
+	Audio.play_ex("celesto_sub", CUT_DB_SUB_FINAL)
+	# TREI umbre deodată, nu una: la salturi urma spune „a plecat de aici", aici spune „s-a
+	# destrămat". Puse înainte de a-i stinge alfa — `umbra()` copiază cadrul de pe sprite, iar un
+	# sprite deja invizibil ar fi dat trei pete goale.
+	# ⚠️ ÎMPRĂȘTIATE, nu una peste alta: prima încercare le punea la ±14px și, suprapuse, arătau ca
+	# o singură pată albastră — adică exact ca o umbră obișnuită, doar mai groasă. La 40-70px se
+	# văd trei siluete care se desfac în direcții diferite.
+	if is_instance_valid(_boss) and _boss.has_method("umbra"):
+		for i in 3:
+			var unghi := TAU * (float(i) / 3.0) + randf() * 0.5
+			var raza := randf_range(40.0, 70.0)
+			_boss.umbra(_boss.global_position + Vector2(cos(unghi), sin(unghi) * 0.55) * raza)
 	if anim != null:
 		anim.modulate.a = 0.0
+	_cut_zguduie(26.0, 0.5)
+	_cinema_iese(CUT_BENZI)
+	Audio.unduck_music(1.4)   # lumea își revine încet — mai lent decât a fost dată la o parte
 	if cam != null:
 		var t2 := _cut_tween()
 		t2.set_parallel(true)
-		t2.tween_property(cam, "offset", offset_vechi, CUT_ZOOM_OUT) \
+		t2.tween_method(_cut_pune_baza, _cut_baza, offset_vechi, CUT_ZOOM_OUT) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		t2.tween_property(cam, "zoom", zoom_vechi, CUT_ZOOM_OUT) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		await t2.finished
 		cam.position_smoothing_enabled = neted_vechi
+	# Camera înapoi exact unde era: zguduitura are tween-ul ei, care ar putea fi încă în aer.
+	_cut_shake = Vector2.ZERO
+	_cut_baza = offset_vechi
+	_cut_aplica()
+	_cut_cam = null
 
 	Fx.process_mode = fx_vechi
 	if _player != null and is_instance_valid(_player) and _player.fire_timer != null:
@@ -639,6 +805,124 @@ func _cut_tween() -> Tween:
 # CU JOCUL ÎNGHEȚAT. Merită scris pe față.
 func _cut_asteapta(secunde: float) -> void:
 	await get_tree().create_timer(secunde, true).timeout
+
+# ---------- camera cinematicii ----------
+# ⚠️ TOT ce mișcă `cam.offset` în cinematică trece pe aici. Motivul: peste încadrare (camera care
+# pleacă spre boss și se întoarce) se suprapun zguduiturile și îmbrâncelile de la fiecare salt.
+# Două tween-uri pe ACEEAȘI proprietate se anulează unul pe altul — cel creat mai târziu câștigă și
+# îl aruncă pe primul din drum. Aici sunt două variabile separate, adunate într-un singur loc, deci
+# se pot întâmpla în același timp fără să se calce.
+var _cut_cam: Camera2D = null
+var _cut_baza := Vector2.ZERO    # încadrarea: unde „privește" camera
+var _cut_shake := Vector2.ZERO   # ce se adaugă peste ea: zguduituri și împinsături
+
+func _cut_aplica() -> void:
+	if _cut_cam != null and is_instance_valid(_cut_cam):
+		_cut_cam.offset = _cut_baza + _cut_shake
+
+func _cut_pune_baza(v: Vector2) -> void:
+	_cut_baza = v
+	_cut_aplica()
+
+# Zguduitură ADEVĂRATĂ (direcție nouă la fiecare cadru), care se stinge singură. `putere` e în
+# pixeli, la început.
+func _cut_pune_shake(putere: float) -> void:
+	_cut_shake = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * putere
+	_cut_aplica()
+
+func _cut_zguduie(putere: float, durata: float) -> void:
+	var tw := _cut_tween()
+	tw.tween_method(_cut_pune_shake, putere, 0.0, durata)
+	tw.tween_callback(func(): _cut_shake = Vector2.ZERO; _cut_aplica())
+
+# ÎMBRÂNCEALĂ: o singură împingere într-o direcție, care se întoarce lin. Nu e zguduitură — la
+# fiecare salt camera e împinsă în sensul OPUS, ca și cum ar fi primit el impactul.
+func _cut_pune_imbrancire(v: Vector2) -> void:
+	_cut_shake = v
+	_cut_aplica()
+
+func _cut_imbrancire(v: Vector2) -> void:
+	var tw := _cut_tween()
+	tw.tween_method(_cut_pune_imbrancire, v, Vector2.ZERO, 0.18) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+# ---------- cadrul cinematic (benzile + vinieta) ----------
+# Benzile negre sus/jos și întunecarea MARGINILOR. Sunt pe stratul Ender-ului (4), deci acoperă
+# lumea și HUD-ul (1), dar rămân SUB bara de boss (6) — exact cum trebuie: cadrul se strânge,
+# numele boss-ului nu intră sub bandă.
+# Vinieta e o pată radială, nu un geam gri peste tot: Celesto e o siluetă NEAGRĂ pe o nebuloasă
+# aproape neagră, iar un întuneric uniform l-ar fi înghițit exact pe el. Așa se sting doar
+# marginile, iar mijlocul — unde stă el — rămâne curat.
+func _cinema_intra(durata: float) -> void:
+	var h := get_viewport().get_visible_rect().size.y * CUT_BENZI_H
+	_banda_sus.offset_bottom = 0.0
+	_banda_jos.offset_top = 0.0
+	_vinieta.modulate.a = 0.0
+	_banda_sus.visible = true
+	_banda_jos.visible = true
+	_vinieta.visible = true
+	var t := _cut_tween()
+	t.set_parallel(true)
+	t.tween_property(_banda_sus, "offset_bottom", h, durata) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(_banda_jos, "offset_top", -h, durata) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	t.tween_property(_vinieta, "modulate:a", CUT_VINIETA, durata)
+
+func _cinema_iese(durata: float) -> void:
+	var t := _cut_tween()
+	t.set_parallel(true)
+	t.tween_property(_banda_sus, "offset_bottom", 0.0, durata) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	t.tween_property(_banda_jos, "offset_top", 0.0, durata) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	t.tween_property(_vinieta, "modulate:a", 0.0, durata)
+	t.chain().tween_callback(_cinema_ascunde)
+
+func _cinema_ascunde() -> void:
+	_banda_sus.visible = false
+	_banda_jos.visible = false
+	_vinieta.visible = false
+
+func _fa_banda(sus: bool) -> ColorRect:
+	var b := ColorRect.new()
+	b.color = Color(0, 0, 0)
+	b.anchor_left = 0.0
+	b.anchor_right = 1.0
+	# Lipită de marginea ei, cu înălțime 0: crește din offset-ul dinspre interior.
+	b.anchor_top = 0.0 if sus else 1.0
+	b.anchor_bottom = 0.0 if sus else 1.0
+	b.offset_top = 0.0
+	b.offset_bottom = 0.0
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.visible = false
+	add_child(b)
+	return b
+
+func _fa_vinieta() -> TextureRect:
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0, 0, 0, 0.0))   # mijloc: curat
+	grad.set_color(1, Color(0, 0, 0, 1.0))   # margini: negru
+	var gt := GradientTexture2D.new()
+	gt.gradient = grad
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 0.5)
+	gt.width = 256
+	gt.height = 256
+	var r := TextureRect.new()
+	r.texture = gt
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_SCALE
+	# ⚠️ Filtrare LINIARĂ, pusă pe față: jocul e pixel-art, deci filtrul implicit e „cel mai apropiat
+	# pixel". Cu el, degradeul de 256px întins pe tot ecranul ar fi ieșit în trepte vizibile.
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.modulate.a = 0.0
+	r.visible = false
+	add_child(r)
+	return r
 
 # Ultima bătaie: te așteaptă în inel. De aici încolo totul e ca înainte — busola arată spre el,
 # inamicii curg, lupta e a ta.

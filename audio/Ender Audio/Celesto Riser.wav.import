@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dx7iudxpqh2ns"
+path="res://.godot/imported/Celesto Riser.wav-9034e07b43ac10db4e2eb1d2fb512983.sample"
+
+[deps]
+
+source_file="res://audio/Ender Audio/Celesto Riser.wav"
+dest_files=["res://.godot/imported/Celesto Riser.wav-9034e07b43ac10db4e2eb1d2fb512983.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

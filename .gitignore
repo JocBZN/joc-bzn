@@ -19,3 +19,15 @@ debugging/*.mp4
 # fiecare `--import` ar trece degeaba prin 400 de wav-uri și ar ajunge și în export.
 # Dacă vrei vreodată un sunet de acolo: îl copiezi în `audio/` și îi pui o linie în `audio.gd`.
 harta/Portal Ender/enemy ender/400 Sounds Pack/
+
+# BIBLIOTECA DE SUNETE (`Soundpack/`, pusă de Răzvan pe 2026-08-17): **3,9 GB**, 2100 de wav-uri
+# la 96 kHz / 24 biți. Exact același tratament ca pachetul de deasupra, din același motiv, doar
+# că de 44 de ori mai mare: are `.gdignore` lângă el (Godot nu-l importă — apucase să genereze
+# 2100 de `.import`, șterse) și stă în afara istoricului. Un `git add -A` fără linia asta ar fi
+# băgat 3,9 GB în repo, ireversibil fără rescris de istorie.
+#
+# ⚠️ E MATERIE PRIMĂ, nu asset de joc. Sunetul care intră în joc se PRELUCREAZĂ (tăiat,
+# normalizat, 48 kHz/16 biți cu ffmpeg — vezi session log 2026-08-17 „cinematica lui Celesto")
+# și se salvează în `audio/`, unde e mic și versionat. Nu chema niciodată un fișier direct din
+# `Soundpack/`: pe alt calculator folderul nu există, iar jocul ar porni fără sunetul ăla.
+Soundpack/

@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://irfbcdl6p04m"
+path="res://.godot/imported/Celesto Materialize.wav-2576d4b33f6bb013f0f38c9b705d6c1b.sample"
+
+[deps]
+
+source_file="res://audio/Ender Audio/Celesto Materialize.wav"
+dest_files=["res://.godot/imported/Celesto Materialize.wav-2576d4b33f6bb013f0f38c9b705d6c1b.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

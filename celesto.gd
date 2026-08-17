@@ -241,6 +241,45 @@ func e_adormit() -> bool:
 func puf() -> void:
 	_puf()
 
+# ---------- umbra rămasă în urmă la teleportare ----------
+# Silueta lui, plată și albastră, lăsată în locul din care tocmai a plecat: se umflă puțin și se
+# stinge în 0,3s. E singurul lucru care face o teleportare CITIBILĂ — fără ea, ochiul vede doar
+# „era acolo / e dincolo" și mișcarea se pierde între două cadre. Se cheamă cu poziția VECHE,
+# ÎNAINTE de mutare.
+const UMBRA_SHADER := preload("res://celesto_umbra.gdshader")
+const UMBRA_TIMP := 0.30
+const UMBRA_CRESTE := 1.16   # cât se umflă cât se stinge (o urmă care „se destramă")
+const UMBRA_ALFA := 0.80
+
+func umbra(la: Vector2) -> void:
+	var parent := get_parent()
+	if parent == null or anim == null or anim.sprite_frames == null:
+		return
+	if not anim.sprite_frames.has_animation(anim.animation):
+		return
+	var tex := anim.sprite_frames.get_frame_texture(anim.animation, anim.frame)
+	if tex == null:
+		return
+	var s := Sprite2D.new()
+	s.texture = tex
+	s.scale = anim.scale
+	s.z_index = anim.z_index - 1          # sub el: urma nu trebuie să-i acopere silueta
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # ca sprite-ul lui: pixeli, nu ceață
+	var mat := ShaderMaterial.new()
+	mat.shader = UMBRA_SHADER
+	s.material = mat
+	s.modulate.a = UMBRA_ALFA
+	# ⚠️ Merge ȘI pe pauză, cu tween cu tot: în cinematica de intrare (`ender.gd`) jocul e înghețat,
+	# iar o umbră pauzabilă ar rămâne agățată pe ecran până se termină filmulețul.
+	s.process_mode = Node.PROCESS_MODE_ALWAYS
+	parent.add_child(s)
+	s.global_position = la
+	var t := s.create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	t.set_parallel(true)
+	t.tween_property(s, "modulate:a", 0.0, UMBRA_TIMP)
+	t.tween_property(s, "scale", anim.scale * UMBRA_CRESTE, UMBRA_TIMP)
+	t.chain().tween_callback(s.queue_free)
+
 # FREEZE FRAME pentru cinematică: se uită într-o direcție și STĂ, pe un singur cadru — nu merge
 # pe loc. Chemată de `ender.gd` la fiecare salt: sare în dreapta → se uită spre WEST, sare în
 # stânga → spre EAST, deci mereu spre mijlocul cadrului și niciodată spre tine (sud).
@@ -339,6 +378,7 @@ func _teleporteaza(player: Node2D) -> void:
 	var spate: Vector2 = -player.facing_dir() if player.has_method("facing_dir") else Vector2.UP
 	var tinta: Vector2 = player.global_position + spate * teleport_distanta
 	Audio.play("celesto_teleport", -2.0, 0.0)
+	umbra(global_position)   # urma rămâne unde ERA, deci se vede de unde a plecat
 	global_position = tinta
 	_puf()
 	_uita_spre((player.global_position - global_position).normalized())

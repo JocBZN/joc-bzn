@@ -31,6 +31,21 @@ const SFX := {
 	# Fișierul stă lângă ARTA lui Celesto, nu în `audio/`, fiindcă acolo l-a pus Răzvan, odată cu
 	# cadrele. Lăsat acolo dinadins: dacă re-copiază folderul boss-ului, vine și sunetul cu el.
 	"celesto_teleport": "res://harta/Portal Ender/Celesto/Teleport.wav",  # Celesto apare în spatele tău (fazele 2 și 3)
+	# --- cinematica de intrare a lui Celesto (`ender.gd::_cutscene_celesto`) ---
+	# Opt sunete alese din biblioteca `Soundpack/` și PRELUCRATE, nu copiate: tăiate de liniște,
+	# scurtate la cât folosește scena, aduse la 48 kHz / 16 biți și normalizate toate la vârf
+	# -1 dBFS. ⚠️ Deci în fișiere sunt toate la fel de tari — echilibrul dintre ele e în `volume_db`
+	# de la fiecare chemare din `ender.gd`, ca la orice mix de joc: schimbi mixul fără să reexporți
+	# nimic. Cifrele alese acolo sunt în comentariul de la `_cutscene_celesto`.
+	# (Sursele stau în `Soundpack/`, care e gitignorat — vezi `.gitignore`.)
+	"celesto_freeze":      "res://audio/Ender Audio/Celesto Freeze.wav",      # bubuitura cu care ÎNGHEAȚĂ timpul
+	"celesto_riser":       "res://audio/Ender Audio/Celesto Riser.wav",       # urcarea de sub tot, cât intră camera
+	"celesto_materialize": "res://audio/Ender Audio/Celesto Materialize.wav", # se face din nimic
+	"celesto_name":        "res://audio/Ender Audio/Celesto Name.wav",        # clicul de când aterizează bara cu numele
+	"celesto_swish":       "res://audio/Ender Audio/Celesto Swish.wav",       # aerul din locul pe care tocmai l-a PĂRĂSIT (mono, se panoramează)
+	"celesto_zap":         "res://audio/Ender Audio/Celesto Zap.wav",         # pocnetul de unde APARE (mono, se panoramează)
+	"celesto_vanish":      "res://audio/Ender Audio/Celesto Vanish.wav",      # dispariția de la final
+	"celesto_sub":         "res://audio/Ender Audio/Celesto Sub.wav",         # numai bas, se pune SUB freeze și sub dispariție
 	"enemy_hit":      "res://audio/Enemy Hit.wav",                     # un proiectil a rănit un inamic
 	"earthquake":     "res://audio/Earthquake.wav",                    # bubuitura de cutremur (vezi QUAKE_DB)
 	"key_pickup":     "res://audio/Key Pickup.wav",                    # ai călcat pe o cheie de cufăr
@@ -74,6 +89,9 @@ var _ultima := {}           # nume -> momentul (ms) când s-a auzit ultima oară
 var _streams := {}          # nume -> AudioStream încărcat
 var _players: Array = []    # lista de AudioStreamPlayer
 var _next := 0              # ce boxă folosim data viitoare (rotativ)
+const POOL_2D := 6          # boxe „cu loc pe hartă", numai pentru cinematici (vezi `play_pan`)
+var _players_2d: Array = [] # lista de AudioStreamPlayer2D
+var _next_2d := 0
 var _music: AudioStreamPlayer  # boxă separată doar pentru muzica de fundal (în buclă)
 var _music_path := ""       # ce melodie cântă acum (ca să n-o repornim degeaba)
 var _music_base_db := 0.0   # volumul „de bază" al melodiei; peste el se adaugă reglajul din Settings
@@ -110,6 +128,19 @@ func _ready() -> void:
 		p.bus = "Master"
 		add_child(p)
 		_players.append(p)
+	# și cele câteva boxe „cu loc" (vezi `play_pan`). Puține dinadins: se folosesc numai în
+	# cinematici, unde sună 2-3 lucruri odată, nu în toiul luptei.
+	for i in POOL_2D:
+		var p2 := AudioStreamPlayer2D.new()
+		p2.bus = "Master"
+		# Cât de departe se aude și cât de tare scade cu distanța. Aici NU vrem scădere: sunetul e
+		# pus într-un loc ca să se audă din PARTEA aia, nu ca să pară departe — cinematica îl vrea
+		# la fel de tare oriunde ar sări boss-ul. `attenuation` minim (0.1) + rază uriașă = plat.
+		p2.max_distance = 6000.0
+		p2.attenuation = 0.1
+		p2.panning_strength = 2.0   # despărțire clară stânga/dreapta (implicit 1.0 abia se simte)
+		add_child(p2)
+		_players_2d.append(p2)
 
 # Redă un efect. volume_db: mai mic = mai încet (ex. -6). pitch_rand: variație aleatoare
 # de ton (0.1 = ±10%) ca să nu sune identic de fiecare dată.
@@ -128,6 +159,42 @@ func play(name: String, volume_db: float = 0.0, pitch_rand: float = 0.08) -> voi
 	p.stream = _streams[name]
 	p.volume_db = volume_db + _lin_to_db(GameSettings.sfx_volume)   # reglajul „Efecte" din Settings
 	p.pitch_scale = 1.0 + randf_range(-pitch_rand, pitch_rand)
+	p.play()
+
+# --- redare pentru CINEMATICI ---
+# `play()` de mai sus e făcut pentru JOC: ton puțin aleator (ca să nu sune identic de o mie de ori)
+# și o pauză minimă de 45 ms între două redări ale aceluiași sunet (ca să nu se calce peste ele în
+# Final Swarm). Într-o cinematică amândouă sunt pe dos: acolo fiecare sunet e pus la milisecundă,
+# cu tonul lui ales, și trebuie să se audă NEGREȘIT. De-aia astea două sar peste ambele reguli.
+
+# Ton FIX, fără poarta de 45 ms. `pitch`: 1.0 = tonul din fișier, 1.06 ≈ un semiton mai sus.
+func play_ex(name: String, volume_db: float = 0.0, pitch: float = 1.0) -> void:
+	if not _streams.has(name):
+		return
+	var p := _find_free_player()
+	p.stream_paused = false
+	p.stream = _streams[name]
+	p.volume_db = volume_db + _lin_to_db(GameSettings.sfx_volume)
+	p.pitch_scale = maxf(pitch, 0.01)
+	p.play()
+
+# Același lucru, dar sunetul vine DINTR-UN LOC de pe hartă: se aude dinspre partea în care s-a
+# întâmplat. Într-o cinematică în care boss-ul sare stânga-dreapta, asta e diferența dintre „aud
+# un pocnet" și „a apărut în DREAPTA mea".
+# ⚠️ Cere un fișier MONO. Unul stereo are deja stânga/dreapta scrise în el și nu mai poate fi pus
+# unde vrem noi — de-aia `Celesto Swish` și `Celesto Zap` sunt singurele două făcute mono.
+# Cine ascultă e camera (Godot ia Camera2D-ul din viewport drept ureche), deci poziția se dă în
+# coordonate de LUME, nu de ecran.
+func play_pan(name: String, poz: Vector2, volume_db: float = 0.0, pitch: float = 1.0) -> void:
+	if not _streams.has(name) or _players_2d.is_empty():
+		return
+	var p: AudioStreamPlayer2D = _players_2d[_next_2d]
+	_next_2d = (_next_2d + 1) % _players_2d.size()
+	p.stream_paused = false
+	p.stream = _streams[name]
+	p.global_position = poz
+	p.volume_db = volume_db + _lin_to_db(GameSettings.sfx_volume)
+	p.pitch_scale = maxf(pitch, 0.01)
 	p.play()
 
 # --- Muzică de fundal, în buclă ---
@@ -262,7 +329,39 @@ func _play_track(path: String, volume_db: float, fade_in: float = FADE) -> void:
 	_tw_in.tween_property(_music, "volume_db", _volum_muzica(), fade_in)
 
 func _volum_muzica() -> float:
-	return _music_base_db + _lin_to_db(GameSettings.music_volume)   # reglajul „Muzică" din Settings
+	return _music_base_db + _lin_to_db(GameSettings.music_volume) + _duck_db   # reglajul „Muzică" din Settings
+
+# --- COBORÂREA muzicii sub o cinematică („ducking") ---
+# Prima regulă a sunetului de film: când vrei să se audă ceva, faci LOC pentru el. Melodia de fundal
+# ocupă exact mijlocul în care stau și bubuiturile cinematicii; lăsată sus, tot ce urmează sună
+# „într-o cameră plină". Coborâtă cu 16 dB, aceleași sunete par de două ori mai mari, fără să fi
+# dat pe nimic mai tare — iar la loc urcă lent, ca și cum lumea își revine.
+#
+# `_duck_db` se ADUNĂ în `_volum_muzica()`, deci mișcarea slider-ului din Settings în timpul unei
+# cinematici (sau schimbarea melodiei) păstrează coborârea, nu o anulează.
+var _duck_db := 0.0
+var _tw_duck: Tween
+
+func duck_music(cat_db: float = -16.0, timp: float = 0.25) -> void:
+	_duck_db = cat_db
+	_urmeaza_volumul(timp)
+
+func unduck_music(timp: float = 1.4) -> void:
+	_duck_db = 0.0
+	_urmeaza_volumul(timp)
+
+func _urmeaza_volumul(timp: float) -> void:
+	_opreste_tween(_tw_duck)
+	if _music == null or not is_instance_valid(_music):
+		return
+	# ⚠️ Oprim și fade-in-ul melodiei, dacă tocmai urca: două tween-uri pe același `volume_db` s-ar
+	# trage unul pe altul, iar rezultatul ar depinde de care s-a creat ultimul.
+	_opreste_tween(_tw_in)
+	if timp <= 0.0:
+		_music.volume_db = _volum_muzica()
+		return
+	_tw_duck = create_tween()
+	_tw_duck.tween_property(_music, "volume_db", _volum_muzica(), timp)
 
 # Recalculează volumul muzicii care cântă acum (chemat din Settings când miști slider-ul).
 # Dacă tocmai urca (fade-in), oprim urcarea și sărim la volumul cerut — altfel tween-ul ar
@@ -367,6 +466,8 @@ func _seteaza_pauza(pe_pauza: bool) -> void:
 	if _ambient != null:
 		_ambient.stream_paused = pe_pauza
 	for p in _players:
+		p.stream_paused = pe_pauza
+	for p in _players_2d:
 		p.stream_paused = pe_pauza
 
 # Găsește o boxă care nu cântă; dacă toate cântă, o refolosește pe următoarea (rotativ).
