@@ -142,8 +142,10 @@ var _magnet: PackedScene
 # de morți). NU se scalează cu nimic — nici cu dificultatea, nici cu norocul: e o rată fixă,
 # ca să poți socoti câte cufere deschizi într-o rundă după câți inamici omori.
 const KEY_CHANCE := 0.005
-# MAGNETUL de XP (`magnet.gd`), tot 0.5% și tot fix, din același motiv.
-const MAGNET_CHANCE := 0.005
+# MAGNETUL de XP (`magnet.gd`): 0.2%, adică 1 la 500 de morți. Tot fix, din același motiv.
+# ⚠️ COBORÂT pe 2026-08-18 (era 0.005, ca la cheie) — cerut de Răzvan. E acum cel mai rar drop
+# din joc, de 2,5 ori mai rar decât cheia.
+const MAGNET_CHANCE := 0.002
 
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
@@ -576,8 +578,8 @@ func _drop_xp() -> void:
 		var cheie := _key.instantiate()
 		parent.add_child(cheie)
 		cheie.global_position = global_position + Vector2(-22, -6)
-	# MAGNET de XP: 0.5%, tot independent de restul dropului. Cade în cealaltă parte decât cheia,
-	# ca să se vadă amândouă dacă pică odată (1 la 40.000 de morți, dar se întâmplă).
+	# MAGNET de XP: 0.2%, tot independent de restul dropului. Cade în cealaltă parte decât cheia,
+	# ca să se vadă amândouă dacă pică odată (1 la 100.000 de morți, dar se întâmplă).
 	if _magnet != null and randf() < MAGNET_CHANCE:
 		var magnet := _magnet.instantiate()
 		parent.add_child(magnet)

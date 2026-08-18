@@ -53,7 +53,7 @@ const SHAKE_TIME := 0.9
 # Identic cu lista din `nether.gd`. ⚠️ Când adaugi un generator nou în `World` (main.tscn),
 # treci-l ȘI aici, ȘI în `nether.gd` — altfel rămâne aprins și-i vezi obiectele plutind
 # într-o dimensiune în care n-au ce căuta.
-const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 # Generatoare care merg PE DOS: stinse în lumea normală, aprinse doar cât ești aici. Deocamdată
 # unul singur — statuile de schimb (`ender_statues.gd`). NU au ce căuta în lista de sus: acolo
@@ -363,16 +363,15 @@ func _bara_boss(on: bool) -> void:
 # celelalte de pe hartă dispar odată cu generatorul, care nu mai naște nimic (`portals.gd`).
 # Un Ender pe rundă, ca Nether-ul — de aici încolo nu mai ai unde intra.
 #
+# ⚠️ „Nu mai ai unde intra" e doar despre LOCURILE ASTEA. Porțile de pușcărie sunt pe generator
+# separat (`prison_gates.gd`, aprins din minutul zero), deci ele rămân pe hartă și după ce cade
+# Celesto. Între 2026-08-17 și 2026-08-18 aici se chema `treci_pe_prison()`, fiindcă pușcăria era
+# a treia vârstă a acelorași locuri; acum lanțul se termină iar cu Ender-ul.
+#
 # Se cheamă doar de pe drumul VOLUNTAR de ieșire, care există numai după ce boss-ul a căzut.
 func _inchide_fantana() -> void:
 	var portals := _generator("Portals")
-	# ⚠️ SCHIMBAT pe 2026-08-17: până acum aici se chema `opreste()` și runda se termina cu Ender-ul.
-	# Acum locurile astea trec la a TREIA vârstă și scot PORȚI DE PUȘCĂRIE (`prison.gd`) — exact așa
-	# se ține regula „pușcăria nu e accesibilă până n-ai jucat celelalte dimensiuni". Închiderea
-	# definitivă s-a mutat cu o dimensiune mai încolo, în `prison.gd::_inchide_poarta`.
-	if portals != null and portals.has_method("treci_pe_prison"):
-		portals.treci_pe_prison()
-	elif portals != null and portals.has_method("opreste"):
+	if portals != null and portals.has_method("opreste"):
 		portals.opreste()
 	if _fantana == null or not is_instance_valid(_fantana):
 		return

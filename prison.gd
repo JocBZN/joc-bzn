@@ -1,18 +1,21 @@
 extends CanvasLayer
 
-# PUȘCĂRIA — a patra și ULTIMA dimensiune. Făcută exact ca Nether-ul și Ender-ul (`nether.gd`,
-# `ender.gd`): NU se încarcă altă scenă, rămâi în aceeași lume la aceleași coordonate, dar
-# podeaua devine pavaj de temniță, decorul se stinge, ceasul rundei îngheață și pornește unul
-# propriu, iar inamicii lasă `XP_BONUS` × XP.
+# PUȘCĂRIA — a patra dimensiune. Făcută exact ca Nether-ul și Ender-ul (`nether.gd`, `ender.gd`):
+# NU se încarcă altă scenă, rămâi în aceeași lume la aceleași coordonate, dar podeaua devine
+# pavaj de temniță, decorul se stinge, ceasul rundei îngheață și pornește unul propriu, iar
+# inamicii lasă `XP_BONUS` × XP.
 #
-# ⚠️ CUM AJUNGI AICI — asta e regula cerută („să nu fie accesibilă decât după ce joci toate
-# celelalte dimensiuni"). Locurile de portal din lume au acum TREI vârste (vezi `portals.gd`):
-#      portal Nether  →  (cade Saratalin)  →  fântână Ender  →  (cade Celesto)  →  POARTĂ DE PUȘCĂRIE
-# Deci ca să vezi măcar o poartă trebuie să fi terminat și Nether-ul, și Ender-ul. Nu e o
-# verificare pusă la intrare, e chiar lanțul lumii: până nu cad amândoi boșii, poarta nu există.
+# ⚠️ CUM AJUNGI AICI — SCHIMBAT pe 2026-08-18 (cerut de Răzvan: „nu vreau ca portalele să se
+# spawneze după ce termini Ender, vreau să fie de la început random pe hartă cu 1% șansă per
+# chunk"). Porțile au acum generator PROPRIU, `prison_gates.gd`, aprins din minutul zero al
+# rundei; nu mai sunt a treia vârstă a locurilor din `portals.gd`.
+# Deci pușcăria NU mai e închisă până termini celelalte dimensiuni: poți intra oricând dai peste
+# o poartă. Ce o ține grea rămâne ce e ÎNĂUNTRU — inamicii îngroșați (`ENEMY_POWER` & co.) și
+# WARDEN-ul cu 260 000 de viață, nescalată. Dacă intri devreme, intri nepregătit.
 #
-# ⚠️ ȘI AICI ESTE CAPĂTUL DRUMULUI: la ieșirea victorioasă generatorul se oprește de tot
-# (`portals.opreste()`), deci o pușcărie pe rundă, ca la celelalte două.
+# ⚠️ TOT UNA PE RUNDĂ: la ieșirea victorioasă se oprește generatorul PORȚILOR
+# (`prison_gates.opreste()`), nu cel de portaluri. Lanțul Nether → Ender merge mai departe,
+# neatins, cu opririle lui.
 #
 # Boss-ul NU te așteaptă la intrare (ca în Ender), ci îl scoți TU dintr-o STATUIE
 # (`prison_statue.gd`), ca Saratalin în Nether. Până n-o găsești, pușcăria e doar o temniță
@@ -46,7 +49,7 @@ const SHAKE_TIME := 0.9
 # ⚠️ Aceeași listă ca în `nether.gd` / `ender.gd` / `limbo.gd`. Un generator nou pus în `World`
 # (main.tscn) trebuie trecut în TOATE. Dacă lipsește dintr-una, rămâne aprins acolo și-i vezi
 # obiectele într-o dimensiune în care n-au ce căuta (s-a întâmplat de trei ori).
-const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
 const ROOT_NODES := ["Paths"]
 
 var active := false
@@ -344,12 +347,15 @@ func _bara_boss(on: bool) -> void:
 		bara.arata(_boss.nume, _boss.max_hp)
 		bara.set_hp(_boss.hp)
 
-# Ai ieșit învingător → GATA CU TOT în runda asta. Poarta prin care ai ieșit intră în pământ cu
-# cutremur, iar generatorul nu mai naște nimic: nu mai există nicio dimensiune în care să intri.
+# Ai ieșit învingător → GATA CU PORȚILE în runda asta. Cea prin care ai ieșit intră în pământ cu
+# cutremur, celelalte de pe hartă dispar odată cu generatorul lor.
+# ⚠️ Se oprește `PrisonGates`, NU `Portals` (schimbat pe 2026-08-18, odată cu generatorul propriu):
+# portalurile Nether / fântânile Ender sunt o poveste separată acum și se opresc singure, la
+# ieșirea din Ender. Dacă oprim greșitul, rămâi cu porți de pușcărie și fără portaluri.
 func _inchide_poarta() -> void:
-	var portals := _generator("Portals")
-	if portals != null and portals.has_method("opreste"):
-		portals.opreste()
+	var porti := _generator("PrisonGates")
+	if porti != null and porti.has_method("opreste"):
+		porti.opreste()
 	if _poarta == null or not is_instance_valid(_poarta):
 		return
 	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)

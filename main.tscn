@@ -32,6 +32,7 @@
 [ext_resource type="Script" path="res://dubiosi.gd" id="30_dubiosi"]
 [ext_resource type="Script" path="res://dubios_menu.gd" id="31_dubios_menu"]
 [ext_resource type="Script" path="res://bushes.gd" id="32_bushes"]
+[ext_resource type="Script" path="res://prison_gates.gd" id="33_prison_gates"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -82,6 +83,10 @@ script = ExtResource("12_statues")
 [node name="Portals" type="Node2D" parent="World" unique_id=86867323]
 y_sort_enabled = true
 script = ExtResource("18_portals")
+
+[node name="PrisonGates" type="Node2D" parent="World"]
+y_sort_enabled = true
+script = ExtResource("33_prison_gates")
 
 [node name="Chests" type="Node2D" parent="World" unique_id=86867324]
 y_sort_enabled = true

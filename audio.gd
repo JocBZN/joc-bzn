@@ -49,6 +49,22 @@ const SFX := {
 	"enemy_hit":      "res://audio/Enemy Hit.wav",                     # un proiectil a rănit un inamic
 	"earthquake":     "res://audio/Earthquake.wav",                    # bubuitura de cutremur (vezi QUAKE_DB)
 	"key_pickup":     "res://audio/Key Pickup.wav",                    # ai călcat pe o cheie de cufăr
+	# --- MAGNETUL de XP (`magnet.gd`), DOUĂ straturi ---
+	# Până pe 2026-08-18 magnetul suna cu `key_pickup`, adică EXACT ca o cheie de cufăr — deși e
+	# alt obiect și face altceva. Acum are sunetul lui, luat din `Soundpack/` și prelucrat
+	# (48 kHz/16 biți, vârf -1 dBFS; echilibrul e în `volume_db`, la chemare, ca la cinematici).
+	#
+	# De ce DOUĂ fișiere și nu unul: momentul are două lucruri de spus, unul după altul.
+	#   • `magnet_pickup` (1,0 s) — CONTACTUL: ai călcat pe el. Transient metalic-magic, care
+	#     taie prin harababura de luptă, ca să știi pe loc că ai luat ceva.
+	#   • `magnet_pull` (1,8 s) — CE FACE: un val care URCĂ 0,4 s și se termină în sclipici. Urcarea
+	#     e mișcarea spre tine a tot XP-ului de pe hartă, iar sclipiciul acoperă secunda în care
+	#     gemele chiar aterizează. ⚠️ Fără el momentul e MUT: gemele culese n-au sunet propriu
+	#     (vechiul „xp" a fost șters din listă), deci tot spectacolul se vedea, dar nu se auzea.
+	# Se pornesc odată, cu `play_ex` (ton FIX): pe două straturi suprapuse, variația de ton a lui
+	# `play` le-ar dezacorda între ele, de fiecare dată altfel.
+	"magnet_pickup":  "res://audio/Magnet Pickup.wav",                 # ai călcat pe un magnet de XP
+	"magnet_pull":    "res://audio/Magnet Pull.wav",                   # tot XP-ul de pe hartă vine spre tine
 	"chest_open":     "res://audio/Chest Opening.wav",                 # ai apăsat E pe cufăr (capacul se ridică)
 	"chest_anim":     "res://audio/Chest Animation.wav",               # explozia de raze de deasupra cufărului deschis
 }

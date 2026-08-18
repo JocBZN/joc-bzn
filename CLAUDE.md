@@ -7,7 +7,10 @@ Quick rules:
 - **Godot 4.7 + GDScript.** Indentation is **TABS** — never mix tabs/spaces (Godot errors out). When code is involved, prefer writing `.gd` files directly to avoid copy-paste/tab problems.
 - **Node lookups use groups:** `"player"` and `"enemy"` (via `get_tree().get_first_node_in_group(...)` / `get_nodes_in_group(...)`); cast results with `as Node2D` before using `global_position`.
 - This is a **survivors-like / bullet-heaven** game (Vampire Survivors style), cyberpunk theme, for Android. See the roadmap in `README.md`.
-- **Repo activ:** `C:\Users\stefan-razvan.dogaru\joc-bzn` (clonă pe `main`, remote `JocBZN/joc-bzn`) — verificat pe 2026-08-17, e SINGURA clonă de pe disc. Notele vechi care zic „Desktop\joc-bzn" sau „Downloads\joc-bzn-main" sunt depășite (folderele alea nu mai există). **Godot: `Downloads\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64.exe`**, nu e în PATH — se cheamă cu calea întreagă.
+- **Repo activ — ⚠️ DEPINDE DE CALCULATOR, uită-te ÎNTÂI ce există pe disc.** Sunt două mașini pe care se lucrează, iar rândul ăsta a fost rescris de fiecare ca și cum ar fi una singură:
+  - utilizator `stefan-razvan.dogaru`: `C:\Users\stefan-razvan.dogaru\joc-bzn`, **Godot `Downloads\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64.exe`**;
+  - utilizator `gheorghe dracu`: `C:\Users\gheorghe dracu\Desktop\joc-bzn`, **Godot `Downloads\Godot_v4.7-stable_win64_console.exe`** (build de consolă: tipărește stdout/stderr, deci `print`-urile din scenele de test se văd). Verificat pe 2026-08-18.
+  Amândouă sunt clone pe `main`, remote `JocBZN/joc-bzn`. Godot nu e în PATH nicăieri — se cheamă cu calea întreagă. Notele care zic „Downloads\joc-bzn-main" sunt depășite.
 - **Există un CODEX al upgrade-urilor**, artifact pe claude.ai: `https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e`. Când schimbi ceva în `levelup.gd` (item nou, raritate, efect, iconiță) sau în `game_settings.gd` (META), **actualizează-l și pe el** — altfel rămâne în urmă în tăcere. **De pe 2026-07-17 e generat data-driven** din `codex.html` (în repo): editezi array-ul `ITEMS` / `SYN` de sus (efectele reale din cod), iconițele+chenarele se re-encodează base64 și se injectează în placeholder-ul `/*__ASSETS__*/` cu scriptul PowerShell (vezi session log 2026-07-17 „Codex regenerat”), apoi republici pe același URL cu `url=`. Mult mai simplu decât chirurgia pe base64. **De pe 2026-07-28 codexul are și o secțiune „Statusuri de start"** (prima, sub titlu): tabelele `ARME` + `BASE`. Ea se strică ÎN TĂCERE dacă umbli la valorile implicite din `player.gd` — `speed`, `max_hp`, `contact_damage`, `xp_to_next`, tabelul `ARME`, `sword_base_damage`, `scythe_base_damage`. Cifrele de acolo NU se citesc din cod: se scot **rulând** o scenă care instanțiază player-ul cu fiecare armă și tipărește `stat_lines()`, cu `GameSettings.upgrades` golit doar în RAM (altfel prinzi și magazinul permanent din salvarea lui Răzvan). **⚠️ Randează-l ÎNTÂI în Chrome headless** (`--headless=new --enable-logging=stderr --log-level=0 --screenshot=...`): tot conținutul e generat din JS, deci o singură ghilimea greșită într-un string face pagina complet albă, fără niciun semn. S-a întâmplat (vezi log-ul din 2026-07-26 „codexul arată textul EXACT din joc"). Și încă ceva: câmpul `game:` (textul exact de pe cardul din joc) e **generat din `levelup.gd`**, nu scris de mână — dacă schimbi o descriere, o schimbi în `levelup.gd` (`desc`) și regenerezi, nu invers.
 - ⚠️ **ARTIFACTUL CODEXULUI NU POATE FI REPUBLICAT de pe contul de lucru** (`razvanstefan.dogaru@gmail.com`, sesiunile Claude Code din `C:\Users\stefan-razvan.dogaru`). Verificat pe 2026-08-17: `Artifact action:list scope:all` îl întoarce ca **(shared)**, adică e publicat de pe ALT cont și doar împărtășit încoace — iar artifact-urile shared se pot citi, nu rescrie (`WebFetch` pe el dă „served to you as a public (non-member) reader"). Deci: **`codex.html` din repo rămâne sursa de adevăr și se actualizează normal**, dar pagina de pe claude.ai o reîmprospătează Răzvan de pe contul lui. Nu publica o versiune nouă pe alt URL — ar despărți codexul în două.
 - **Jocul e în 9 limbi (din 2026-07-27).** Textele afișate se scriu **în ENGLEZĂ direct în cod** — Godot le traduce singur pe Label/Button, pe baza tabelului din `i18n.gd`. Când adaugi un text nou, adaugi și rândul în `TRAD`. `tr()` se folosește **doar** la textele cu `%d`/`%s` (pe o etichetă simplă ar STRICA schimbarea limbii). Verifică cu `godot --headless --path . res://tool_check_i18n.tscn` înainte de commit.
@@ -16,6 +19,48 @@ Quick rules:
 - **Uneltele care au nevoie de autoload-uri se rulează ca SCENĂ, nu cu `--script`** — altfel dau „Identifier not found: GameSettings".
 - **Generator nou în `World` (main.tscn) → trece-l în `WORLD_NODES` din `nether.gd`, `limbo.gd`, `ender.gd` ȘI `prison.gd`** (a patra listă din 2026-08-17). Sunt patru liste separate; dacă lipsește dintr-una, generatorul rămâne aprins acolo și-i vezi obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de trei ori (EGT-uri, portaluri). **Singura excepție (din 2026-08-14): `Dubiosi`** — omul în palton apare NUMAI în Nether, deci lipsește dinadins din lista lui `nether.gd`, iar regula lui e scrisă invers, la el în generator (`dubiosi.gd` se uită la `nether.active` și se golește singur când nu ești acolo). În `limbo.gd` și `ender.gd` e trecut normal.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
+
+---
+
+## Session log — 2026-08-18 (porțile de pușcărie pe generator propriu + magnetul: 0.2% și sunet propriu)
+
+**Cerut de Răzvan:** „la dimensiunea prison nu vreau ca portalele să se spawneze după ce termini ender. vreau să fie de la început random pe hartă cu 1% șansă de spawn per chunk. Și vreau ca magneții să aibă rata de drop de 0.2% per kill. Îi schimbi și tu sunetu că ai folderu ala cu mai multe, dar la fel te gândești mai întâi că ești un director de sound design la un gaming studio profesionist."
+
+**Fișier nou:** `prison_gates.gd`. **Atinse:** `portals.gd`, `ender.gd`, `prison.gd`, `nether.gd`, `limbo.gd`, `enemy.gd`, `magnet.gd`, `audio.gd`, `main.tscn`, `audio/Magnet Pickup.wav` + `audio/Magnet Pull.wav` (noi).
+
+### 1. Porțile de pușcărie — generator de sine stătător
+
+Ieri (2026-08-17) poarta era **a treia vârstă** a locurilor de portal din `portals.gd`, adică pușcăria era încuiată în spatele celorlalte două dimensiuni. Acum e pe dos: `prison_gates.gd`, generator propriu în `World`, **aprins din secunda zero**, 1% pe chunk, sămânță proprie (`0x51B7`).
+
+- `portals.gd` a rămas iar cu **două** vârste (Nether → Ender) — `prison`, `treci_pe_prison()` și punerea steagului la naștere au fost scoase de tot. `ender.gd::_inchide_fantana` cheamă din nou `portals.opreste()`.
+- `prison.gd::_inchide_poarta` oprește acum **`PrisonGates`, nu `Portals`**. ⚠️ Dacă îl lași pe cel vechi, după Warden rămâi cu porți de pușcărie pe hartă și fără portaluri — fix invers decât trebuie.
+- **`"PrisonGates"` e trecut în toate cele patru `WORLD_NODES`** (`nether.gd`, `limbo.gd`, `ender.gd`, `prison.gd`), regula din Quick rules. Generatorul are `_loaded` cu numele ăsta dinadins: `_toggle_generator` îl golește prin `node.set("_loaded", {})`, deci un alt nume l-ar lăsa mort după prima dimensiune.
+- **Fereala de portaluri e într-o SINGURĂ direcție:** poarta întreabă `portals.chunk_portal_pos()` și se mută dacă e prea aproape (`min_dist_portal = 320`); portalul nu întreabă înapoi. E de ajuns (poziția portalului nu se uită la noi), iar invers ar fi o buclă. În eșantionul de 25 600 de chunk-uri, 3 chunk-uri au și portal, și poartă — acolo se mută poarta.
+- Arta e tot `portal_ender.tscn` cu `prison = true` pus **înainte de `add_child`**. Pe hartă se deosebesc bine: fântână verde-piatră cu „ENTER THE PRISON" lângă un arc de piatră cenușiu (văzut pe captură).
+
+**Ce am scris în comentarii și merită reținut:** pușcăria nu mai e „ultima dimensiune". Ce o ține grea e ce e ÎNĂUNTRU (toate cele 6 feluri de inamici odată, îngroșate, plus un boss cu 260 000 viață nescalată), nu ușa. Intri la minutul unu → intri nepregătit, dar ai voie.
+
+### 2. Magnetul: 0.5% → **0.2%** (`MAGNET_CHANCE` în `enemy.gd`)
+
+1 la 500 de morți. E acum cel mai rar drop din joc — cheia a rămas la 0.5%.
+
+### 3. Sunetul magnetului — două straturi, nu unul
+
+Până acum magnetul suna cu **`key_pickup`**, adică exact ca o cheie de cufăr: cel mai rar obiect din joc n-avea sunet propriu. Ales din `Soundpack/` (materie primă, gitignorată) și prelucrat, nu copiat.
+
+**Raționamentul (întrebarea de sound design nu e „ce sunet frumos", ci „ce trebuie să afle jucătorul"):** momentul are două lucruri de spus, iar al doilea era **mut**.
+1. **Contactul** — ai călcat pe ceva rar. → `magnet_pickup` (`MAGAngl_BUFF-Buff Pickup`, 1,0 s, centroid 6,6 kHz): transient metalic-magic care taie prin harababura de luptă.
+2. **Ce face** — tot XP-ul de pe hartă vine la tine. → `magnet_pull` (`DSGNTonl_SKILL RELEASE-Mana Sparkles`, 1,8 s): **urcă 0,4 s** (mișcarea spre tine) și se termină în sclipici, exact peste secunda în care gemele aterizează. ⚠️ Stratul ăsta există fiindcă **gemele culese n-au sunet** (vechiul „xp" a fost șters din `SFX`) — fără el, tot spectacolul itemului se vedea, dar nu se auzea.
+
+- Pornite cu **`play_ex`** (ton FIX, fără poarta de 45 ms): pe două straturi suprapuse, variația de ton a lui `play` le-ar dezacorda unul față de altul la fiecare cules.
+- Prelucrare, ca la cinematica lui Celesto: tăiate de liniște, scurtate la cât ține momentul, fade 5/50 ms, **48 kHz/16 biți, apoi** normalizate la **vârf −1 dBFS** (întâi reeșantionare, apoi normalizare — vezi capcana din 2026-08-17; și niciodată LUFS pe sunete scurte). Amândouă ies la mean ≈ −19 dB, adică în jurul lui `Enemy Hit` (−20). **Echilibrul e în cod** (`magnet.gd`: contact 0 dB, val −4 dB), nu în fișiere.
+- 538 KB pentru amândouă.
+
+### Verificat RULÂND (scenă de test, ștearsă după)
+
+`prison_gates.gd` singur, pe 25 600 de chunk-uri: **0,961%** porți (ținta 1%), poziții **deterministe** la 10 apeluri; `portals.gd` în același eșantion: 1,602% (ținta 1,5%). Apoi jocul adevărat (`main.tscn` instanțiat, Spawner oprit ca să nu moară player-ul în leaderboard-ul real): poarta se naște la prima țintă, `prison=true`, eticheta „Enter the Prison", tint `(0.62, 0.78, 0.60)`, portalurile Nether nemișcate lângă ea. **Am și INTRAT, în minutul zero** — `prison.active=true`, statuia pusă la 563 px, 8 inamici, ceas 5:00, poarta devenită „Leave the Prison"; ieșirea forțată curăță totul și porțile rămân pe hartă. Sunetele: `magnet_pickup` 1,00 s, `magnet_pull` 1,80 s, încărcate. `MAGNET_CHANCE = 0.002`. `tool_check_i18n`: „TOTUL E TRADUS" (n-am adăugat text nou).
+
+- ⚠️ **Capcană de raportare (m-a păcălit o rulare):** dacă filtrezi ieșirea lui Godot cu `grep -v '^\['`, îți tai exact propriile `print`-uri, dacă le-ai prefixat cu `[TAG]`. Părea că testul n-a scris nimic.
 
 ---
 
