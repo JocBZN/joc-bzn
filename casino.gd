@@ -14,9 +14,11 @@ extends CanvasLayer
 #      În dreapta bifezi ce statusuri bagi în joc.
 #   3. TRADE-UP CONTRACT (2026-08-07): dai 3 iteme de ACEEAȘI raritate și primești unul cu o
 #      treaptă mai sus, pe care NU-L VEZI până nu tragi. Vezi secțiunea lui, mai jos.
-#   4. BANAT: cazinoul te dă afară pentru tot run-ul, din DOUĂ motive — trei câștiguri la rând
-#      („You've been banned for cheating", 2026-08-11) sau jetoanele terminate („You've been
-#      banned from the casino", 2026-08-19). Vezi `CASTIGURI_BAN` și `JETOANE_START`.
+#   4. BANAT — dar numai de la MASĂ (2026-08-19, cerut de Răzvan): din două motive, trei câștiguri
+#      la rând („You've been banned for cheating", 2026-08-11) sau jetoanele terminate („You've
+#      been banned from the casino"). Ruleta se închide pentru tot run-ul; TRADE-UP-ul rămâne
+#      deschis, fiindcă el nu se joacă pe jetoane, ci pe iteme. Vezi `CASTIGURI_BAN` și
+#      `JETOANE_START`.
 #
 # ---------------------------------------------------------------------------
 # CUM ARATĂ (refăcut pe 2026-08-07: „ca un joc cu 1 milion de copii vândute")
@@ -284,6 +286,8 @@ var _pag_intro: Control
 var _pag_masa: Control
 var _pag_ban: Control
 var _lbl_motiv: Label          # „3 wins in a row" de pe ecranul de ban
+var _btn_stats: Button         # „Gamble your stats" — se stinge când ruleta e închisă
+var _lbl_masa_inchisa: Label   # de ce e stins, chiar sub el
 var _lbl_regula: Label         # „5 chips per run · one spin each", pe ecranul de intro
 var _lbl_ban_titlu: Label      # titlul ecranului de ban — se schimbă după motiv
 # Rafturile de jetoane (unul pe ecranul de intro, unul în panoul mesei, unul pe cel de ban) și
@@ -371,13 +375,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif _pagina == "iteme":
 		if not _rula:            # nu pleca din mijlocul unei dezvăluiri
 			_arata_pagina("intro")
+	elif _pagina == "ban":
+		_arata_pagina("intro")   # ⚠️ nu `_inchide()`: din ban se iese ÎNAPOI în cazinou, la iteme
 	else:
 		_inchide()
 
 func _arata_pagina(care: String) -> void:
-	# Banat = nu mai există alt ecran în cazinou. Redirectarea stă AICI, într-un singur loc, ca să
-	# nu poată fi ocolită: și `open()`, și ESC-ul de pe masă, și butoanele „Back" trec pe aici.
-	if _banat:
+	# Banat = MASA e moartă, nu tot cazinoul: trade-up-ul se plătește în iteme, nu în jetoane, deci
+	# n-are de ce să se închidă odată cu ruleta (Răzvan, 2026-08-19). Redirectarea stă AICI, într-un
+	# singur loc, ca să nu poată fi ocolită: și `_on_stats`, și ESC-ul, și butoanele trec pe aici.
+	if _banat and care == "masa":
 		care = "ban"
 	_pagina = care
 	_pag_intro.visible = (care == "intro")
@@ -386,6 +393,10 @@ func _arata_pagina(care: String) -> void:
 	_pag_ban.visible = (care == "ban")
 	if care == "intro":
 		_lbl_regula.text = tr("%d chips per run · one spin each") % JETOANE_START   # tr() explicit: are %d
+		# Butonul mesei se stinge, iar sub el apare de ce. Un buton care merge și te duce într-un
+		# perete e mai rău decât unul stins care spune ce s-a întâmplat.
+		_btn_stats.disabled = _banat
+		_lbl_masa_inchisa.visible = _banat
 	elif care == "masa":
 		_reseteaza_masa()
 		_relayout()
@@ -468,7 +479,21 @@ func _build_intro() -> void:
 	box.add_child(_lbl_regula)
 	box.add_child(_spatiu(6))
 
-	box.add_child(_buton("Gamble your stats", _on_stats))
+	_btn_stats = _buton("Gamble your stats", _on_stats)
+	box.add_child(_btn_stats)
+
+	# ⚠️ Se aprinde doar când masa e închisă (`_arata_pagina`). Un `Label` invizibil nu ocupă loc
+	# într-un `VBoxContainer`, deci ecranul arată la fel ca înainte cât timp poți juca.
+	_lbl_masa_inchisa = Label.new()
+	_lbl_masa_inchisa.text = "The roulette is closed for the rest of the run"
+	_lbl_masa_inchisa.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_masa_inchisa.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_masa_inchisa.add_theme_font_size_override("font_size", 13)
+	_lbl_masa_inchisa.add_theme_color_override("font_color", Color8(214, 78, 64))
+	_lbl_masa_inchisa.visible = false
+	_contur(_lbl_masa_inchisa)
+	box.add_child(_lbl_masa_inchisa)
+
 	box.add_child(_buton("Gamble your items", _on_items))
 
 	box.add_child(_spatiu(10))
@@ -478,8 +503,8 @@ func _build_intro() -> void:
 # ECRANUL 4 — BANAT (vezi CASTIGURI_BAN)
 # ---------------------------------------------------------------------------
 # Aceeași croială ca ecranul de intro (același panou de aramă, aceeași ierarhie pe mărime), doar
-# că titlul e roșu: e singura dată când cazinoul îți spune „nu". Nu are decât butonul „Leave" —
-# un buton care nu duce nicăieri ar fi o promisiune mincinoasă.
+# că titlul e roșu: e singura dată când cazinoul îți spune „nu". De pe 2026-08-19 are DOUĂ butoane
+# — banul e doar al mesei, deci drumul continuă la trade-up; un ecran fără ieșire înainte ar fi minciună.
 func _build_ban() -> void:
 	_pag_ban = Control.new()
 	_pag_ban.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -487,7 +512,7 @@ func _build_ban() -> void:
 	add_child(_pag_ban)
 
 	var pw := 700.0
-	var ph := 500.0   # ⚠️ mai înalt de pe 2026-08-19: sub motiv a intrat raftul de jetoane
+	var ph := 572.0   # ⚠️ crescut de două ori pe 2026-08-19: raftul de jetoane, apoi al doilea buton
 	var panel := _cadru(CH_PANOU, 16)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -pw / 2.0
@@ -538,7 +563,7 @@ func _build_ban() -> void:
 	box.add_child(_lbl_motiv)
 
 	var cat := Label.new()
-	cat.text = "The casino is closed for the rest of the run"
+	cat.text = "The roulette is closed for the rest of the run"
 	cat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cat.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cat.add_theme_font_size_override("font_size", 15)
@@ -552,6 +577,9 @@ func _build_ban() -> void:
 	box.add_child(_fa_rack(30.0))
 
 	box.add_child(_spatiu(10))
+	# ⚠️ De aici NU se iese din cazinou: banul e doar al mesei, iar trade-up-ul merge mai departe.
+	# Butonul lui e primul, ca drumul să continue de unde s-a oprit, nu să te trimită afară.
+	box.add_child(_buton("Gamble your items", _on_items))
 	box.add_child(_buton("Leave", _inchide))
 
 func _on_stats() -> void:
@@ -984,19 +1012,20 @@ func _arata_rezultat(n: int) -> void:
 		t.tween_interval(BAN_INTARZIERE)
 		t.tween_callback(_cade_banul)
 
-# Ecranul de ban, la BAN_INTARZIERE secunde după al treilea câștig. Dacă între timp ai ieșit cu
-# ESC din cazinou, paginile se schimbă în spate și îl vezi la următoarea apăsare de E — doar că
-# `egt.gd` nu-l mai deschide, deci în practică rămâne eticheta de deasupra aparatului.
+# Ecranul de ban, la BAN_INTARZIERE secunde după ultima rotire. Dacă între timp ai ieșit cu ESC
+# din cazinou, paginile se schimbă în spate și îl vezi la următoarea apăsare de E — de acolo tot
+# la trade-up poți merge, aparatul te primește înăuntru ca înainte.
 func _cade_banul() -> void:
 	Audio.play("game_over", -8.0, 0.0)
 	_arata_pagina("ban")
 
-# Îl întreabă aparatul din lume (`egt.gd`): mai are voie jucătorul la joc?
-func e_banat() -> bool:
-	return _banat
+# ⚠️ `e_banat()` și `eticheta_ban()` au existat aici până pe 2026-08-19, ca `egt.gd` să refuze
+# deschiderea și să scrie banul deasupra aparatului. Acum banul e doar al MESEI: aparatul se
+# deschide normal (ai trade-up înăuntru), deci nimeni nu le mai chema și au plecat. Cine e banat
+# se vede pe ecranul de intro, pe butonul stins al mesei.
 
-# Ce scrie mare pe ecranul de ban și deasupra aparatului din lume (`egt.gd`). Cele două motive au
-# fiecare titlul lui: unul e o acuzație, celălalt e o constatare.
+# Ce scrie mare pe ecranul de ban: cele două motive au fiecare titlul lui — unul e o acuzație,
+# celălalt o constatare.
 func _titlu_ban() -> String:
 	return "You've been banned from the casino" if _motiv_ban == "jetoane" else "You've been banned for cheating"
 
@@ -1005,10 +1034,6 @@ func _motiv_ban_text() -> String:
 	if _motiv_ban == "jetoane":
 		return tr("Your %d chips are gone") % JETOANE_START   # tr() explicit: are %d, vezi i18n.gd
 	return tr("%d wins in a row") % CASTIGURI_BAN
-
-# Îl întreabă aparatul din lume (`egt.gd`) ce să scrie deasupra lui cât ești banat.
-func eticheta_ban() -> String:
-	return _titlu_ban()
 
 # ---------------------------------------------------------------------------
 # JETOANELE (vezi JETOANE_START)

@@ -88,6 +88,21 @@ Trei stări, nu una:
 - **poze** (fereastră adevărată, 1920×1080): intro cu cele 5 jetoane + regula, panoul mesei cu raftul sub subtitlu, **jetonul prins în mijlocul plății** (mărit și aprins, contorul deja pe „4 CHIPS LEFT", SPIN stins, roata deja pornită), „LAST CHIP" portocaliu cu un singur jeton aprins, și ecranul de ban cu cele cinci jetoane moarte;
 - `tool_check_i18n` → **TOTUL E TRADUS** (311 chei × 8 limbi), fără avertismente noi.
 
+### 6. Banul e doar al MESEI, nu al cazinoului (cerut imediat după, în aceeași zi)
+
+**Cerut de Răzvan:** „Vreau sa apara ca e banat player-ul doar la Gamble your stats, dar vreau sa poata sa foloseaca in continuare gamble your items."
+
+Corect: trade-up-ul nu se plătește în jetoane, ci în iteme (și în dificultate) — n-are de ce să se închidă odată cu ruleta.
+
+- `_arata_pagina` nu mai rescrie ORICE pagină în `"ban"`, ci **doar `"masa"`**. Rămâne tot un singur loc prin care nu se poate trece pe lângă: și `_on_stats`, și ESC-ul, și `open()` intră pe aici.
+- Pe ecranul de intro, butonul **„Gamble your stats" se stinge** (`_btn_stats.disabled`) și sub el apare, cu roșu, **„The roulette is closed for the rest of the run"**. Un buton care merge și te duce într-un perete e mai rău decât unul stins care spune ce s-a întâmplat. Eticheta e ascunsă cât timp poți juca, iar un `Label` invizibil nu ocupă loc în `VBoxContainer`, deci ecranul arată exact ca înainte până se termină jetoanele.
+- Ecranul de ban are acum **două butoane**: „Gamble your items" (primul — drumul continuă de unde s-a oprit) și „Leave". Și **ESC de pe el duce în intro**, nu afară din cazinou.
+- Subtitlul lui zicea „The casino is closed for the rest of the run" — acum ar fi fost **minciună**, fiindcă trade-up-ul merge. Cheia a fost înlocuită cu „**The roulette** is closed…" (aceeași cheie e folosită și sub butonul stins, deci o singură traducere pentru amândouă locurile).
+- ⚠️ Titlul mare a rămas cum l-a cerut Răzvan — „You've been banned from the casino" — deși acum poți juca mai departe pe iteme. Rândul de sub el spune exact ce s-a închis.
+- `egt.gd` s-a subțiat: `invoca()` nu mai verifică banul (aparatul se deschide mereu) și `eticheta()` a plecat de tot — aparatul scrie iar „Press E to interact", fiindcă acum chiar se deschide. Odată cu ea au plecat și `e_banat()` + `eticheta_ban()` din `casino.gd`, rămase fără niciun apelant.
+
+**Verificat rulând:** după cele cinci rotiri — `intro` accesibil cu butonul mesei stins și rândul roșu sub el, `iteme` se deschide normal, `masa` și `_on_stats()` cad în `ban`, închis-și-redeschis pornește tot din `intro`, iar `EGT.invoca()` deschide cazinoul ca înainte (aparatul nu mai are `eticheta()`). Poze: intro-ul banat, ecranul de ban cu cele două butoane, trade-up-ul deschis DUPĂ ban.
+
 ---
 
 ## Session log — 2026-08-19 (masa de ruletă, decupată din nou; roata se învârte cu bilă adevărată și 7 straturi de sunet)

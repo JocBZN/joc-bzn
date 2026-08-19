@@ -295,7 +295,9 @@ const TRAD := {
 # de ban, și deasupra aparatului EGT din lume (`egt.gd::eticheta`).
 "You've been banned for cheating": ["你因作弊被封禁", "Du wurdest wegen Betrugs gesperrt", "Te han baneado por hacer trampa", "Ты забанен за читерство", "Tu es banni pour triche", "不正行為により出入り禁止", "Zostałeś zbanowany za oszustwo", "Hile yaptığın için yasaklandın"],
 "%d wins in a row": ["连赢 %d 次", "%d Siege in Folge", "%d victorias seguidas", "%d победы подряд", "%d gains d'affilée", "%d連勝", "%d wygrane z rzędu", "Üst üste %d kazanç"],
-"The casino is closed for the rest of the run": ["本局剩下的时间，赌场对你关门了", "Das Casino bleibt für den Rest des Laufs zu", "El casino queda cerrado el resto de la partida", "Казино закрыто до конца забега", "Le casino est fermé pour le reste de la partie", "このランの間、カジノは閉店だ", "Kasyno jest zamknięte do końca tej rundy", "Bu tur boyunca kumarhane sana kapalı"],
+# ⚠️ De pe 2026-08-19 scrie RULETA, nu cazinoul: banul închide doar masa, trade-up-ul merge mai
+# departe. Apare în două locuri — pe ecranul de ban și sub butonul stins de pe ecranul de intro.
+"The roulette is closed for the rest of the run": ["本局剩下的时间，轮盘对你关门了", "Der Roulettetisch bleibt für den Rest des Laufs zu", "La ruleta queda cerrada el resto de la partida", "Рулетка закрыта до конца забега", "La roulette est fermée pour le reste de la partie", "このランの間、ルーレットは閉店だ", "Ruletka jest zamknięta do końca tej rundy", "Bu tur boyunca rulet sana kapalı"],
 # Banul de după terminarea jetoanelor (casino.gd, JETOANE_START). Primul text apare și pe ecranul
 # de ban, și deasupra aparatului EGT din lume (`egt.gd::eticheta`), ca perechea lui de mai sus.
 "You've been banned from the casino": ["你被赌场封禁了", "Du hast Casinoverbot", "Te han vetado del casino", "Тебе запретили вход в казино", "Tu es banni du casino", "カジノを出入り禁止になった", "Masz zakaz wstępu do kasyna", "Kumarhaneden yasaklandın"],

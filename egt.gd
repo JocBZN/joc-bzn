@@ -47,26 +47,17 @@ func _aseaza_pe_origine(sprite: Sprite2D) -> void:
 	sprite.offset.y = ACOPERIRE_JOS / sprite.scale.y - (jos - float(sprite.texture.get_height()) * 0.5)
 
 # Mai poate fi folosit? La EGT mereu da — vezi comentariul de sus.
-# ⚠️ Rămâne `true` și când ești BANAT, la fel ca la cufărul fără cheie (`chest.gd`): pe `false`,
-# `interact_ui.gd` nu mai alege deloc aparatul ca țintă, deci n-ar mai scrie nimic deasupra lui și
-# ar părea decor. Așa rămâne țintă și scrie DE CE nu mai merge (vezi `eticheta()`).
+# ⚠️ Aparatul se deschide ȘI când ești banat la ruletă (2026-08-19): banul e doar al MESEI, iar
+# trade-up-ul („Gamble your items") merge mai departe, fiindcă el se plătește în iteme, nu în
+# jetoane. Deci nici textul de deasupra nu mai spune nimic special (`eticheta()` a plecat de aici
+# odată cu asta) — scrie „Press E to interact", ca la orice aparat care chiar se deschide, iar ce
+# nu mai merge se vede înăuntru, pe butonul stins al mesei.
 func poate_invoca() -> bool:
 	return true
-
-# Ce scrie deasupra aparatului. "" = lasă textul obișnuit („Press E to interact").
-# Cazinoul te dă afară pentru tot run-ul din DOUĂ motive — trei câștiguri la rând sau jetoanele
-# terminate — și aparatul scrie exact pe care (vezi `casino.gd`, `_titlu_ban`). Banul e al
-# CAZINOULUI, nu al aparatului: nodul e unul singur, deci toate EGT-urile din lume scriu asta,
-# nu doar cel la care ai jucat.
-func eticheta() -> String:
-	var casino = get_tree().get_first_node_in_group("casino")
-	if casino == null or not casino.e_banat():
-		return ""
-	return casino.eticheta_ban()
 
 # Apăsarea tastei de interacțiune ajunge aici (din `interact_ui.gd`).
 func invoca() -> void:
 	var casino = get_tree().get_first_node_in_group("casino")
-	if casino == null or casino.e_banat():
+	if casino == null:
 		return
 	casino.open()
