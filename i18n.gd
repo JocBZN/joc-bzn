@@ -296,6 +296,18 @@ const TRAD := {
 "You've been banned for cheating": ["你因作弊被封禁", "Du wurdest wegen Betrugs gesperrt", "Te han baneado por hacer trampa", "Ты забанен за читерство", "Tu es banni pour triche", "不正行為により出入り禁止", "Zostałeś zbanowany za oszustwo", "Hile yaptığın için yasaklandın"],
 "%d wins in a row": ["连赢 %d 次", "%d Siege in Folge", "%d victorias seguidas", "%d победы подряд", "%d gains d'affilée", "%d連勝", "%d wygrane z rzędu", "Üst üste %d kazanç"],
 "The casino is closed for the rest of the run": ["本局剩下的时间，赌场对你关门了", "Das Casino bleibt für den Rest des Laufs zu", "El casino queda cerrado el resto de la partida", "Казино закрыто до конца забега", "Le casino est fermé pour le reste de la partie", "このランの間、カジノは閉店だ", "Kasyno jest zamknięte do końca tej rundy", "Bu tur boyunca kumarhane sana kapalı"],
+# Banul de după terminarea jetoanelor (casino.gd, JETOANE_START). Primul text apare și pe ecranul
+# de ban, și deasupra aparatului EGT din lume (`egt.gd::eticheta`), ca perechea lui de mai sus.
+"You've been banned from the casino": ["你被赌场封禁了", "Du hast Casinoverbot", "Te han vetado del casino", "Тебе запретили вход в казино", "Tu es banni du casino", "カジノを出入り禁止になった", "Masz zakaz wstępu do kasyna", "Kumarhaneden yasaklandın"],
+"Your %d chips are gone": ["你的 %d 个筹码用完了", "Deine %d Chips sind weg", "Tus %d fichas se acabaron", "Твои %d фишек закончились", "Tes %d jetons sont partis", "%d枚のチップを使い切った", "Twoje %d żetonów się skończyło", "%d fişin de bitti"],
+# Raftul de jetoane (`casino.gd::_fa_rack`), în toate cele trei ecrane ale cazinoului.
+"%d chips per run · one spin each": ["每局 %d 个筹码 · 一个转一次", "%d Chips pro Runde · ein Dreh pro Chip", "%d fichas por partida · una tirada cada una", "%d фишек за забег · по одному вращению", "%d jetons par partie · un tour chacun", "1ランにチップ%d枚 · 1枚で1回", "%d żetonów na rundę · jeden zakręt każdy", "Tur başına %d fiş · her biri bir dönüş"],
+"ROULETTE CHIPS": ["轮盘筹码", "ROULETTE-CHIPS", "FICHAS DE RULETA", "ФИШКИ ДЛЯ РУЛЕТКИ", "JETONS DE ROULETTE", "ルーレットチップ", "ŻETONY DO RULETKI", "RULET FİŞLERİ"],
+# ⚠️ Cifra de aici e numai 2, 3 sau 4 (la 1 scrie „Last chip", la 0 „No chips left"), deci rusa și
+# polona pot folosi forma de plural mic — „фишки"/„żetony" — care e cea corectă fix pentru 2–4.
+"%d chips left": ["还剩 %d 个筹码", "Noch %d Chips", "Quedan %d fichas", "Осталось %d фишки", "Il reste %d jetons", "残り %d 枚", "Zostały %d żetony", "%d fiş kaldı"],
+"Last chip": ["最后一个筹码", "Letzter Chip", "Última ficha", "Последняя фишка", "Dernier jeton", "最後の1枚", "Ostatni żeton", "Son fiş"],
+"No chips left": ["筹码用完了", "Keine Chips mehr", "No quedan fichas", "Фишек не осталось", "Plus de jetons", "チップ切れ", "Brak żetonów", "Fiş kalmadı"],
 
 # ---------- trade-up contract, tot în cazinou (casino.gd, „Gamble your items") ----------
 "TRADE-UP CONTRACT": ["汰换合同", "TAUSCH-VERTRAG", "CONTRATO DE MEJORA", "КОНТРАКТ ОБМЕНА", "CONTRAT D'ÉCHANGE", "トレードアップ契約", "KONTRAKT WYMIANY", "TAKAS SÖZLEŞMESİ"],

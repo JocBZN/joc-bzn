@@ -14,8 +14,9 @@ extends CanvasLayer
 #      În dreapta bifezi ce statusuri bagi în joc.
 #   3. TRADE-UP CONTRACT (2026-08-07): dai 3 iteme de ACEEAȘI raritate și primești unul cu o
 #      treaptă mai sus, pe care NU-L VEZI până nu tragi. Vezi secțiunea lui, mai jos.
-#   4. BANAT (2026-08-11): dacă îți ies TREI câștiguri la rând la ruletă, cazinoul te dă afară
-#      pentru tot run-ul — „You've been banned for cheating". Vezi `CASTIGURI_BAN`.
+#   4. BANAT: cazinoul te dă afară pentru tot run-ul, din DOUĂ motive — trei câștiguri la rând
+#      („You've been banned for cheating", 2026-08-11) sau jetoanele terminate („You've been
+#      banned from the casino", 2026-08-19). Vezi `CASTIGURI_BAN` și `JETOANE_START`.
 #
 # ---------------------------------------------------------------------------
 # CUM ARATĂ (refăcut pe 2026-08-07: „ca un joc cu 1 milion de copii vândute")
@@ -108,6 +109,25 @@ const PIERDERE_MULT := 0.5
 # La restart, `reload_current_scene()` face nodul din nou → și șirul, și banul pornesc curate.
 const CASTIGURI_BAN := 3
 const BAN_INTARZIERE := 1.7   # cât rămâne rezultatul pe ecran înainte să apară ecranul de ban (sec)
+
+# --- JETOANELE: cinci rotiri de rundă (cerut de Răzvan pe 2026-08-19) ---
+# Masa nu mai e o fântână fără fund: primești `JETOANE_START` jetoane la începutul rundei și
+# ATÂT. Unul se duce la fiecare apăsare pe SPIN, iar când se termină toate, cazinoul te dă afară
+# — „You've been banned from the casino". Fără ele, ruleta era un buton de ținut apăsat: pariezi
+# pe roșu la nesfârșit și, cum câștigul e 2× iar pierderea 0,5×, orice status urcă până se
+# plictisește jucătorul, nu până îl ajunge riscul. Cinci e cât să ai loc să și pierzi, dar prea
+# puține ca să nu conteze fiecare.
+#
+# Se numără pe RUNDĂ, exact ca șirul de câștiguri și din același motiv: nodul cazinoului e unul
+# singur, stă în `main.tscn` și trăiește cât runda — deci nu-ți umpli buzunarul ieșind din meniu
+# și nici mergând la alt aparat EGT. La restart, `reload_current_scene()` face nodul din nou și
+# jetoanele pornesc iar de la cinci.
+#
+# ⚠️ Jetonul se ia la SPIN, nu la rezultat: cât se învârte roata trebuie să se vadă deja cu ce ai
+# rămas. Și ⚠️ trade-up-ul („Gamble your items") NU costă jetoane — el se plătește în iteme.
+const JETOANE_START := 5
+const JETON_STINS := Color(0.30, 0.25, 0.28, 0.55)   # cum arată în raft un jeton deja cheltuit
+const DB_JETON := -9.0   # cât de tare se aude jetonul luat de casă (sunetul de monedă, urcat în ton)
 
 # --- NOROCUL la ruletă (cerut de Răzvan pe 2026-07-30) ---
 # Norocul strâns în rundă (Unusual Clover, The Office...) înclină și ruleta: +1 PUNCT PROCENTUAL
@@ -257,11 +277,20 @@ var _ales := ""
 var _se_invarte := false
 var _castiguri_la_rand := 0    # câte câștiguri consecutive are la ruletă (vezi CASTIGURI_BAN)
 var _banat := false            # dat afară din cazinou pentru tot run-ul
+var _jetoane := JETOANE_START  # câte rotiri mai are (vezi JETOANE_START)
+var _motiv_ban := ""           # de ce a fost dat afară: "trisat" sau "jetoane"
 
 var _pag_intro: Control
 var _pag_masa: Control
 var _pag_ban: Control
 var _lbl_motiv: Label          # „3 wins in a row" de pe ecranul de ban
+var _lbl_regula: Label         # „5 chips per run · one spin each", pe ecranul de intro
+var _lbl_ban_titlu: Label      # titlul ecranului de ban — se schimbă după motiv
+# Rafturile de jetoane (unul pe ecranul de intro, unul în panoul mesei, unul pe cel de ban) și
+# tween-urile care fac ultimul jeton să respire. Toate trei arată aceeași socoteală, dintr-un
+# singur loc: `_actualizeaza_jetoane`.
+var _rackuri := []
+var _pulsuri := []
 var _masa: TextureRect
 var _roata: Control            # `casino_roata.gd` — discul, bila și sunetul învârtirii
 var _jeton: TextureRect
@@ -307,6 +336,7 @@ func _ready() -> void:
 	_build_masa()
 	_build_iteme()
 	_build_ban()
+	_actualizeaza_jetoane()   # aprinde cele cinci jetoane în toate rafturile deodată
 	_arata_pagina("intro")
 	get_viewport().size_changed.connect(_relayout)
 
@@ -354,13 +384,21 @@ func _arata_pagina(care: String) -> void:
 	_pag_masa.visible = (care == "masa")
 	_pag_iteme.visible = (care == "iteme")
 	_pag_ban.visible = (care == "ban")
-	if care == "masa":
+	if care == "intro":
+		_lbl_regula.text = tr("%d chips per run · one spin each") % JETOANE_START   # tr() explicit: are %d
+	elif care == "masa":
 		_reseteaza_masa()
 		_relayout()
 	elif care == "iteme":
 		_reseteaza_iteme()
 	elif care == "ban":
-		_lbl_motiv.text = tr("%d wins in a row") % CASTIGURI_BAN   # tr() explicit: are %d, vezi i18n.gd
+		# Titlul ȘI motivul se pun abia AICI, la afișare, nu la construire: sunt ASAMBLATE
+		# (`tr(...) % n`), deci nu se re-traduc singure când schimbi limba din Settings, iar
+		# ecranul se face o singură dată, la pornirea rundei. În plus, acum depind de MOTIVUL
+		# banului, care se știe abia când cade.
+		_lbl_ban_titlu.text = _titlu_ban()
+		_lbl_motiv.text = _motiv_ban_text()
+		_actualizeaza_jetoane()
 
 # ---------------------------------------------------------------------------
 # ECRANUL 1 — „Let's go gambling"
@@ -374,7 +412,7 @@ func _build_intro() -> void:
 	# Panoul din planșa de chenare, centrat. Nu mai e text plutind pe un ecran negru: alegerea
 	# stă într-o cutie, ca la orice meniu comercial.
 	var pw := 620.0
-	var ph := 430.0
+	var ph := 534.0   # ⚠️ mai înalt de pe 2026-08-19: sub linie au intrat raftul de jetoane și regula casei
 	var panel := _cadru(CH_PANOU, 16)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -pw / 2.0
@@ -414,6 +452,20 @@ func _build_intro() -> void:
 	puls.tween_property(titlu, "modulate:a", 1.0, 1.3).set_trans(Tween.TRANS_SINE)
 
 	box.add_child(_linie(300.0, 12))
+	# Cu câte jetoane intri la masă se vede AICI, înainte să alegi ce joci: regula casei trebuie
+	# citită înainte de prima apăsare, nu descoperită la a cincea.
+	box.add_child(_fa_rack(30.0))
+	# Regula casei, scrisă o dată și limpede. Raftul de deasupra arată câte ți-au MAI rămas; rândul
+	# ăsta spune de ce sunt atâtea — altfel afli că erau doar cinci abia când se termină.
+	# ⚠️ Textul se pune la afișare (`_arata_pagina`), nu aici: e asamblat cu `tr(...) % n`, deci nu
+	# s-ar re-traduce singur dacă schimbi limba din Settings în mijlocul rundei.
+	_lbl_regula = Label.new()
+	_lbl_regula.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_lbl_regula.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_regula.add_theme_font_size_override("font_size", 13)
+	_lbl_regula.add_theme_color_override("font_color", CENUSA)
+	_contur(_lbl_regula)
+	box.add_child(_lbl_regula)
 	box.add_child(_spatiu(6))
 
 	box.add_child(_buton("Gamble your stats", _on_stats))
@@ -435,7 +487,7 @@ func _build_ban() -> void:
 	add_child(_pag_ban)
 
 	var pw := 700.0
-	var ph := 430.0
+	var ph := 500.0   # ⚠️ mai înalt de pe 2026-08-19: sub motiv a intrat raftul de jetoane
 	var panel := _cadru(CH_PANOU, 16)
 	panel.set_anchors_preset(Control.PRESET_CENTER)
 	panel.offset_left = -pw / 2.0
@@ -457,8 +509,10 @@ func _build_ban() -> void:
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	margin.add_child(box)
 
+	# ⚠️ Titlul NU se scrie aici: sunt DOUĂ motive de ban, cu două titluri („for cheating" /
+	# „from the casino"), iar cel bun se alege abia la afișare — vezi `_titlu_ban`.
 	var titlu := Label.new()
-	titlu.text = "You've been banned for cheating"
+	_lbl_ban_titlu = titlu
 	titlu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	# autowrap OBLIGATORIU: e cel mai lung titlu din joc, iar tradus („Zostałeś zbanowany za
 	# oszustwo") crește și mai mult — fără el și-ar impune lățimea și ar ieși din panou.
@@ -491,6 +545,11 @@ func _build_ban() -> void:
 	cat.add_theme_color_override("font_color", CENUSA)
 	_contur(cat)
 	box.add_child(cat)
+
+	# Raftul de jetoane, gol (sau nu): pe ecranul ăsta e dovada. Dacă ai fost dat afară pentru
+	# trișat, se vede că mai aveai jetoane — casa nu te-a scos fiindcă ai rămas fără bani.
+	box.add_child(_spatiu(4))
+	box.add_child(_fa_rack(30.0))
 
 	box.add_child(_spatiu(10))
 	box.add_child(_buton("Leave", _inchide))
@@ -707,6 +766,9 @@ func _build_panou() -> void:
 	sub.add_theme_color_override("font_color", CENUSA)
 	box.add_child(sub)
 
+	# Câte rotiri ți-au mai rămas — sus, lângă miză, unde se uită omul înainte să apese.
+	box.add_child(_fa_rack(26.0))
+
 	# lista de statusuri, într-un ScrollContainer ca să încapă mereu, oricâte ar fi
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -808,7 +870,7 @@ func _on_bifa(bifat: bool, id: String) -> void:
 
 # SPIN merge doar dacă ai și pariat pe masă, și ales statusul (și dacă nu ești banat).
 func _actualizeaza_spin() -> void:
-	_btn_spin.disabled = _banat or _se_invarte or _pariu == null or _ales == ""
+	_btn_spin.disabled = _banat or _se_invarte or _jetoane <= 0 or _pariu == null or _ales == ""
 	if _pariu == null:
 		_lbl_pariu.text = "Place your bet on the table"
 		_lbl_plata.text = ""
@@ -842,7 +904,7 @@ func _goleste_rezultat() -> void:
 # ÎNVÂRTIREA
 # ---------------------------------------------------------------------------
 func _spin() -> void:
-	if _se_invarte or _banat or _pariu == null or _ales == "":
+	if _se_invarte or _banat or _jetoane <= 0 or _pariu == null or _ales == "":
 		return
 	_se_invarte = true
 	_btn_spin.disabled = true
@@ -850,6 +912,15 @@ func _spin() -> void:
 	_nr_iesit.visible = false
 	_banner.text = ""
 	_goleste_rezultat()
+
+	# JETONUL SE PLĂTEȘTE ACUM, nu la rezultat: cât se învârte roata trebuie să se vadă deja cu ce
+	# ai rămas — ca la masă, unde jetonul pleacă din fața ta în clipa în care crupierul zice „no
+	# more bets". Sunetul e moneda de la așezarea bilei, urcată în ton: un jeton e mai mic și mai
+	# subțire decât o bilă, deci sună mai ascuțit. Același material, altă masă.
+	_jetoane -= 1
+	_actualizeaza_jetoane()
+	_arde_jetonul(_jetoane)
+	Audio.play_ex("roulette_settle", DB_JETON, 1.18)
 
 	# AICI se trage numărul — cinstit, înainte de orice animație (fără noroc: 0–36, toate la fel).
 	var n := _trage_numarul(_pariu)
@@ -893,6 +964,14 @@ func _arata_rezultat(n: int) -> void:
 	_castiguri_la_rand = (_castiguri_la_rand + 1) if castigat else 0
 	if _castiguri_la_rand >= CASTIGURI_BAN:
 		_banat = true             # de aici, `_actualizeaza_spin` stinge SPIN și masa e moartă
+		_motiv_ban = "trisat"
+	elif _jetoane <= 0:
+		# S-au terminat jetoanele. Trișatul are întâietate dacă pică amândouă odată (al cincilea
+		# jeton e și al treilea câștig la rând): „te-am prins" e finalul mai tare — și e adevărat.
+		# Ca și acolo, banul cade DUPĂ ce rotirea a fost plătită întreagă: ultimul jeton e un jeton
+		# adevărat, nu unul pe care casa îl ia și apoi îl anulează.
+		_banat = true
+		_motiv_ban = "jetoane"
 
 	_actualizeaza_spin()
 	_relayout()
@@ -915,6 +994,133 @@ func _cade_banul() -> void:
 # Îl întreabă aparatul din lume (`egt.gd`): mai are voie jucătorul la joc?
 func e_banat() -> bool:
 	return _banat
+
+# Ce scrie mare pe ecranul de ban și deasupra aparatului din lume (`egt.gd`). Cele două motive au
+# fiecare titlul lui: unul e o acuzație, celălalt e o constatare.
+func _titlu_ban() -> String:
+	return "You've been banned from the casino" if _motiv_ban == "jetoane" else "You've been banned for cheating"
+
+# Rândul de sub titlu: DE CE. Cifrele vin din constante, nu scrise de mână în text.
+func _motiv_ban_text() -> String:
+	if _motiv_ban == "jetoane":
+		return tr("Your %d chips are gone") % JETOANE_START   # tr() explicit: are %d, vezi i18n.gd
+	return tr("%d wins in a row") % CASTIGURI_BAN
+
+# Îl întreabă aparatul din lume (`egt.gd`) ce să scrie deasupra lui cât ești banat.
+func eticheta_ban() -> String:
+	return _titlu_ban()
+
+# ---------------------------------------------------------------------------
+# JETOANELE (vezi JETOANE_START)
+# ---------------------------------------------------------------------------
+# Un RAFT de jetoane: un titlu mic, cele cinci rondele și cifra de sub ele. Se pune în trei locuri
+# (intro, panoul mesei, ecranul de ban) și se aprinde dintr-un singur loc (`_actualizeaza_jetoane`),
+# ca toate trei să arate mereu aceeași socoteală.
+#
+# De ce rondele desenate și nu doar un „5/5": jetonul cheltuit RĂMÂNE pe raft, stins. O cifră care
+# scade îți spune cât mai ai; un rând de jetoane din care se sting pe rând îți arată și cât ai avut,
+# adică pe ce te-a costat drumul până aici — de-aia jocurile de cazinou desenează teancul, nu soldul.
+# Iar rondelele sunt CHIAR jetonul de pe masă (`chip_red.png`), nu un cerc desenat de mine: ce
+# plătești trebuie să fie același obiect cu ce pui pe masă.
+func _fa_rack(dim: float) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 3)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var cap := Label.new()
+	cap.text = "ROULETTE CHIPS"
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cap.add_theme_font_size_override("font_size", 11)
+	cap.add_theme_color_override("font_color", ACCENT)
+	_contur(cap)
+	box.add_child(cap)
+
+	var hb := HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", int(maxf(4.0, dim * 0.22)))
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(hb)
+
+	var jetoane := []
+	for i in JETOANE_START:
+		var j := TextureRect.new()
+		j.texture = load(CHIP_TEX)
+		j.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		j.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		j.stretch_mode = TextureRect.STRETCH_SCALE
+		j.custom_minimum_size = Vector2(dim, dim)
+		# ⚠️ fără SHRINK_CENTER, HBox-ul l-ar întinde pe toată înălțimea rândului și jetoanele ar
+		# ieși ovale la primul raft care are un rând mai înalt decât ele.
+		j.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		j.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hb.add_child(j)
+		jetoane.append(j)
+
+	var lbl := Label.new()
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", 12)
+	_contur(lbl)
+	box.add_child(lbl)
+
+	_rackuri.append({"jetoane": jetoane, "lbl": lbl})
+	return box
+
+# Aprinde/stinge jetoanele din TOATE rafturile și scrie cifra de sub ele.
+func _actualizeaza_jetoane() -> void:
+	for t in _pulsuri:
+		if t != null and t.is_valid():
+			t.kill()
+	_pulsuri.clear()
+	for r in _rackuri:
+		var jetoane: Array = r["jetoane"]
+		for i in jetoane.size():
+			var j: TextureRect = jetoane[i]
+			j.scale = Vector2.ONE
+			j.modulate = Color(1, 1, 1, 1) if i < _jetoane else JETON_STINS
+		var lbl: Label = r["lbl"]
+		if _jetoane <= 0:
+			lbl.text = "No chips left"
+			lbl.add_theme_color_override("font_color", Color8(214, 78, 64))
+		elif _jetoane == 1:
+			# Ultimul jeton nu e o cifră mai mică, e alt MOMENT: scrie altceva, e portocaliu și
+			# respiră. Cu „1 chips left" tot ce-ar face jucătorul ar fi să citească un număr.
+			lbl.text = "Last chip"
+			lbl.add_theme_color_override("font_color", Color8(228, 156, 74))
+			_respira(jetoane[0])
+		else:
+			lbl.text = tr("%d chips left") % _jetoane   # tr() explicit: are %d, vezi i18n.gd
+			lbl.add_theme_color_override("font_color", CENUSA)
+
+# Ultimul jeton respiră, ca titlul de pe ecranul de intro: o secundă dus-întors, cât să-l prinzi cu
+# coada ochiului, nu cât să te grăbească.
+func _respira(j: Control) -> void:
+	j.pivot_offset = j.size * 0.5
+	var t := create_tween().set_loops()
+	t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)   # jocul e pe pauză cât ești în cazinou
+	t.tween_property(j, "scale", Vector2(1.14, 1.14), 0.52).set_trans(Tween.TRANS_SINE)
+	t.tween_property(j, "scale", Vector2.ONE, 0.52).set_trans(Tween.TRANS_SINE)
+	_pulsuri.append(t)
+
+# Jetonul plătit: se aprinde, sare o clipă și se stinge la loc în raft. E singurul lucru care se
+# mișcă în panou când apeși SPIN, deci ochiul se duce fix acolo — vede că a plătit, apoi se întoarce
+# la roată. O cifră care sare de la 5 la 4 nu-ți spune că TU ai făcut asta.
+func _arde_jetonul(idx: int) -> void:
+	for r in _rackuri:
+		var jetoane: Array = r["jetoane"]
+		if idx < 0 or idx >= jetoane.size():
+			continue
+		var j: TextureRect = jetoane[idx]
+		j.pivot_offset = j.size * 0.5
+		j.scale = Vector2.ONE
+		j.modulate = Color(1, 1, 1, 1)
+		var t := create_tween()
+		t.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		t.tween_property(j, "scale", Vector2(1.45, 1.45), 0.13).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.parallel().tween_property(j, "modulate", Color(1.6, 1.5, 1.35, 1.0), 0.13)
+		t.tween_property(j, "scale", Vector2.ONE, 0.34).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		t.parallel().tween_property(j, "modulate", JETON_STINS, 0.34)
 
 # Câte puncte procentuale de șansă în plus dă norocul strâns în rundă. `luck` pornește de la 0
 # și e ZECIMAL (The Office dă +2,5), deci bonusul curge continuu — 5 noroc dau o jumătate de

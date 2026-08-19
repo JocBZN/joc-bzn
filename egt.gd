@@ -54,11 +54,15 @@ func poate_invoca() -> bool:
 	return true
 
 # Ce scrie deasupra aparatului. "" = lasă textul obișnuit („Press E to interact").
-# Trei câștiguri la rând la ruletă și cazinoul te dă afară pentru tot run-ul — vezi
-# `casino.gd`, `CASTIGURI_BAN`. Banul e al CAZINOULUI, nu al aparatului: nodul e unul singur,
-# deci toate EGT-urile din lume scriu asta, nu doar cel la care ai jucat.
+# Cazinoul te dă afară pentru tot run-ul din DOUĂ motive — trei câștiguri la rând sau jetoanele
+# terminate — și aparatul scrie exact pe care (vezi `casino.gd`, `_titlu_ban`). Banul e al
+# CAZINOULUI, nu al aparatului: nodul e unul singur, deci toate EGT-urile din lume scriu asta,
+# nu doar cel la care ai jucat.
 func eticheta() -> String:
-	return "You've been banned for cheating" if _banat() else ""
+	var casino = get_tree().get_first_node_in_group("casino")
+	if casino == null or not casino.e_banat():
+		return ""
+	return casino.eticheta_ban()
 
 # Apăsarea tastei de interacțiune ajunge aici (din `interact_ui.gd`).
 func invoca() -> void:
@@ -66,7 +70,3 @@ func invoca() -> void:
 	if casino == null or casino.e_banat():
 		return
 	casino.open()
-
-func _banat() -> bool:
-	var casino = get_tree().get_first_node_in_group("casino")
-	return casino != null and casino.e_banat()

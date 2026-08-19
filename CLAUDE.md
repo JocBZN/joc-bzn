@@ -22,6 +22,74 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-19 (cinci jetoane de rundă la ruletă, apoi „You've been banned from the casino")
+
+**Cerut de Răzvan:** „Vreau sa ai voie sa joci doar de 5 ori la ruleta per run. Vreau sa iti scrie ca ai doar 5 chips. Si dupa sa iti scrie You've been banned from the casino. Fa sa para super profesionist."
+
+**Atinse:** `casino.gd`, `egt.gd`, `i18n.gd`. Niciun fișier nou.
+
+### 1. Regula
+
+`JETOANE_START = 5` în `casino.gd`. Un jeton la fiecare apăsare pe SPIN; când se termină, cade al doilea fel de ban. **Trade-up-ul NU costă jetoane** — el se plătește în iteme.
+
+De ce era nevoie: câștigul e 2× iar pierderea 0,5×, deci ruleta era un buton de ținut apăsat — pariezi pe roșu la nesfârșit și orice status urcă până se plictisește jucătorul, nu până îl ajunge riscul. Cinci e cât să ai loc să și pierzi.
+
+Se numără **pe rundă**, ca șirul de câștiguri și din același motiv: nodul cazinoului e unul singur, stă în `main.tscn` și trăiește cât runda, deci nu-ți umpli buzunarul ieșind din meniu și nici mergând la alt aparat EGT.
+
+⚠️ **Jetonul se ia la SPIN, nu la rezultat.** Cât se învârte roata (4,7 s) trebuie să se vadă deja cu ce ai rămas — ca la masă, unde jetonul pleacă din fața ta când crupierul zice „no more bets".
+
+### 2. Două motive de ban, nu unul
+
+Ecranul de ban exista din 2026-08-11 („You've been banned for cheating", trei câștiguri la rând). Acum are **titlu variabil**, ales din `_motiv_ban`:
+
+| motiv | titlu | rândul de sub |
+|---|---|---|
+| `"trisat"` | You've been banned for cheating | 3 wins in a row |
+| `"jetoane"` | **You've been banned from the casino** | Your 5 chips are gone |
+
+⚠️ **Trișatul are întâietate** dacă pică amândouă odată (al cincilea jeton e și al treilea câștig la rând): „te-am prins" e finalul mai tare — și e adevărat. Verificat rulând.
+
+Titlul se pune abia la afișare (`_arata_pagina`), nu la construirea ecranului: la construire nu se știe motivul, iar textele asamblate (`tr(...) % n`) nu se re-traduc singure când schimbi limba din Settings.
+
+`egt.gd::eticheta()` nu mai are textul scris în el: întreabă cazinoul (`eticheta_ban()`), deci aparatul din lume scrie **exact** motivul pentru care nu te mai primește. `_banat()` de acolo a rămas fără utilizator și a fost șters.
+
+### 3. Cum se VEDE (partea de „super profesionist")
+
+**Un RAFT de jetoane**, nu un contor. `_fa_rack(dim)` face un titlu mic („ROULETTE CHIPS"), cele cinci rondele și cifra de sub ele; se pune în **trei** locuri — ecranul de intro, panoul mesei și ecranul de ban — și toate trei se aprind dintr-un singur loc, `_actualizeaza_jetoane()`.
+
+De ce rondele și nu „5/5": jetonul cheltuit **rămâne** pe raft, stins (`JETON_STINS`). O cifră îți spune cât mai ai; un rând din care se sting pe rând îți arată și **cât ai avut**, adică pe ce te-a costat drumul până aici. Și sunt chiar jetonul de pe masă (`chip_red.png`), nu un cerc desenat de mine.
+
+Trei stări, nu una:
+
+| jetoane | scrie | culoare | jetonul |
+|---|---|---|---|
+| 5–2 | „%d chips left" | cenușiu | aprins |
+| **1** | **„Last chip"** | portocaliu | **respiră** (1,04 s dus-întors, ca titlul de pe intro) |
+| 0 | „No chips left" | roșu | toate stinse |
+
+**Plata jetonului** (`_arde_jetonul`): se aprinde peste alb (`modulate` 1,6), sare la 1,45 în 0,13 s cu `TRANS_BACK`, apoi cade înapoi la 1,0 în 0,34 s stingându-se în culoarea de jeton cheltuit. E singurul lucru care se mișcă în panou la apăsarea pe SPIN, deci ochiul se duce fix acolo, vede că a plătit, și se întoarce la roată. Sunetul e `roulette_settle` (moneda de la așezarea bilei) la **pitch 1,18**: un jeton e mai mic și mai subțire decât o bilă, deci sună mai ascuțit — același material, altă masă.
+
+**Regula scrisă o dată, pe intro:** „5 CHIPS PER RUN · ONE SPIN EACH", sub raft. Altfel afli că erau doar cinci abia când se termină.
+
+⚠️ Ambele panouri au crescut ca să încapă raftul (intro 430 → **534**, ban 430 → **500**). Conținutul unui `VBoxContainer` nu e tăiat de panou, doar iese din ramă — deci nu ai eroare, ai un ecran urât.
+
+⚠️ Jetoanele au `SIZE_SHRINK_CENTER` pe verticală: fără el, `HBoxContainer` le-ar întinde pe toată înălțimea rândului și ar ieși ovale.
+
+### 4. Traduceri
+
+Șapte chei noi în `i18n.gd` × 8 limbi. La `"%d chips left"` cifra e numai **2, 3 sau 4** (la 1 scrie „Last chip", la 0 „No chips left"), deci rusa și polona folosesc forma de plural mic — „Осталось %d фишки" / „Zostały %d żetony" — care e fix cea corectă pentru 2–4. La „Your %d chips are gone" cifra e 5, deci acolo e „%d фишек" / „%d żetonów".
+
+### 5. Verificat RULÂND
+
+- **cinci rotiri**: 5 → 4 → 3 → 2 („Last chip" la 1) → 0, banat cu motiv `jetoane`, SPIN stins, a 6-a, a 7-a și a 8-a rotire **refuzate**;
+- **întâietatea trișatului**: ultimul jeton + al treilea câștig la rând → titlu „You've been banned for cheating", nu celălalt;
+- **redirectarea**: după ban, `_arata_pagina("intro")` întoarce pagina `ban` (intro invizibil);
+- **eticheta aparatului**: `eticheta_ban()` → „You've been banned from the casino";
+- **poze** (fereastră adevărată, 1920×1080): intro cu cele 5 jetoane + regula, panoul mesei cu raftul sub subtitlu, **jetonul prins în mijlocul plății** (mărit și aprins, contorul deja pe „4 CHIPS LEFT", SPIN stins, roata deja pornită), „LAST CHIP" portocaliu cu un singur jeton aprins, și ecranul de ban cu cele cinci jetoane moarte;
+- `tool_check_i18n` → **TOTUL E TRADUS** (311 chei × 8 limbi), fără avertismente noi.
+
+---
+
 ## Session log — 2026-08-19 (masa de ruletă, decupată din nou; roata se învârte cu bilă adevărată și 7 straturi de sunet)
 
 **Cerut de Răzvan:** „ti-am pus o noua poza de table in folderul EGT. Vreau sa decupezi tu iar sa faci animata de cum se invarte roata. De data asta poti sa folosesti si efecte din Soundpack dar sa te gandesti ca esti un Sound Designer cu 20 de ani experienta la un studio de game dev profesionist. Si animatia sa o faci ca un animator profesionist."
