@@ -22,6 +22,77 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-19 (masa de ruletă, decupată din nou; roata se învârte cu bilă adevărată și 7 straturi de sunet)
+
+**Cerut de Răzvan:** „ti-am pus o noua poza de table in folderul EGT. Vreau sa decupezi tu iar sa faci animata de cum se invarte roata. De data asta poti sa folosesti si efecte din Soundpack dar sa te gandesti ca esti un Sound Designer cu 20 de ani experienta la un studio de game dev profesionist. Si animatia sa o faci ca un animator profesionist."
+
+**Fișiere noi:** `casino_roata.gd`, `tool_egt_masura.gd` + `.tscn`, `harta/EGT/ball.png`, `audio/Casino Audio/` (7 wav-uri). **Atinse:** `casino.gd`, `audio.gd`, `tool_egt_assets.gd`, `harta/EGT/{Roulette Table,table,wheel,chip_red}.png`.
+
+### 1. Poza nouă — ce s-a schimbat de fapt
+
+1660×948 (înainte 1648×954), **fundal deja transparent**, alt cadru (toată grila s-a mutat cu ~10 px) și, cel mai important, **roata e desenată FĂRĂ numere pe buzunare**. Aia veche avea numere, și alea greșite („38", „29" de două ori) — exact motivul pentru care învârtirea era pur decorativă.
+
+Poza a fost pusă peste `Roulette Table.png` (sursa pipeline-ului, ca unealta să rămână re-rulabilă) și regenerate `table/wheel/chip_red` + `ball.png` cu `tool_egt_assets.gd`.
+
+| constantă | vechi | nou |
+|---|---|---|
+| `TABLE_W/H` | 1648×954 | **1660×948** |
+| `GRID_X0/X1` | 658 → 1486 | **655 → 1481** |
+| `GRID_Y0/Y1` | 306 → 545 | **295 → 535** |
+| `ZERO_RECT` | (598,306,60,239) | **(586,295,68,240)** |
+| `COL2_X0/X1` | 1486 → 1546 | **1481 → 1541** |
+| `DOZ_Y0/Y1` · `OUT_Y0/Y1` | 547→623 · 626→703 | **537→613 · 617→694** |
+| `WHEEL_CENTER` · `WHEEL_R` | (265,652) · 173 | **(260,5 / 649,5) · 174** |
+
+### 2. `tool_egt_masura.gd` — rigla, rămâne în repo
+
+Nimic din tabelul de sus nu e din ochi. Unealta: numără pixelii albi pe coloane/rânduri (liniile grilei), **găsește centrul roții alegând punctul care face raza ramei de aur cât mai constantă pe 360 de direcții** (dreptunghiul în care încape aurul e tras într-o parte de umbre), și citește buzunarele prin vot de culoare pe grosimea inelului de afară.
+
+- **28 de buzunare: 14 roșii, 13 negre, 1 verde**, late între **11,3° și 14,2°** — deci unghiurile se scriu unul câte unul în `BUZUNARE`, nu se împart egal.
+- ⚠️ **Unealta raportează 30 de segmente.** Buzunarul verde are două margini negre subțiri desenate pe el. Se citesc LĂȚIMILE, nu numărul: segmentele false sunt la ~7°, jumătate din restul.
+- Masa fiind desenată de mână, nici cele 13 linii ale grilei nu cad egal (până la 4 px diferență). Constantele sunt **cea mai bună dreaptă potrivită prin toate**, nu prima și ultima linie.
+
+### 3. `casino_roata.gd` — animația, în 6 faze
+
+Fișier separat fiindcă `casino.gd` avea deja 80 KB; cazinoul cheamă `invarte(n, culoare)` și așteaptă semnalul `gata`. Fazele: **derivă** (roata plutește între învârtiri) → **anticipare 0,22 s** (roata se dă înapoi înainte să plece) → **pistă ~3,3 s** (bila aleargă invers pe rama de aur, cu frecare) → **potrivire** → **cădere 1,15 s** (trei sărituri care scad, viteză exact 0 la final) → **lipită** (bila se rotește cu roata, în buzunarul ei).
+
+**🔑 Buzunarul se alege DUPĂ ce fizica spune unde pică bila, nu înainte.** La momentul desprinderii se calculează unde ar ateriza cu viteza pe care o are și se ia **cel mai apropiat buzunar de culoarea cerută**. Așa corectura e sub o cincime de radian și aterizarea arată ca fizică.
+
+Două variante greșite, în ordine, ambele prinse măsurând:
+1. **Buzunarul ales la început** → bila trebuia împinsă până la el: aștepta pe pistă până la limita de 1,6 s și apoi se smucea (corectură de până la 3,0 rad).
+2. **Bila continua să încetinească în timp ce aștepta** → se apropia de viteza roții, punctul de aterizare aproape că nu mai mișca față de ea, și **verdele nu mai ajungea niciodată sub bilă**: 6,85 s și tot forțat. Acum, cât dă târcoale, bila își **ține** viteza; fereastra de potrivire se și lărgește ușor după 0,8 s, ca zeroul să nu țină 6,5 s cât alte numere țin 4,7.
+
+Măsurat, 60 de învârtiri pe culoare: **roșu/negru 4,65–4,73 s, corectură ≤0,19 rad; verde 4,65–5,90 s (mediu 5,21), ≤0,36 rad.** 5000 de aterizări: **0 culori greșite**.
+
+- **Dâra bilei:** la lansare face ~15 px pe cadru, deci ar clipi din loc în loc. Trei fantome în urma ei, care se sting odată cu viteza. Trei desene, nu un shader.
+- **Tot desenul e într-un singur `_draw`** (disc + bilă), nu în noduri-copil: un copil s-ar desena oricum peste ce desenează părintele, deci ordinea n-ar mai fi a mea.
+- `_bila` din `casino.gd` s-a redenumit **`_nr_iesit`** — era eticheta cu numărul din butuc, iar acum există și o bilă adevărată.
+
+### 4. Sunetul — 7 straturi, fiecare cu O treabă
+
+`audio/Casino Audio/`, alese din `Soundpack/` și prelucrate (tăiate de liniște, scurtate, 48 kHz/16 biți, vârf −1 dBFS), ~700 KB cu totul.
+
+| strat | sursă din Soundpack | ce spune |
+|---|---|---|
+| `roulette_launch` | `DSGNTonl_SKILL IMPACT-Flick` | pornirea, pocnetul croupierului |
+| `roulette_bed` | `DSGNMisc_CAST-Mecha Vibration` | huruitul mașinăriei — **buclă**, ton+volum legate de viteză |
+| `roulette_tick` | `UIClick_INTERFACE-Metallic Click` | bila trece pe lângă un braț al butucului |
+| `roulette_drop` | `FEETMisc_STEP-Hard Step` | părăsește rama — cel mai tare transient |
+| `roulette_clack` | `DSGNMisc_SKILL IMPACT-Pebbles` | cele trei sărituri |
+| `roulette_settle` | `DSGNTonl_SKILL IMPACT-Coin Impact` | s-a oprit în buzunar |
+| `roulette_riser` | `MAGSpel_CAST-Tube Riser` | urcarea de sub ultima secundă, croită pe **fix 1,10 s** cât ține căderea |
+
+- **De ce ticăitul e la 4 pe tură, nu pe fiecare buzunar:** pe buzunar ar ieși 67 de tic-uri pe secundă la lansare, adică un bâzâit. Patru pe tură e și adevărat (bila zăngăne în deflectoare, nu în fiecare despărțitor) și se aude ca un ritm care rărește. La cădere, unde relativa e mică, se ticăie pe fiecare despărțitor.
+- **Patul e singurul sunet în buclă din joc.** `Audio.play()` împrumută boxa din grămadă, deci nu poate ține o buclă cu volum și ton schimbate din cadru în cadru: `casino_roata.gd` își ține propriul `AudioStreamPlayer`, iar `audio.gd` a primit două cârlige pentru asta — **`sfx_db()`** (reglajul „Efecte" din Settings) și **`stream_for(nume)`** (ca lista de sunete să rămână una singură).
+- ⚠️ **Bucla se pune la RULARE, pe o COPIE a stream-ului** (`loop_mode` pe `AudioStreamWAV.duplicate()`), nu în `.import`: fișierul `.import` e rescris la fiecare reimport și ar pierde setarea în tăcere. Cusătura buclei e închisă în ffmpeg — coada stinsă peste cap (`atrim` + două `afade` + `amix`), altfel pocnește la fiecare tur.
+- **Mixul e în cod** (`DB_*`), fișierele toate la −1 dBFS: se schimbă echilibrul fără să reexporți nimic. Ierarhia: cădere −2 → așezare −4 → riser −8 → pocnete −8/−12/−16 → ticuri −13/−17 → pat −24…−13.
+
+### 5. Verificat RULÂND (scene de test, șterse după)
+
+Zonele de click desenate înapoi peste poza nouă, căsuță cu căsuță (toate cad pe liniile albe); poze cu bila pe rama de aur, în cădere și oprită; **ecranul întreg al cazinoului**, cap-coadă: pariu pe RED → „33 BLACK — YOU LOSE", bila oprită într-un buzunar **negru**, 33 în butuc, căsuța lui 33 încadrată pe masă; 5000 de aterizări fără nicio culoare greșită; `main.tscn` pornit 300 de cadre fără nicio eroare.
+
+---
+
 ## Session log — 2026-08-18 (porțile de pușcărie pe generator propriu + magnetul: 0.2% și sunet propriu)
 
 **Cerut de Răzvan:** „la dimensiunea prison nu vreau ca portalele să se spawneze după ce termini ender. vreau să fie de la început random pe hartă cu 1% șansă de spawn per chunk. Și vreau ca magneții să aibă rata de drop de 0.2% per kill. Îi schimbi și tu sunetu că ai folderu ala cu mai multe, dar la fel te gândești mai întâi că ești un director de sound design la un gaming studio profesionist."

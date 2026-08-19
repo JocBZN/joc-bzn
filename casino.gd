@@ -37,18 +37,24 @@ extends CanvasLayer
 # cât roșu/negru. Vezi `CASTIG_MULT` / `PIERDERE_MULT` dacă vrei plăți diferite pe tip de pariu.
 #
 # RULETA E CINSTITĂ: numărul iese din `randi() % 37` (0–36, ruletă europeană cu un singur zero),
-# tras ÎNAINTE de animație. Roata care se învârte e doar decor: ordinea numerelor desenate pe
-# ea e inventată de artist (apare „38", iar „29" de două ori), deci nu se poate opri fix pe
-# buzunarul câștigător fără să mintă. De-aia rezultatul se anunță în butucul roții și prin
-# evidențierea căsuței câștigătoare de pe masă.
+# tras ÎNAINTE de animație (`_spin`). Învârtirea în sine — discul, bila, sunetul — stă în
+# `casino_roata.gd`; de acolo vine înapoi un semnal (`gata`) când bila s-a oprit, și abia atunci
+# se anunță rezultatul.
+#
+# ⚠️ Roata NU poate arăta numărul: arta ei are 28 de buzunare, nu 37. Ce poate — de pe
+# 2026-08-19, când Răzvan a adus o roată desenată fără numere pe ea — e CULOAREA: bila se
+# oprește într-un buzunar roșu la număr roșu, negru la negru, în cel verde la 0. Deci se vede pe
+# roată ce a ieșit, fără ca roata să mintă. Numărul rămâne scris în butuc, iar căsuța
+# câștigătoare se aprinde pe masă.
 
 const MENU_UI_DIR := "res://Upgrades/Menu UI/"
-# Cele trei imagini sunt SCOASE din poza mare `harta/EGT/Roulette Table.png` de `tool_egt_assets.gd`
-# (masa cu fundalul alb făcut transparent, discul roții decupat rotund, jetonul roșu).
+# Imaginile sunt SCOASE din poza mare `harta/EGT/Roulette Table.png` de `tool_egt_assets.gd`
+# (masa cu fundalul alb făcut transparent, discul roții decupat rotund, jetonul roșu; bila e
+# desenată tot acolo, în cod, fiindcă poza n-are așa ceva).
 # Schimbi poza mare → rulezi unealta din nou ȘI remăsori constantele de geometrie de mai jos.
 const TABLE_TEX := "res://harta/EGT/table.png"
-const WHEEL_TEX := "res://harta/EGT/wheel.png"
 const CHIP_TEX := "res://harta/EGT/chip_red.png"
+const ROATA := preload("res://casino_roata.gd")   # discul care se învârte + bila + sunetul ei
 
 # --- rama de meniu (planșa lui Răzvan, pusă în joc pe 2026-08-07) ---
 const SHEET := "res://harta/EGT/Border EGT.png"
@@ -123,26 +129,32 @@ const LUCK_PER := 0.001   # +0,1 puncte procentuale de șansă pe punct de noroc
 # orice rezoluție. Cifrele sunt MĂSURATE pe liniile albe din poză, nu ghicite — dacă schimbi
 # poza mesei, remăsoară-le (unealta care le-a scos căuta coloanele/rândurile de pixeli albi).
 # ---------------------------------------------------------------------------
-const TABLE_W := 1648.0
-const TABLE_H := 954.0
+# ⚠️ Toate cifrele de mai jos sunt de pe poza adusă de Răzvan pe 2026-08-19 (1660×948). Masa e
+# desenată de mână, deci liniile nu cad la distanțe egale: cifrele sunt POTRIVITE pe cele 13
+# linii albe măsurate (cea mai bună dreaptă prin ele), nu luate din prima și ultima. Diferența
+# maximă față de linia adevărată e ~3 px dintr-o căsuță de 69 — sub un fir de păr pe ecran.
+const TABLE_W := 1660.0
+const TABLE_H := 948.0
 
-const GRID_X0 := 658.0     # marginea stângă a grilei de numere (1–36)
-const GRID_X1 := 1486.0    # marginea dreaptă
-const GRID_Y0 := 306.0     # marginea de sus
-const GRID_Y1 := 545.0     # marginea de jos
+const GRID_X0 := 655.0     # marginea stângă a grilei de numere (1–36)
+const GRID_X1 := 1481.0    # marginea dreaptă
+const GRID_Y0 := 295.0     # marginea de sus
+const GRID_Y1 := 535.0     # marginea de jos
 const COL_W := (GRID_X1 - GRID_X0) / 12.0   # lățimea unei coloane (12 coloane)
 const ROW_H := (GRID_Y1 - GRID_Y0) / 3.0    # înălțimea unui rând (3 rânduri)
 
-const ZERO_RECT := Rect2(598, 306, 60, 239)   # căsuța rotunjită cu „0", în stânga grilei
-const COL2_X0 := 1486.0                        # coloana de „2 to 1", în dreapta grilei
-const COL2_X1 := 1546.0
-const DOZ_Y0 := 547.0      # rândul cu 1st 12 / 2nd 12 / 3rd 12
-const DOZ_Y1 := 623.0
-const OUT_Y0 := 626.0      # rândul de jos: 1-12 / EVEN / roșu / negru / ODD / 19-36
-const OUT_Y1 := 703.0
+const ZERO_RECT := Rect2(586, 295, 68, 240)   # căsuța rotunjită cu „0", în stânga grilei
+const COL2_X0 := 1481.0                        # coloana de „2 to 1", în dreapta grilei
+const COL2_X1 := 1541.0
+const DOZ_Y0 := 537.0      # rândul cu 1st 12 / 2nd 12 / 3rd 12
+const DOZ_Y1 := 613.0
+const OUT_Y0 := 617.0      # rândul de jos: 1-12 / EVEN / roșu / negru / ODD / 19-36
+const OUT_Y1 := 694.0
 
-const WHEEL_CENTER := Vector2(265, 652)   # centrul discului roții în poza mare
-const WHEEL_R := 173.0                    # raza discului decupat (wheel.png e 346×346)
+# Centrul roții nu e ochiometru: l-a ales un căutător care măsoară raza ramei de aur la 360 de
+# unghiuri și ia punctul care o face cât mai constantă (a ieșit 260,5 / 649,5, raza 171).
+const WHEEL_CENTER := Vector2(260.5, 649.5)   # centrul discului roții în poza mare
+const WHEEL_R := 174.0                        # raza discului decupat (wheel.png e 348×348)
 
 # Numerele ROȘII de pe o ruletă europeană (restul, în afară de 0, sunt negre).
 # Poza mesei le respectă exact — verificat număr cu număr.
@@ -251,10 +263,13 @@ var _pag_masa: Control
 var _pag_ban: Control
 var _lbl_motiv: Label          # „3 wins in a row" de pe ecranul de ban
 var _masa: TextureRect
-var _roata: TextureRect
+var _roata: Control            # `casino_roata.gd` — discul, bila și sunetul învârtirii
 var _jeton: TextureRect
 var _evid: Panel
-var _bila: Label               # numărul ieșit, scris în butucul roții
+# ⚠️ `_nr_iesit` e ETICHETA cu numărul din butuc, nu bila. Până pe 2026-08-19 se numea `_bila`,
+# fiindcă bilă adevărată nu exista; acum există una (în `casino_roata.gd`) și două lucruri cu
+# același nume în același ecran sunt o capcană gata pusă.
+var _nr_iesit: Label           # numărul ieșit, scris în butucul roții
 var _panou: NinePatchRect
 var _lista_stat: VBoxContainer
 var _lbl_pariu: Label
@@ -529,25 +544,21 @@ func _build_masa() -> void:
 	_jeton.visible = false
 	_masa.add_child(_jeton)
 
-	# discul roții, peste roata din poză — el se învârte
-	_roata = TextureRect.new()
-	_roata.texture = load(WHEEL_TEX)
-	_roata.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_roata.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_roata.stretch_mode = TextureRect.STRETCH_SCALE
-	_roata.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# roata care se învârte, exact peste roata din poză (vezi `casino_roata.gd`)
+	_roata = ROATA.new()
+	_roata.gata.connect(_arata_rezultat)
 	_masa.add_child(_roata)
 
-	# numărul ieșit, scris în butucul roții
-	_bila = Label.new()
-	_bila.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_bila.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_bila.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bila.add_theme_color_override("font_color", Color(1, 1, 1))
-	_bila.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	_bila.add_theme_constant_override("outline_size", 6)
-	_bila.visible = false
-	_masa.add_child(_bila)
+	# numărul ieșit, scris în butucul roții — deasupra roții, ca să nu-l acopere discul
+	_nr_iesit = Label.new()
+	_nr_iesit.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_nr_iesit.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_nr_iesit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_nr_iesit.add_theme_color_override("font_color", Color(1, 1, 1))
+	_nr_iesit.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	_nr_iesit.add_theme_constant_override("outline_size", 6)
+	_nr_iesit.visible = false
+	_masa.add_child(_nr_iesit)
 
 	# bannerul cu rezultatul, peste marginea de sus a ecranului
 	_banner = Label.new()
@@ -647,7 +658,8 @@ func _pune_pariu(pariu: Dictionary, r: Rect2, eticheta: String) -> void:
 	_lbl_plata.text = "%s   ·   %.1f%%" % [tr("Win x%s") % _text_plata(pariu), _sansa(pariu) * 100.0]
 	_jeton.visible = true
 	_evid.visible = false
-	_bila.visible = false
+	_nr_iesit.visible = false
+	_roata.reseteaza()      # bila din tura trecută pleacă de pe roată odată cu numărul din butuc
 	_banner.text = ""
 	_goleste_rezultat()
 	_relayout()
@@ -814,7 +826,8 @@ func _reseteaza_masa() -> void:
 	_pariu = null
 	_jeton.visible = false
 	_evid.visible = false
-	_bila.visible = false
+	_nr_iesit.visible = false
+	_roata.reseteaza()      # fără bilă pe roată; roata rămâne în plutirea ei înceată
 	_banner.text = ""
 	_goleste_rezultat()
 	_umple_statusuri()
@@ -834,33 +847,32 @@ func _spin() -> void:
 	_se_invarte = true
 	_btn_spin.disabled = true
 	_evid.visible = false
-	_bila.visible = false
+	_nr_iesit.visible = false
 	_banner.text = ""
 	_goleste_rezultat()
 
 	# AICI se trage numărul — cinstit, înainte de orice animație (fără noroc: 0–36, toate la fel).
 	var n := _trage_numarul(_pariu)
 
-	var tw := create_tween()
-	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)   # jocul e pe pauză, animația trebuie să meargă
-	tw.set_ease(Tween.EASE_OUT)
-	tw.set_trans(Tween.TRANS_CUBIC)
-	tw.tween_property(_roata, "rotation", _roata.rotation + TAU * randf_range(4.0, 7.0), 2.8)
-	tw.tween_callback(_arata_rezultat.bind(n))
+	# Roata primește numărul și CULOAREA lui, ca să aleagă un buzunar de culoarea aia; rezultatul
+	# se anunță abia când bila s-a oprit acolo (semnalul `gata` → `_arata_rezultat`, legat în
+	# `_build_masa`). Cât ține învârtirea hotărăște ea, nu un cronometru de aici: bila cade când
+	# îi ajunge buzunarul sub ea, ca la masa adevărată (~4,5–5,5 s).
+	_roata.invarte(n, _nume_culoare(n))
 
 func _arata_rezultat(n: int) -> void:
 	var castigat := _castiga(_pariu, n)
 	var culoare := _culoarea(n)
 
 	# numărul ieșit, în butucul roții, pe fundalul culorii lui
-	_bila.text = str(n)
+	_nr_iesit.text = str(n)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = culoare
 	sb.border_color = ACCENT_CLAR
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(999)
-	_bila.add_theme_stylebox_override("normal", sb)
-	_bila.visible = true
+	_nr_iesit.add_theme_stylebox_override("normal", sb)
+	_nr_iesit.visible = true
 
 	# evidențiem căsuța lui de pe masă
 	_evid_rect = _rect_numar(n)
@@ -1719,15 +1731,12 @@ func _relayout() -> void:
 # Roata, jetonul, evidențierea și numărul ieșit — singurele care nu merg pe ancore, fiindcă se
 # mută în timpul jocului (jetonul) sau au nevoie de pivot pentru rotire (roata).
 func _aseaza_suprapuse(s: float) -> void:
-	var d := WHEEL_R * 2.0 * s
-	_roata.position = (WHEEL_CENTER - Vector2(WHEEL_R, WHEEL_R)) * s
-	_roata.size = Vector2(d, d)
-	_roata.pivot_offset = Vector2(d, d) * 0.5
+	_roata.aseaza(WHEEL_CENTER * s, WHEEL_R * s)
 
 	var bw := 108.0 * s
-	_bila.position = WHEEL_CENTER * s - Vector2(bw, bw) * 0.5
-	_bila.size = Vector2(bw, bw)
-	_bila.add_theme_font_size_override("font_size", int(maxf(14.0, 54.0 * s)))
+	_nr_iesit.position = WHEEL_CENTER * s - Vector2(bw, bw) * 0.5
+	_nr_iesit.size = Vector2(bw, bw)
+	_nr_iesit.add_theme_font_size_override("font_size", int(maxf(14.0, 54.0 * s)))
 
 	if _pariu != null:
 		var c := (_pariu_rect.position + _pariu_rect.size * 0.5) * s

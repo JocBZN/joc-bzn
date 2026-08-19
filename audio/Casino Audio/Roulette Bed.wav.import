@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://cc8ckr133dicd"
+path="res://.godot/imported/Roulette Bed.wav-18ea153dc6baaf6ccf008d394f9c2d53.sample"
+
+[deps]
+
+source_file="res://audio/Casino Audio/Roulette Bed.wav"
+dest_files=["res://.godot/imported/Roulette Bed.wav-18ea153dc6baaf6ccf008d394f9c2d53.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

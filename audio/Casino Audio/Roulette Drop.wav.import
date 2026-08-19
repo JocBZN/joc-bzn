@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dj2kvbi7v67pb"
+path="res://.godot/imported/Roulette Drop.wav-990e13a137b47b3c6dd3f37d9896c5b1.sample"
+
+[deps]
+
+source_file="res://audio/Casino Audio/Roulette Drop.wav"
+dest_files=["res://.godot/imported/Roulette Drop.wav-990e13a137b47b3c6dd3f37d9896c5b1.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

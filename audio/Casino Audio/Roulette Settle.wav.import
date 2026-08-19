@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://cd0in3pgp3otr"
+path="res://.godot/imported/Roulette Settle.wav-b48e1f019fed6caa66244921869e6157.sample"
+
+[deps]
+
+source_file="res://audio/Casino Audio/Roulette Settle.wav"
+dest_files=["res://.godot/imported/Roulette Settle.wav-b48e1f019fed6caa66244921869e6157.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

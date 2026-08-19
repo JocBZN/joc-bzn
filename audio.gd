@@ -67,6 +67,32 @@ const SFX := {
 	"magnet_pull":    "res://audio/Magnet Pull.wav",                   # tot XP-ul de pe hartă vine spre tine
 	"chest_open":     "res://audio/Chest Opening.wav",                 # ai apăsat E pe cufăr (capacul se ridică)
 	"chest_anim":     "res://audio/Chest Animation.wav",               # explozia de raze de deasupra cufărului deschis
+	# --- RULETA din cazinou (`casino_roata.gd`), ȘAPTE straturi ---
+	# Alese din `Soundpack/` și prelucrate ca la cinematica lui Celesto: tăiate de liniște,
+	# scurtate la cât ține momentul, 48 kHz/16 biți, vârf −1 dBFS. Deci în fișiere sunt toate la
+	# fel de tari — echilibrul dintre ele stă în `casino_roata.gd` (constantele `DB_*`), ca la
+	# orice mix de joc: schimbi mixul fără să reexporți nimic.
+	#
+	# De ce ȘAPTE și nu unul singur „de ruletă": învârtirea are șapte lucruri DIFERITE de spus,
+	# iar dacă le spune același sunet nu se aude niciunul. Fiecare are exact o treabă:
+	#   • `launch` — pornirea: pocnetul din degete al croupierului. O dată, la început.
+	#   • `bed`    — huruitul mașinăriei. BUCLĂ, singurul de aici care nu trece prin `play()`;
+	#                fișierul e croit ca să se închidă în buclă (coada stinsă peste cap).
+	#                Tonul și volumul lui urmează viteza roții — el spune „încetinește".
+	#   • `tick`   — bila trece pe lângă un braț al butucului. Ritmul lui, care rărește, e
+	#                ceasul întregii învârtiri.
+	#   • `drop`   — bila cade de pe rama de aur. E cel mai tare sunet din tot momentul: aici
+	#                se hotărăște totul, și riser-ul se termină exact în el.
+	#   • `clack`  — săriturile de după cădere (trei, tot mai stinse).
+	#   • `settle` — bila s-a oprit în buzunar.
+	#   • `riser`  — urcarea de sub ultima secundă, croită pe fix 1,10 s cât ține căderea.
+	"roulette_launch": "res://audio/Casino Audio/Roulette Launch.wav",
+	"roulette_bed":    "res://audio/Casino Audio/Roulette Bed.wav",
+	"roulette_tick":   "res://audio/Casino Audio/Roulette Tick.wav",
+	"roulette_drop":   "res://audio/Casino Audio/Roulette Drop.wav",
+	"roulette_clack":  "res://audio/Casino Audio/Roulette Clack.wav",
+	"roulette_settle": "res://audio/Casino Audio/Roulette Settle.wav",
+	"roulette_riser":  "res://audio/Casino Audio/Roulette Riser.wav",
 }
 
 # Cutremurul are volumul lui, într-un singur loc: se aude din cinci locuri din joc (invocarea
@@ -212,6 +238,22 @@ func play_pan(name: String, poz: Vector2, volume_db: float = 0.0, pitch: float =
 	p.volume_db = volume_db + _lin_to_db(GameSettings.sfx_volume)
 	p.pitch_scale = maxf(pitch, 0.01)
 	p.play()
+
+# --- pentru cine își ține BOXA LUI ---
+# Un sunet în BUCLĂ, cu volumul și tonul schimbate din cadru în cadru, nu poate trece prin
+# `play()`: acolo boxa e împrumutată din grămadă și e luată înapoi la următorul efect. Așa ceva
+# (deocamdată doar huruitul ruletei, `casino_roata.gd`) își face `AudioStreamPlayer`-ul lui și
+# ia de aici cele două lucruri pe care nu are de unde să le știe.
+
+# Volumul „Efecte" din Settings, în decibeli — de adunat la volumul propriu, exact cum face
+# `play()`. Fără el, sunetul ăla ar rămâne tare și cu slider-ul dat la zero.
+func sfx_db() -> float:
+	return _lin_to_db(GameSettings.sfx_volume)
+
+# Stream-ul deja încărcat al unui efect (null dacă nu există fișierul). Se ia de aici, nu cu
+# `load()`, ca să rămână O SINGURĂ listă de sunete în joc: cea de sus.
+func stream_for(name: String) -> AudioStream:
+	return _streams.get(name)
 
 # --- Muzică de fundal, în buclă ---
 # Meniul o pornește cu play_menu_music(), jocul cu play_music() (spawner._ready).
