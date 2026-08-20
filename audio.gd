@@ -120,6 +120,9 @@ const MUSIC_GAME := [
 ]
 # În Nether: mereu aceeași melodie, în buclă, cât ești acolo (`nether.gd`).
 const MUSIC_NETHER := "res://audio/Nether Audio/sky-lines.ogg"
+# În Ender: la fel, în buclă — dar NU de la intrare, ci de la capătul cinematicii lui Celesto
+# (`ender.gd`, `_cutscene_gata`). Vezi acolo de ce.
+const MUSIC_ENDER := "res://audio/Ender Audio/Ender Theme.ogg"
 
 const POOL_SIZE := 20       # câte "boxe" (playere) avem pregătite
 # 12 ajungeau când toate efectele erau scurte (0.2–0.4s). Sunetul de Mage Staff ține ~1.5s,
@@ -276,8 +279,8 @@ func play_music(volume_db: float = -12.0) -> void:
 		return
 	_play_track(disponibile[randi() % disponibile.size()], volume_db)
 
-# --- Muzica din Nether ---
-# Intri în Nether → ținem minte CE cânta și DIN CE SECUNDĂ, apoi punem sky-lines în buclă.
+# --- Muzica din alte dimensiuni (Nether, Ender) ---
+# Pleci din lume → ținem minte CE cânta și DIN CE SECUNDĂ, apoi punem melodia locului în buclă.
 # La întoarcere reluăm melodia lumii exact de unde a rămas (nu de la capăt), ca și cum
 # ar fi cântat mai departe cât ai fost plecat.
 var _nether_prev_path := ""
@@ -285,11 +288,41 @@ var _nether_prev_db := 0.0
 var _nether_prev_pos := 0.0
 
 func play_nether_music(volume_db: float = -12.0) -> void:
+	_tine_minte_melodia()
+	_play_track(MUSIC_NETHER, volume_db)
+
+# Tema Ender-ului. NU ține minte melodia lumii: când se cheamă ea, lumea e deja pusă deoparte de
+# `stop_music_tinand_minte()` la intrarea în dimensiune. Dacă ar ține minte, ar salva „tăcere"
+# peste melodia lumii și la ieșire ai fi primit alta, de la capăt.
+#
+# ⚠️ -18, nu -12 ca celelalte: fișierul e MASTERIZAT MAI TARE. Măsurat pe vârful magistralei
+# Master, în patru locuri din fiecare melodie (`test_ender_music.gd`, 2026-08-20):
+#     Ender Theme  vârf  0.1 dBFS, medie  -3.6 dBFS
+#     sky-lines    vârf -1.4 dBFS, medie  -9.4 dBFS   (Nether, tot la -12)
+#     Ruined_Place vârf -3.4 dBFS, medie -12.2 dBFS   (lumea, tot la -12)
+# Adică e cu 5,8 dB peste Nether și cu 8,6 peste lume. Pusă și ea la -12, ai fi auzit-o de două
+# ori mai tare decât tot restul jocului — nu fiindcă e „mai importantă", ci fiindcă așa a ieșit
+# din export. -18 o așază la o palmă peste Nether (+0,6 dB): tot se simte că e altă dimensiune,
+# dar nu-ți sare slider-ul din Settings în cap.
+func play_ender_music(volume_db: float = -18.0) -> void:
+	_play_track(MUSIC_ENDER, volume_db)
+
+# Ține minte melodia lumii și TACE. Folosit la intrarea în Ender: peste cinematica lui Celesto
+# nu vrem nicio melodie (are sunetul ei), iar tema locului intră abia la capătul ei.
+#
+# ⚠️ Stingerea e SCURTĂ (0,6s), nu cele 3 secunde obișnuite. Melodia care se stinge nu mai poate fi
+# coborâtă de `duck_music` (aia lucrează pe melodia CURENTĂ, iar aici nu mai e niciuna) — deci, cu
+# fade-ul normal, melodia lumii ar fi rămas la volum întreg peste primele 3 secunde de cinematică,
+# adică fix peste înghețul timpului. 0,6s = apucă să se ducă sub sunetul teleportării.
+func stop_music_tinand_minte(secunde: float = 0.6) -> void:
+	_tine_minte_melodia()
+	stop_music(false, secunde)
+
+func _tine_minte_melodia() -> void:
 	if _music != null and _music.playing:
 		_nether_prev_path = _music_path
 		_nether_prev_db = _music_base_db
 		_nether_prev_pos = _music.get_playback_position()
-	_play_track(MUSIC_NETHER, volume_db)
 
 func restore_world_music() -> void:
 	if _nether_prev_path == "":
@@ -303,9 +336,9 @@ func restore_world_music() -> void:
 	if _music != null and _music.playing:
 		_music.seek(poz)
 
-# Oprește muzica STINGÂND-O în FADE secunde. `imediat = true` o taie pe loc (nu se folosește
-# în joc; e acolo pentru cazurile în care chiar vrei liniște instantă).
-func stop_music(imediat: bool = false) -> void:
+# Oprește muzica STINGÂND-O în `secunde` (implicit FADE). `imediat = true` o taie pe loc (nu se
+# folosește în joc; e acolo pentru cazurile în care chiar vrei liniște instantă).
+func stop_music(imediat: bool = false, secunde: float = FADE) -> void:
 	_music_path = ""
 	if _music == null:
 		return
@@ -313,24 +346,28 @@ func stop_music(imediat: bool = false) -> void:
 		_opreste_tween(_tw_in)
 		_music.stop()
 		return
-	_stinge(_music)
+	_stinge(_music, secunde)
 	_music = null   # boxa curentă devine „cea care se stinge"; următoarea melodie primește una nouă
 
-# Stinge o boxă în FADE secunde și apoi o oprește. Boxa e reținută în `_music_vechi` ca s-o
+# Stinge o boxă în `secunde` și apoi o oprește. Boxa e reținută în `_music_vechi` ca s-o
 # putem pune pe pauză odată cu restul (ESC) și ca să nu se calce două stingeri una pe alta.
-func _stinge(p: AudioStreamPlayer) -> void:
+func _stinge(p: AudioStreamPlayer, secunde: float = FADE) -> void:
 	if p == null:
 		return
 	if not p.playing:
 		p.queue_free()   # n-are ce stinge, dar boxa tot trebuie eliberată (altfel se adună)
 		return
 	_opreste_tween(_tw_out)
+	# ⚠️ Și tween-ul de „ducking": el trage tot pe `volume_db`-ul boxei ăsteia. Lăsat în aer, ar
+	# urca-o la loc exact în timp ce noi o stingem, iar melodia veche ar rămâne agățată sub cea
+	# nouă. (Se întâmplă dacă schimbi melodia în timp ce muzica își revine după o cinematică.)
+	_opreste_tween(_tw_duck)
 	if _music_vechi != null and _music_vechi != p and is_instance_valid(_music_vechi):
 		_music_vechi.stop()   # deja se stingea alta → o tăiem, n-avem trei melodii deodată
 		_music_vechi.queue_free()
 	_music_vechi = p
 	_tw_out = create_tween()
-	_tw_out.tween_property(p, "volume_db", TACERE_DB, FADE)
+	_tw_out.tween_property(p, "volume_db", TACERE_DB, secunde)
 	_tw_out.tween_callback(_gata_stins.bind(p))
 
 func _gata_stins(p: AudioStreamPlayer) -> void:

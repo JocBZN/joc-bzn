@@ -189,10 +189,15 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	Difficulty.mult_time_override = _diff_time()
 	Difficulty.xp_bonus = XP_BONUS
 
-	# Sunet: Ender-ul n-are muzică proprie (n-avem fișiere), deci împrumută bucla Nether-ului.
+	# Sunet: Ender-ul ARE muzică proprie („Ender Theme", din 2026-08-20) — dar ea NU începe aici.
+	# La intrare punem melodia lumii deoparte (o reluăm la ieșire, din secunda în care a rămas) și
+	# TĂCEM: peste cinematica lui Celesto vine imediat sunetul ei (înghețul, basul, riser-ul,
+	# numele, salturile), iar o melodie sub toate alea e doar zgomot — de-aia cinematica oricum
+	# cobora muzica cu 16 dB (`CUT_DUCK`). Tema locului intră la capătul ei, din `_cutscene_gata`,
+	# ca prima replică a Ender-ului după ce el dispare.
 	Audio.stop_forest_ambient()
 	Audio.play("teleport", TELEPORT_DB, 0.0)
-	Audio.play_nether_music()
+	Audio.stop_music_tinand_minte()
 	_clock.text = _mmss(ENDER_TIME)
 	_clock.add_theme_color_override("font_color", CLOCK_COLOR)
 	_clock.visible = true
@@ -591,10 +596,15 @@ const CUT_DISTANTA := 300.0   # la câți pixeli deasupra ta apare, cât ține c
 var _cut_activ := false      # cât e true, `_process` stă (cronometrul Ender-ului nu curge)
 
 func _cutscene_celesto() -> void:
+	# Dacă nu se poate face filmulețul (n-avem player/fântână/lume — practic imposibil, `enter()`
+	# le cere pe toate), sărim direct la capătul lui. Altfel ai rămâne într-un Ender fără anunț,
+	# fără inamici și — de când muzica pornește de acolo — fără niciun sunet.
 	if _player == null or _fantana == null:
+		_cutscene_gata()
 		return
 	var world := _player.get_parent()
 	if world == null:
+		_cutscene_gata()
 		return
 	_boss = BOSS.instantiate()
 	_boss.adoarme()          # ÎNAINTE de add_child: `_ready` nu mai cere bara și nu se mișcă
@@ -933,6 +943,11 @@ func _cutscene_gata() -> void:
 		_boss.global_position = _loc_boss()
 		_boss.trezeste()
 	_announce("THE ENDER", "Kill Celesto to leave")
+	# Aici intră tema locului, în buclă, cât ești în Ender: pe anunț și pe primul val de inamici,
+	# adică fix pe momentul în care dimensiunea devine o luptă, nu un filmuleț. Urcă din tăcere în
+	# `Audio.FADE` secunde (nu pocnește), iar la ieșire e stinsă de `restore_world_music()`, care
+	# pune înapoi melodia lumii din secunda în care am lăsat-o la intrare.
+	Audio.play_ender_music()
 	for i in BURST:
 		_spawn_one()
 

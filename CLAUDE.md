@@ -23,6 +23,40 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-20 (Ender Theme: Ender-ul are muzica lui, dar abia după cinematica lui Celesto)
+
+**Cerut de Răzvan:** „ti-am bagat un fisie in folderul Ender Audio - se numeste Ender Theme - vreau sa se auda pe loop in Ender. Dar sa se auda doar dupa cutscene-ul lui Celesto"
+
+**Atinse:** `audio.gd`, `ender.gd`, `audio/Ender Audio/Ender Theme.ogg` (+ `.import`) — fișier pus de el, importat de mine.
+
+### Cum e legată
+
+Ender-ul împrumuta până acum bucla Nether-ului (`play_nether_music()`, cu un comentariu care recunoștea că e o cârpeală: „n-avem fișiere"). Acum:
+
+| moment | ce se aude |
+|---|---|
+| intri pe fântână | melodia lumii se stinge în **0,6s** (`Audio.stop_music_tinand_minte()`), sub sunetul teleportării |
+| toată cinematica (~4s) | **TĂCERE** — au cuvântul cele 8 straturi ale lui Celesto |
+| `_cutscene_gata()`, pe anunțul „THE ENDER" | intră **Ender Theme**, urcând din tăcere în `Audio.FADE` (3s) |
+| cât ești acolo | buclă (99,6s pe tur) |
+| ieși (sau mori) | `restore_world_music()` — melodia lumii, **din secunda în care a rămas** |
+
+### Trei lucruri de reținut
+
+- **De ce tăcere, nu bucla veche.** `duck_music()` coboară melodia CURENTĂ. La intrare nu mai e niciuna (am tăcut), deci stingerea nu mai poate fi coborâtă de cinematică — cu fade-ul obișnuit de 3s, melodia lumii ar fi rămas la volum întreg fix peste înghețul timpului. De-aia `stop_music_tinand_minte()` are fade-ul ei scurtă, de 0,6s.
+- **`play_ender_music()` NU ține minte melodia lumii.** Când se cheamă ea, lumea e deja pusă deoparte la intrare. Dacă ar ține minte (ca `play_nether_music`), ar salva „tăcere" peste ea și la ieșire ai fi primit altă melodie, de la capăt. Amândouă folosesc acum `_tine_minte_melodia()`, scoasă la comun.
+- **⚠️ Fișierul e masterizat mai tare decât restul coloanei sonore** — măsurat pe vârful magistralei Master, în patru locuri din fiecare melodie: Ender Theme medie **-3,6 dBFS**, sky-lines **-9,4**, Ruined_Place **-12,2**. Adică +5,8 dB peste Nether și +8,6 peste lume. Pusă și ea la -12 ca celelalte, ar fi sunat de două ori mai tare decât tot jocul, degeaba. **Rulează la -18 dB.** Dacă mai vine o melodie nouă în joc, măsoar-o la fel înainte să-i dai un număr — urechea minte, contorul nu.
+
+### Bug prins tot rulând
+
+`_cutscene_celesto()` avea două ieșiri devreme (fără player/fântână/lume) care lăsau Ender-ul **fără anunț și fără inamici** — și, de acum, și fără muzică. Acum sar direct la `_cutscene_gata()`.
+
+### Verificare
+
+Scenă de test temporară (ștearsă): a pornit jocul, a intrat în Ender cu o fântână făcută pe loc și a scris la fiecare jumătate de secundă ce cântă. `t=0,4…3,5s TĂCERE` → `t=4,0s Ender Theme (-57 dB, urcă)` → `-34,5 dB` la capătul fade-ului; la ieșire, `Ruined_Place de la 5,5s`. Plus: bucla verificată sărind la 1,5s de final (se întoarce la început), lungimea (99,6s), și captură de ecran fix pe cadrul în care intră tema (peste bannerul „THE ENDER"). Leaderboard-ul salvat și pus la loc înainte/după (10 scoruri, 123467 monede).
+
+---
+
 ## Session log — 2026-08-20 (SUPORT DE CONTROLLER: jocul se joacă cap-coadă fără tastatură)
 
 **Cerut de Răzvan:** „vreau sa bag si suport pt controller in joc. fa-o super profesionist ca un senior la un studio de game dev"
