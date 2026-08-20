@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://ym25fkdoli4v"
+path="res://.godot/imported/Overworld Theme.mp3-2e18f8af2f56eac5ef8060e49f739415.mp3str"
+
+[deps]
+
+source_file="res://audio/First 5 Minutes - Main World/Overworld Theme.mp3"
+dest_files=["res://.godot/imported/Overworld Theme.mp3-2e18f8af2f56eac5ef8060e49f739415.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

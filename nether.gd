@@ -202,7 +202,11 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	_margine(true)            # de aici încolo lumea are un capăt, centrat pe portalul de mai sus
 
 	# Sunet: ambientul de pădure se oprește (nu mai ești în pădure), muzica lumii e pusă
-	# deoparte și pornește sky-lines în buclă. `TELEPORT_DB` = whoosh-ul de trecere.
+	# deoparte și pornește „Nether Song" în buclă. `TELEPORT_DB` = whoosh-ul de trecere.
+	# Muzica Nether-ului are TREI stări, și doar prima începe aici:
+	#   1. „Nether Song"      — de la intrare până când coboară Saratalin;
+	#   2. „Saratalin Theme"  — cât trăiește el (pornită din `summoning_portal.gd::invoca`);
+	#   3. „Nether Song" iar  — din clipa în care cade (`boss_invins`), de la capăt.
 	Audio.stop_forest_ambient()
 	Audio.play("teleport", TELEPORT_DB, 0.0)
 	Audio.play_nether_music()
@@ -505,6 +509,11 @@ func boss_invins() -> void:
 	_boss_invins = true
 	_announce("THE WAY IS OPEN", "Press E at the portal to go back")
 	Audio.play("levelup", -2.0)
+	# Gata lupta → tema lui Saratalin se stinge și se întoarce melodia locului. Cele două se
+	# încrucișează pe `Audio.FADE` (3s), deci exact peste animația lui de moarte, peste zguduitura
+	# de cameră și peste bannerul de mai sus: pauza se lasă singură, fără nicio clipă de tăcere.
+	# De la capăt, nu de unde a rămas — te-ai întors în Nether-ul liniștit, e o pagină nouă.
+	Audio.play_nether_music()
 
 # ---------- dificultate ----------
 # Timpul din care se calculează cât de tari sunt inamicii cât ești aici.

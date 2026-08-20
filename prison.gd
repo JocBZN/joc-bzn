@@ -198,7 +198,7 @@ func enter(player: Node2D, poarta: Node2D) -> void:
 
 	Audio.stop_forest_ambient()
 	Audio.play("teleport", TELEPORT_DB, 0.0)
-	Audio.play_nether_music()     # n-avem muzică proprie; împrumutăm bucla Nether-ului
+	Audio.play_prison_music()     # n-avem muzică proprie; împrumutăm bucla Nether-ului (`sky-lines`)
 	_clock.text = _mmss(PRISON_TIME)
 	_clock.add_theme_color_override("font_color", CLOCK_COLOR)
 	_clock.visible = true

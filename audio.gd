@@ -114,15 +114,44 @@ const CHUNK_PX := 512.0     # mărimea unui chunk (ca în props/ground/pathways)
 const MUSIC_MENU := "res://audio/main menu theme.ogg"
 # În joc: se alege UNA la întâmplare din listă la începutul fiecărei runde.
 # Ca să adaugi o melodie nouă, pui fișierul în folder și mai scrii o linie aici.
+# Din 2026-08-20 lista are un singur nume: Răzvan a scos `Ruined_Place` și `tiny-rpg-town` din
+# folder și a pus în locul lor `Overworld Theme` — „vreau să se audă doar audio-ul de ți l-am pus
+# acolo". A rămas listă tocmai ca a doua melodie să fie iar o singură linie de scris.
 const MUSIC_GAME := [
-	"res://audio/First 5 Minutes - Main World/Ruined_Place.ogg",
-	"res://audio/First 5 Minutes - Main World/tiny-rpg-town.ogg",
+	"res://audio/First 5 Minutes - Main World/Overworld Theme.mp3",
 ]
-# În Nether: mereu aceeași melodie, în buclă, cât ești acolo (`nether.gd`).
-const MUSIC_NETHER := "res://audio/Nether Audio/sky-lines.ogg"
+# În Nether: melodia locului, în buclă — de la intrare până când coboară Saratalin, și din nou
+# după ce cade el (`nether.gd`).
+const MUSIC_NETHER := "res://audio/Nether Audio/Nether Song.mp3"
+# Tema lui Saratalin: intră când boss-ul coboară din tavan (`summoning_portal.gd`) și ține până
+# moare (`nether.gd::boss_invins`). Cât se aude ea, ești în luptă — asta e tot ce spune.
+const MUSIC_SARATALIN := "res://audio/Nether Audio/Saratalin Theme.mp3"
+# Pușcăria n-are muzică proprie: împrumuta „bucla Nether-ului", adică `sky-lines`. Nether-ul și-a
+# primit acum melodia lui, dar pușcăria a rămas tot pe `sky-lines` — altfel s-ar fi trezit peste
+# noapte cu tema unui loc în care nu ești, iar Nether-ul ar fi împărțit-o cu altcineva.
+# (E o singură linie de schimbat, dacă vrei totuși ca și pușcăria să sune a Nether.)
+const MUSIC_PRISON := "res://audio/Nether Audio/sky-lines.ogg"
 # În Ender: la fel, în buclă — dar NU de la intrare, ci de la capătul cinematicii lui Celesto
 # (`ender.gd`, `_cutscene_gata`). Vezi acolo de ce.
 const MUSIC_ENDER := "res://audio/Ender Audio/Ender Theme.ogg"
+
+# Melodiile care APARȚIN unui loc anume. Niciuna nu poate fi ținută minte ca „melodia lumii" —
+# vezi `_tine_minte_melodia()`, singurul motiv pentru care lista asta există.
+const MUSIC_DIMENSIUNI := [MUSIC_NETHER, MUSIC_SARATALIN, MUSIC_PRISON, MUSIC_ENDER]
+
+# --- Gaura de la capătul buclei ---
+# Un fișier de muzică nu se termină fix pe ultima notă: în coadă rămâne liniște (fade-ul de la
+# export, reverbul care se stinge, tăcerea lăsată de compozitor). La o melodie care se reia la
+# nesfârșit, tăcerea aia devine o PAUZĂ în mijlocul jocului — la `Overworld Theme` sunt 2,3
+# secunde, adică de trei-patru ori pe rundă muzica pare pur și simplu că s-a stricat.
+# Godot n-are „punct de final al buclei" pentru mp3/ogg, așa că îl punem noi: în `_process`,
+# când melodia ajunge la `lungime - trim`, o trimitem înapoi la zero. Cifrele sunt MĂSURATE
+# (`test_muzica.gd`, 2026-08-20): cât ține liniștea din coadă, sub -45 dBFS.
+# Ce nu apare aici n-are coadă de tăiat (`Saratalin Theme`: 0,13s — n-o auzi).
+const MUSIC_TRIM := {
+	"res://audio/First 5 Minutes - Main World/Overworld Theme.mp3": 2.2,
+	"res://audio/Nether Audio/Nether Song.mp3": 0.45,
+}
 
 const POOL_SIZE := 20       # câte "boxe" (playere) avem pregătite
 # 12 ajungeau când toate efectele erau scurte (0.2–0.4s). Sunetul de Mage Staff ține ~1.5s,
@@ -140,6 +169,7 @@ var _next_2d := 0
 var _music: AudioStreamPlayer  # boxă separată doar pentru muzica de fundal (în buclă)
 var _music_path := ""       # ce melodie cântă acum (ca să n-o repornim degeaba)
 var _music_base_db := 0.0   # volumul „de bază" al melodiei; peste el se adaugă reglajul din Settings
+var _music_loop_end := 0.0  # secunda la care sărim înapoi la 0 (vezi MUSIC_TRIM); 0 = bucla lui Godot
 
 # --- Fade la muzică ---
 # Orice melodie INTRĂ din tăcere în FADE secunde și IESE la fel. Când se schimbă melodia
@@ -259,6 +289,27 @@ func stream_for(name: String) -> AudioStream:
 	return _streams.get(name)
 
 # --- Muzică de fundal, în buclă ---
+#
+# 🎚️ TABELUL DE VOLUME — de ce fiecare melodie are alt număr.
+# Fiecare fișier vine masterizat altfel: unul e tare, altul e domol. Dacă le-am da tuturor
+# același `volume_db`, s-ar auzi ca la radio când sari între posturi. Deci NU le potrivim după
+# ureche, ci le MĂSURĂM: fiecare melodie e pusă să cânte la 0 dB și se citește vârful magistralei
+# Master în patru locuri din ea (0%, 25%, 50%, 75%), câte 3 secunde; media aia e „cât de tare e
+# fișierul". Volumul din joc iese apoi din scădere. (Unealta: `test_muzica.gd`, 2026-08-20.)
+#
+#   melodie              media fișierului   volum în joc   cât se aude de fapt
+#   Overworld Theme          -2,1 dBFS          -21,0           -23,1
+#   main menu theme          -8,2               -14,0           -22,2
+#   Nether Song              -7,7               -14,0           -21,7
+#   sky-lines (pușcăria)     -9,4               -12,0           -21,4
+#   Ender Theme              -3,4               -18,0           -21,4
+#   Saratalin Theme          -4,4               -15,5           -19,9
+#
+# Ultima coloană e singura care contează la ureche, și de-aia arată așa: tot jocul stă la ~-21,5;
+# lumea, care cântă zece minute în continuu, cu un pic mai jos; tema boss-ului, cu 1,8 dB peste
+# restul — atât cât să simți că s-a schimbat ceva. Când mai vine o melodie: măsoar-o și scade
+# media din -23 (lume) sau din -21,5 (dimensiuni). Urechea minte, contorul nu.
+#
 # Meniul o pornește cu play_menu_music(), jocul cu play_music() (spawner._ready).
 # Meniul intră FĂRĂ fade-in (`fade_in = 0`): e primul lucru care se aude la pornirea jocului,
 # iar o urcare de 3 secunde acolo se simte ca și cum sunetul ar fi stricat. Stingerea rămâne
@@ -268,7 +319,11 @@ func play_menu_music(volume_db: float = -14.0) -> void:
 
 # Muzica din joc: alege o melodie la întâmplare din MUSIC_GAME, alta (posibil) la fiecare rundă.
 # Sar peste fișierele care lipsesc, ca să nu iasă tăcere dacă unul e șters/redenumit.
-func play_music(volume_db: float = -12.0) -> void:
+#
+# ⚠️ -21, nu -12 ca înainte: `Overworld Theme` e masterizată cu 10 dB mai tare decât melodiile pe
+# care le-a înlocuit (medie -2,1 dBFS, față de -12,2 la `Ruined_Place`). Lăsată la -12, ar fi
+# acoperit tot jocul; la -21 se aude fix cât se auzea melodia veche. Vezi tabelul de volume.
+func play_music(volume_db: float = -21.0) -> void:
 	_nether_prev_path = ""   # rundă nouă → uităm ce cânta înainte de un Nether vechi
 	var disponibile: Array = []
 	for path in MUSIC_GAME:
@@ -279,7 +334,7 @@ func play_music(volume_db: float = -12.0) -> void:
 		return
 	_play_track(disponibile[randi() % disponibile.size()], volume_db)
 
-# --- Muzica din alte dimensiuni (Nether, Ender) ---
+# --- Muzica din alte dimensiuni (Nether, Saratalin, Pușcărie, Ender) ---
 # Pleci din lume → ținem minte CE cânta și DIN CE SECUNDĂ, apoi punem melodia locului în buclă.
 # La întoarcere reluăm melodia lumii exact de unde a rămas (nu de la capăt), ca și cum
 # ar fi cântat mai departe cât ai fost plecat.
@@ -287,23 +342,36 @@ var _nether_prev_path := ""
 var _nether_prev_db := 0.0
 var _nether_prev_pos := 0.0
 
-func play_nether_music(volume_db: float = -12.0) -> void:
+# Melodia Nether-ului. Se cheamă de DOUĂ ori pe vizită: la intrare și încă o dată după ce cade
+# Saratalin, ca să ia locul temei lui. A doua oară `_tine_minte_melodia()` nu face nimic — vezi
+# acolo de ce, e chiar lucrul care ține „melodia lumii" nepătată.
+# -14: `Nether Song` are media la -7,7 dBFS, deci ajunge fix unde stătea `sky-lines` la -12.
+func play_nether_music(volume_db: float = -14.0) -> void:
 	_tine_minte_melodia()
 	_play_track(MUSIC_NETHER, volume_db)
+
+# Tema lui Saratalin, când boss-ul atinge pământul. Stă cu 1,8 dB PESTE melodia Nether-ului
+# (media măsurată -4,4 dBFS): atât cât să simți că s-a schimbat ceva, nu cât să dai volumul mai
+# încet. Restul diferenței o face muzica însăși, nu numărul de aici.
+func play_saratalin_music(volume_db: float = -15.5) -> void:
+	# Boss-ul a ajuns → gata cu făcutul de loc pentru cutremur (`duck_music` din `invoca()`).
+	# Punem coborârea la zero AICI, nu prin `unduck_music()`: melodia veche oricum se stinge, iar
+	# cea nouă trebuie să urce direct la volumul ei întreg. `unduck_music()` ar fi tras de același
+	# `volume_db` ca fade-in-ul, și se băteau între ele.
+	_duck_db = 0.0
+	_play_track(MUSIC_SARATALIN, volume_db)
+
+# Pușcăria: aceeași melodie ca înainte (`sky-lines`), doar că acum și-o cere pe nume.
+func play_prison_music(volume_db: float = -12.0) -> void:
+	_tine_minte_melodia()
+	_play_track(MUSIC_PRISON, volume_db)
 
 # Tema Ender-ului. NU ține minte melodia lumii: când se cheamă ea, lumea e deja pusă deoparte de
 # `stop_music_tinand_minte()` la intrarea în dimensiune. Dacă ar ține minte, ar salva „tăcere"
 # peste melodia lumii și la ieșire ai fi primit alta, de la capăt.
 #
-# ⚠️ -18, nu -12 ca celelalte: fișierul e MASTERIZAT MAI TARE. Măsurat pe vârful magistralei
-# Master, în patru locuri din fiecare melodie (`test_ender_music.gd`, 2026-08-20):
-#     Ender Theme  vârf  0.1 dBFS, medie  -3.6 dBFS
-#     sky-lines    vârf -1.4 dBFS, medie  -9.4 dBFS   (Nether, tot la -12)
-#     Ruined_Place vârf -3.4 dBFS, medie -12.2 dBFS   (lumea, tot la -12)
-# Adică e cu 5,8 dB peste Nether și cu 8,6 peste lume. Pusă și ea la -12, ai fi auzit-o de două
-# ori mai tare decât tot restul jocului — nu fiindcă e „mai importantă", ci fiindcă așa a ieșit
-# din export. -18 o așază la o palmă peste Nether (+0,6 dB): tot se simte că e altă dimensiune,
-# dar nu-ți sare slider-ul din Settings în cap.
+# -18, nu -12 ca celelalte: fișierul e masterizat mai tare (medie -3,4 dBFS). Vezi tabelul de
+# volume de la începutul secțiunii.
 func play_ender_music(volume_db: float = -18.0) -> void:
 	_play_track(MUSIC_ENDER, volume_db)
 
@@ -319,10 +387,18 @@ func stop_music_tinand_minte(secunde: float = 0.6) -> void:
 	stop_music(false, secunde)
 
 func _tine_minte_melodia() -> void:
-	if _music != null and _music.playing:
-		_nether_prev_path = _music_path
-		_nether_prev_db = _music_base_db
-		_nether_prev_pos = _music.get_playback_position()
+	if _music == null or not _music.playing:
+		return
+	# ⚠️ „Melodia lumii" e ce se auzea ÎNAINTE să pleci de acasă — niciodată melodia unui loc în
+	# care ești deja. Fără linia asta, `play_nether_music()` chemat a doua oară (după ce cade
+	# Saratalin) ar fi ținut minte TEMA LUI SARATALIN, iar la ieșirea din Nether te-ai fi întors
+	# în lumea normală cu muzică de boss peste cap. E o plasă de siguranță, nu o optimizare:
+	# orice cod scris de aici înainte poate chema liniștit funcțiile astea de câte ori vrea.
+	if _music_path in MUSIC_DIMENSIUNI:
+		return
+	_nether_prev_path = _music_path
+	_nether_prev_db = _music_base_db
+	_nether_prev_pos = _music.get_playback_position()
 
 func restore_world_music() -> void:
 	if _nether_prev_path == "":
@@ -340,6 +416,7 @@ func restore_world_music() -> void:
 # folosește în joc; e acolo pentru cazurile în care chiar vrei liniște instantă).
 func stop_music(imediat: bool = false, secunde: float = FADE) -> void:
 	_music_path = ""
+	_music_loop_end = 0.0   # boxa care se stinge n-are de ce să mai sară înapoi la început
 	if _music == null:
 		return
 	if imediat:
@@ -410,6 +487,10 @@ func _play_track(path: String, volume_db: float, fade_in: float = FADE) -> void:
 		s.loop_begin = 0
 	_music_path = path
 	_music_base_db = volume_db
+	# unde se termină muzica de fapt, dacă fișierul are liniște în coadă (vezi MUSIC_TRIM)
+	_music_loop_end = 0.0
+	if MUSIC_TRIM.has(path):
+		_music_loop_end = maxf(s.get_length() - float(MUSIC_TRIM[path]), 1.0)
 	_music.stream = s
 	_opreste_tween(_tw_in)
 	if fade_in <= 0.0:
@@ -457,6 +538,14 @@ func _urmeaza_volumul(timp: float) -> void:
 		return
 	_tw_duck = create_tween()
 	_tw_duck.tween_property(_music, "volume_db", _volum_muzica(), timp)
+
+# Sare peste liniștea din coada melodiei, ca bucla să n-aibă pauză (vezi MUSIC_TRIM). Chemat
+# în fiecare cadru din `_process`; după `seek(0)` poziția e la zero, deci nu se retrimite.
+func _taie_coada_buclei() -> void:
+	if _music_loop_end <= 0.0 or _music == null or not _music.playing:
+		return
+	if _music.get_playback_position() >= _music_loop_end:
+		_music.seek(0.0)
 
 # Recalculează volumul muzicii care cântă acum (chemat din Settings când miști slider-ul).
 # Dacă tocmai urca (fade-in), oprim urcarea și sărim la volumul cerut — altfel tween-ul ar
@@ -524,6 +613,7 @@ func resume_forest_ambient() -> void:
 		_ambient.stream_paused = false
 
 func _process(delta: float) -> void:
+	_taie_coada_buclei()
 	if _ambient == null or not _ambient.playing:
 		return
 	# ținta = cât de pădure e locul de sub player (1 = pădure pură, 0 = deșert). Fără player → tăcere.

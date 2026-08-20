@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://b7umufoud5moj"
+path="res://.godot/imported/Nether Song.mp3-47d19d3497dbea387f661bd3f63abca4.mp3str"
+
+[deps]
+
+source_file="res://audio/Nether Audio/Nether Song.mp3"
+dest_files=["res://.godot/imported/Nether Song.mp3-47d19d3497dbea387f661bd3f63abca4.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

@@ -23,6 +23,10 @@ const BOSS := preload("res://saratalin.tscn")
 @export var shake_strength: float = 24.0
 @export var shake_duration: float = 0.9
 
+# Cu cât se dă muzica la o parte cât ține invocarea (vezi `invoca`). -14 e sub cel de la
+# cinematica lui Celesto (-16): acolo era liniște de umplut, aici doar facem loc unei bubuituri.
+const DUCK_INVOCARE := -14.0
+
 # --- Structura intră în pământ ---
 @export var sink_duration: float = 1.0
 @export var sink_depth: float = 80.0
@@ -66,6 +70,15 @@ func invoca() -> void:
 	Audio.play("levelup", -2.0)
 
 	# 2a) cutremur pe ecran + bubuitura lui
+	# Muzica Nether-ului se dă la o parte cât ține invocarea: bubuitura stă fix pe mijlocul în care
+	# stă și melodia, iar lăsată sus ar suna „într-o cameră plină". Coborâtă, aceleași sunete par
+	# de două ori mai mari, fără să fi dat nimic mai tare. Nu se ridică la loc cu `unduck_music()`
+	# — o ridică `play_saratalin_music()`, direct în tema boss-ului (vezi `_cheama_bossul`).
+	# Dacă între timp îți sare un ecran de Level Up, scufundarea de mai jos îngheață odată cu
+	# jocul, iar muzica rămâne jos până alegi. E în regulă: exact atunci lumea chiar STĂ, iar
+	# tema lui Saratalin intră fix în clipa în care ai închis ecranul. (Verificat: fără ecran,
+	# coborârea ține 1 secundă — cât scufundarea.)
+	Audio.duck_music(DUCK_INVOCARE, 0.2)
 	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 	_zguduie_camera()
 
@@ -90,14 +103,22 @@ func invoca() -> void:
 
 # Pune boss-ul la locul lui și îl lasă să coboare. Îl agățăm de `World` (părintele nostru),
 # nu de structură — structura dispare imediat după.
+#
+# Aici pornește și TEMA LUI SARATALIN, nu mai sus în `invoca()`: Răzvan a cerut „să se audă după
+# ce se spawnează Saratalin", iar ăsta e singurul loc prin care se trece de fiecare dată când
+# boss-ul chiar apare — și pe drumul normal (după ce se scufundă structura), și pe scurtătura de
+# siguranță de sus (structură fără sprite). Melodia Nether-ului se stinge sub ea în 3 secunde,
+# adică fix cât îi ia lui să coboare din tavan.
 func _cheama_bossul() -> void:
 	var world := get_parent()
 	if world == null:
+		Audio.unduck_music()   # n-avem unde pune boss-ul → măcar nu lăsăm muzica jos pe veci
 		return
 	var boss := BOSS.instantiate()
 	world.add_child(boss)
 	boss.global_position = global_position + boss_spawn_offset
 	boss.coboara_din_tavan()
+	Audio.play_saratalin_music()
 
 func _zguduie_camera() -> void:
 	var player := get_tree().get_first_node_in_group("player") as Node2D
