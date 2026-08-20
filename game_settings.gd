@@ -62,6 +62,21 @@ const KEY_ACTIONS := {
 }
 var keybinds: Dictionary = {}   # action -> physical_keycode ales de jucător (doar cele schimbate)
 
+# Acțiuni care NU se remapează din meniu, deci n-au rând în Settings, dar au nevoie de taste ȘI
+# de butoane de pad. „pause" a apărut odată cu suportul de controller: pe tastatură ESC punea
+# jocul pe pauză prin `ui_cancel`, dar pe controller `ui_cancel` e B — adică „înapoi" — iar
+# butonul de pauză e START. Acum `pause.gd` ascultă amândouă.
+const FIX_ACTIONS := {
+	"pause": [KEY_ESCAPE],
+}
+
+# --- controller ---
+# Vibrația se poate stinge din Settings → pagina GAMEPAD. E singura setare de pad care are rost
+# să existe: butoanele stau pe convenția consolelor (A confirmă, B iese, START pune pauză), iar
+# stick-ul e pe aceleași acțiuni ca WASD, deci remaparea tastelor le acoperă pe amândouă.
+# Tot ce ține de pad e în `gamepad.gd`; aici stă doar valoarea salvată.
+var vibration: bool = true
+
 # Upgrade-urile permanente din meniu (ecranul UPGRADES): efect pe nivel, cost de bază, nivel maxim.
 const META := [
 	{"id": "hp",       "name": "Max HP",    "per": "+15 HP",    "cost": 40, "max": 10},
@@ -92,14 +107,24 @@ func _setup_actions() -> void:
 			_bind(action, [int(keybinds[action])])   # tasta aleasă de jucător
 		else:
 			_bind(action, KEY_ACTIONS[action]["keys"])   # implicit (WASD + săgeată)
+	for action in FIX_ACTIONS:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+		_bind(action, FIX_ACTIONS[action])
 
-# Pune pe o acțiune exact tastele date (șterge ce era înainte).
+# Pune pe o acțiune exact tastele date (șterge ce era înainte) și, la final, butoanele de pad.
+#
+# ⚠️ Pad-ul se pune AICI, nu o singură dată la pornire: `action_erase_events` șterge TOT ce e pe
+# acțiune, deci prima tastă remapată din Settings ar fi tăiat în tăcere stick-ul de pe direcția
+# aia. Cine leagă tastele leagă și pad-ul, în aceeași funcție — altfel se despart la prima
+# schimbare. (De aia e „Gamepad" primul autoload: exista deja când ajungem aici.)
 func _bind(action: String, keycodes: Array) -> void:
 	InputMap.action_erase_events(action)
 	for kc in keycodes:
 		var ev := InputEventKey.new()
 		ev.physical_keycode = kc   # physical = poziția tastei, merge la fel pe orice layout
 		InputMap.action_add_event(action, ev)
+	Gamepad.leaga_pad(action)
 
 # Cheamă asta din Settings când jucătorul apasă o tastă nouă pentru o direcție.
 func rebind(action: String, keycode: int) -> void:
@@ -141,6 +166,16 @@ func set_vignette(on: bool) -> void:
 func set_glow(on: bool) -> void:
 	glow = on
 	_refresh_atmosfera()
+	_save()
+
+# --- controller ---
+# Stinge/aprinde vibrația. Oprită, oprim și ce vibrează CHIAR ACUM: altfel, dacă o stingi în
+# mijlocul unui cutremur de boss (din meniul de pauză, care nu oprește vibrația motorului),
+# controllerul ar continua să bubuie secunde bune după ce ai zis „gata".
+func set_vibration(on: bool) -> void:
+	vibration = on
+	if not on:
+		Gamepad.opreste_vibratia()
 	_save()
 
 # --- OP start ---
@@ -247,7 +282,7 @@ func _save() -> void:
 			"scores": scores, "coins": coins, "upgrades": upgrades,
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "keybinds": keybinds,
 			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
-			"language": language, "op_start": op_start,
+			"language": language, "op_start": op_start, "vibration": vibration,
 		})
 
 func _load() -> void:
@@ -271,5 +306,6 @@ func _load() -> void:
 		glow = bool(data.get("glow", glow))
 		language = String(data.get("language", language))
 		op_start = bool(data.get("op_start", op_start))
+		vibration = bool(data.get("vibration", vibration))
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil

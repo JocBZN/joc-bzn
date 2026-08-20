@@ -46,7 +46,8 @@ const IGNORATE := [
 	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "ALBA NEAGRA", "A L B A   N E A G R A",
 	"%d", "%s", "", " ", "MAX",
 	"%d + %d = %d",   # suma de pe masa de zaruri a dubiosului — cifre, n-are ce traduce
-	"keybinds", "graphics", "main", "settings", "language", "weapon", "character",
+	"keybinds", "graphics", "gamepad", "main", "settings", "language", "weapon", "character",
+	"interact",   # `Gamepad.nume_buton("interact")` — nume de ACȚIUNE, nu text de pe ecran
 	"leaderboard", "opstart", "same", "up", "down",
 ]
 
@@ -123,7 +124,7 @@ func _verifica_tr() -> void:
 func _avertizeaza_text_direct() -> void:
 	print("[5] texte puse direct pe noduri (doar avertisment)")
 	var re := RegEx.new()
-	re.compile('(?:\\.text\\s*=\\s*|_center_label\\(|_header\\(|_menu_button\\(|_button\\(|_title\\(|_buton\\(|_volume_row\\(|_toggle_row\\(|announce\\(|_announce\\(|_anunta\\(|_spune\\(|_cutie\\(|text_popup\\([^,]+,\\s*)"((?:[^"\\\\]|\\\\.)*)"')
+	re.compile('(?:\\.text\\s*=\\s*|_center_label\\(|_header\\(|_menu_button\\(|_button\\(|_title\\(|_buton\\(|_volume_row\\(|_toggle_row\\(|_info_row\\(|announce\\(|_announce\\(|_anunta\\(|_spune\\(|_cutie\\(|text_popup\\([^,]+,\\s*)"((?:[^"\\\\]|\\\\.)*)"')
 	var vazute := {}
 	for f in FISIERE_UI:
 		for m in re.search_all(_citeste(f)):

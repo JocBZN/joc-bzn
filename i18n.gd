@@ -85,6 +85,17 @@ const TRAD := {
 "VIGNETTE": ["暗角", "VIGNETTE", "VIÑETA", "ВИНЬЕТКА", "VIGNETTAGE", "ビネット", "WINIETA", "VİNYET"],
 "GLOW": ["辉光", "LEUCHTEN", "RESPLANDOR", "СВЕЧЕНИЕ", "HALO", "グロー", "POŚWIATA", "PARLAMA"],
 "effects apply in-game": ["效果在游戏中生效", "wirkt sich im Spiel aus", "se aplican en la partida", "применяется в игре", "s’applique en jeu", "ゲーム中に反映されます", "działa w grze", "oyun içinde geçerli"],
+# pagina GAMEPAD din Settings (2026-08-20). Numele butoanelor (A, B, ✕, START) NU se traduc:
+# sunt scrise pe plasticul controllerului, la fel în toate limbile.
+"GAMEPAD": ["手柄", "GAMEPAD", "MANDO", "ГЕЙМПАД", "MANETTE", "コントローラー", "PAD", "OYUN KOLU"],
+"VIBRATION": ["震动", "VIBRATION", "VIBRACIÓN", "ВИБРАЦИЯ", "VIBRATION", "振動", "WIBRACJE", "TİTREŞİM"],
+"BUTTONS": ["按钮", "TASTEN", "BOTONES", "КНОПКИ", "BOUTONS", "ボタン", "PRZYCISKI", "TUŞLAR"],
+"MOVE": ["移动", "BEWEGEN", "MOVERSE", "ДВИЖЕНИЕ", "SE DÉPLACER", "移動", "RUCH", "HAREKET"],
+"INTERACT": ["互动", "BENUTZEN", "INTERACTUAR", "ДЕЙСТВИЕ", "INTERAGIR", "調べる", "UŻYJ", "ETKİLEŞİM"],
+"SELECT": ["确认", "AUSWÄHLEN", "SELECCIONAR", "ВЫБОР", "SÉLECTIONNER", "決定", "WYBIERZ", "SEÇ"],
+"PAUSE": ["暂停", "PAUSE", "PAUSA", "ПАУЗА", "PAUSE", "ポーズ", "PAUZA", "DURAKLAT"],
+"No controller connected": ["未连接手柄", "Kein Controller verbunden", "Ningún mando conectado", "Геймпад не подключён", "Aucune manette connectée", "コントローラー未接続", "Nie podłączono pada", "Oyun kolu bağlı değil"],
+"Stick / D-Pad": ["摇杆 / 十字键", "Stick / D-Pad", "Stick / Cruceta", "Стик / D-Pad", "Stick / Croix", "スティック / 十字キー", "Drążek / D-Pad", "Çubuk / D-Pad"],
 "ON": ["开", "AN", "SÍ", "ВКЛ", "OUI", "オン", "WŁ", "AÇIK"],
 "OFF": ["关", "AUS", "NO", "ВЫКЛ", "NON", "オフ", "WYŁ", "KAPALI"],
 "press a key…": ["按一个键…", "Taste drücken…", "pulsa una tecla…", "нажми клавишу…", "appuie sur une touche…", "キーを押して…", "naciśnij klawisz…", "bir tuşa bas…"],

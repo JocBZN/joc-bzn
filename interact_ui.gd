@@ -48,7 +48,10 @@ func _process(_delta: float) -> void:
 	var text := ""
 	if _tinta.has_method("eticheta"):
 		text = _tinta.eticheta()
-	_label.text = text if text != "" else tr("Press %s to interact") % GameSettings.key_name("interact")
+	# `Gamepad.nume_buton` dă tasta („E") sau butonul de pad („A" / „✕"), după CE ține jucătorul
+	# în mână acum. Se recalculează în fiecare cadru, deci dacă lași controllerul din mână și pui
+	# mâna pe tastatură, textul de deasupra statuii se schimbă singur — nu la runda următoare.
+	_label.text = text if text != "" else tr("Press %s to interact") % Gamepad.nume_buton("interact")
 	# Cât de sus stă textul. O statuie de ~260px și un cufăr de ~90px nu-l vor la aceeași
 	# înălțime, așa că fiecare obiect poate cere alta prin `label_offset_y`. Cine n-o are
 	# (statui, portaluri) rămâne pe `world_offset_y`, valoarea de dinainte.

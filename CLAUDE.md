@@ -18,7 +18,107 @@ Quick rules:
 - **⚠️ Și un test care schimbă ceva în `GameSettings` DOAR ÎN RAM poate ajunge în salvarea reală** (prins pe 2026-08-04 cu `op_start`): jocul cheamă `_save()` de la sine, iar `_save()` scrie TOATE valorile din memorie. Deci: ori nu atingi `GameSettings` înainte să pornești `main.tscn`, ori pui valoarea înapoi ȘI salvezi. Verifică la final ce-a rămas în fișier.
 - **Uneltele care au nevoie de autoload-uri se rulează ca SCENĂ, nu cu `--script`** — altfel dau „Identifier not found: GameSettings".
 - **Generator nou în `World` (main.tscn) → trece-l în `WORLD_NODES` din `nether.gd`, `limbo.gd`, `ender.gd` ȘI `prison.gd`** (a patra listă din 2026-08-17). Sunt patru liste separate; dacă lipsește dintr-una, generatorul rămâne aprins acolo și-i vezi obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de trei ori (EGT-uri, portaluri). **Singura excepție (din 2026-08-14): `Dubiosi`** — omul în palton apare NUMAI în Nether, deci lipsește dinadins din lista lui `nether.gd`, iar regula lui e scrisă invers, la el în generator (`dubiosi.gd` se uită la `nether.active` și se golește singur când nu ești acolo). În `limbo.gd` și `ender.gd` e trecut normal.
+- **Ecran nou cu butoane → controllerul merge din prima, dar verifică două lucruri** (suport de pad din 2026-08-20, `gamepad.gd`): (1) ecranul să fie un **CanvasLayer** cu `layer` mai mare decât ce e sub el — după `layer` decide `Gamepad` unde stă cursorul, nu după o listă scrisă de mână; (2) dacă butonul de pe care trebuie să pornească nu e primul din arbore, marchează-l cu **`Gamepad.primul(buton)`** (ca START în meniu și Resume în pauză). Aprinderea de focus, semnalele de mouse și inelul de aramă vin singure, pentru orice `Button`. **Text nou care numește o tastă** se scrie cu `Gamepad.nume_buton("actiune")`, nu cu `GameSettings.key_name()` — altfel scrie „E" și cu controllerul în mână.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
+
+---
+
+## Session log — 2026-08-20 (SUPORT DE CONTROLLER: jocul se joacă cap-coadă fără tastatură)
+
+**Cerut de Răzvan:** „vreau sa bag si suport pt controller in joc. fa-o super profesionist ca un senior la un studio de game dev"
+
+**Atinse:** `gamepad.gd` (**fișier nou**), `project.godot`, `game_settings.gd`, `player.gd`, `pause.gd`, `interact_ui.gd`, `settings_ui.gd`, `menu.gd`, `i18n.gd`, `tool_check_i18n.gd`.
+
+### 1. Un singur loc care știe de pad: `gamepad.gd` (autoload „Gamepad")
+
+Jocul are **unsprezece** ecrane cu butoane. Dacă fiecare și-ar fi rezolvat singur „pe ce buton stă cursorul de pad", al doisprezecelea ar fi pornit iar fără suport, în tăcere. Așa că e o singură regulă, care se aplică oricărui `Button` din proiect — inclusiv celor care nu existau când s-a scris fișierul.
+
+Ce ține: butoanele de pad puse pe acțiuni, ce dispozitiv are jucătorul ÎN MÂNĂ acum, paznicul de focus din meniuri, vibrația și numele butoanelor scrise pe ecran.
+
+⚠️ **E PRIMUL autoload, înaintea lui `GameSettings`** — vezi punctul 2.
+
+### 2. Acțiunile: pad-ul se leagă în ACEEAȘI funcție cu tastele
+
+`GameSettings._bind()` cheamă acum `Gamepad.leaga_pad(action)` la final. Motivul e o capcană adevărată: `InputMap.action_erase_events()` șterge **tot** ce e pe acțiune, deci prima tastă remapată din Settings ar fi tăiat în tăcere stick-ul de pe direcția aia. Cine leagă tastele leagă și pad-ul, altfel se despart la prima schimbare. De aici vine și ordinea autoload-urilor.
+
+Acțiune nouă, **`pause`** (`FIX_ACTIONS` din `game_settings.gd`): ESC + START. Nu are rând în Settings — nu se remapează. Pe tastatură pauza mergea prin `ui_cancel`, dar pe pad `ui_cancel` e **B**, adică „înapoi"; butonul de pauză e START. `pause.gd` ascultă amândouă și, fiindcă ESC declanșează și `ui_cancel` și `pause` **din același eveniment**, meniul se comută o singură dată.
+
+| ce faci | tastatură | controller |
+|---|---|---|
+| mers | WASD / săgeți | stick stâng (**analog**) sau cruce |
+| folosește (statuie, cufăr, EGT) | E | A sau X |
+| pauză | ESC | START |
+| confirmă în meniu | Enter / clic | A |
+| înapoi / închide | ESC | B |
+
+Deadzone-ul (0.22) se dă **explicit** la `Input.get_vector(..., Gamepad.DEADZONE)`: așa se aplică pe vectorul întreg, nu pe fiecare axă, deci diagonalele nu mai sunt tăiate strâmb, iar restul cursei se întinde la loc pe 0…1. Împingi stick-ul pe jumătate → mergi pe jumătate. Țintirea n-a avut nevoie de nimic: armele aleg singure inamicul cel mai apropiat.
+
+### 3. Paznicul de focus — de ce nu e o listă scrisă de mână
+
+Godot mută singur focusul cu stick-ul și apasă cu A, dar numai DACĂ ceva are focus. La pornire n-are nimic, deci fără paznic un controller nu făcea absolut nimic în meniuri.
+
+Regula: focusul stă pe ecranul de **DEASUPRA**, iar „deasupra" nu e o listă, e chiar `layer`-ul CanvasLayer-elor jocului (HUD 1 < interact 5 < level up 10 < cazinou 12 < pauză 15 < game over 20). Straturile fără butoane sunt sărite. `Gamepad.primul(buton)` marchează de unde pornește cursorul (**START** în meniu, **Resume** în pauză); în rest se ia primul buton din ordinea arborelui — care s-a nimerit să fie exact cel bun peste tot (cartonașul 1 la level up, PLAY AGAIN la game over, „Gamble your stats" la cazinou).
+
+⚠️ Rulează în fiecare cadru, deci n-are voie să aloce: prima variantă aduna butoanele într-un `Array` și costa 45µs; varianta care coboară o dată prin arbore fără alocări costă **~37µs pe cadru** (0,2% din bugetul de 60fps), și doar cât joci pe pad.
+
+### 4. Cum se VEDE focusul (partea de „super profesionist")
+
+Toate butoanele din joc au `focus` pus pe `StyleBoxEmpty` — chenarul punctat al lui Godot ar fi arătat oribil peste pixel art — iar aprinderea lor e legată de **mouse** (`mouse_entered` mărește butonul, aprinde cartonașul, schimbă fișa armei). Pe controller nu intră nimeni cu mouse-ul pe ele, deci ecranul ar fi rămas mort.
+
+Leacul, într-un singur loc: la focus îi punem pe `focus` **propriul lui stil de hover**, cu muchia repictată în aramă deschisă și trasă 3px în afara butonului, și îi dăm semnalele de mouse — așa fiecare ecran își păstrează exact aprinderea lui, fără să știe că există un pad.
+
+⚠️ **De ce nu hover-ul copiat ca atare:** START are DEJA, în repaus, o muchie de aramă deschisă (e butonul principal), deci copia exactă a hover-ului nu se vedea deloc — fix pe butonul care contează cel mai mult. De-aia inelul are culoarea lui, mai deschisă decât orice altceva din paletă.
+
+### 5. Ce dispozitiv ține jucătorul în mână (două bug-uri prinse RULÂND)
+
+**Bug 1 — evenimentul înghițit.** `set_input_as_handled()` oprește evenimentul înainte să ajungă la autoload-uri, iar autoload-urile primesc `_input` **ultimele** (ordinea e invers decât în arbore). Prima apăsare pe controller e chiar cea care sare peste intro-ul meniului, adică exact una consumată — deci jocul rămânea în modul „mouse" fix când puneai mâna pe pad. Leac: pad-ul se citește și din **starea** lui (`Input.is_joy_button_pressed` / `get_joy_axis`), în fiecare cadru, nu doar din evenimente.
+
+**Bug 2 — mouse-ul fantomă.** La FIECARE schimbare de scenă sistemul trimite un salt de mouse de ~**222px** (cursorul e remăsurat față de fereastra nouă), iar jocul ieșea singur din modul „pad" în mijlocul rundei: reapărea cursorul, se stingea inelul. Leac: mouse-ul ia comanda înapoi doar după **3 evenimente ȘI 40 de pixeli adunați** (o MÂNĂ, nu un salt), cu 0,6s de răgaz după ce pad-ul a luat comanda (ascunderea cursorului poate ea însăși produce o mișcare) și uitare după o secundă de liniște. Un **clic** de mouse comută instant — ăla nu se discută.
+
+Cursorul se ascunde cât joci pe pad, iar textul de deasupra statuii („Press %s to interact") se schimbă singur între **E** și **A**/**✕**, în fiecare cadru — nu la runda următoare.
+
+### 6. Vibrația
+
+Pleacă din același loc cu tremuratul camerei, ca să nu poată rămâne în urma imaginii și ca să moștenească gratis răgazul de 0,12s de la `add_shake` (fără el, la 13 atacuri/secundă controllerul ar bâzâit continuu):
+
+| când | motor mic | motor mare | cât |
+|---|---|---|---|
+| critic (`add_shake`) | 0.55 × forță | 0.2 × forță | 0,11s |
+| cutremur de boss (`start_quake`) | 0.35 × forță | 0.9 × forță | cât ține cutremurul |
+| **lovitură încasată** | 0.45 | 0.75 | 0,18s |
+| **moarte** | 0.35 | 1.0 | 0,55s |
+
+Ultimele două NU trec prin `add_shake`, dinadins: ce încasezi n-are voie să fie amestecat cu tremuratul de la criticele tale. O vibrație slabă nu poate tăia una tare care încă ține. Meniul de pauză oprește motoarele (`paused` nu le oprește). Se stinge din Settings → GAMEPAD → VIBRATION, iar la aprindere **vibrează o dată**, ca să simți că a mers.
+
+### 7. Settings: al treilea tab, GAMEPAD
+
+Numele controllerului conectat (sau „No controller connected", actualizat live la conectare/deconectare), comutatorul de vibrație și **ce face fiecare buton**. E o listă scrisă, nu rânduri de remapare: pe pad butoanele stau pe convenția consolelor, iar mersul e pe aceleași acțiuni ca WASD, deci pagina KEYBINDS le remapează pe amândouă.
+
+⚠️ Taburile s-au subțiat de la 200 la **150px** — 3 × 200 ar fi lățit tot blocul de Settings cu ~220px, iar blocul e încadrat de rama ornată din meniu. Și ⚠️ rândurile paginii sunt toate de aceeași lățime (160 + 180): stau în HBox-uri **centrate**, deci unul mai lat le împinge pe toate și coloana iese strâmbă — de-aia scrie „Stick / D-Pad", nu „Left Stick / D-Pad" (se vedea diferența).
+
+Dacă apeși un rând de remapare a tastelor și pe urmă un buton de pad, remaparea se anulează (n-ai ce tastă să dai de pe controller) — altfel B ar fi ajuns la meniul de pauză de dedesubt, cu remaparea agățată în aer.
+
+### 8. Controllerul deconectat în mijlocul rundei → PAUZĂ
+
+Regula standard pe console și singura corectă aici: jocul ăsta nu se oprește niciodată singur, deci fără ea player-ul stă în loc și e mâncat cât cauți bateriile. `pause.gd` a primit `cere_pauza()` (trece prin aceleași verificări ca ESC — peste level up sau game over nu se deschide) și grupul `"pause_menu"`.
+
+### 9. Verificat RULÂND
+
+Cu pad-ul **falsificat** prin `Input.parse_input_event` (nu e nevoie de hardware — scenă de test ștearsă la final):
+
+- acțiunile și deadzone-urile tipărite din `InputMap` (`move_left -> A, Left, axa0-, btn13`, `pause -> Escape, btn6`…);
+- modul care se trezește dintr-o apăsare **consumată** de intro;
+- START focusat în meniu, crucea mută pe butonul următor;
+- cazinoul, cartonașele de level up (**A alege cartonașul focusat**), pauza (START deschide, B închide) și game over — fiecare ia cursorul pe stratul lui;
+- saltul fantomă de 300px **nu** fură comanda, o mișcare de mână din 4 evenimente **da**;
+- curba analogică: 0.60 → 0.487, 0.10 (sub deadzone) → 0;
+- prioritatea vibrațiilor (mica nu o taie pe cea mare, cea mai tare o ia înainte, comutatorul din Settings o blochează);
+- costul paznicului de focus pe cadru;
+- **poze la 1920×1080** cu toate cele cinci ecrane.
+
+⚠️ Testul de game over SCRIE în leaderboard-ul real (`show_gameover` → `add_score`) — scorurile și monedele au fost salvate și puse la loc, verificat după.
+
+`tool_check_i18n` → **TOTUL E TRADUS** (320 chei × 8 limbi), 9 chei noi, fără avertismente noi (`"interact"` a intrat în `IGNORATE`: e nume de acțiune prins de regex-ul lui `_buton(`, nu text de pe ecran).
 
 ---
 

@@ -26,6 +26,10 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS   # merge și când jocul e pe pauză
 	layer = 15                                 # peste HUD, sub Game Over (20)
 	visible = false
+	# `gamepad.gd` are nevoie să dea de meniul ăsta când se deconectează controllerul în
+	# mijlocul rundei (vezi `cere_pauza`), iar grupurile sunt felul în care se caută nodurile
+	# în tot jocul.
+	add_to_group("pause_menu")
 
 	# fundal întunecat peste tot ecranul
 	var overlay := ColorRect.new()
@@ -37,9 +41,15 @@ func _ready() -> void:
 	_build_settings_page()
 	_show_page("main")
 
-# ---------- ESC ----------
+# ---------- ESC / START ----------
+# Pe tastatură e ESC, pe controller e START. Amândouă intră pe același drum, deci meniul nu poate
+# ajunge deschis „pe jumătate" pe un dispozitiv și închis pe celălalt.
+#
+# ⚠️ ESC declanșează ȘI `ui_cancel`, ȘI `pause` — dar e UN SINGUR eveniment, deci funcția e
+# chemată o dată și meniul se comută o dată. Pe pad, B (`ui_cancel`) rămâne „înapoi" și
+# închide meniul, iar START îl deschide și îl închide la fel ca ESC.
 func _unhandled_input(event: InputEvent) -> void:
-	if not event.is_action_pressed("ui_cancel"):
+	if not (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
 		return
 	if not _open:
 		if _blocked():
@@ -85,6 +95,17 @@ func _open_menu() -> void:
 	_open = true
 	get_tree().paused = true
 	Audio.pause_all()      # tot sunetul îngheață (muzică, ambient, efecte) — se reia de unde a rămas
+	# Motorul controllerului NU e oprit de `paused`: o vibrație de cutremur pornită cu o clipă
+	# înainte ar fi continuat să bubuie peste meniul liniștit, secunde bune.
+	Gamepad.opreste_vibratia()
+
+# Deschide meniul din AFARĂ (`gamepad.gd`, când se deconectează controllerul în mijlocul rundei).
+# Trece prin aceleași verificări ca ESC — peste Level Up sau peste ecranul de Game Over nu se
+# deschide nimic, oricine ar cere.
+func cere_pauza() -> void:
+	if _open or _blocked():
+		return
+	_open_menu()
 
 func _close_menu() -> void:
 	_settings_ui.cancel_remap()
@@ -99,7 +120,9 @@ func _build_main_page() -> void:
 	var box := _page_box(_main_page)
 	box.add_child(_title("PAUSED"))
 	box.add_child(_spacer(18))
-	box.add_child(_button("Resume", _on_resume))
+	var resume := _button("Resume", _on_resume)
+	Gamepad.primul(resume)   # pe controller, cursorul pornește de pe „Resume", nu de pe „Quit Game"
+	box.add_child(resume)
 	box.add_child(_button("Main Menu", _on_main_menu))
 	box.add_child(_button("Restart Run", _on_restart))
 	box.add_child(_button("Settings", _on_settings))

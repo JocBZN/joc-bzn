@@ -511,6 +511,11 @@ func add_shake(amount: float) -> void:
 		return
 	_shake_next = now + SHAKE_MIN_GAP
 	_trauma = min(1.0, _trauma + amount)
+	# VIBRAȚIA merge de aici, din același loc cu tremuratul camerei, nu de la fiecare lovitură în
+	# parte: așa nu poate rămâne în urma imaginii și moștenește gratis și răgazul de mai sus, care
+	# ține jocul departe de un controller care bâzâie continuu la 13 atacuri pe secundă.
+	# Motorul MIC (primul număr) = un pocnet scurt și ascuțit, potrivit unui critic.
+	Gamepad.vibreaza(amount * 0.55, amount * 0.2, 0.11)
 
 # Cutremur: tremurat SUSȚINUT `dur` secunde, care slăbește spre final. Nu e `add_shake` mai mare —
 # ăla e un vârf care se stinge imediat; ăsta reîncarcă trauma în fiecare cadru (vezi `_process`).
@@ -518,6 +523,10 @@ func start_quake(dur: float, strength: float) -> void:
 	_quake_total = max(0.01, dur)
 	_quake_left = _quake_total
 	_quake_strength = clampf(strength, 0.0, 1.0)
+	# Cutremurul e invers față de critic: motorul MARE (al doilea număr), ținut cât ține și
+	# tremuratul. Un boss care intră în faza a doua trebuie să se simtă în palme ca un bubuit
+	# lung, nu ca un țiuit — de aia motorul mic rămâne pe jumătate.
+	Gamepad.vibreaza(_quake_strength * 0.35, _quake_strength * 0.9, _quake_total)
 
 # Desenul de reglaj pentru sabie (doar cu sword_debug pornit): dreptunghiul roșu e chiar ce
 # lovește. Desenăm pe player, care e la scale 2 în main.tscn, deci împărțim tot la scara lui
@@ -607,7 +616,11 @@ var _ground: Node = null    # podeaua, ținută minte: o întrebăm în FIECARE 
 
 func _physics_process(delta: float) -> void:
 	_tick_burst(delta)
-	var directie := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	# Deadzone-ul e dat EXPLICIT (`Gamepad.DEADZONE`), nu lăsat pe cel al acțiunilor: `get_vector`
+	# îl aplică pe vectorul ÎNTREG, nu pe fiecare axă în parte, deci diagonalele nu mai sunt tăiate
+	# strâmb, iar restul cursei se întinde la loc pe 0…1 (împingi stick-ul pe jumătate → mergi pe
+	# jumătate; îl împingi tot → viteza întreagă, exact ca pe WASD).
+	var directie := Input.get_vector("move_left", "move_right", "move_up", "move_down", Gamepad.DEADZONE)
 	velocity = directie * speed
 	move_and_slide()
 	# Marginea Nether-ului / Ender-ului: te oprești pe buza gropii. NU e un zid de coliziune —
@@ -1784,6 +1797,10 @@ func _drop_god() -> void:
 func take_damage(amount: int) -> void:
 	hp -= amount
 	Audio.play("hurt", -4.5)  # player lovit
+	# Lovitura ÎNCASATĂ e singura vibrație care nu trece prin `add_shake`: ea n-are voie să fie
+	# amestecată cu tremuratul de la criticele tale. Ambele motoare deodată, scurt și tare — e
+	# felul în care un controller poate zice „ai pierdut viață" fără să se uite jucătorul la HUD.
+	Gamepad.vibreaza(0.45, 0.75, 0.18)
 	if hp <= 0:
 		hp = 0
 		die()
@@ -1791,6 +1808,9 @@ func take_damage(amount: int) -> void:
 func die() -> void:
 	if dead:
 		return
+	# Moartea: cel mai lung și mai greu bubuit din joc. Se cheamă și când intri în Limbo (mai jos
+	# se poate întoarce din drum), fiindcă și aia e o moarte — doar că una din care scapi.
+	Gamepad.vibreaza(0.35, 1.0, 0.55)
 	# Undying Spirit: prima moarte nu e finală. Te duce în Limbo (lumea alb-negru) și,
 	# dacă reziști minutul, te întoarce aici. O SINGURĂ dată pe rundă — a doua oară
 	# `undying_used` e deja true și cazi pe Game Over-ul normal de mai jos.

@@ -350,7 +350,8 @@ func _input(event: InputEvent) -> void:
 		return
 	var pressed: bool = (event is InputEventScreenTouch and event.pressed) \
 		or (event is InputEventMouseButton and event.pressed) \
-		or (event is InputEventKey and event.pressed and not event.echo)
+		or (event is InputEventKey and event.pressed and not event.echo) \
+		or (event is InputEventJoypadButton and event.pressed)   # și de pe controller
 	if pressed:
 		get_viewport().set_input_as_handled()
 		_skip_intro()
@@ -547,7 +548,9 @@ func _build_main() -> void:
 	_main_buttons = VBoxContainer.new()
 	_main_buttons.add_theme_constant_override("separation", 12)
 	_main_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	_main_buttons.add_child(_menu_button("START", _on_start, true))
+	var start_btn := _menu_button("START", _on_start, true)
+	Gamepad.primul(start_btn)   # pe controller, cursorul pornește de pe START, nu de pe rotița din colț
+	_main_buttons.add_child(start_btn)
 	_main_buttons.add_child(_menu_button("CHOOSE CHARACTER", _show.bind("character")))
 	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
 	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))

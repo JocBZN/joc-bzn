@@ -34,6 +34,7 @@ func _ready() -> void:
 	add_child(_bara_taburi())
 	_pagini["keybinds"] = _pagina_keybinds()
 	_pagini["graphics"] = _pagina_graphics()
+	_pagini["gamepad"] = _pagina_gamepad()
 	for nume in _pagini:
 		add_child(_pagini[nume])
 	_egalizeaza_paginile()
@@ -86,6 +87,84 @@ func _pagina_graphics() -> VBoxContainer:
 	v.add_child(nota)
 	return v
 
+# Pagina CONTROLLERULUI. Are o singură setare (vibrația) și, în rest, SPUNE ce face fiecare buton.
+#
+# De ce o listă scrisă, nu rânduri de remapare ca la taste: pe pad butoanele stau pe convenția
+# consolelor (A confirmă, B iese, START pune pauză), iar mersul e pe aceleași acțiuni ca WASD, deci
+# remaparea de pe pagina KEYBINDS le mută pe amândouă. Ce lipsea era altceva — un loc în care
+# jucătorul să vadă din prima că jocul CHIAR are controller și că i-a fost recunoscut al lui.
+func _pagina_gamepad() -> VBoxContainer:
+	var v := _pagina_goala()
+	# rândul de sus: ce controller e conectat (se actualizează singur — vezi `_reimprospateaza_pad`)
+	_pad_nume = _center_label("", 20)
+	v.add_child(_pad_nume)
+	v.add_child(_spacer(6))
+	v.add_child(_toggle_row("VIBRATION", GameSettings.vibration, _on_vibration))
+	v.add_child(_spacer(6))
+	v.add_child(_center_label("BUTTONS", 26))
+	v.add_child(_spacer(4))
+	for r in [
+		{"eticheta": "MOVE",     "cheie": ""},
+		{"eticheta": "INTERACT", "cheie": "interact"},
+		{"eticheta": "SELECT",   "cheie": "accept"},
+		{"eticheta": "BACK",     "cheie": "back"},
+		{"eticheta": "PAUSE",    "cheie": "pause"},
+	]:
+		var rand := _info_row(r["eticheta"], "")
+		_pad_randuri.append({"nod": rand, "cheie": r["cheie"]})
+		v.add_child(rand)
+	_reimprospateaza_pad()
+	# numele controllerului și literele de pe butoane depind de ce e băgat în priză ACUM
+	Input.joy_connection_changed.connect(func(_d, _c): _reimprospateaza_pad())
+	return v
+
+var _pad_nume: Label
+var _pad_randuri: Array = []      # {"nod": rândul, "cheie": ce buton scrie în dreapta}
+
+# Scrie numele controllerului conectat și literele potrivite pe fiecare rând (A pe Xbox, ✕ pe
+# PlayStation). Fără controller, lista rămâne pe convenția Xbox — e ce vede oricine deschide
+# pagina din curiozitate, nu un ecran gol.
+func _reimprospateaza_pad() -> void:
+	if _pad_nume == null or not is_instance_valid(_pad_nume):
+		return
+	var nume := Gamepad.nume_pad()
+	_pad_nume.text = nume if nume != "" else tr("No controller connected")
+	_pad_nume.add_theme_color_override("font_color", ACCENT_CLAR if nume != "" else Color(0.62, 0.58, 0.56))
+	for r in _pad_randuri:
+		var val: Label = r["nod"].get_child(1)
+		val.text = "Stick / D-Pad" if r["cheie"] == "" else Gamepad.nume_pad_buton(r["cheie"])
+
+# „Etichetă      valoare" — ca `_key_row`, dar valoarea e un text, nu un buton: aici nu se apasă
+# nimic. Un buton care nu face nimic ar fi fost cea mai bună cale de a-l pune pe jucător să dea
+# clic pe el de trei ori.
+func _info_row(text: String, valoare: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var l := Label.new()
+	l.text = text
+	l.custom_minimum_size = Vector2(160, 0)
+	l.add_theme_font_size_override("font_size", 22)
+	row.add_child(l)
+	var val := Label.new()
+	val.text = valoare
+	# EXACT cât butoanele de pe celelalte rânduri (160 + 180): rândurile stau în HBox-uri
+	# CENTRATE, deci unul mai lat decât restul le împinge pe toate și coloana iese strâmbă.
+	# De-aia scrie „Stick / D-Pad" și nu „Left Stick / D-Pad": diferența de lățime se vedea.
+	val.custom_minimum_size = Vector2(180, 0)
+	val.add_theme_font_size_override("font_size", 18)
+	val.add_theme_color_override("font_color", ACCENT_CLAR)
+	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(val)
+	return row
+
+# Vibrația pornită se și SIMTE pe loc, nu la următoarea lovitură încasată: un comutator care nu
+# dă niciun semn te lasă să te întrebi dacă a mers.
+func _on_vibration(on: bool) -> void:
+	GameSettings.set_vibration(on)
+	if on:
+		Gamepad.vibreaza(0.35, 0.35, 0.25)
+
 # Separația e 6, nu 12 ca la început: bara de taburi a luat din înălțime, iar din 2026-07-27
 # blocul stă și într-o ramă ornată în meniul principal, care mai ia ~114px pe verticală.
 # Pagina KEYBINDS (2 slidere + 5 taste) e cea care dictează — dacă mai adaugi un rând acolo,
@@ -101,8 +180,11 @@ func _bara_taburi() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	for nume in ["keybinds", "graphics"]:
-		var b := _buton(nume.to_upper(), 20, Vector2(200, 40))
+	# ⚠️ Taburile s-au subțiat de la 200 la 150 când a intrat al treilea (GAMEPAD, 2026-08-20):
+	# 3 × 200 + separații ar fi lățit tot blocul de Settings cu ~220px, iar blocul e încadrat de
+	# rama ornată din meniul principal — deci s-ar fi lățit și ea, pe un ecran de 1152.
+	for nume in ["keybinds", "graphics", "gamepad"]:
+		var b := _buton(nume.to_upper(), 20, Vector2(150, 40))
 		b.pressed.connect(arata_pagina.bind(nume))
 		_taburi[nume] = b
 		row.add_child(b)
@@ -122,6 +204,13 @@ func arata_pagina(nume: String) -> void:
 # Cât timp remapăm, următoarea tastă apăsată devine noua comandă (Escape = renunț).
 func _input(event: InputEvent) -> void:
 	if _remap_action == "":
+		return
+	# Pe controller nu se remapează taste (n-are ce tastă să dea), deci ORICE buton de pad apăsat
+	# cât aștept o tastă înseamnă „lasă". Fără linia asta, B ar fi ajuns la meniul de pauză de
+	# dedesubt și ți-ar fi schimbat pagina cu remaparea rămasă agățată în aer.
+	if event is InputEventJoypadButton and event.pressed:
+		get_viewport().set_input_as_handled()
+		cancel_remap()
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		get_viewport().set_input_as_handled()

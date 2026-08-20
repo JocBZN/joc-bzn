@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+Gamepad="*res://gamepad.gd"
 Difficulty="*res://difficulty.gd"
 GameSettings="*res://game_settings.gd"
 Audio="*res://audio.gd"
