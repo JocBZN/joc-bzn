@@ -23,6 +23,53 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-22 (pompierul nu se mai micșorează când merge spre nord)
+
+**Cerut de Răzvan:** „La modelu de la firefighter cand merge spre nord sprite-ul e mai mic decat celelalte directii, fa-l egal cu celelalte".
+
+**Fișiere noi:** `tool_egaleaza_directii.gd` + `.tscn`. **Atinse:** cele 6 cadre `homeless directii/Firefighter/frames/run_north_*.png`. Cod de joc: **niciun rând** — greșeala era în artă, acolo s-a și reparat.
+
+### Ce era, de fapt
+
+Cele 8 direcții vin din 8 GIF-uri desenate separat, deci fiecare poate ieși la alt zoom. Lui `south` i se întâmplase deja pe 2026-08-05 (venise pe pânză de 92×92 și fusese mărit ×1,213). `north` rămăsese cu **4,3%** mai mic:
+
+| direcție | înălțimea siluetei (media pe 6 cadre) |
+|---|---|
+| east / west | 56,33 px |
+| south | 56,17 px |
+| north_east / north_west | 55,67 px |
+| south_east / south_west | 55,17 px |
+| **north** | **53,50 px** ← ținta |
+| media celorlalte șapte | 55,79 px → factor **1,0427** |
+
+### Măsura bună e ÎNĂLȚIMEA, nu lățimea și nu aria
+
+Arbitrul a fost tot `Idle_rotations_8dir.gif`, ca la reparația lui `south`: cele 8 poze sunt desenate în ACEEAȘI imagine, deci sigur la aceeași scară. Acolo, înălțimile sunt 58…60 px — dar lățimile 24…37 și ariile 991…1395. Adică: un om are aceeași înălțime din orice unghi, însă din spate ține brațele strânse și nu i se vede pieptul, deci lățimea și aria depind de poză, nu de scară.
+
+Conta, fiindcă cele trei măsuri cer trei factori diferiți: înălțimea 1,043, lățimea 1,075, aria 1,179 (adică 1,086 liniar). Cine ar fi egalizat **aria** l-ar fi umflat de două ori mai mult decât trebuie și pompierul văzut din spate ar fi ieșit un butoi. Mărit ×1,0427, cât spune înălțimea.
+
+### Patru detalii care fac diferența între „mărit" și „mărit bine"
+
+1. **Punctul de mărire e mijlocul pânzei ȘI TALPA** (x=32, y=62), nu centrul imaginii. Mărit față de centru, tălpile ar fi coborât cu ~1,3 px de textură (2,6 pe ecran) și pompierul ar fi intrat în pământ exact când se întoarce spre nord — schimbam un bug vizibil cu altul. Verificat: talpa fiecărui cadru a rămas pe exact același rând (61, 59, 58, 60, 59, 58).
+2. **Alfa premultiplicat.** Cadrele vin din GIF, unde transparența e „da/nu", iar sub pixelii invizibili stă totuși o culoare. Orice filtru care amestecă vecini ar fi tras culoarea aia în conturul personajului — franjuri pe toată silueta. Înmulțim culoarea cu alfa înainte de mărire și împărțim la loc după.
+3. **Lucrat la 4× și decupat înapoi la 64.** Factorul nu e întreg, deci fereastra de decupaj cade între pixeli; rotunjită la pixel întreg, ar fi mutat omul cu până la o jumătate de pixel de textură (unul întreg pe ecran, la `scale = 2`). La 4× eroarea scade la o optime de pixel — se vede în centrul de greutate, care s-a mișcat cu 0,13 px, exact cât prezice rotunjirea.
+4. **Unealta își MĂSOARĂ factorul, nu-l are scris de mână.** După reparație direcția e ca celelalte, factorul iese ~1,00 (măsurat la a doua rulare: 0,9874, sub pragul de 1,5%) și nu mai face nimic. Contează, fiindcă scrie peste cadre: e aceeași regulă ca la `tool_contur_foaie.gd`, unde a doua rulare n-are voie să îngroașe conturul. Sursa adevărată rămâne GIF-ul de alături, deci oricând se poate lua totul de la capăt cu `tool_taie_gifuri.ps1`.
+
+### Verificat rulând
+
+- **Factorul chiar aplicat**, măsurat pe SUMA DE ALFA (care crește cu pătratul scării, deci nu depinde de unde cade pragul conturului): ×1,0859 pe cele 6 cadre → **1,0421 liniar**, față de 1,0427 cerut. Eroare 0,06%.
+- **În joc**, cei 8 pompieri instanțiați din `enemy_firefighter.tscn` și puși pe aceeași linie, măsurați din captură (1920×1080, deci coordonatele înmulțite cu 1,667): `north` are acum **115,8 px pe ecran**, exact ca `east`/`west` (înainte: 110). Capetele tuturor celor 8 stau între y=364,2 și y=366,0 — 1,8 px de ecran, adică săltatul alergării, nu diferență de scară. Tălpile, toate pe y=479,4, mai puțin cadrele cu piciorul ridicat.
+- `enemy.gd::_build_frames` încarcă toate 48 de cadre fără avertismentul de „lipsesc N cadre"; `main.tscn` pornește curat.
+- ⚠️ **`stop_dist = 47` rămâne neatins.** E jumătate din cea mai LATĂ poză plus jumătatea player-ului, iar `north` era cea mai îngustă (23,33 px) și a ajuns la ~24,3 — tot sub `south` (25,50), deci cea mai lată n-a devenit el.
+
+### O capcană de măsurat
+
+Prima citire „DUPĂ" a dat **56,50 px** în loc de 55,79 și părea că am sărit peste țintă cu 1,3%. Nu era așa: cadrele vechi au alfa „da/nu", iar cele mărite au margini moi, deci numărătoarea de rânduri opace ia și un rând de tranziție pe care originalele nu-l au. Am urcat pragul de alfa la **0,5** (muchia acolo unde pixelul e acoperit pe jumătate, adică acolo unde o vede ochiul) și am confirmat geometria cu suma de alfa, care nu are cum să mintă. Cifra rămâne 56,50 la numărat rânduri, dar silueta e exact cât trebuie.
+
+⚠️ **După orice rulare a uneltei: `godot --headless --path . --import`.** Altfel Godot ține minte texturile vechi și jocul arată la fel, oricât ai schimba PNG-urile.
+
+---
+
 ## Session log — 2026-08-22 (deșertul are aer fierbinte: un val de căldură, foarte slab, doar peste nisip)
 
 **Cerut de Răzvan:** „Cand intrii in desert sa ai un overlay de parca e asa un val de caldura (foarte light - sa nu se vada GRAV)".
