@@ -178,6 +178,7 @@ func open(npc: Node = null) -> void:
 	_actualizeaza()
 	get_tree().paused = true
 	Audio.pause_forest_ambient()
+	Audio.enter_menu_music("alba")   # muzica lumii lasă locul muzicii de meniu (`sky-lines`)
 	Audio.play("levelup", -4.0, 0.0)
 
 func _inchide() -> void:
@@ -190,6 +191,7 @@ func _inchide() -> void:
 	visible = false
 	get_tree().paused = false
 	Audio.resume_forest_ambient()
+	Audio.exit_menu_music("alba")   # lumea își reia melodia de unde a rămas
 
 # ⚠️ Ca să nu se deschidă meniul de pauză PESTE noi, `pause.gd::_blocked()` întreabă și de grupul
 # „alba_menu".

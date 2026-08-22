@@ -23,6 +23,72 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-22 (muzică de meniu: `sky-lines` în orice meniu din joc, și fiecare melodie ține minte unde a rămas)
+
+**Cerut de Răzvan:** „Cand intrii intr-un meniu vreau sa se opreasca ce muzica e pe fundal si sa inceapa audio-ul - sky-lines din folderul Nether Audio - vreau fiecare audio sa reinceapa de unde era ultima oara (la muzica de fundal sau de egt, alba neagra, dubiosu etc - NU meniul principal)". Întrebat care meniuri, a ales: **toate cele din joc, fără ESC**.
+
+### Ce se aude acum
+
+| meniu | ce face | de unde se cheamă |
+|---|---|---|
+| **Level Up** | muzica lumii se dă la o parte, intră `sky-lines` | `levelup.gd::_show_choices` / `_on_choice` |
+| **EGT / cazinou** | idem | `casino.gd::open` / `_inchide` |
+| **Alba-Neagra** | idem | `alba_menu.gd::open` / `_inchide` |
+| **Dubiosu (barbut)** | idem | `dubios_menu.gd::open` / `_inchide` |
+| **Trade (statuia)** | idem | `trade.gd::open` / `_inchide` |
+| **Pauză (ESC)** | **neatins**: îngheață tot sunetul pe loc (`pause_all`) | `pause.gd` |
+| **Meniul principal** | **neatins**: tema lui, mereu de la început | `menu.gd` |
+
+Două funcții noi în `audio.gd`, atât se cheamă din meniuri: `Audio.enter_menu_music("nume")` și `Audio.exit_menu_music("nume")`.
+
+### 1. Tabelul de poziții (`_pozitii`) — partea care se simte, nu se aude
+
+Fiecare melodie ține minte SECUNDA la care a fost întreruptă și pornește de acolo data viitoare. Nu e o funcție pentru meniuri: salvarea stă în cele două locuri prin care trece ORICE întrerupere — `_play_track()` (schimbare de melodie) și `stop_music()` — deci Nether-ul, pușcăria, Ender-ul și orice melodie scrisă de aici încolo o primesc pe gratis.
+
+- Pornirea de la secunda salvată se face cu `_music.play(poz)`, nu cu `seek()` după `play()`.
+- **Excepții (`FARA_MEMORIE`), pornesc mereu de la zero:** tema meniului principal (cerută anume) și **tema lui Saratalin** — are intrare de boss, iar o luptă care începe din mijlocul temei nu mai e început de luptă. O linie de scos dacă vrei altfel.
+- Melodia nu se reia dacă rămăsese sub o secundă de final (`REST_MINIM`), iar „finalul" e cel MUZICAL: coada de liniște din `MUSIC_TRIM` nu se numără.
+- **Tabelul se golește la rundă nouă și la întoarcerea în meniul principal** (`play_music()` / `play_menu_music()`) — o rundă nouă merită începutul melodiei, nu mijlocul rundei trecute.
+- `_nether_prev_pos` a dispărut: `restore_world_music()` nu mai ține el secunda, o ia din tabel. Comportamentul Nether→lume a rămas identic (verificat).
+
+### 2. De ce cu NUME și nu cu un numărător de meniuri deschise
+
+`enter_menu_music(cine)` ține un dicționar de meniuri deschise, nu un `+1`. Motivul e concret: **Level Up-ul își redeschide pagina de mai multe ori fără să se închidă între ele** (mai multe niveluri deodată, sau reroll de la Lucky Die). Un numărător ar fi urcat la 2-3 și nu s-ar mai fi întors la zero → muzica lumii ar fi rămas moartă până la runda următoare. Cu nume, zece chemări înseamnă tot un meniu. Bonus: dacă vreodată se deschide un meniu peste altul, lumea revine abia la ultimul închis.
+
+### 3. Încrucișarea scurtă (`MENIU_FADE = 0.45`)
+
+Fade-ul lumii e de 3 secunde. Un Level Up de 4 secunde s-ar fi terminat înainte ca `sky-lines` să ajungă la volum — ai fi auzit două fade-uri și nicio melodie. 0,45s e destul de scurt cât să pară instant și destul de lung cât să nu pocnească (sub ~0,2s se aude unde s-a rupt unda). `_play_track()` a primit al patrulea parametru, `fade_out`, ca stingerea celei vechi să fie la fel de scurtă — altfel melodia lumii ar fi rămas agățată 3 secunde peste muzica meniului.
+
+### 4. Volumul
+
+`MENIU_DB = -12.0`, ca la pușcărie: `sky-lines` are media la -9,4 dBFS, deci se aude la -21,4 — exact în familia celorlalte (vezi tabelul de volume din `audio.gd`). Meniul oprește jocul, deci muzica rămâne singură pe scenă; n-are nevoie de mai mult.
+
+### 5. Pușcăria — cazul care se rezolvă singur
+
+`MUSIC_MENIU` e același fișier ca `MUSIC_PRISON`, dar scris ca o constantă separată (schimbi muzica meniurilor fără să atingi pușcăria). Dacă ești în pușcărie și deschizi un meniu, `_play_track` vede că melodia cerută cântă deja și nu face nimic; la ieșire, `_meniu_prev_path` e gol, deci nu se întoarce la nimic. **Zero tăieturi, muzica curge mai departe** (verificat: 2,01s → 3,00s → 3,51s, fără reset).
+
+### Verificat rulând (Godot windowed, `test_muzica_meniu.tscn`, șters după)
+
+```
+[T] lumea: Overworld Theme.mp3 la 3.98s
+[T] meniu 1: sky-lines.ogg | volum -17.2 dB (ținta -17.2) — fade-ul merge pe pauză: DA
+[T] pozitia salvata a lumii: 3.98s
+[T] sky-lines a ajuns la 3.20s
+[T] iesire: Overworld Theme.mp3 la 4.95s   (reluat din 3.98 + 1s de cand cinta)
+[T] meniu 2: sky-lines.ogg la 4.01s        (reluat din 3.20, NU de la 0)
+[T] runda noua: Overworld Theme.mp3 la 0.99s  (adica din 0)
+[T] puscarie+meniu: sky-lines.ogg, 2.01s → 3.00s → 3.51s (fara reset)
+[T] inapoi in lume (Nether): Overworld Theme.mp3 la 3.97s (exact unde ramasese)
+```
+
+**Lucrul care trebuia neapărat verificat, nu presupus:** meniurile pun arborele pe pauză (`get_tree().paused = true`), iar încrucișarea e un `Tween` creat de `Audio`. Merge doar fiindcă `Audio` e `PROCESS_MODE_ALWAYS` — tween-ul e legat de nod, nu de arbore. Rândul „fade-ul merge pe pauză: DA" din test exact asta măsoară (volumul a ajuns la țintă cât jocul era înghețat). Dacă cineva schimbă vreodată `process_mode`-ul autoload-ului, muzica de meniu rămâne blocată la -60 dB, în tăcere.
+
+### Butoane de reglat (toate în `audio.gd`, sus)
+
+`MUSIC_MENIU` (ce melodie), `MENIU_DB` (cât de tare), `MENIU_FADE` (cât de repede se schimbă), `FARA_MEMORIE` (cine pornește mereu de la capăt), `REST_MINIM`. Un meniu se scoate ștergând perechea `enter_menu_music`/`exit_menu_music` din fișierul lui; ESC-ul se adaugă chemând aceleași două funcții din `pause.gd`.
+
+---
+
 ## Session log — 2026-08-20 (coloana sonoră rescrisă: Overworld Theme în lume, Nether Song + Saratalin Theme în Nether)
 
 **Cerut de Răzvan:** „Ti-am adaugat 2 fisiere audio in folderul Nether Audio - primul se numeste Nether Song - se aude pe fundal cand intrii in nether si dupa ce il bati pe saratalin - al doilea Saratalin Theme se aude dupa ce se spawneaza Saratalin. Ti-am mai schimbat si audio-ul din folderul First 5 Minutes - Main World - vreau sa se auda doar audio-ul de ti l-am pus acolo in folder - Overworld Theme"

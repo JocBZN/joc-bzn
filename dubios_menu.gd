@@ -282,6 +282,7 @@ func open(npc: Node = null) -> void:
 	visible = true
 	get_tree().paused = true
 	Audio.pause_forest_ambient()
+	Audio.enter_menu_music("dubios")   # muzica lumii lasă locul muzicii de meniu (`sky-lines`)
 	Audio.play("levelup", -4.0, 0.0)
 
 # Începutul unei MÂINI: masa se șterge (nicio sumă nu mai contează), butoanele se ascund și el se
@@ -333,6 +334,7 @@ func _inchide() -> void:
 	_vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	get_tree().paused = false
 	Audio.resume_forest_ambient()
+	Audio.exit_menu_music("dubios")   # lumea își reia melodia de unde a rămas
 
 # ⚠️ Ca să nu se deschidă meniul de pauză PESTE noi, `pause.gd::_blocked()` întreabă și de grupul
 # „dubios_menu".

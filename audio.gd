@@ -139,6 +139,24 @@ const MUSIC_ENDER := "res://audio/Ender Audio/Ender Theme.ogg"
 # vezi `_tine_minte_melodia()`, singurul motiv pentru care lista asta există.
 const MUSIC_DIMENSIUNI := [MUSIC_NETHER, MUSIC_SARATALIN, MUSIC_PRISON, MUSIC_ENDER]
 
+# --- Muzica meniurilor din joc ---
+# Orice meniu care oprește jocul (Level Up, EGT, Alba-Neagra, Dubiosu, masa de trade) taie muzica
+# de fundal și pune `sky-lines` cât stai în el. Meniul PRINCIPAL nu intră aici — el are tema lui
+# (`MUSIC_MENU`) și pornește mereu de la început.
+# E același fișier ca melodia pușcăriei, dar scris separat: schimbi muzica meniurilor fără să
+# atingi pușcăria (și invers). Dacă ești CHIAR în pușcărie și deschizi un meniu, nu se aude
+# nicio schimbare — cântă deja melodia cerută, iar `_play_track` nu repornește ce se aude deja.
+const MUSIC_MENIU := "res://audio/Nether Audio/sky-lines.ogg"
+# -12, ca la pușcărie: media fișierului e -9,4 dBFS, deci se aude la -21,4 — exact în familia
+# celorlalte (vezi tabelul de volume mai jos). Meniul oprește jocul, deci muzica rămâne singură
+# pe scenă; n-are nevoie să fie mai tare ca să se audă.
+const MENIU_DB := -12.0
+# Un meniu se deschide INSTANT, deci și muzica trebuie să se schimbe instant: 0,45s de
+# încrucișare, nu cele 3 secunde ale lumii. Cu `FADE` normal, un Level Up de 4 secunde s-ar fi
+# terminat înainte ca `sky-lines` să ajungă la volum — ai fi auzit două fade-uri, nicio melodie.
+# 0,45 e tot fade, nu tăietură: sub ~0,2s tranziția pocnește (se aude unde s-a rupt unda).
+const MENIU_FADE := 0.45
+
 # --- Gaura de la capătul buclei ---
 # Un fișier de muzică nu se termină fix pe ultima notă: în coadă rămâne liniște (fade-ul de la
 # export, reverbul care se stinge, tăcerea lăsată de compozitor). La o melodie care se reia la
@@ -152,6 +170,30 @@ const MUSIC_TRIM := {
 	"res://audio/First 5 Minutes - Main World/Overworld Theme.mp3": 2.2,
 	"res://audio/Nether Audio/Nether Song.mp3": 0.45,
 }
+
+# --- Unde a rămas fiecare melodie ---
+# Fiecare melodie ține minte SECUNDA la care a fost întreruptă și pornește de acolo data
+# viitoare. Asta e tot ce face muzica să pară că a cântat mai departe cât ai fost plecat: ieși
+# din meniu și lumea continuă de unde o lăsaseși, intri iar în meniu și `sky-lines` continuă de
+# unde a rămas ea, nu de la refrenul de la început pentru a cincea oară în runda asta.
+#
+# Regula de bază a coloanei sonore la un joc în care intri și ieși din ecrane tot timpul: o
+# melodie care se reia mereu din capăt spune „ai apăsat un buton"; una care continuă spune
+# „lumea a mers înainte fără tine". A doua e cea pe care nu o observi — și fix aia vrei.
+#
+# Tabelul se golește la începutul fiecărei runde și la întoarcerea în meniul principal: o rundă
+# nouă merită începutul melodiei, nu mijlocul rundei trecute.
+var _pozitii := {}          # calea melodiei -> secunda la care a rămas
+
+# Melodiile care pornesc MEREU de la zero:
+#  • tema meniului principal — cerută anume așa; e primul lucru care se aude din joc.
+#  • tema lui Saratalin — are intrare de boss. O luptă care începe din mijlocul temei nu mai e
+#    început de luptă. (Scoate-o din listă dacă vrei să țină minte și ea.)
+const FARA_MEMORIE := [MUSIC_MENU, MUSIC_SARATALIN]
+
+# Cât trebuie să mai rămână din melodie ca să aibă rost s-o reluăm de acolo. Sub o secundă, o
+# luăm de la capăt — altfel ai intra în ea fix cât să se termine și să sară în buclă.
+const REST_MINIM := 1.0
 
 const POOL_SIZE := 20       # câte "boxe" (playere) avem pregătite
 # 12 ajungeau când toate efectele erau scurte (0.2–0.4s). Sunetul de Mage Staff ține ~1.5s,
@@ -301,7 +343,7 @@ func stream_for(name: String) -> AudioStream:
 #   Overworld Theme          -2,1 dBFS          -21,0           -23,1
 #   main menu theme          -8,2               -14,0           -22,2
 #   Nether Song              -7,7               -14,0           -21,7
-#   sky-lines (pușcăria)     -9,4               -12,0           -21,4
+#   sky-lines (pușcărie+meniuri) -9,4           -12,0           -21,4
 #   Ender Theme              -3,4               -18,0           -21,4
 #   Saratalin Theme          -4,4               -15,5           -19,9
 #
@@ -315,6 +357,10 @@ func stream_for(name: String) -> AudioStream:
 # iar o urcare de 3 secunde acolo se simte ca și cum sunetul ar fi stricat. Stingerea rămâne
 # cu fade — când pleci din meniu în rundă, cele două melodii tot se încrucișează frumos.
 func play_menu_music(volume_db: float = -14.0) -> void:
+	# ai ieșit din joc: nicio melodie de rundă nu mai are ce să continue, iar meniurile rundei
+	# trecute (dacă runda s-a terminat cu unul deschis) nu mai există
+	uita_pozitiile()
+	_uita_meniurile()
 	_play_track(MUSIC_MENU, volume_db, 0.0)
 
 # Muzica din joc: alege o melodie la întâmplare din MUSIC_GAME, alta (posibil) la fiecare rundă.
@@ -325,6 +371,8 @@ func play_menu_music(volume_db: float = -14.0) -> void:
 # acoperit tot jocul; la -21 se aude fix cât se auzea melodia veche. Vezi tabelul de volume.
 func play_music(volume_db: float = -21.0) -> void:
 	_nether_prev_path = ""   # rundă nouă → uităm ce cânta înainte de un Nether vechi
+	uita_pozitiile()         # ...și de la ce secundă. O rundă nouă începe cu melodia de la început.
+	_uita_meniurile()
 	var disponibile: Array = []
 	for path in MUSIC_GAME:
 		if ResourceLoader.exists(path):
@@ -340,7 +388,8 @@ func play_music(volume_db: float = -21.0) -> void:
 # ar fi cântat mai departe cât ai fost plecat.
 var _nether_prev_path := ""
 var _nether_prev_db := 0.0
-var _nether_prev_pos := 0.0
+# Secunda NU se mai ține aici: o ține tabelul `_pozitii`, pentru toate melodiile deodată
+# (vezi „Unde a rămas fiecare melodie"). Aici rămâne doar CARE era melodia lumii.
 
 # Melodia Nether-ului. Se cheamă de DOUĂ ori pe vizită: la intrare și încă o dată după ce cade
 # Saratalin, ca să ia locul temei lui. A doua oară `_tine_minte_melodia()` nu face nimic — vezi
@@ -398,7 +447,6 @@ func _tine_minte_melodia() -> void:
 		return
 	_nether_prev_path = _music_path
 	_nether_prev_db = _music_base_db
-	_nether_prev_pos = _music.get_playback_position()
 
 func restore_world_music() -> void:
 	if _nether_prev_path == "":
@@ -406,15 +454,62 @@ func restore_world_music() -> void:
 		return
 	var path := _nether_prev_path
 	var db := _nether_prev_db
-	var poz := _nether_prev_pos
 	_nether_prev_path = ""
+	# secunda vine singură: `_play_track` pornește melodia de unde a rămas ea (`_pozitii`)
 	_play_track(path, db)
-	if _music != null and _music.playing:
-		_music.seek(poz)
+
+# --- Meniurile din joc (Level Up, EGT, Alba-Neagra, Dubiosu, trade) ---
+# Intri într-un meniu → muzica de fundal se oprește (ținând minte secunda) și intră `sky-lines`,
+# tot de unde a rămas ea data trecută. Ieși → lumea își reia melodia din același loc.
+#
+# De ce cu NUME (`cine`) și nu cu un simplu numărător de meniuri deschise:
+#  • Level Up-ul își redeschide pagina de mai multe ori la rând, fără să se închidă între ele
+#    (mai multe niveluri deodată, sau reroll de la Lucky Die). Un numărător ar fi urcat la 2-3 și
+#    nu s-ar mai fi întors niciodată la zero, iar muzica lumii ar fi rămas moartă până la
+#    următoarea rundă. Cu nume, `enter_menu_music("levelup")` de zece ori înseamnă tot un meniu.
+#  • Dacă vreodată se deschide un meniu PESTE altul, muzica lumii se întoarce abia când se
+#    închide și ultimul — nu la primul ESC.
+# Meniul de pauză (ESC) NU e aici: el îngheață tot sunetul pe loc (`pause_all`) și-l dezgheață
+# de unde a rămas. Dacă vrei și acolo `sky-lines`, se cheamă aceleași două funcții din `pause.gd`.
+var _meniuri := {}           # ce meniuri sunt deschise ACUM (nume -> true)
+var _meniu_prev_path := ""   # ce cânta înainte să deschizi primul meniu
+var _meniu_prev_db := 0.0
+
+func enter_menu_music(cine: String) -> void:
+	var primul := _meniuri.is_empty()
+	_meniuri[cine] = true
+	if not primul:
+		return   # deja suntem pe muzica de meniu
+	# punem deoparte CE cânta; DE UNDE a rămas se salvează singur, la schimbarea melodiei
+	_meniu_prev_path = ""
+	if _music != null and is_instance_valid(_music) and _music.playing and _music_path != MUSIC_MENIU:
+		_meniu_prev_path = _music_path
+		_meniu_prev_db = _music_base_db
+	_play_track(MUSIC_MENIU, MENIU_DB, MENIU_FADE, MENIU_FADE)
+
+func exit_menu_music(cine: String) -> void:
+	if not _meniuri.has(cine):
+		return   # meniul ăsta nu ținea muzica (ex. închidere de două ori)
+	_meniuri.erase(cine)
+	if not _meniuri.is_empty():
+		return   # mai e unul deschis peste → muzica de meniu rămâne
+	if _meniu_prev_path == "":
+		return   # n-avem la ce să ne întoarcem (ex. în pușcărie cânta chiar `sky-lines`)
+	var path := _meniu_prev_path
+	var db := _meniu_prev_db
+	_meniu_prev_path = ""
+	_play_track(path, db, MENIU_FADE, MENIU_FADE)
+
+# Uită meniurile deschise. Se cheamă la schimbările mari de ecran (rundă nouă, meniu principal):
+# scena veche a dispărut cu tot cu meniurile ei, deci n-are cine să mai cheme `exit_menu_music`.
+func _uita_meniurile() -> void:
+	_meniuri.clear()
+	_meniu_prev_path = ""
 
 # Oprește muzica STINGÂND-O în `secunde` (implicit FADE). `imediat = true` o taie pe loc (nu se
 # folosește în joc; e acolo pentru cazurile în care chiar vrei liniște instantă).
 func stop_music(imediat: bool = false, secunde: float = FADE) -> void:
+	_salveaza_pozitia()   # ⚠️ înainte de linia următoare: de acolo încolo nu mai știm CE cânta
 	_music_path = ""
 	_music_loop_end = 0.0   # boxa care se stinge n-are de ce să mai sară înapoi la început
 	if _music == null:
@@ -458,9 +553,39 @@ func _opreste_tween(tw: Tween) -> void:
 	if tw != null and tw.is_valid():
 		tw.kill()
 
+# Ține minte secunda la care s-a oprit melodia care cântă ACUM. Se cheamă în singurele două
+# locuri în care o melodie chiar se întrerupe: schimbarea melodiei (`_play_track`) și
+# `stop_music()`. Nu contează cine a cerut oprirea — de-aia nu există un „salvează pentru meniu"
+# separat: orice cod scris de aici încolo primește continuitatea pe gratis.
+func _salveaza_pozitia() -> void:
+	if _music == null or not is_instance_valid(_music) or not _music.playing:
+		return
+	if _music_path == "" or _music_path in FARA_MEMORIE:
+		return
+	_pozitii[_music_path] = _music.get_playback_position()
+
+# De la ce secundă pornește melodia `path`: 0 dacă n-am mai auzit-o, sau dacă rămăsese la un
+# deget de final (`REST_MINIM`). „Finalul" nu e lungimea fișierului, ci locul unde se termină
+# MUZICA — coada de liniște nu se numără (vezi `MUSIC_TRIM`).
+func _pozitia_pentru(path: String, s: AudioStream) -> float:
+	if not _pozitii.has(path):
+		return 0.0
+	var poz: float = _pozitii[path]
+	var capat := s.get_length()
+	if MUSIC_TRIM.has(path):
+		capat = maxf(capat - float(MUSIC_TRIM[path]), 1.0)
+	if poz <= 0.0 or poz >= capat - REST_MINIM:
+		return 0.0
+	return poz
+
+# Uită unde a rămas fiecare melodie (rundă nouă / meniu principal).
+func uita_pozitiile() -> void:
+	_pozitii.clear()
+
 # `fade_in` = în câte secunde urcă melodia NOUĂ de la tăcere la volumul ei. 0 = pornește direct
-# la volum (folosit de meniu). Stingerea celei vechi ține oricum FADE secunde.
-func _play_track(path: String, volume_db: float, fade_in: float = FADE) -> void:
+# la volum (folosit de meniul principal). `fade_out` = în cât se stinge cea veche; implicit tot
+# FADE, dar meniurile din joc cer o încrucișare scurtă (`MENIU_FADE`) — vezi acolo de ce.
+func _play_track(path: String, volume_db: float, fade_in: float = FADE, fade_out: float = FADE) -> void:
 	# path gol sau fișier lipsă = pur și simplu tăcere (nu crapă, nu dă erori)
 	if path == "" or not ResourceLoader.exists(path):
 		stop_music()
@@ -468,9 +593,11 @@ func _play_track(path: String, volume_db: float, fade_in: float = FADE) -> void:
 	# dacă exact melodia asta cântă deja, o lăsăm în pace (să nu repornească din capăt)
 	if _music_path == path and _music != null and _music.playing:
 		return
-	# melodia veche se stinge pe boxa ei, în paralel cu urcarea celei noi (crossfade)
+	# melodia veche se stinge pe boxa ei, în paralel cu urcarea celei noi (crossfade).
+	# Întâi ținem minte de unde s-o luăm data viitoare — după `_stinge` n-o mai avem.
 	if _music != null:
-		_stinge(_music)
+		_salveaza_pozitia()
+		_stinge(_music, fade_out)
 		_music = null
 	_music = AudioStreamPlayer.new()
 	_music.bus = "Master"
@@ -492,15 +619,18 @@ func _play_track(path: String, volume_db: float, fade_in: float = FADE) -> void:
 	if MUSIC_TRIM.has(path):
 		_music_loop_end = maxf(s.get_length() - float(MUSIC_TRIM[path]), 1.0)
 	_music.stream = s
+	# de unde o luăm: de la secunda la care rămăsese ultima oară (0 dacă e prima oară sau dacă
+	# melodia e din cele care pornesc mereu de la capăt)
+	var poz := _pozitia_pentru(path, s)
 	_opreste_tween(_tw_in)
 	if fade_in <= 0.0:
 		# fără fade: pornește direct la volumul cerut (+ reglajul din Settings)
 		_music.volume_db = _volum_muzica()
-		_music.play()
+		_music.play(poz)
 		return
 	# pornim din tăcere și urcăm în `fade_in` secunde până la volumul cerut
 	_music.volume_db = TACERE_DB
-	_music.play()
+	_music.play(poz)
 	_tw_in = create_tween()
 	_tw_in.tween_property(_music, "volume_db", _volum_muzica(), fade_in)
 

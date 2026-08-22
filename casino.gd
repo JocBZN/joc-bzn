@@ -354,6 +354,7 @@ func open() -> void:
 	_arata_pagina("intro")
 	get_tree().paused = true
 	Audio.pause_forest_ambient()   # ambientul se oprește cât joci; se reia de unde a rămas
+	Audio.enter_menu_music("casino")   # muzica lumii lasă locul muzicii de meniu (`sky-lines`)
 	Audio.play("levelup", -4.0, 0.0)
 
 func _inchide() -> void:
@@ -362,6 +363,7 @@ func _inchide() -> void:
 	visible = false
 	get_tree().paused = false
 	Audio.resume_forest_ambient()
+	Audio.exit_menu_music("casino")   # lumea își reia melodia de unde a rămas
 
 # ESC: de la masă înapoi la meniu, din meniu afară din cazinou.
 # ⚠️ Ca să nu se deschidă meniul de pauză PESTE cazinou, `pause.gd::_blocked()` întreabă și de noi.

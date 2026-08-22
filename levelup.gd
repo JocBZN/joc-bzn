@@ -738,6 +738,10 @@ func _show_choices(exclude: Array = []) -> void:
 	visible = true
 	get_tree().paused = true
 	Audio.pause_forest_ambient()   # ambientul se oprește cât alegi; se reia de unde era la închidere
+	# muzica lumii se dă la o parte pentru muzica de meniu (`sky-lines`), amândouă de unde au
+	# rămas. Se poate chema de mai multe ori la rând (mai multe niveluri, reroll) — numele face
+	# ca a doua chemare să nu însemne „încă un meniu deschis". Vezi `audio.gd`.
+	Audio.enter_menu_music("levelup")
 
 func _on_choice(index: int) -> void:
 	var p = get_tree().get_first_node_in_group("player")
@@ -760,6 +764,7 @@ func _on_choice(index: int) -> void:
 		visible = false
 		get_tree().paused = false
 		Audio.resume_forest_ambient()   # gata alegerea → ambientul continuă de unde a rămas
+		Audio.exit_menu_music("levelup")   # ...și muzica lumii, tot de unde a rămas ea
 
 # Efectele reale, tematice pe substanță. Modifică numerele cum vrei.
 #
