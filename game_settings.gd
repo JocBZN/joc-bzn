@@ -24,14 +24,18 @@ var music_volume: float = 0.7
 var sfx_volume: float = 1.0
 
 # --- grafică (pagina GRAPHICS din Settings) ---
-# Toate patru se salvează și se aplică la pornire (`aplica_grafica`).
-# `vignette` și `glow` le desenează `atmosphere.gd`, care e doar ÎN JOC — de aia, când le
-# schimbi din meniul principal, se aplică abia când începi runda. Din meniul de pauză se
+# Toate cinci se salvează și se aplică la pornire (`aplica_grafica`).
+# `vignette`, `glow` și `heat_haze` le desenează `atmosphere.gd`, care e doar ÎN JOC — de aia,
+# când le schimbi din meniul principal, se aplică abia când începi runda. Din meniul de pauză se
 # văd imediat, fiindcă atunci nodul Atmosphere există.
 var fullscreen: bool = false
 var vsync: bool = true
 var vignette: bool = true   # marginile întunecate care duc ochiul spre centru
 var glow: bool = true       # bloom-ul subtil de pe zonele luminoase
+# Aerul care tremură deasupra nisipului, în deșert. Are comutator propriu fiindcă e singurul efect
+# din joc care MIȘCĂ imaginea: e foarte slab (vreo doi pixeli), dar orice unduire de ecran deranjează
+# pe cine se simte rău de la mișcare — și, la fel de important, moaie o idee pixelii cât ține.
+var heat_haze: bool = true
 
 # --- limba (butonul cu steag din meniul principal) ---
 # Codurile sunt cele din `i18n.gd`: „en", „zh", „de", „es", „ru", „fr", „ja", „pl", „tr".
@@ -168,6 +172,12 @@ func set_glow(on: bool) -> void:
 	_refresh_atmosfera()
 	_save()
 
+# Fără `_refresh_atmosfera()`: `atmosphere.gd` citește setarea asta în fiecare cadru și coboară lin
+# spre zero când o stingi (vezi `_update_heat`) — deci se vede pe loc, dar fără să se taie brusc.
+func set_heat_haze(on: bool) -> void:
+	heat_haze = on
+	_save()
+
 # --- controller ---
 # Stinge/aprinde vibrația. Oprită, oprim și ce vibrează CHIAR ACUM: altfel, dacă o stingi în
 # mijlocul unui cutremur de boss (din meniul de pauză, care nu oprește vibrația motorului),
@@ -282,6 +292,7 @@ func _save() -> void:
 			"scores": scores, "coins": coins, "upgrades": upgrades,
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "keybinds": keybinds,
 			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
+			"heat_haze": heat_haze,
 			"language": language, "op_start": op_start, "vibration": vibration,
 		})
 
@@ -304,6 +315,8 @@ func _load() -> void:
 		vsync = bool(data.get("vsync", vsync))
 		vignette = bool(data.get("vignette", vignette))
 		glow = bool(data.get("glow", glow))
+		# salvare mai veche (dinainte de 2026-08-22) n-are cheia → rămâne pornit, ca la o instalare nouă
+		heat_haze = bool(data.get("heat_haze", heat_haze))
 		language = String(data.get("language", language))
 		op_start = bool(data.get("op_start", op_start))
 		vibration = bool(data.get("vibration", vibration))

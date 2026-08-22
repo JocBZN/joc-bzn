@@ -5,6 +5,7 @@ extends Node
 #   • PointLight2D    → o baltă de lumină care urmărește player-ul
 #   • Vignette        → margini întunecate care duc ochiul spre centru
 #   • WorldEnvironment→ un glow subtil (bloom) pe zonele luminoase
+#   • Heat haze      → aerul care tremură deasupra nisipului, în deșert (vezi secțiunea de la final)
 # Selectează nodul Atmosphere în editor ca să reglezi valorile de mai jos din Inspector.
 
 @export var night_color := Color(0.30, 0.30, 0.48)  # cât de întuneric + ce tentă (mai mic = mai negru)
@@ -41,6 +42,18 @@ const DIM_TINT := {
 }
 const DIM_FADE := 0.8         # în câte secunde intră/iese atmosfera (fulgerul de teleportare ține 0.45)
 
+# --- valul de căldură din deșert ---
+# Aici stă doar CÂND se vede efectul. Cât de tare unduie, cât de mari și cât de iuți sunt valurile
+# de aer — toate stau în `desert_heat.gdshader`, ca la Nether/Ender: un singur loc de reglat, și
+# ăla e cel în care le și vezi lucrând.
+const HEAT_SHADER := "res://desert_heat.gdshader"
+const HEAT_CHUNK_PX := 512.0  # mărimea unui chunk — TREBUIE să fie ca `chunk_size` din ground.gd
+# Cât de repede urmărește efectul solul de sub tine (mai mic = mai lent). E aceeași cifră ca
+# `AMBIENT_FADE` din `audio.gd`, dinadins: sunetul pădurii se stinge și căldura se ridică în
+# același ritm, deci deșertul „vine peste tine" cu o singură mișcare, nu cu două.
+const HEAT_FADE := 1.5
+const HEAT_MIN := 0.02        # sub atât îl considerăm stins de tot (vezi `_update_heat`)
+
 var _light: PointLight2D
 var _player: Node2D
 var _vignette: TextureRect    # stratul de margini întunecate (se poate stinge din Settings → GRAPHICS)
@@ -50,6 +63,9 @@ var _dim_rect: ColorRect
 var _dim_mat: ShaderMaterial
 var _dim_kind := ""           # "", "nether" sau "ender"
 var _dim_tween: Tween
+var _heat_rect: ColorRect
+var _heat_mat: ShaderMaterial
+var _heat_level := 0.0        # 0..1, cât de aprins e valul de căldură ACUM (urcă/coboară lin)
 
 func _ready() -> void:
 	add_to_group("atmosphere")   # ca `game_settings.gd` să ne găsească la schimbarea setărilor
@@ -60,17 +76,23 @@ func _ready() -> void:
 	_setup_vignette()
 	_setup_glow()
 	_setup_dimension()
+	_setup_heat()
 	apply_settings()
 
 # Aprinde/stinge vignette-ul și glow-ul după pagina GRAPHICS. Chemată la pornire și de fiecare
 # dată când jucătorul bifează ceva acolo (din meniul de pauză se vede pe loc).
+#
+# NOTĂ: valul de căldură NU e aici. El citește setarea în fiecare cadru (`_update_heat`), fiindcă
+# oricum are nevoie de o valoare pe cadru — și așa nu poate rămâne aprins dacă cineva schimbă
+# `GameSettings.heat_haze` fără să ne mai anunțe. În plus, stingerea lui e o coborâre lină spre 0,
+# nu un `visible = false`: dacă-l stingi din meniul de pauză, aerul se liniștește, nu se taie.
 func apply_settings() -> void:
 	if _vignette != null:
 		_vignette.visible = GameSettings.vignette
 	if _env != null:
 		_env.glow_enabled = GameSettings.glow
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	# lumina urmărește player-ul
 	if _player == null or not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player") as Node2D
@@ -83,6 +105,7 @@ func _process(_delta: float) -> void:
 	# oricum e inofensiv (Godot o ține deoparte până apare un shader care o cere).
 	if _dim_kind != "" and _dim_mat != null:
 		_dim_mat.set_shader_parameter("world_offset", -get_viewport().get_canvas_transform().origin)
+	_update_heat(delta)
 
 func _setup_night() -> void:
 	var cm := CanvasModulate.new()
@@ -180,6 +203,77 @@ func set_dimension(kind: String) -> void:
 func _hide_dimension() -> void:
 	if _dim_kind == "":
 		_dim_rect.visible = false
+
+# ---------- valul de căldură din deșert ----------
+# Aerul de deasupra nisipului tremură. Efectul nu desenează nimic nou: ia ecranul deja desenat și
+# îl re-așază cu vreo doi pixeli, în valuri care urcă — vezi `desert_heat.gdshader`.
+#
+# ⚠️ STRATUL 0, adică SUB HUD (HUD-ul e un CanvasLayer fără `layer` scris, deci 1). E singurul
+# lucru din fișierul ăsta care stă atât de jos, și dinadins: shaderul CITEȘTE ecranul de sub el,
+# așa că tot ce se desenează înainte intră în unduire. Pus mai sus (ca stratul dimensiunilor, 2),
+# ar fi tremurat și bara de viață, și XP-ul, și cronometrul — un HUD care se mișcă nu se citește
+# ca aer fierbinte, ci ca un bug de randare. Un CanvasLayer cu `layer = 0` se desenează totuși
+# PESTE lume (lumea e canvas-ul obișnuit al viewport-ului, iar straturile cu același număr se
+# așază în ordinea în care au intrat în arbore, ăsta fiind făcut la runtime, deci ultimul).
+# Verificat pe captură: cu efectul aprins, pixelii HUD-ului ies neatinși, iar cei ai lumii nu.
+func _setup_heat() -> void:
+	var shader := load(HEAT_SHADER) as Shader
+	if shader == null:
+		push_warning("Atmosphere: lipsește shaderul de căldură")
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 0
+	add_child(layer)
+	_heat_mat = ShaderMaterial.new()
+	_heat_mat.shader = shader
+	_heat_mat.set_shader_parameter("amount", 0.0)
+	_heat_rect = ColorRect.new()
+	_heat_rect.material = _heat_mat
+	_heat_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_heat_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_heat_rect.visible = false
+	layer.add_child(_heat_rect)
+
+# Ținta NU e „ești în deșert, da/nu", ci cât de deșert e solul de sub tine — exact valoarea cu care
+# `biome.gdshader` amestecă iarba cu nisipul (`desertness_at_chunk`) și exact valoarea după care
+# `audio.gd` stinge ambientul de pădure. Așa efectul crește cât treci prin fâșia de tranziție, în
+# loc să pocnească pe o graniță invizibilă: când ultimul fir de iarbă a dispărut, aerul deja fierbe.
+#
+# `d * d` fiindcă unduirea se vede mai devreme decât se aude tăcerea pădurii: liniar, marginea
+# deșertului tremura deja destul cât să se observe. Pătratul lasă tranziția aproape curată și
+# păstrează efectul pentru nisipul plin.
+func _update_heat(delta: float) -> void:
+	if _heat_rect == null:
+		return
+	var target := 0.0
+	# ⚠️ În Nether / Ender / Pușcărie podeaua NU mai e nisip (`ground.gd` schimbă amândouă texturile),
+	# dar coordonatele din lume rămân aceleași — deci `desertness_at_chunk` ar putea foarte bine să
+	# spună „deșert" în mijlocul iadului, dacă portalul s-a nimerit peste un petic. De aia întrebăm
+	# întâi în ce dimensiune suntem, nu doar unde.
+	if _dim_kind == "" and GameSettings.heat_haze and _player != null and is_instance_valid(_player):
+		var d: float = clampf(BiomeMap.desertness_at_chunk(_player.global_position / HEAT_CHUNK_PX), 0.0, 1.0)
+		target = d * d
+	_heat_level = lerpf(_heat_level, target, clampf(delta * HEAT_FADE, 0.0, 1.0))
+	# ⚠️ Coada unei stingeri exponențiale nu ajunge NICIODATĂ la zero singură: la 0,02 unduirea e de
+	# patru sutimi de pixel (invizibilă), dar stratul ar rămâne aprins pe veci. De aia îl tăiem.
+	# Nu e cosmetică: cât ColorRect-ul e vizibil, Godot copiază tot ecranul în fiecare cadru ca
+	# shaderul să-l poată citi. Ascuns, iarba nu plătește nimic pentru un efect de deșert.
+	if target <= 0.0 and _heat_level < HEAT_MIN:
+		_heat_level = 0.0
+	var vizibil := _heat_level > 0.0
+	if _heat_rect.visible != vizibil:
+		_heat_rect.visible = vizibil
+	if not vizibil:
+		return
+	_heat_mat.set_shader_parameter("amount", _heat_level)
+	# Ancorarea de sol, ca la stelele Ender-ului (vezi `_process`): fără ea, valurile de aer ar
+	# călători cu ecranul și ar arăta ca o pată pe obiectiv, nu ca aer care stă deasupra nisipului.
+	var ct := get_viewport().get_canvas_transform()
+	_heat_mat.set_shader_parameter("world_offset", -ct.origin)
+	# Câți pixeli de ecran face un pixel de lume (zoom-ul camerei × întinderea ferestrei). Shaderul
+	# își măsoară tot cu el, ca unduirea să fie la fel de mare față de joc pe orice ecran — altfel,
+	# pe 4K, aerul ar tremura de patru ori mai mărunt decât pe laptopul pe care a fost reglat.
+	_heat_mat.set_shader_parameter("px_scale", maxf(ct.get_scale().y, 0.01))
 
 func _setup_glow() -> void:
 	var env := Environment.new()

@@ -23,6 +23,46 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-22 (deșertul are aer fierbinte: un val de căldură, foarte slab, doar peste nisip)
+
+**Cerut de Răzvan:** „Cand intrii in desert sa ai un overlay de parca e asa un val de caldura (foarte light - sa nu se vada GRAV)".
+
+Fișiere: **`desert_heat.gdshader`** (nou) + secțiunea „valul de căldură din deșert" din **`atmosphere.gd`**; comutator în Settings → GRAPHICS (`game_settings.gd`, `settings_ui.gd`, `i18n.gd`).
+
+Shaderul nu desenează nimic nou: **citește ecranul deja desenat** (`hint_screen_texture`, ca `limbo_bw.gdshader`) și îl re-așază cu ~1,3 pixeli de artă, în valuri care urcă. Peste asta, un suflu cald de 4,5% — atât. Căldura n-are culoare; se vede doar prin ce strâmbă. O perdea portocalie ar fi fost „filtru", nu aer.
+
+### Cele cinci decizii care contează
+
+1. **Nu e „ești în deșert, da/nu".** Ținta efectului e `BiomeMap.desertness_at_chunk(...)` — exact valoarea cu care `biome.gdshader` amestecă iarba cu nisipul și exact aia după care `audio.gd` stinge ambientul de pădure. Deci aerul începe să tremure în timp ce mai calci pe iarbă și e în toi când a dispărut ultimul fir; nu pocnește pe o graniță invizibilă. Ridicată la pătrat (`d * d`), fiindcă unduirea se vede mai devreme decât se aude tăcerea pădurii — liniar, marginea deșertului tremura deja prea tare. Peste ea, aceeași urmărire lină ca la ambient (`HEAT_FADE = 1.5`, ca `AMBIENT_FADE`), ca să nu apară dintr-o bucată când te teleportezi.
+2. **Stratul e `layer = 0`, adică SUB HUD** (HUD-ul e un CanvasLayer fără `layer` scris, deci 1). Singurul lucru din `atmosphere.gd` care stă atât de jos, și dinadins: shaderul unduie tot ce s-a desenat înaintea lui, iar dacă l-aș fi pus ca stratul dimensiunilor (2), ar fi tremurat și bara de viață, și XP-ul, și cronometrul. Un HUD care se mișcă nu se citește ca atmosferă, ci ca bug de randare. Un CanvasLayer cu `layer = 0` se desenează totuși PESTE lume (straturile cu același număr se așază în ordinea intrării în arbore, iar ăsta e făcut la runtime, deci ultimul).
+3. **Ancorat de sol, nu de ecran** (`world_offset`, aceeași uniformă ca la stelele din Ender). Fără ea, valurile de aer ar călători cu tine și ar arăta ca o pată pe obiectiv. Cu ea, fiecare val stă deasupra peticului lui de nisip și îi treci pe lângă.
+4. **Sinusuri, nu zgomot** — și asta a fost o măsurătoare, nu o preferință. Prima versiune avea trei straturi de value noise, ca scânteile din Nether. Pe RTX 3050 Ti, la 1920×1080: **6,40 ms/cadru** fără efect, **6,96 ms** cu shaderul gol (adică atât costă copierea ecranului) și **8,03 ms** cu zgomotul. Două treimi din preț se duceau pe hash-uri, pentru un tremur de un pixel și ceva pe care nimeni nu-l vede în detaliu — pe un renderer „Mobile", pe telefon, ar fi fost mult mai rău. Trei sinusuri cu frecvențe care nu se împart una la alta (6,1 / 11,3 / 4,7), unul în contra celorlalte și unul îndoit de primul (domain warp), dau același tremur: **6,98 ms**, adică zero peste copia de ecran.
+5. **Toate cifrele sunt în pixeli de LUME, nu de ecran** (`px_scale` = zoom-ul camerei × întinderea ferestrei, scris din `atmosphere.gd`). Altfel același reglaj ar fi însemnat alt efect la fiecare jucător: pe 4K, aerul ar fi tremurat de patru ori mai mărunt decât pe laptopul pe care a fost reglat.
+
+### Verificat rulând (nu „arată bine în editor")
+
+Scenă de test care instanțiază `main.tscn`, teleportează player-ul în mijlocul deșertului de la (1536, 1536), lasă efectul să urce, apoi **pune jocul pe pauză** (lumea îngheață, dar `TIME` din shader curge) și compară capturi pixel cu pixel:
+
+| ce | rezultat |
+|---|---|
+| bara de viață, cu efect vs fără | 18 din 19188 pixeli, max 5/255 (doar marginile antialiasate) |
+| aceeași bară, cu unduirea dată la **40 px** | 23 din 19188, max 7/255 → **HUD-ul e neatins chiar și la extrem** |
+| lumea (player + dubiosu), cu efect vs fără | 139340 din 166500 pixeli, max 121/255 |
+| imaginea diferenței (×8) | lumea unduită, iar HUD-ul — bară, cronometru, KILLS, bara de XP — **siluete negre**, adică nemișcate |
+| în Nether, peste același deșert | `level = 0.0`, strat ascuns |
+| cu HEAT HAZE stins din Settings | `level = 0.0`, strat ascuns |
+| cost | 6,98 ms/cadru cu efect vs 6,31 fără (1920×1080) |
+
+### Capcane pe care le-am prins
+
+- **`desertness_at_chunk` merge după coordonate, iar dimensiunile nu mută player-ul din lume.** Dacă portalul spre Nether se nimerește peste un petic de deșert, aerul ar fi fiert în mijlocul iadului — unde podeaua nici măcar nu mai e nisip (`ground.gd` schimbă amândouă texturile). De aia `_update_heat` întreabă întâi `_dim_kind == ""` și abia apoi unde ești.
+- **Coada unei stingeri exponențiale nu ajunge niciodată la zero.** La 0,02 unduirea e de patru sutimi de pixel (invizibilă), dar stratul ar fi rămas aprins pe veci — iar cât e vizibil, Godot copiază tot ecranul în fiecare cadru. Sub `HEAT_MIN` îl tăiem la 0 și îl ascundem: pe iarbă efectul nu costă absolut nimic.
+- **Prima măsurătoare a HUD-ului a ieșit „stricată" degeaba:** dreptunghiul barei de viață e scris în coordonate de proiect (1152×648), dar captura e la rezoluția reală a ferestrei (1920×1080). Proba pica lângă bară, în lume. Orice test care compară zone de ecran trebuie să înmulțească cu `latime_captura / 1152`.
+
+### Reglaje
+
+Toate stau în `desert_heat.gdshader` (ca la Nether/Ender: se reglează acolo unde se și văd): `wobble_px` (1,3 — cât se mișcă imaginea la vârf), `cell_px` (84 — cât de mari sunt valurile), `rise_px` (30 — cât de repede urcă), `depth_min` (0,55 — cât de tare unduie josul ecranului față de sus; sus e „mai departe", ca zarea care fierbe pe șosea), `tint` (0,045 — suflul cald). În `atmosphere.gd` stă doar CÂND se vede. Jucătorul îl poate stinge din **Settings → GRAPHICS → HEAT HAZE** (tradus în toate cele 9 limbi): e singurul efect din joc care mișcă imaginea, deci singurul care are nevoie de un „off" din motive de confort.
+
 ## Session log — 2026-08-22 (muzică de meniu: `sky-lines` în meniurile din joc, și fiecare melodie ține minte unde a rămas)
 
 **Cerut de Răzvan:** „Cand intrii intr-un meniu vreau sa se opreasca ce muzica e pe fundal si sa inceapa audio-ul - sky-lines din folderul Nether Audio - vreau fiecare audio sa reinceapa de unde era ultima oara (la muzica de fundal sau de egt, alba neagra, dubiosu etc - NU meniul principal)". Întrebat care meniuri, a ales întâi „toate cele din joc, fără ESC", apoi, după ce a văzut cum sună: **„Fara meniul de level up"**. Deci meniurile la care te duci tu (EGT, Alba-Neagra, dubiosu, trade) schimbă muzica; Level Up-ul, care apare des și ține puțin, nu.
