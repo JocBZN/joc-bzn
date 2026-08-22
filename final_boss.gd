@@ -29,6 +29,16 @@ extends CharacterBody2D
 #   • FAZA 3 (sub 40%)    — + TĂIETURA (`castle_taietura.gd`) ȘI devine mai iute. Semiluna zboară
 #     spre tine; în faza 3 sunt TREI, în evantai, deci nu mai e destul să te dai un pas la stânga.
 #
+# 🔑 CELE TREI ATACURI SUNT COMPUSE, NU MĂRITE (2026-08-22, seara). Răzvan: „atacurile să rămână
+# același size, își pierd din calitate dacă le mărești — fă-le mai complicate în loc de mai mari".
+# Suprafețele au rămas exact cât erau (unda 380, lovitura 130, evantaiul tăieturii), dar niciun
+# desen nu mai e întins peste mărimea lui: unda se face din evantaie de resturi născute pe front
+# cât se lărgește, lovitura din cinci bucăți care cad pe rând în același cerc, iar tăietura din
+# trei semiluni răsucite în arc, cu dâră în urmă. De ce anume, scrie în fiecare fișier.
+# ⚠️ `taietura_unghi` a crescut 0,30 → 0,42 fix din cauza asta: lama compusă e mai lată de-a latul
+# (±68 px față de ±46), deci la unghiul vechi cele trei semiluni se lipeau într-un zid prin care
+# nu mai aveai pe unde trece. La 0,42 evantaiul se închide la aceeași distanță ca înainte (~310 px).
+#
 # Pragurile sunt PROCENTE din viață, ca la Celesto și Saratalin: așa înseamnă același lucru la
 # orice rundă, indiferent de build.
 
@@ -64,6 +74,10 @@ const TAIETURA := preload("res://castle_taietura.gd")
 # avea inelul de piatră. La 520 ar fi trebuit mărit de 11 ori și ieșea o pată. 380 e cât se poate
 # duce fără să se vadă că e o poză mică întinsă — iar el te presează oricum, e melee.
 @export var inel_raza: float = 380.0
+# 🔑 Din 2026-08-22 (seara) unda NU mai e o poză întinsă, ci se compune din bucăți născute pe
+# front (`prison_inel.gd`), deci s-ar putea duce oricât fără să se strice. Rămâne tot 380 fiindcă
+# Răzvan a cerut ca atacurile să rămână la aceeași mărime — ce s-a schimbat e din CE sunt făcute,
+# nu cât sunt de mari.
 
 # --- atacul 2: lovitura care cade (din faza 2) ---
 @export var lovitura_interval: float = 5.5
@@ -75,7 +89,7 @@ const TAIETURA := preload("res://castle_taietura.gd")
 @export var taietura_damage: int = 55
 @export var taietura_viteza: float = 430.0
 @export var taietura_cate: int = 3        # evantaiul din faza 3
-@export var taietura_unghi: float = 0.30  # cât de larg e evantaiul, în radiani, între semiluni
+@export var taietura_unghi: float = 0.42  # cât de larg e evantaiul, în radiani, între semiluni
 
 # --- fazele ---
 @export var faza2_prag: float = 0.70
@@ -193,6 +207,10 @@ func unda_de_spectacol(raza: float) -> void:
 	n.damage = 0
 	n.fara_damage = true
 	n.raza_max = raza
+	# ⚠️ Mai IUTE decât unda din luptă (0,85). Unda nouă se naște bucată cu bucată pe front, deci
+	# în prima zecime de secundă e încă strânsă sub el — iar aici camera pleacă înapoi la player la
+	# vreo patru zecimi după lovitura de sabie. La 0,62 apucă să se deschidă cât e încă în cadru.
+	n.durata = 0.62
 	# ⚠️ ALWAYS: cinematica ține jocul pe pauză, iar un inel pauzabil ar rămâne agățat pe ecran,
 	# la mărimea de start, până se termină filmulețul.
 	n.process_mode = Node.PROCESS_MODE_ALWAYS

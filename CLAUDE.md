@@ -23,6 +23,46 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-22, seara (atacurile lui SIR JOHN: COMPUSE, nu mărite)
+
+**Cerut de Răzvan:** „Attack-urile vreau sa ramana acelasi size pentru ca isi pierd din calitate, nu le mari, in schimb gandeste-te sa le faci mai complicate in loc de mai mari."
+
+**Atinse:** `prison_inel.gd`, `prison_bolovan.gd`, `castle_taietura.gd` (toate trei rescrise), `final_boss.gd` (`taietura_unghi`, `unda_de_spectacol`, comentarii), `tool_taie_atacuri.gd` (două rețete noi). **Artă nouă:** `harta/castle/boss/atac_stropi/` (celula 0,6 din atlas, rotită de două sferturi ca să sară spre EST) și `atac_crapatura/` (celula 2,3). Tot din același `Attacks.gif` — n-a mai fost nevoie de nimic din afară.
+
+### Regula
+Suprafețele au rămas **exact** cât erau: unda 380, lovitura 130, evantaiul tăieturii. Și regulile de damage, la fel. S-a schimbat **din ce sunt făcute**. Cifrele vechi spun de ce conta: unda era o poză de 96 px mărită de **7,9 ori**, lovitura de 2,8, tăietura de 1,7. Acum cea mai mare scară de oriunde e **2,4**, adică SUB cât e mărit boss-ul însuși (2,9) — pixelul efectului e din nou pixelul lumii. Consecința directă: **`TEXTURE_FILTER_LINEAR` a dispărut din `prison_inel.gd`**. Exista doar ca să ascundă blocurile de la ×8 și era singurul loc din joc care nu folosea NEAREST.
+
+### 1. Unda: se EMITE, nu se mărește
+La fiecare 52 px parcurși de front se naște un rând nou de evantaie **chiar pe front**, `TAU × r / 245` bucăți — deci un inel de două ori mai larg are de două ori mai multe piese, la aceeași mărime. Fiecare își trăiește viața ei de 0,26 s (ghem → fire → moare) și mai fuge 34 px în afară, deci frontul e mereu proaspăt iar înăuntru rămâne o dâră care se stinge. În mijloc, **pecetea** (2,4×, 0,4 s, nu crește) și în urmă **crăpăturile** (1,1×, 34% alfa) — urma, nu efectul.
+
+⚠️ **Două încercări greșite înainte, amândouă prinse pe captură, nu din cap:**
+1. Cadrul fiecărei bucăți luat din vârsta UNDEI, nu a bucății → la 0,45 s tot inelul era pe ultimul cadru deodată, adică o dantelă de firicele. Un efect care se destramă tot în același timp nu e un front, e o poză.
+2. Îndesate la 245 → 190 px și cu alfa 0,75–1,0 → **un covrig alb, plin**, cu mai multă lumină decât tot ecranul.
+
+### 2. Lovitura: cinci impacturi, nu unul
+Patru cioburi împrăștiate prin ACELAȘI cerc de 130, care ating pământul pe rând, apoi cea mare, în mijloc, **ultima** — ea dă damage-ul. ⚠️ Cercul de avertizare se strânge acum până la aterizarea celei MARI, nu până la primul ciob: un telegraf care se termină înaintea loviturii minte. Cioburile folosesc aceeași probă de sunet la −14 dB cu **0,14 variație de ton** — cinci lovituri identice la rând sună a mitralieră cu un singur glonț.
+
+### 3. Tăietura: trei semiluni care se leagă în arc
+Așezate la 40 px una de alta, de-a latul zborului, și **răsucite cu 0,28 rad fiecare**, ca să se lege într-un arc mare: un tăiș de trei ori mai lat, făcut din trei desene nemărite. În urmă, trei umbre ale formației întregi. ⚠️ La 0,28 se leagă; la 0,09 (prima încercare) se încolăceau una în alta și ieșea un ghem, nu un tăiș.
+
+Hitbox-ul a rămas măsurat din artă și a devenit **capsulă**: distanța până la SEGMENTUL tăișului (±68 px), nu până la un punct. De aia a crescut și `taietura_unghi` **0,30 → 0,42**: cu lama lată de ±68 (față de ±46), la unghiul vechi cele trei se lipeau într-un zid fără loc de trecut. La 0,42 evantaiul se închide la aceeași distanță ca înainte (~310 px), deci dificultatea n-a mișcat.
+
+### 4. Cum se desenează
+Toate trei cu **`_draw` + `draw_set_transform`**, nu cu noduri: un nod pe bucată ar însemna vreo 60 născute și omorâte la fiecare undă, la fiecare 4 secunde, toată lupta. ⚠️ Lovitura are nevoie să fie și SUB lume (cercul de pe jos, z −1) și PESTE ea (ce cade din cer, z 61) — un singur `_draw` n-are cum. Soluția: **un singur nod copil** cu `z_as_relative = false`, căruia îi conectez semnalul `draw`. Un nod în plus, nu douăzeci.
+
+### 5. Cinematica
+`unda_de_spectacol()` primește acum `durata = 0.62` (în luptă rămâne 0,85). Unda nouă se deschide bucată cu bucată, iar camera pleacă înapoi la player cam la patru zecimi după ce înfige sabia — la 0,85 apucai să o vezi pornind și atât.
+
+### 6. Verificat rulând (trei scene de test, toate șterse după)
+1. atacurile singure pe lespezile castelului, la zoom-ul real 0,70;
+2. **lupta adevărată**: `main.tscn`, Sir John forțat în faza 3, ceilalți inamici goliți și cronometrul de tras al player-ului parcat (altfel omoară valul și sare ecranul de Level Up peste captură — pățit la sesiunea trecută);
+3. **cinematica de intrare**, intrată printr-o poartă adevărată (`portal_ender.tscn` cu `prison = true`, apoi `pris.enter(player, poarta)`).
+Nicio eroare în vreuna. Efectele s-au măsurat pe captură decupată, nu din ochi.
+
+⚠️ **La commit am pus la index DOAR fișierele mele.** Arborele de lucru al lui Răzvan are, de dinainte, o grămadă de alte schimbări nelegate (`.tscn`-uri reformatate de editor, PNG-uri de meniu, ștergeri în `debugging/` și `harta/Portal Ender/`). Un `git add -A` le-ar fi înghițit pe toate într-un commit care zice că e despre atacuri.
+
+---
+
 ## Session log — 2026-08-22 (castelul și SIR JOHN: cavalerul intră cu cinematică, cu trei atacuri noi și nouă sunete)
 
 **Cerut de Răzvan:** „In folderul harta am redenumit folderul prison -> castle - si am sters ce era inainte in folderul boss si am bagat caracterul nou si un tileset nou. Vreau sa ii faci un intro ca la Celesto fara statuie de spawn (am sters-o). Si ti-am mai pus si un GIF -> Attacks - vreau sa te gandesti bine ce merge luat de acolo si sa il adaugi la boss (Sir John) - vreau sa te folosesti si de Soundpack si sa iei de acolo ce iti trebuie gandit perfect."

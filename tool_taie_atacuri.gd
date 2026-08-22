@@ -52,6 +52,18 @@ const RETETE := [
 	# burta arcului e la stânga, iar un proiectil trebuie să zboare cu burta ÎNAINTE (0 rad = est,
 	# ca la toate celelalte). Neoglindită, tăietura ar fi arătat ca și cum zboară cu spatele.
 	{"nume": "atac_taietura", "celule": [[3, 4]], "rot": 0, "oglinda": true},
+	# --- 2026-08-22, seara: piesele din care se COMPUN atacurile ---
+	# Răzvan: „atacurile să rămână același size, își pierd din calitate dacă le mărești — fă-le mai
+	# complicate în loc de mai mari". Deci suprafața rămâne cât era, dar nu se mai obține întinzând
+	# o poză de 96 px de opt ori, ci punând multe piese la mărimea lor. Astea sunt piesele.
+	#
+	# STROPII: celula (0,6) e un evantai de resturi care sar într-o parte — în foaie spre STÂNGA,
+	# deci rotit de două sferturi ca să sară spre EST, ca tot ce are direcție în jocul ăsta
+	# (0 rad = est). Din ei se face frontul undei: cu cât inelul e mai larg, cu atât sunt mai mulți.
+	{"nume": "atac_stropi", "celule": [[0, 6]], "rot": 2},
+	# CRĂPĂTURA: celula (2,3), o stea de crăpături care se ramifică pe patru cadre. Rămâne în urma
+	# undei, pe lespezi, și se stinge. Nu lovește nimic — e urma, nu atacul.
+	{"nume": "atac_crapatura", "celule": [[2, 3]], "rot": 0},
 ]
 
 
