@@ -41,7 +41,7 @@ const SEED_SALT := 0x51B7
 # cu chunk-urile marcate ca încărcate și nu mai reconstruiește nimic la întoarcere.
 var _loaded := {}
 
-# Gata cu porțile în runda asta: după ce cade WARDEN-ul și ieși din pușcărie
+# Gata cu porțile în runda asta: după ce cade SIR JOHN și ieși din castel
 # (`prison.gd::_inchide_poarta`). O pușcărie pe rundă, ca la celelalte dimensiuni.
 var oprit := false
 
@@ -143,7 +143,7 @@ func _langa_portal(pos: Vector2, key: Vector2i) -> bool:
 				return true
 	return false
 
-# Chemată din `prison.gd` după ce ai bătut WARDEN-ul și ai ieșit: din clipa aia nu mai există
+# Chemată din `prison.gd` după ce l-ai bătut pe SIR JOHN și ai ieșit: din clipa aia nu mai există
 # porți în runda asta. Poarta prin care ai ieșit e deja mutată în `World` (o scoate `prison.gd`
 # la intrare), deci nu e printre cele șterse aici — ea se scufundă la vedere.
 func opreste() -> void:

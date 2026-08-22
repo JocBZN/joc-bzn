@@ -11,7 +11,7 @@ extends Sprite2D
 @export var ender_tile_size: float = 256.0   # cât de mare se vede o dală de nebuloasă în Ender
 # Pavajul din Pușcărie. Fișierul e 209px (1254/6 — micșorat cu un factor ÎNTREG, ca să rămână
 # tileabil, vezi extractorul). La 160 se vede ca lespezi mari de temniță, nu ca pietriș.
-@export var prison_tile_size: float = 160.0
+@export var prison_tile_size: float = 256.0
 
 # Unduirea podelei în dimensiuni (`warp_*` din biome.gdshader; în lumea normală rămâne 0).
 #
@@ -69,8 +69,8 @@ func _ready() -> void:
 		_brick = load("res://harta/nether/Brick32.png") as Texture2D
 	if ResourceLoader.exists("res://harta/Portal Ender/misc_nebula.png"):
 		_nebula = load("res://harta/Portal Ender/misc_nebula.png") as Texture2D
-	if ResourceLoader.exists("res://harta/prison/prison_bg.png"):
-		_prison = load("res://harta/prison/prison_bg.png") as Texture2D
+	if ResourceLoader.exists("res://harta/castle/castle_bg.png"):
+		_prison = load("res://harta/castle/castle_bg.png") as Texture2D
 	_mat = ShaderMaterial.new()
 	_mat.shader = shader
 	_mat.set_shader_parameter("grass_tex", grass)
@@ -126,7 +126,7 @@ func set_ender(on: bool) -> void:
 	_mat.set_shader_parameter("tile_size", ender_tile_size if on else tile_size)
 	_set_warp(on, ender_warp, ender_warp_scale, ender_warp_speed)
 
-# Al treilea rând de dale: pavajul PUȘCĂRIEI (`harta/prison/prison_bg.png`). Același truc ca la
+# Al treilea rând de dale: pământul CASTELULUI (`harta/castle/castle_bg.png`). Același truc ca la
 # Nether și Ender — aceeași textură pe ambele sloturi ale shaderului de biom, deci amestecul iese
 # pavaj peste tot, fără să scoatem materialul și fără să atingem harta de biomuri.
 #
@@ -137,7 +137,7 @@ func set_prison(on: bool) -> void:
 	if _mat == null:
 		return
 	if on and _prison == null:
-		push_warning("Prison: lipsește harta/prison/prison_bg.png (rulează --headless --import)")
+		push_warning("Prison: lipsește harta/castle/castle_bg.png (rulează --headless --import)")
 		return
 	_mat.set_shader_parameter("grass_tex", _prison if on else _grass)
 	_mat.set_shader_parameter("desert_tex", _prison if on else _desert)

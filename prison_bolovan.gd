@@ -1,10 +1,11 @@
 extends Node2D
 
-# ATACUL 2 al boss-ului din PUȘCĂRIE: un BOLOVAN care cade din cer peste locul în care ești.
-# Arta: `harta/prison/boss/atac_bolovan/` — 9 cadre, din care 0..4 = căderea (cu dâre de mișcare)
-# și 5..8 = impactul (țepi de piatră + praf).
+# ATACUL 2 al lui SIR JOHN: LOVITURA care cade din cer peste locul în care ești.
+# Arta: `harta/castle/boss/atac_lovitura/` — 6 cadre, tăiate din `Attacks.gif` de
+# `tool_taie_atacuri.gd`: 0..3 = cometa care cade (celula 0,1 din atlas, ROTITĂ ca să pice, nu să
+# zboare) și 4..5 = izbucnirea din pământ (celula 5,8).
 #
-# Îl are din faza 2. Spre deosebire de inel, ăsta te CAUTĂ: se aruncă spre locul unde ești în
+# O are din faza 2. Spre deosebire de undă, asta te CAUTĂ: se aruncă spre locul unde ești în
 # clipa lansării. Dar are un telegraf lung (căderea) — deci se evită mergând, ceea ce e și ideea:
 # în faza 2 nu mai poți sta pe loc.
 #
@@ -12,12 +13,19 @@ extends Node2D
 # ce doare e ce se întâmplă când atinge pământul. Așa atacul are un răspuns clar (pleacă de acolo)
 # în loc să fie o taxă pe care o plătești orice ai face.
 #
-# ⚠️ Ținta se îngheață la lansare (nu urmărește player-ul în cădere): un bolovan care te urmărește
+# ⚠️ Ținta se îngheață la lansare (nu urmărește player-ul în cădere): o lovitură care te urmărește
 # până aterizează n-ar mai putea fi evitat deloc, deci n-ar mai fi un atac, ar fi o pedeapsă.
 
-const ART := "res://harta/prison/boss/atac_bolovan/"
-const CADRE_CADERE := 5     # frame_0 .. frame_4
-const CADRE_IMPACT := 4     # frame_5 .. frame_8
+const ART := "res://harta/castle/boss/atac_lovitura/"
+const CADRE_CADERE := 4     # frame_0 .. frame_3
+const CADRE_IMPACT := 2     # frame_4, frame_5
+# Latura pânzei efectelor din atlas. Din ea ies DOUĂ lucruri: scara (ca izbucnirea să acopere exact
+# `raza_impact`, adică hitbox-ul să fie măsurat din artă) și decalajul pe verticală — efectele sunt
+# desenate cu PĂMÂNTUL PE MARGINEA DE JOS a pânzei, nu la mijloc. Fără decalaj, cometa ar fi intrat
+# în pământ cu jumătate de corp înainte să atingă ținta, iar izbucnirea ar fi ieșit sub ea.
+const PANZA := 96.0
+# Cât de lată e izbucnirea desenată, de la mijloc (93/2, tipărit de `tool_taie_atacuri.gd`).
+const IMPACT_ARTA := 47.0
 
 @export var damage: int = 42
 @export var raza_impact: float = 130.0
@@ -54,7 +62,7 @@ func _ready() -> void:
 		else:
 			frames.add_frame("impact", tex2)
 	if lipsa > 0:
-		push_warning("Bolovan: lipsesc %d cadre din %s (rulează --headless --import)" % [lipsa, ART])
+		push_warning("Lovitura: lipsesc %d cadre din %s (rulează --headless --import)" % [lipsa, ART])
 	if frames.get_frame_count("cade") == 0 and frames.get_frame_count("impact") == 0:
 		queue_free()
 		return
@@ -66,6 +74,8 @@ func _ready() -> void:
 	# trebuie să treacă peste toată lumea, deci sprite-ul își ia z-ul lui, ABSOLUT (`z_as_relative`
 	# fals) — altfel s-ar aduna cu -1 al părintelui și ar ajunge tot dedesubt.
 	z_index = -1
+	_anim.scale = Vector2.ONE * (raza_impact / IMPACT_ARTA)
+	_anim.offset = Vector2(0, -PANZA * 0.5)
 	_anim.z_as_relative = false
 	_anim.z_index = 61
 	_anim.position = Vector2(0, -inaltime)
@@ -90,7 +100,7 @@ func _impact() -> void:
 	_anim.position = Vector2.ZERO
 	_anim.play("impact")
 	queue_redraw()
-	Audio.play("earthquake", Audio.QUAKE_DB - 14.0, 0.0)
+	Audio.play("sirjohn_impact", -4.0, 0.0)
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null or player.dead:
 		return

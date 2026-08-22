@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://kqss7cflclc3"
+path="res://.godot/imported/Sir John Smite.wav-19c1b339e30418982e3795eec02810c3.sample"
+
+[deps]
+
+source_file="res://audio/Castle Audio/Sir John Smite.wav"
+dest_files=["res://.godot/imported/Sir John Smite.wav-19c1b339e30418982e3795eec02810c3.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

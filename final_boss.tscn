@@ -5,14 +5,14 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_warden"]
 shader = ExtResource("2_contur")
-shader_parameter/culoare = Color(0.72, 0.12, 0.09, 1)
+shader_parameter/culoare = Color(0.62, 0.10, 0.08, 1)
 shader_parameter/grosime = 1.0
 shader_parameter/prag = 0.35
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_warden"]
 radius = 38.0
 
-[node name="FinalBoss" type="CharacterBody2D"]
+[node name="SirJohn" type="CharacterBody2D"]
 collision_layer = 4
 collision_mask = 1
 script = ExtResource("1_script")
@@ -20,7 +20,7 @@ script = ExtResource("1_script")
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 texture_filter = 1
 material = SubResource("ShaderMaterial_warden")
-scale = Vector2(1.3, 1.3)
+scale = Vector2(2.9, 2.9)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_warden")

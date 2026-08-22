@@ -105,7 +105,7 @@ func _ready() -> void:
 func eticheta() -> String:
 	if not prison:
 		return ""
-	return "Leave the Prison" if retur else "Enter the Prison"
+	return "Leave the Castle" if retur else "Enter the Castle"
 
 # Piatra fântânii se stinge și se colorează prin `shader_parameter/tint`, NU prin `modulate`
 # (vezi comentariul din `portal_ender.gdshader`: shaderul își citește singur textura, deci

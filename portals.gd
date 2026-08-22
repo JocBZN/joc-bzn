@@ -42,7 +42,7 @@ var ender := false
 # Închiderea definitivă pentru runda asta: după ce cade Celesto și ai ieșit din Ender (vezi
 # `ender.gd::_inchide_fantana`). Cât e `true` nu mai generăm nimic — nici în chunk-urile în care
 # ai fi ajuns abia peste zece minute. Porțile de pușcărie NU se opresc odată cu noi: au
-# generatorul lor (`prison_gates.gd`), care se stinge separat, când cade WARDEN-ul.
+# generatorul lor (`prison_gates.gd`), care se stinge separat, când cade SIR JOHN.
 var oprit := false
 var _props: Node2D = null     # nodul Props (copacii)
 var _rocks: Node2D = null     # nodul Rocks (pietrele)

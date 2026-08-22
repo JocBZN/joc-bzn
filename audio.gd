@@ -46,6 +46,28 @@ const SFX := {
 	"celesto_zap":         "res://audio/Ender Audio/Celesto Zap.wav",         # pocnetul de unde APARE (mono, se panoramează)
 	"celesto_vanish":      "res://audio/Ender Audio/Celesto Vanish.wav",      # dispariția de la final
 	"celesto_sub":         "res://audio/Ender Audio/Celesto Sub.wav",         # numai bas, se pune SUB freeze și sub dispariție
+	# --- SIR JOHN, boss-ul CASTELULUI: cinematica de intrare (`prison.gd`) ȘI cele trei atacuri ---
+	# Aceeași prelucrare ca la Celesto (tăiate de liniște, scurtate la cât ține momentul, fade
+	# 5/50 ms, 48 kHz/16 biți și **întâi reeșantionate, apoi** normalizate la vârf −1 dBFS), din
+	# aceeași bibliotecă `Soundpack/`, care e gitignorată. Nouă fișiere, 1,5 MB.
+	#
+	# 🔑 ALEGEREA E CARACTERUL LUI, nu „un sunet care merge". Celesto e o fantomă: pocnete, foșnet
+	# de aer, tonuri. Sir John e OM ÎN ARMURĂ, deci tot ce vine de la el e METAL ȘI PIATRĂ —
+	# bocanci pe beton de temniță la fiecare pas, tablă pe tablă când îi aterizează numele, o
+	# zdrobitură de piatră când înfige sabia. Cu sunetele lui Celesto puse la alt volum ar fi ieșit
+	# tot Celesto, doar cu altă poză.
+	#
+	# ⚠️ `sirjohn_step` e MONO, ca `celesto_swish`/`celesto_zap`: numai un fișier mono poate fi pus
+	# într-o boxă 2D cu `play_pan` — un stereo își are stânga și dreapta scrise deja în el.
+	"sirjohn_freeze": "res://audio/Castle Audio/Sir John Freeze.wav",   # bubuitura cu care ÎNGHEAȚĂ timpul
+	"sirjohn_sub":    "res://audio/Castle Audio/Sir John Sub.wav",      # numai bas (tăiat sub 180 Hz), SUB freeze și sub lovitura finală
+	"sirjohn_riser":  "res://audio/Castle Audio/Sir John Riser.wav",    # urcarea de dedesubt, cât intră camera și cât pășește
+	"sirjohn_step":   "res://audio/Castle Audio/Sir John Step.wav",     # BOCANCUL (mono, se panoramează unde calcă)
+	"sirjohn_name":   "res://audio/Castle Audio/Sir John Name.wav",     # clic METALIC, când aterizează bara cu numele
+	"sirjohn_slam":   "res://audio/Castle Audio/Sir John Slam.wav",     # sabia în lespezi: finalul cinematicii ȘI atacul 1 (unda)
+	"sirjohn_smite":  "res://audio/Castle Audio/Sir John Smite.wav",    # atacul 2 pleacă spre tine, de sus
+	"sirjohn_impact": "res://audio/Castle Audio/Sir John Impact.wav",   # ...și izbucnește din pământ
+	"sirjohn_slash":  "res://audio/Castle Audio/Sir John Slash.wav",    # atacul 3: semiluna de sabie
 	"enemy_hit":      "res://audio/Enemy Hit.wav",                     # un proiectil a rănit un inamic
 	"earthquake":     "res://audio/Earthquake.wav",                    # bubuitura de cutremur (vezi QUAKE_DB)
 	"key_pickup":     "res://audio/Key Pickup.wav",                    # ai călcat pe o cheie de cufăr

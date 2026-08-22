@@ -37,7 +37,7 @@ const FISIERE_UI := [
 	"res://dubios_menu.gd", # marfa dubiosului (2026-08-12)
 	# Pușcăria, a patra dimensiune (2026-08-17): dimensiunea, statuia care scoate boss-ul, boss-ul
 	# însuși, plus `portal_ender.gd` — el dă acum din `eticheta()` textul de deasupra porții.
-	"res://prison.gd", "res://prison_statue.gd", "res://final_boss.gd", "res://portal_ender.gd",
+	"res://prison.gd", "res://final_boss.gd", "res://portal_ender.gd",
 ]
 # texte care APAR în cod dar NU trebuie traduse: simboluri, nume proprii, formate pur numerice
 const IGNORATE := [

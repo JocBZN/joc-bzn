@@ -23,6 +23,91 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-22 (castelul și SIR JOHN: cavalerul intră cu cinematică, cu trei atacuri noi și nouă sunete)
+
+**Cerut de Răzvan:** „In folderul harta am redenumit folderul prison -> castle - si am sters ce era inainte in folderul boss si am bagat caracterul nou si un tileset nou. Vreau sa ii faci un intro ca la Celesto fara statuie de spawn (am sters-o). Si ti-am mai pus si un GIF -> Attacks - vreau sa te gandesti bine ce merge luat de acolo si sa il adaugi la boss (Sir John) - vreau sa te folosesti si de Soundpack si sa iei de acolo ce iti trebuie gandit perfect."
+
+**Fișiere noi:** `castle_taietura.gd`, `tool_taie_atacuri.gd` + `.tscn`, `harta/castle/` (64 cadre de mers + 3 foi de efecte + atlasul + `castle_bg.png`), `audio/Castle Audio/` (9 wav-uri). **Atinse:** `prison.gd` (cinematica), `final_boss.gd` (rescris), `final_boss.tscn`, `prison_inel.gd`, `prison_bolovan.gd`, `ground.gd`, `audio.gd`, `i18n.gd`, `portal_ender.gd`, `portals.gd`, `prison_gates.gd`, `tool_check_i18n.gd`. **Șterse:** `prison_statue.gd` + `.tscn`, `prison_laser.gd`, `harta/prison/`.
+
+⚠️ **Numele din COD au rămas „prison"** — fișierele, grupul, `set_prison()`, nodul din `main.tscn`. S-au mutat la castel doar ARTA și TEXTELE de pe ecran. Redenumirea a opt fișiere + UID-uri + noduri de scenă e o schimbare mare, cu risc, pe care n-a cerut-o nimeni; și oricum `harta/castle/prison tileset.png` poartă amândouă numele, de la Răzvan.
+
+### 1. Intrarea: „ca la Celesto", dar nu Celesto
+
+Scheletul e copiat cinstit din `ender.gd::_cutscene_celesto` — îngheț adevărat, benzi + vinietă, muzica dată la o parte 16 dB, camera cu UN SINGUR scriitor (`_cut_baza` + `_cut_shake`), tween-uri cu `TWEEN_PAUSE_PROCESS`. Ce se întâmplă înăuntrul cadrului e altceva, dinadins: **Celesto e o fantomă care se teleportează, Sir John e un om în armură.** Un cavaler care clipește stânga-dreapta n-ar fi „ca la Celesto", ar fi Celesto cu altă poză.
+
+Patru bătăi: `0:00` îngheț + bubuitură + bas + riser, benzile intră, camera pleacă spre el depășind zoom-ul (1,86 → se așază pe 1,70) · `0:30` **cinci pași** spre tine · `1:40` bara aterizează cu un **clic metalic** · `2:29` se întoarce cu fața la tine, `0:40` de **liniște** · `2:79` **înfige sabia** — unda lui adevărată, fără damage, bubuit + bas + 26 px de zguduitură; benzile ies, camera se întoarce, jocul repornește.
+
+**Trei decizii care contează:**
+
+1. **RITMUL PAȘILOR E CONSTANT, nu se strânge ca la Celesto.** Acolo, patru teleportări tot mai dese se citesc ca o acumulare. Aici, un om în platoșă care ACCELEREAZĂ se citește ca un om care fuge — adică exact pe dos față de ce e el. Ce crește e GREUTATEA: bocancii urcă −12 → −3 dB, zguduitura 4 → 11 px, tonul coboară un sfert de ton la fiecare pas. Inevitabil, nu grăbit.
+2. **Cadrul de mers se dă CU MÂNA, câte două pe pas** (`ingheata_spre(dir, (i+1)*2)`), nu lăsăm animația să curgă. O animație care curge lin peste o lume înghețată arată ca o înregistrare pusă greșit pe pauză; un cadru schimbat exact pe bocanc arată ca un pas.
+3. **CAMERA MERGE LA EL, NU EL LA TINE.** Asta a fost singura problemă adevărată a ideii. În Ender, Celesto se materializează lângă tine și la final se teleportează în inelul lui, departe — un om care merge nu poate face asta, iar un cavaler care te provoacă și apoi se evaporă și-ar strica singur intrarea. Deci filmăm de la bun început LOCUL în care va rămâne (`_loc_boss()`, 620–900 px de poartă), el intră în cadru pășind, iar la final camera se întoarce la tine. Nimeni nu se teleportează, iar lupta începe la o distanță la care mai apuci să respiri.
+
+**Statuia a dispărut cu totul** (`prison_statue.gd` + `.tscn` șterse, `boss_invocat()` scos, busola arată direct spre boss). Anunțul de la intrare nu mai zice „Find the statue", ci „THE CASTLE / Sir John will not let you leave", și se dă la CAPĂTUL cinematicii, împreună cu primul val de inamici — un banner peste filmuleț și opt inamici născuți cât jocul e înghețat ar fi însemnat că, la deblocare, ești deja înconjurat fără să fi văzut nimic.
+
+### 2. `Attacks.gif` — ce am luat și de ce
+
+Foaia e un **ATLAS de 9×7 celule de 96×96**, fiecare celulă un efect propriu animat pe cele 4 cadre ale GIF-ului: **63 de efecte**. `tool_taie_atacuri.gd` (nou) taie din el ce trebuie, scoate fundalul mov (opac, potrivire EXACTĂ — culorile vin din paletă de GIF, deci un prag ar fi mâncat și albastrul închis din efecte), rotește și oglindește unde e cazul, și **tipărește conturul și raza fiecărui cadru**, ca să nu mai măsoare nimeni de mână constantele din scripturi.
+
+| atac | celulă | de ce ea |
+|---|---|---|
+| **UNDA** (faza 1) | (0,4) — pecete, cerc subțire cu crăpături | e un CONTUR, deci rămâne citibil oricât îl mărești |
+| **LOVITURA** (faza 2) | (0,1) cometă **rotită 90°** + (5,8) izbucnire | cometa e desenată zburând spre dreapta; atacul o vrea căzând |
+| **TĂIETURA** (faza 3) | (3,4) semilună, **oglindită** | în foaie burta arcului e la stânga; un proiectil zboară cu burta ÎNAINTE |
+
+**Raza a înlocuit-o tăietura.** `prison_laser.gd` a fost șters — nu doar fiindcă arta lui nu mai există, ci fiindcă **o rază instantanee e arma unui turn, nu a unui cavaler cu sabie**. Semiluna spune din desen cine a aruncat-o, zboară cu viteză finită (deci se vede venind și se poate ocoli), iar în faza 3 vin TREI în evantai — un pas lateral nu mai ajunge.
+
+### 3. Capcana care a costat două încercări: 96 de pixeli nu se întind la 520
+
+Prima alegere pentru undă a fost celula (4,5), un tor gros care CREȘTE singur pe cele 4 cadre — pe hârtie, exact inelul de piatră al Warden-ului. Pe captură, dezastru: inelul vechi era desenat pe pânză de **400 px** și mărit ×2,65; ăsta are **96** și, ca să ajungă la `raza_max = 520`, trebuia mărit ×11,6. A ieșit **o pată albastră pe jumătate de ecran**, cu blocuri de 19 pixeli de ecran fiecare.
+
+Trei lucruri l-au reparat, toate necesare:
+- **Contur subțire în loc de tor gros** (celula 0,4): un cerc de o linie rămâne cerc oricât îl mărești; un covrig plin devine o pată.
+- **`raza_max` 520 → 380**: nu se poate cere unei poze de 96 px să acopere jumătate de ecran. El te presează oricum, e melee.
+- **Filtrare LINIARĂ, nu NEAREST** — singurul loc din joc unde se face asta, și pe motiv: la ×8, „cel mai apropiat pixel" nu mai arată a pixel art, arată a blocuri. Filtrul liniar îl face ce și este: o suflare de energie.
+
+Și, ca bonus, **desenul e acum legat de hitbox**: până acum arta creștea singură și scara era fixă; efectul nou are mărime constantă, deci creșterea o face `_creste(k)`, care pune scara EXACT pe raza frontului care lovește. Nu mai există niciun fel în care cele două să se despartă — aceeași regulă ca la sabia blestemată și la coasa lui Celesto.
+
+Restul cifrelor ies tot din artă: `prison_bolovan.gd` își ia scara din `raza_impact / IMPACT_ARTA` și un decalaj de o jumătate de pânză pe verticală (efectele sunt desenate cu PĂMÂNTUL pe marginea de jos — fără decalaj, cometa intra în pământ cu jumătate de corp înainte să atingă ținta, iar izbucnirea ieșea sub ea).
+
+### 4. Sunetele — nouă, din `Soundpack/`
+
+Aceeași prelucrare ca la cinematica lui Celesto (tăiate de liniște, scurtate la cât ține momentul, fade 5/50 ms, 48 kHz/16 biți, **întâi reeșantionate, apoi** normalizate la vârf −1 dBFS). **1,5 MB pentru 9 fișiere.**
+
+🔑 **Alegerea e caracterul lui, nu „un sunet care merge".** Celesto e o fantomă: pocnete, foșnet de aer, tonuri. Sir John e om în armură, deci tot ce vine de la el e **metal și piatră** — `FEETMisc_STEP-Boots on Concrete Dungeon` la fiecare pas, `UIClick_INTERFACE-Metallic Click` (tablă pe tablă) când îi aterizează numele, `DSGNImpt_EXPLOSION-Cruncher` (zdrobitură de piatră) când înfige sabia, `DSGNMisc_MELEE-Sword Slash` la semilună. Cu sunetele lui Celesto puse la alt volum ar fi ieșit tot Celesto, doar cu altă poză.
+
+- `sirjohn_step` e **MONO**, ca `celesto_swish`/`celesto_zap`: numai un mono poate fi pus într-o boxă 2D cu `play_pan`.
+- `sirjohn_sub` e un Bass Hit **tăiat sub 180 Hz** — bas curat de pus SUB celelalte, nu încă o bubuitură.
+- ⚠️ **Riser-ul: primele 1,4 s, nu ultimele.** Prima variantă lua coada („un riser trebuie să se termine pe bătaie") și a ieșit la **−33,7 dB vârf**: coada lui `Complex Rise` e stingere, nu urcare. Măsurat, nu bănuit — corecția de normalizare de +32,7 dB a fost semnalul.
+
+### 5. Arta lui Sir John
+
+8 direcții × 8 cadre de mers, pânză 88×88, silueta ~61 px. **Măsurate toate opt înainte să le folosesc** (lecția de la pompier, de dimineață): înălțimi 60,1–62,9 px, tălpi la 74–77, centru 41–47 pe o pânză de 88 — adică variație de poză, nu de scară. Nu e nevoie de corecție.
+
+⚠️ **`Idle_rotations_8dir.gif` NU se folosește**, deși e tentant: e desenat pe pânză de **64**, adică la altă scară decât mersul, iar cavalerul și-ar fi schimbat mărimea când s-ar fi oprit. Boss-ul n-are cadre de stat pe loc și nici de atac — ca Celesto, se oprește o clipă (`pauza_atac = 0,30`) și atât.
+
+Are **8 direcții**, nu 4 ca Warden-ul: arta le are pe toate. `scale = 2.9` (≈177 px pe ecran, cât era și Warden-ul), contur roșu-închis ca sângele de pe platoșă.
+
+**Podeaua:** `prison tileset.png` (960×640) micșorat cu **medie pe bloc 3×2 → 320×320**. Blocurile nu se ating între ele, deci cusătura rămâne exact cum era; un filtru cu nucleu lat ar fi amestecat peste margine și ar fi stricat-o. Textura e zgomot fin: diferența dintre marginile care se lipesc (36) e cât diferența dintre două coloane oarecare (30) — adică nu se poate vedea nicio cusătură. Se vede la `prison_tile_size = 256` (de la 160): dala e mare, ca repetiția să nu sară în ochi.
+
+### Verificat rulând (scenă de test peste `main.tscn`, ștearsă după)
+
+Cronometrat pe cadre, în jocul adevărat, **fără capturi** (o rulare separată — capturile trag jocul la 20 FPS și fotografiezi altceva decât crezi):
+- benzile intrate la `0:36`, vinietă 0,80, zoom 0,70 → **1,30 (depășire) → 1,19** = 0,70 × 1,70 ✓
+- **pașii la 0:60 · 0:93 · 1:26 · 1:63 · 1:95** — pauze 0,33/0,33/0,37/0,32, adică ritmul chiar e constant; cadrele de mers 0 → 2 → 4 → 6 → 0 ✓
+- distanța de la player **1067 → 937 px** (5 × 26 = 130 ✓), apoi se întoarce cu fața (cadru 0)
+- liniștea `2:29 → 2:79`, cu zoom-ul strângându-se 1,19 → 1,21
+- cinematica se termină la **3:44** (Celesto: 3,84), camera înapoi pe (0,0) cu zoom 0,70, benzi 0, vinietă 0, boss-ul TREZIT și mergând spre player (distanța scade, animația ciclează)
+- capturi: pasul 2 cu bara „SIR JOHN" coborâtă, liniștea cu el întors spre tine, unda de la final, cadrul curat de după, și una cu **toate trei atacurile pe ecran deodată** — unda ca pecete care se lărgește, cele trei semiluni în evantai spre player, cele trei cercuri de avertizare ale loviturii
+- `tool_check_i18n` → **„✔ TOTUL E TRADUS"**, 317 chei × 8 limbi
+- ⚠️ **Capcană de testare:** scena de test trebuie pusă pe `PROCESS_MODE_ALWAYS`, altfel `_process`-ul ei se oprește odată cu jocul și nu vezi nimic din cinematică. Prima rulare n-a scos niciun log.
+
+### Rămas neatins dinadins
+
+Restul celor 63 de efecte din atlas (foaia intră în repo ca 4 PNG-uri, ca unealta să fie re-rulabilă fără PowerShell), `Idle_rotations_8dir.gif`, și numele de fișiere/noduri „prison" din cod.
+
+---
+
 ## Session log — 2026-08-22 (pompierul nu se mai micșorează când merge spre nord)
 
 **Cerut de Răzvan:** „La modelu de la firefighter cand merge spre nord sprite-ul e mai mic decat celelalte directii, fa-l egal cu celelalte".
