@@ -23,19 +23,19 @@ Quick rules:
 
 ---
 
-## Session log — 2026-08-22 (muzică de meniu: `sky-lines` în orice meniu din joc, și fiecare melodie ține minte unde a rămas)
+## Session log — 2026-08-22 (muzică de meniu: `sky-lines` în meniurile din joc, și fiecare melodie ține minte unde a rămas)
 
-**Cerut de Răzvan:** „Cand intrii intr-un meniu vreau sa se opreasca ce muzica e pe fundal si sa inceapa audio-ul - sky-lines din folderul Nether Audio - vreau fiecare audio sa reinceapa de unde era ultima oara (la muzica de fundal sau de egt, alba neagra, dubiosu etc - NU meniul principal)". Întrebat care meniuri, a ales: **toate cele din joc, fără ESC**.
+**Cerut de Răzvan:** „Cand intrii intr-un meniu vreau sa se opreasca ce muzica e pe fundal si sa inceapa audio-ul - sky-lines din folderul Nether Audio - vreau fiecare audio sa reinceapa de unde era ultima oara (la muzica de fundal sau de egt, alba neagra, dubiosu etc - NU meniul principal)". Întrebat care meniuri, a ales întâi „toate cele din joc, fără ESC", apoi, după ce a văzut cum sună: **„Fara meniul de level up"**. Deci meniurile la care te duci tu (EGT, Alba-Neagra, dubiosu, trade) schimbă muzica; Level Up-ul, care apare des și ține puțin, nu.
 
 ### Ce se aude acum
 
 | meniu | ce face | de unde se cheamă |
 |---|---|---|
-| **Level Up** | muzica lumii se dă la o parte, intră `sky-lines` | `levelup.gd::_show_choices` / `_on_choice` |
-| **EGT / cazinou** | idem | `casino.gd::open` / `_inchide` |
+| **EGT / cazinou** | muzica lumii se dă la o parte, intră `sky-lines` | `casino.gd::open` / `_inchide` |
 | **Alba-Neagra** | idem | `alba_menu.gd::open` / `_inchide` |
 | **Dubiosu (barbut)** | idem | `dubios_menu.gd::open` / `_inchide` |
 | **Trade (statuia)** | idem | `trade.gd::open` / `_inchide` |
+| **Level Up** | **neatins**: muzica lumii curge peste el (apare des, ține puțin) | `levelup.gd` |
 | **Pauză (ESC)** | **neatins**: îngheață tot sunetul pe loc (`pause_all`) | `pause.gd` |
 | **Meniul principal** | **neatins**: tema lui, mereu de la început | `menu.gd` |
 
@@ -53,11 +53,15 @@ Fiecare melodie ține minte SECUNDA la care a fost întreruptă și pornește de
 
 ### 2. De ce cu NUME și nu cu un numărător de meniuri deschise
 
-`enter_menu_music(cine)` ține un dicționar de meniuri deschise, nu un `+1`. Motivul e concret: **Level Up-ul își redeschide pagina de mai multe ori fără să se închidă între ele** (mai multe niveluri deodată, sau reroll de la Lucky Die). Un numărător ar fi urcat la 2-3 și nu s-ar mai fi întors la zero → muzica lumii ar fi rămas moartă până la runda următoare. Cu nume, zece chemări înseamnă tot un meniu. Bonus: dacă vreodată se deschide un meniu peste altul, lumea revine abia la ultimul închis.
+`enter_menu_music(cine)` ține un dicționar de meniuri deschise, nu un `+1`. Un numărător urcat la 2-3 de un meniu care își redeschide singur pagina nu s-ar mai fi întors la zero → muzica lumii ar fi rămas moartă până la runda următoare. Cu nume, zece chemări înseamnă tot un meniu. **Level Up-ul chiar face asta** (mai multe niveluri deodată, reroll de la Lucky Die) — a fost în listă o versiune, apoi a ieșit la cerere, dar exact de-aia readăugarea lui nu poate strica nimic. Bonus: dacă se deschide un meniu peste altul, lumea revine abia la ultimul închis.
+
+### 2b. Level Up-ul, scos la cerere
+
+A fost pornit și încercat cu `sky-lines`; Răzvan a zis „fara meniul de level up". Are sens și la ureche: e singurul meniu în care intri **fără să vrei**, de zeci de ori pe rundă și pentru câteva secunde — fiecare vizită ar fi tăiat lumea în două. `levelup.gd` a rămas cu un comentariu care spune exact ce două linii se adaugă dacă se răzgândește.
 
 ### 3. Încrucișarea scurtă (`MENIU_FADE = 0.45`)
 
-Fade-ul lumii e de 3 secunde. Un Level Up de 4 secunde s-ar fi terminat înainte ca `sky-lines` să ajungă la volum — ai fi auzit două fade-uri și nicio melodie. 0,45s e destul de scurt cât să pară instant și destul de lung cât să nu pocnească (sub ~0,2s se aude unde s-a rupt unda). `_play_track()` a primit al patrulea parametru, `fade_out`, ca stingerea celei vechi să fie la fel de scurtă — altfel melodia lumii ar fi rămas agățată 3 secunde peste muzica meniului.
+Fade-ul lumii e de 3 secunde. O vizită scurtă (intri la EGT, vezi că n-ai jetoane și ieși) s-ar fi terminat înainte ca `sky-lines` să ajungă la volum — ai fi auzit două fade-uri și nicio melodie. 0,45s e destul de scurt cât să pară instant și destul de lung cât să nu pocnească (sub ~0,2s se aude unde s-a rupt unda). `_play_track()` a primit al patrulea parametru, `fade_out`, ca stingerea celei vechi să fie la fel de scurtă — altfel melodia lumii ar fi rămas agățată 3 secunde peste muzica meniului.
 
 ### 4. Volumul
 

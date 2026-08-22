@@ -140,9 +140,11 @@ const MUSIC_ENDER := "res://audio/Ender Audio/Ender Theme.ogg"
 const MUSIC_DIMENSIUNI := [MUSIC_NETHER, MUSIC_SARATALIN, MUSIC_PRISON, MUSIC_ENDER]
 
 # --- Muzica meniurilor din joc ---
-# Orice meniu care oprește jocul (Level Up, EGT, Alba-Neagra, Dubiosu, masa de trade) taie muzica
-# de fundal și pune `sky-lines` cât stai în el. Meniul PRINCIPAL nu intră aici — el are tema lui
-# (`MUSIC_MENU`) și pornește mereu de la început.
+# Meniurile la care te duci TU (EGT, Alba-Neagra, Dubiosu, masa de trade) taie muzica de fundal
+# și pun `sky-lines` cât stai în ele. Două meniuri nu intră aici, dinadins:
+#  • meniul PRINCIPAL — are tema lui (`MUSIC_MENU`) și pornește mereu de la început;
+#  • **Level Up** — apare des și ține puțin (cerut pe 2026-08-22): muzica lumii curge peste el.
+#    Se adaugă oricând, cu o pereche de `enter_menu_music`/`exit_menu_music` în `levelup.gd`.
 # E același fișier ca melodia pușcăriei, dar scris separat: schimbi muzica meniurilor fără să
 # atingi pușcăria (și invers). Dacă ești CHIAR în pușcărie și deschizi un meniu, nu se aude
 # nicio schimbare — cântă deja melodia cerută, iar `_play_track` nu repornește ce se aude deja.
@@ -152,8 +154,9 @@ const MUSIC_MENIU := "res://audio/Nether Audio/sky-lines.ogg"
 # pe scenă; n-are nevoie să fie mai tare ca să se audă.
 const MENIU_DB := -12.0
 # Un meniu se deschide INSTANT, deci și muzica trebuie să se schimbe instant: 0,45s de
-# încrucișare, nu cele 3 secunde ale lumii. Cu `FADE` normal, un Level Up de 4 secunde s-ar fi
-# terminat înainte ca `sky-lines` să ajungă la volum — ai fi auzit două fade-uri, nicio melodie.
+# încrucișare, nu cele 3 secunde ale lumii. Cu `FADE` normal, o vizită scurtă (intri la EGT,
+# vezi că n-ai jetoane și ieși) s-ar fi terminat înainte ca `sky-lines` să ajungă la volum —
+# ai fi auzit două fade-uri, nicio melodie.
 # 0,45 e tot fade, nu tăietură: sub ~0,2s tranziția pocnește (se aude unde s-a rupt unda).
 const MENIU_FADE := 0.45
 
@@ -458,17 +461,18 @@ func restore_world_music() -> void:
 	# secunda vine singură: `_play_track` pornește melodia de unde a rămas ea (`_pozitii`)
 	_play_track(path, db)
 
-# --- Meniurile din joc (Level Up, EGT, Alba-Neagra, Dubiosu, trade) ---
+# --- Meniurile din joc (EGT, Alba-Neagra, Dubiosu, trade) ---
 # Intri într-un meniu → muzica de fundal se oprește (ținând minte secunda) și intră `sky-lines`,
 # tot de unde a rămas ea data trecută. Ieși → lumea își reia melodia din același loc.
 #
 # De ce cu NUME (`cine`) și nu cu un simplu numărător de meniuri deschise:
-#  • Level Up-ul își redeschide pagina de mai multe ori la rând, fără să se închidă între ele
-#    (mai multe niveluri deodată, sau reroll de la Lucky Die). Un numărător ar fi urcat la 2-3 și
-#    nu s-ar mai fi întors niciodată la zero, iar muzica lumii ar fi rămas moartă până la
-#    următoarea rundă. Cu nume, `enter_menu_music("levelup")` de zece ori înseamnă tot un meniu.
-#  • Dacă vreodată se deschide un meniu PESTE altul, muzica lumii se întoarce abia când se
-#    închide și ultimul — nu la primul ESC.
+#  • un meniu care își redeschide singur pagina, fără să se închidă între ele, ar urca un
+#    numărător la 2-3, iar ăla nu s-ar mai fi întors niciodată la zero: muzica lumii ar fi rămas
+#    moartă până la runda următoare. Cu nume, zece `enter_menu_music("egt")` înseamnă tot un
+#    meniu. (Level Up-ul chiar face asta — mai multe niveluri deodată, reroll de la Lucky Die —
+#    și tocmai de-aia adăugarea lui aici, dacă se răzgândește cineva, nu poate strica nimic.)
+#  • dacă se deschide un meniu PESTE altul, muzica lumii se întoarce abia când se închide și
+#    ultimul — nu la primul ESC.
 # Meniul de pauză (ESC) NU e aici: el îngheață tot sunetul pe loc (`pause_all`) și-l dezgheață
 # de unde a rămas. Dacă vrei și acolo `sky-lines`, se cheamă aceleași două funcții din `pause.gd`.
 var _meniuri := {}           # ce meniuri sunt deschise ACUM (nume -> true)
