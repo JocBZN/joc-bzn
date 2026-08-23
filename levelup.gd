@@ -738,10 +738,13 @@ func _show_choices(exclude: Array = []) -> void:
 	visible = true
 	get_tree().paused = true
 	Audio.pause_forest_ambient()   # ambientul se oprește cât alegi; se reia de unde era la închidere
-	# ⚠️ Level Up-ul e SINGURUL meniu care NU schimbă muzica (cerut pe 2026-08-22). Apare des și
-	# ține puțin — muzica lumii curge mai departe peste el. Dacă vrei totuși `sky-lines` și aici,
-	# adaugi `Audio.enter_menu_music("levelup")` aici și `Audio.exit_menu_music("levelup")` la
-	# închidere (mai jos, lângă `resume_forest_ambient`); restul merge singur.
+	# Muzica lumii nu se schimbă și nu se oprește (cerut pe 2026-08-22) — se aude doar ÎNFUNDATĂ,
+	# ca prin ușă, cât ține alegerea (2026-08-23). Ecranul ăsta apare des și ține puțin, deci
+	# tranziția scurtă a filtrului (0,2s) e exact cât trebuie: nu rupe melodia, dar face loc
+	# sunetului de „Choose Item" și clicurilor. Vezi „Muzica în meniuri" din `audio.gd`.
+	# ⚠️ Se cheamă la FIECARE pagină (mai multe niveluri deodată, reroll de la Lucky Die) — de-aia
+	# `enter_menu_muffle` lucrează cu nume, nu cu numărător: de zece ori tot un meniu înseamnă.
+	Audio.enter_menu_muffle("levelup")
 
 func _on_choice(index: int) -> void:
 	var p = get_tree().get_first_node_in_group("player")
@@ -764,6 +767,7 @@ func _on_choice(index: int) -> void:
 		visible = false
 		get_tree().paused = false
 		Audio.resume_forest_ambient()   # gata alegerea → ambientul continuă de unde a rămas
+		Audio.exit_menu_muffle("levelup")   # ...și muzica iese din spatele ușii
 
 # Efectele reale, tematice pe substanță. Modifică numerele cum vrei.
 #

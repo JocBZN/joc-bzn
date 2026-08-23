@@ -354,7 +354,7 @@ func open(statuie: Node) -> void:
 	visible = true
 	get_tree().paused = true
 	Audio.pause_forest_ambient()
-	Audio.enter_menu_music("trade")   # muzica lumii lasă locul muzicii de meniu (`sky-lines`)
+	Audio.enter_menu_muffle("trade")   # muzica lumii curge mai departe, dar se aude prin filtru
 	Audio.play("levelup", -4.0, 0.0)
 
 func _inchide() -> void:
@@ -363,7 +363,7 @@ func _inchide() -> void:
 	_perechi = []
 	get_tree().paused = false
 	Audio.resume_forest_ambient()
-	Audio.exit_menu_music("trade")   # lumea își reia melodia de unde a rămas
+	Audio.exit_menu_muffle("trade")   # gata meniul → filtrul se deschide la loc
 
 # ESC = pleci fără schimb. ⚠️ `pause.gd::_blocked()` ne întreabă și pe noi, ca să nu se deschidă
 # meniul de pauză PESTE masă (aceeași grijă ca la cazinou).

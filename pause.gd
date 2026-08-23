@@ -94,7 +94,10 @@ func _open_menu() -> void:
 	visible = true
 	_open = true
 	get_tree().paused = true
-	Audio.pause_all()      # tot sunetul îngheață (muzică, ambient, efecte) — se reia de unde a rămas
+	# Lumea îngheață (ambient + efecte, se reiau de unde au rămas), dar MUZICA merge mai departe:
+	# se aude înfundată, ca prin ușă, cât stai în meniu (vezi „Muzica în meniuri" din `audio.gd`).
+	# Cu tot sunetul tăiat, pauza suna a joc căzut; așa, jocul te așteaptă afară.
+	Audio.pause_all()
 	# Motorul controllerului NU e oprit de `paused`: o vibrație de cutremur pornită cu o clipă
 	# înainte ar fi continuat să bubuie peste meniul liniștit, secunde bune.
 	Gamepad.opreste_vibratia()

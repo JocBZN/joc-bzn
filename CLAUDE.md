@@ -23,6 +23,54 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-23 (muzica se aude ÎNFUNDATĂ în meniuri, ca prin ușă — inclusiv la ESC)
+
+**Cerut de Răzvan:** „Muzica sa se auda infundat atunci cand intrii intr-un meniu (inafara de main menu) inclusiv cand apesi ESC."
+
+**Atinse:** `audio.gd` (magistrala `Music` + filtrul, `enter_menu_muffle`/`exit_menu_muffle` în locul lui `enter_menu_music`/`exit_menu_music`, `pause_all` rescris), `pause.gd`, `levelup.gd`, `casino.gd`, `trade.gd`, `alba_menu.gd`, `dubios_menu.gd`. **Unealtă nouă, păstrată:** `tool_infundat.gd` / `.tscn` (măsoară curba și verifică purtarea).
+
+### Ce se aude acum
+Orice meniu în afară de cel principal — EGT, Alba-Neagra, Dubiosu, masa de trade, **Level Up** și **pauza cu ESC** — nu mai schimbă și nu mai oprește muzica: i se taie înaltele și coboară 6 dB, cât ține meniul. Efectele meniului (clicuri, zaruri, ruletă) rămân NEFILTRATE, pe `Master` — deci ies în față fără să dea cineva nimic mai tare.
+
+**Întrebat înainte de a scrie o linie** (două variante care duceau la două jocuri diferite): muzica lumii curge înfundată, sau rămâne `sky-lines` de meniu, dar tocită? A ales prima, plus Level Up inclus. Bine că am întrebat — jumătate din muncă era în furculița aia.
+
+### 1. E o MAGISTRALĂ, nu un truc pe boxă
+`audio.gd::_fa_magistrala_muzicii()` construiește din cod o magistrală `Music` (trimite în `Master`) cu un singur `AudioEffectLowPassFilter`. Toate boxele de muzică intră pe ea — inclusiv `_music_vechi`, deci o încrucișare de melodii prinsă de un ESC se înfundă întreagă. Din cod, nu dintr-un `default_bus_layout.tres`: un fișier de layout ar trebui importat de editor înainte să existe, iar scenele de test rulate direct nu importă nimic.
+Coborârea de volum stă pe `set_bus_volume_db`, NU pe `volume_db`-ul boxei — altfel s-ar fi bătut cu tween-urile de fade și cu `duck_music()` din cinematici.
+
+### 2. Cele două capcane din Godot (aici s-a dus jumătate din timp)
+- **`resonance` E factorul Q.** Am pornit de la 0,2, crezând că „mai puțină rezonanță = tăietură mai curată". Măsurat: filtrul supra-amortizat mânca și josurile — **-14 dB la 250 Hz, -24 dB la 500 Hz**, adică muzică subțire și moartă, nu înfundată. **0,707 = Butterworth**: partea de jos rămâne plată, tăietura începe exact de unde o ceri.
+- **`FILTER_6DB` nu e 6 dB/octavă.** Filtrul e în cascadă: măsurat, `FILTER_6DB` dă ~12 dB/oct, iar `FILTER_12DB` ~24 dB/oct (peste 2 kHz nu mai rămâne nimic — sună „sub apă / stricat", nu „prin ușă"). Deci constanta blândă e cea corectă, dinadins.
+
+### 3. Curba, măsurată (nu „sună bine")
+Aceeași secundă din `Overworld Theme`, o dată curat și o dată prin meniu, comparate pe benzi de octavă (`tool_infundat.gd`; poziția e fixată cu `seek`, altfel compari două bucăți diferite de melodie și crezi că e filtrul):
+
+| bandă | 125Hz | 250Hz | 500Hz | 1kHz | 2kHz | 4kHz | 8kHz |
+|---|---|---|---|---|---|---|---|
+| pierdere (dB) | -5,9 | -6,3 | -6,6 | -13,2 | -24,0 | -36,3 | -49,1 |
+
+Adică: bașii și melodia rămân (doar cu cei -6 dB de peste tot), aerul dispare. Ăsta e profilul unui perete — pereții nu opresc sunetul, opresc înaltele. ⚠️ Sub 1 kHz măsurătoarea are ±3 dB de zgomot (muzica are puține note acolo); de la 1 kHz în sus sunt cifre de încredere.
+
+### 4. Tranziția: mătură în OCTAVE, 0,20s la închidere / 0,34s la deschidere
+Frecvența se plimbă logaritmic (`pow(2, -octave * v)`), nu liniar: în herți, primele două cadre ar fi trecut prin cele trei octave de sus și apoi s-ar fi târât prin nimic. Închiderea e mai rapidă decât deschiderea dinadins — la film, întoarcerea la realitate durează mereu mai mult decât ieșirea din ea. Sub ~0,1s nu se mai aude „ușă", ci „întrerupător". Iar când e complet deschis, efectul se **oprește de tot** (`set_bus_effect_enabled(..., false)`): muzica normală trece neatinsă, nu printr-un filtru „deschis".
+
+### 5. ESC: lumea îngheață, muzica nu
+`pause_all()` îngheață doar efectele și ambientul (`stream_paused`, cu poziția păstrată); muzica rămâne să cânte, înfundată, prin `enter_menu_muffle("pause")`. Pauza cu tot sunetul tăiat suna a joc căzut. Măsurat pe meniul adevărat: **1,22 s de muzică peste 1,2 s de pauză**.
+
+### 6. Ce a plecat
+Schimbarea pe `sky-lines` din meniuri (de la 2026-08-22): `enter_menu_music` / `exit_menu_music`, `MUSIC_MENIU`, `MENIU_DB`, `MENIU_FADE` — șterse. Cele două idei nu pot sta împreună: o melodie NOUĂ care intră deja tocită nu se aude ca o ușă închisă, ci ca un fișier stricat. Pușcăria nu s-a atins (`MUSIC_PRISON` e constanta ei). Tabelul `_pozitii` (fiecare melodie ține minte secunda) rămâne — el e cel care face ca înfundatul să nu se simtă ca o întrerupere.
+
+### 7. Verificat rulând
+- `tool_infundat.tscn`: magistralele, curba de mai sus, meniuri suprapuse (filtrul se deschide abia la ultimul închis), revenirea la spectrul inițial (±1 dB la 8 kHz), și schimbarea de scenă cu meniu deschis → filtrul se curăță pe loc (altfel meniul principal ar fi rămas înfundat după un Quit din pauză).
+- Jocul adevărat: `main.tscn` instanțiat într-o scenă de probă, `cere_pauza()` pe meniul de pauză real (cutoff 700 Hz, bus -6 dB, muzica cântă), Resume (filtru oprit, bus 0 dB), apoi un Level Up deschis și ales.
+- ⚠️ **`--check-only --script` NU e o verificare validă** aici: nu încarcă autoload-urile, deci dă „Identifier not found: Audio/GameSettings" pe fișiere perfect sănătoase. Scripturile se compilează cu `load()` dintr-o scenă.
+- ⚠️ Godot **nu reține `stream_paused` pe o boxă care nu cântă** („does not have perfect recall" scrie chiar în sursa lor) — o verificare care numără toate cele 20 de boxe pică degeaba; se numără doar cele care aveau ce îngheța.
+
+### Reglaje (toate în `audio.gd`, secțiunea „Muzica în meniuri")
+`CUTOFF_INFUNDAT` (700 Hz — cât de închisă e ușa), `INFUNDAT_DB` (-6), `INFUNDAT_IN` / `INFUNDAT_OUT` (0,20 / 0,34 s), `FILTRU_PANTA`, `FILTRU_REZONANTA`. Dacă schimbi ceva, rulează din nou `tool_infundat.tscn` și treci cifrele noi în tabel — nu le ghici din curbă.
+
+---
+
 ## Session log — 2026-08-22, seara (atacurile lui SIR JOHN: COMPUSE, nu mărite)
 
 **Cerut de Răzvan:** „Attack-urile vreau sa ramana acelasi size pentru ca isi pierd din calitate, nu le mari, in schimb gandeste-te sa le faci mai complicate in loc de mai mari."

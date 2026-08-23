@@ -161,26 +161,70 @@ const MUSIC_ENDER := "res://audio/Ender Audio/Ender Theme.ogg"
 # vezi `_tine_minte_melodia()`, singurul motiv pentru care lista asta există.
 const MUSIC_DIMENSIUNI := [MUSIC_NETHER, MUSIC_SARATALIN, MUSIC_PRISON, MUSIC_ENDER]
 
-# --- Muzica meniurilor din joc ---
-# Meniurile la care te duci TU (EGT, Alba-Neagra, Dubiosu, masa de trade) taie muzica de fundal
-# și pun `sky-lines` cât stai în ele. Două meniuri nu intră aici, dinadins:
-#  • meniul PRINCIPAL — are tema lui (`MUSIC_MENU`) și pornește mereu de la început;
-#  • **Level Up** — apare des și ține puțin (cerut pe 2026-08-22): muzica lumii curge peste el.
-#    Se adaugă oricând, cu o pereche de `enter_menu_music`/`exit_menu_music` în `levelup.gd`.
-# E același fișier ca melodia pușcăriei, dar scris separat: schimbi muzica meniurilor fără să
-# atingi pușcăria (și invers). Dacă ești CHIAR în pușcărie și deschizi un meniu, nu se aude
-# nicio schimbare — cântă deja melodia cerută, iar `_play_track` nu repornește ce se aude deja.
-const MUSIC_MENIU := "res://audio/Nether Audio/sky-lines.ogg"
-# -12, ca la pușcărie: media fișierului e -9,4 dBFS, deci se aude la -21,4 — exact în familia
-# celorlalte (vezi tabelul de volume mai jos). Meniul oprește jocul, deci muzica rămâne singură
-# pe scenă; n-are nevoie să fie mai tare ca să se audă.
-const MENIU_DB := -12.0
-# Un meniu se deschide INSTANT, deci și muzica trebuie să se schimbe instant: 0,45s de
-# încrucișare, nu cele 3 secunde ale lumii. Cu `FADE` normal, o vizită scurtă (intri la EGT,
-# vezi că n-ai jetoane și ieși) s-ar fi terminat înainte ca `sky-lines` să ajungă la volum —
-# ai fi auzit două fade-uri, nicio melodie.
-# 0,45 e tot fade, nu tăietură: sub ~0,2s tranziția pocnește (se aude unde s-a rupt unda).
-const MENIU_FADE := 0.45
+# --- Muzica în meniuri: „prin ușă" ---
+#
+# Intri într-un meniu (EGT, Alba-Neagra, Dubiosu, masa de trade, Level Up, pauza cu ESC) →
+# melodia care cânta NU se schimbă și nu se oprește: se ÎNFUNDĂ. Adică i se taie înaltele cu un
+# filtru trece-jos și coboară câțiva decibeli, exact cum se aude muzica dintr-o cameră când ai
+# închis ușa. Ieși din meniu → filtrul se deschide la loc și lumea revine în față.
+#
+# De ce așa și nu altfel (cerut de Răzvan pe 2026-08-23):
+#  • **Continuitate.** O melodie care se oprește la deschiderea unui meniu spune „ai apăsat un
+#    buton"; una care rămâne acolo, doar mai departe, spune „lumea te așteaptă afară". Nu ești
+#    într-un alt loc, ești în ACELAȘI loc, cu o hârtie în față.
+#  • **Ce se aude în FAȚĂ.** Înfundatul nu e doar un efect: e loc făcut. Efectele meniului
+#    (clicuri, zaruri, ruletă) merg pe `Master`, nefiltrate — deci ies deasupra muzicii fără să
+#    dai nimic mai tare. Prima regulă a mixajului: nu urci ce vrei să auzi, cobori restul.
+#  • Meniul PRINCIPAL e singurul care rămâne pe dinafară — el ARE tema lui, care e primul lucru
+#    care se aude din joc; n-ai de unde s-o auzi „prin ușă".
+#
+# ⚠️ Până pe 2026-08-23 meniurile astea puneau `sky-lines` peste muzica lumii (`enter_menu_music`
+# / `exit_menu_music`, șterse acum). Cele două idei nu pot sta împreună: o melodie NOUĂ care intră
+# deja tocită nu se aude ca „o ușă închisă", ci ca un fișier stricat. Dacă vrei muzica de meniu
+# înapoi, o rescrii cu `_play_track("res://audio/Nether Audio/sky-lines.ogg", -12.0, 0.45, 0.45)`.
+#
+# --- Cifrele filtrului ---
+# `Music` e o magistrală separată (se face din cod, în `_ready`) cu un singur efect: un trece-jos.
+# Toată muzica intră pe ea; efectele și ambientul rămân pe `Master`, deci filtrul nu le atinge.
+const BUS_MUZICA := "Music"
+# Deschis = practic fără filtru (peste 20 kHz nu mai e nimic de auzit). Efectul e și OPRIT de tot
+# cât stăm aici, ca muzica normală să treacă neatinsă — un filtru „deschis" tot colorează puțin.
+const CUTOFF_DESCHIS := 20000.0
+# Închis. 700 Hz: peste el stă tot ce dă strălucire (cinele, atacul instrumentelor, sfârâitul),
+# sub el bașii și linia melodică — fix ce trece printr-un perete. Mai sus de ~1 kHz nu se mai
+# simte „închis"; mai jos de ~400 Hz muzica devine bâzâit și pare că s-a stricat sunetul.
+const CUTOFF_INFUNDAT := 700.0
+# ⚠️ Panta. `FILTER_6DB` din Godot NU e 6 dB/octavă: filtrul e în cascadă, iar curba MĂSURATĂ
+# (vezi tabelul de mai jos) iese pe la 12 dB/oct. `FILTER_12DB` ajunge la ~24 dB/oct — adică
+# peste 2 kHz nu mai rămâne nimic, iar muzica nu mai sună „prin ușă", ci „sub apă / stricată".
+# Deci treapta de aici e cea blândă, dinadins; nu e o scăpare.
+const FILTRU_PANTA := AudioEffectFilter.FILTER_6DB
+# ⚠️ Rezonanța din Godot E factorul Q, nu „câtă culoare pui". Sub 0,707 filtrul se supra-amortizează
+# și începe să mănânce ȘI din josuri, cu mult înainte de punctul de tăiere (măsurat cu Q=0,2:
+# -14 dB la 250 Hz, -24 dB la 500 Hz — muzica ieșea subțire și moartă, nu înfundată).
+# 0,707 = Butterworth: partea de jos rămâne PLATĂ, tăietura începe exact de unde am cerut-o.
+const FILTRU_REZONANTA := 0.707
+# Și un pic mai încet, pe magistrală. Trece-josul singur ia din tărie, dar urechea citește
+# „departe" abia când scade și nivelul. -6 dB e cât să se retragă un pas, nu cât să dispară.
+const INFUNDAT_DB := -6.0
+#
+# 📐 CURBA MĂSURATĂ (`tool_infundat.gd`, 2026-08-23: același fragment din `Overworld Theme`, o dată
+# curat și o dată prin meniu, comparate pe benzi de octavă — deci ce scrie aici e ce se aude,
+# nu ce ar trebui să iasă pe hârtie). Cu tot cu cei -6 dB de magistrală:
+#
+#   bandă      125Hz  250Hz  500Hz   1kHz   2kHz   4kHz   8kHz
+#   pierdere    -5,9   -6,3   -6,6  -13,2  -24,0  -36,3  -49,1   dB
+#
+# Adică: bașii și melodia rămân (doar coborâte cu cei 6 dB de peste tot), iar tot ce e „aer"
+# dispare treptat. Exact profilul unui perete — pereții nu opresc sunetul, opresc înaltele.
+# ⚠️ Sub 1 kHz măsurătoarea are ±3 dB de zgomot (acolo muzica are puține note); numerele de la
+# 1 kHz în sus sunt cele de încredere. Dacă schimbi cifrele, măsoară din nou — nu ghici din curbă.
+# Cât ține trecerea. Meniul se deschide instant, deci filtrul trebuie să se închidă instant —
+# dar nu BRUSC: sub ~0,1s se aude ca un întrerupător. 0,2s = „ușa s-a închis".
+# Deschiderea e ceva mai lentă (0,34s): la film, revenirea la realitate durează mereu mai mult
+# decât ieșirea din ea. Sunt secunde diferite dinadins, nu din neatenție.
+const INFUNDAT_IN := 0.20
+const INFUNDAT_OUT := 0.34
 
 # --- Gaura de la capătul buclei ---
 # Un fișier de muzică nu se termină fix pe ultima notă: în coadă rămâne liniște (fade-ul de la
@@ -248,6 +292,12 @@ var _music_vechi: AudioStreamPlayer   # boxa melodiei care se stinge acum
 var _tw_in: Tween
 var _tw_out: Tween
 
+# --- Starea filtrului de „înfundat" (vezi secțiunea de constante de mai sus) ---
+var _bus_muzica := 0          # indexul magistralei `Music` în AudioServer
+var _filtru: AudioEffectLowPassFilter
+var _infundat := 0.0          # 0 = deschis (fără filtru), 1 = complet înfundat
+var _tw_infundat: Tween
+
 # Transformă volumul-slider (0..1) în decibeli. 0 = tăcere completă (nu -inf, care ar da erori).
 func _lin_to_db(v: float) -> float:
 	return -80.0 if v <= 0.001 else linear_to_db(v)
@@ -255,6 +305,7 @@ func _lin_to_db(v: float) -> float:
 func _ready() -> void:
 	# rulează chiar și când jocul e pe pauză (ex. la level up)
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_fa_magistrala_muzicii()   # ÎNAINTE de orice boxă: altfel `bus = "Music"` cade pe `Master`
 	# încărcăm o dată fiecare sunet (verificăm întâi că fișierul chiar există,
 	# altfel `load()` umple consola cu erori roșii)
 	for name in SFX:
@@ -483,54 +534,92 @@ func restore_world_music() -> void:
 	# secunda vine singură: `_play_track` pornește melodia de unde a rămas ea (`_pozitii`)
 	_play_track(path, db)
 
-# --- Meniurile din joc (EGT, Alba-Neagra, Dubiosu, trade) ---
-# Intri într-un meniu → muzica de fundal se oprește (ținând minte secunda) și intră `sky-lines`,
-# tot de unde a rămas ea data trecută. Ieși → lumea își reia melodia din același loc.
+# --- Meniurile din joc: muzica se aude „prin ușă" ---
+# (EGT, Alba-Neagra, Dubiosu, masa de trade, Level Up, pauza cu ESC — vezi cifrele și motivele
+# la secțiunea de constante, sus.)
+#
+# Intri într-un meniu → `enter_menu_muffle("cine")`. Ieși → `exit_menu_muffle("cine")`.
+# Melodia nu se schimbă, nu se oprește și nu-și pierde locul: doar i se închide filtrul.
 #
 # De ce cu NUME (`cine`) și nu cu un simplu numărător de meniuri deschise:
 #  • un meniu care își redeschide singur pagina, fără să se închidă între ele, ar urca un
-#    numărător la 2-3, iar ăla nu s-ar mai fi întors niciodată la zero: muzica lumii ar fi rămas
-#    moartă până la runda următoare. Cu nume, zece `enter_menu_music("egt")` înseamnă tot un
-#    meniu. (Level Up-ul chiar face asta — mai multe niveluri deodată, reroll de la Lucky Die —
-#    și tocmai de-aia adăugarea lui aici, dacă se răzgândește cineva, nu poate strica nimic.)
-#  • dacă se deschide un meniu PESTE altul, muzica lumii se întoarce abia când se închide și
+#    numărător la 2-3, iar ăla nu s-ar mai fi întors niciodată la zero: muzica ar fi rămas
+#    înfundată până la runda următoare. Cu nume, zece `enter_menu_muffle("egt")` înseamnă tot un
+#    meniu. (Level Up-ul chiar face asta — mai multe niveluri deodată, reroll de la Lucky Die.)
+#  • dacă se deschide un meniu PESTE altul, filtrul se deschide abia când se închide și
 #    ultimul — nu la primul ESC.
-# Meniul de pauză (ESC) NU e aici: el îngheață tot sunetul pe loc (`pause_all`) și-l dezgheață
-# de unde a rămas. Dacă vrei și acolo `sky-lines`, se cheamă aceleași două funcții din `pause.gd`.
 var _meniuri := {}           # ce meniuri sunt deschise ACUM (nume -> true)
-var _meniu_prev_path := ""   # ce cânta înainte să deschizi primul meniu
-var _meniu_prev_db := 0.0
 
-func enter_menu_music(cine: String) -> void:
+func enter_menu_muffle(cine: String) -> void:
 	var primul := _meniuri.is_empty()
 	_meniuri[cine] = true
 	if not primul:
-		return   # deja suntem pe muzica de meniu
-	# punem deoparte CE cânta; DE UNDE a rămas se salvează singur, la schimbarea melodiei
-	_meniu_prev_path = ""
-	if _music != null and is_instance_valid(_music) and _music.playing and _music_path != MUSIC_MENIU:
-		_meniu_prev_path = _music_path
-		_meniu_prev_db = _music_base_db
-	_play_track(MUSIC_MENIU, MENIU_DB, MENIU_FADE, MENIU_FADE)
+		return   # muzica e deja înfundată de alt meniu → n-o mai înfundăm o dată
+	_seteaza_infundat(1.0, INFUNDAT_IN)
 
-func exit_menu_music(cine: String) -> void:
+func exit_menu_muffle(cine: String) -> void:
 	if not _meniuri.has(cine):
-		return   # meniul ăsta nu ținea muzica (ex. închidere de două ori)
+		return   # meniul ăsta nu ținea filtrul (ex. închidere de două ori)
 	_meniuri.erase(cine)
 	if not _meniuri.is_empty():
-		return   # mai e unul deschis peste → muzica de meniu rămâne
-	if _meniu_prev_path == "":
-		return   # n-avem la ce să ne întoarcem (ex. în pușcărie cânta chiar `sky-lines`)
-	var path := _meniu_prev_path
-	var db := _meniu_prev_db
-	_meniu_prev_path = ""
-	_play_track(path, db, MENIU_FADE, MENIU_FADE)
+		return   # mai e unul deschis peste → rămâne înfundat
+	_seteaza_infundat(0.0, INFUNDAT_OUT)
 
 # Uită meniurile deschise. Se cheamă la schimbările mari de ecran (rundă nouă, meniu principal):
-# scena veche a dispărut cu tot cu meniurile ei, deci n-are cine să mai cheme `exit_menu_music`.
+# scena veche a dispărut cu tot cu meniurile ei, deci n-are cine să mai cheme `exit_menu_muffle`.
+# ⚠️ Filtrul se deschide INSTANT aici (timp 0), nu în 0,34s: la schimbarea scenei nu „iese cineva
+# dintr-un meniu", ci începe alt ecran, cu altă melodie. O deschidere lentă peste primele note
+# ale temei de meniu principal s-ar fi auzit ca și cum jocul pornește cu sunetul stricat.
 func _uita_meniurile() -> void:
 	_meniuri.clear()
-	_meniu_prev_path = ""
+	_seteaza_infundat(0.0, 0.0)
+
+# --- Mecanica filtrului ---
+# Magistrala `Music` se face din cod, nu dintr-un `default_bus_layout.tres`: un fișier de layout
+# în plus ar trebui importat de editor înainte să existe, iar rularea directă a unei scene (cum
+# se verifică jocul ăsta) nu importă nimic. Din cod, magistrala există sigur, oriunde.
+func _fa_magistrala_muzicii() -> void:
+	_bus_muzica = AudioServer.get_bus_index(BUS_MUZICA)
+	if _bus_muzica == -1:
+		_bus_muzica = AudioServer.bus_count
+		AudioServer.add_bus(_bus_muzica)
+		AudioServer.set_bus_name(_bus_muzica, BUS_MUZICA)
+		AudioServer.set_bus_send(_bus_muzica, "Master")   # tot pe Master ajunge, doar că prin filtru
+	# la o repornire „la cald" magistrala poate exista deja, cu filtrul vechi pe ea
+	while AudioServer.get_bus_effect_count(_bus_muzica) > 0:
+		AudioServer.remove_bus_effect(_bus_muzica, 0)
+	_filtru = AudioEffectLowPassFilter.new()
+	_filtru.cutoff_hz = CUTOFF_DESCHIS
+	_filtru.resonance = FILTRU_REZONANTA
+	_filtru.db = FILTRU_PANTA
+	AudioServer.add_bus_effect(_bus_muzica, _filtru)
+	AudioServer.set_bus_effect_enabled(_bus_muzica, 0, false)   # pornim cu ușa deschisă
+	AudioServer.set_bus_volume_db(_bus_muzica, 0.0)
+
+# Duce filtrul spre `tinta` (0 = deschis, 1 = înfundat) în `timp` secunde. `timp = 0` sare direct.
+func _seteaza_infundat(tinta: float, timp: float) -> void:
+	_opreste_tween(_tw_infundat)
+	if _filtru == null:
+		return
+	if timp <= 0.0 or is_equal_approx(_infundat, tinta):
+		_aplica_infundat(tinta)
+		return
+	# ⚠️ Tween-ul pornește de la starea de ACUM, nu de la 0 sau 1: dacă intri într-un meniu în timp
+	# ce filtrul încă se deschidea după cel dinainte, tranziția continuă de unde era — fără salt.
+	_tw_infundat = create_tween()
+	_tw_infundat.tween_method(_aplica_infundat, _infundat, tinta, timp).set_trans(Tween.TRANS_SINE)
+
+# Un pas al tranziției. Frecvența se plimbă în OCTAVE, nu în herți: urechea aude înălțimile
+# logaritmic, iar o alunecare liniară (20000 → 620 Hz) ar fi trecut cele 3 octave de sus în
+# primele două cadre și s-ar fi târât apoi prin nimic. În octave, mătura sună uniformă.
+func _aplica_infundat(v: float) -> void:
+	_infundat = v
+	var octave := log(CUTOFF_DESCHIS / CUTOFF_INFUNDAT) / log(2.0)
+	_filtru.cutoff_hz = CUTOFF_DESCHIS * pow(2.0, -octave * v)
+	AudioServer.set_bus_volume_db(_bus_muzica, INFUNDAT_DB * v)
+	# Filtrul se OPREȘTE de tot când ușa e deschisă: chiar și „deschis" la 20 kHz, un trece-jos
+	# tot îndoaie faza și mănâncă un vârf de înalte. Muzica normală trece neatinsă, ca înainte.
+	AudioServer.set_bus_effect_enabled(_bus_muzica, 0, v > 0.001)
 
 # Oprește muzica STINGÂND-O în `secunde` (implicit FADE). `imediat = true` o taie pe loc (nu se
 # folosește în joc; e acolo pentru cazurile în care chiar vrei liniște instantă).
@@ -547,8 +636,9 @@ func stop_music(imediat: bool = false, secunde: float = FADE) -> void:
 	_stinge(_music, secunde)
 	_music = null   # boxa curentă devine „cea care se stinge"; următoarea melodie primește una nouă
 
-# Stinge o boxă în `secunde` și apoi o oprește. Boxa e reținută în `_music_vechi` ca s-o
-# putem pune pe pauză odată cu restul (ESC) și ca să nu se calce două stingeri una pe alta.
+# Stinge o boxă în `secunde` și apoi o oprește. Boxa e reținută în `_music_vechi` ca să nu se
+# calce două stingeri una pe alta. (Filtrul de meniu o prinde și pe ea: stă pe aceeași
+# magistrală `Music`, deci o încrucișare de melodii apucată de un ESC se înfundă întreagă.)
 func _stinge(p: AudioStreamPlayer, secunde: float = FADE) -> void:
 	if p == null:
 		return
@@ -626,7 +716,7 @@ func _play_track(path: String, volume_db: float, fade_in: float = FADE, fade_out
 		_stinge(_music, fade_out)
 		_music = null
 	_music = AudioStreamPlayer.new()
-	_music.bus = "Master"
+	_music.bus = BUS_MUZICA   # magistrala cu filtrul de „înfundat" (efectele rămân pe Master)
 	_music.process_mode = Node.PROCESS_MODE_ALWAYS  # cântă și pe pauză (ex. meniul de pauză)
 	add_child(_music)
 	var s = load(path)
@@ -788,22 +878,25 @@ func _process(delta: float) -> void:
 	_ambient.volume_db = AMBIENT_DB + _lin_to_db(_ambient_level * GameSettings.sfx_volume)
 
 # --- Pauză globală de sunet (meniul de ESC) ---
-# Îngheață TOT ce se aude acum — muzica, ambientul de pădure și efectele care încă sună —
-# păstrând poziția, ca butonul de pauză de la un player. `stream_paused` (nu `stop`) = la Resume
-# continuă de unde a rămas. Clicurile din meniul de pauză se aud în continuare: `play()`
-# dezgheață boxa pe care o folosește.
+# Îngheață LUMEA: ambientul de pădure și efectele care încă sună, cu poziția păstrată
+# (`stream_paused`, nu `stop` — la Resume continuă de unde a rămas). Clicurile din meniul de
+# pauză se aud în continuare: `play()` dezgheață boxa pe care o folosește.
+#
+# ⚠️ MUZICA nu mai îngheață aici (schimbat pe 2026-08-23). Ea rămâne să cânte, doar înfundată,
+# ca în orice alt meniu — vezi „Muzica în meniuri: «prin ușă»". Motivul e simplu: pauza cu tot
+# sunetul tăiat sună a joc căzut. O melodie care merge mai departe în spatele ușii e singurul
+# lucru care spune „jocul te așteaptă", și e și ce ține ritmul cât stai în meniu.
+# `_uita_meniurile()` (rundă nouă / meniu principal) curăță filtrul, deci un Quit din pauză nu
+# poate lăsa muzica meniului principal înfundată.
 func pause_all() -> void:
 	_seteaza_pauza(true)
+	enter_menu_muffle("pause")
 
 func resume_all() -> void:
 	_seteaza_pauza(false)
+	exit_menu_muffle("pause")
 
 func _seteaza_pauza(pe_pauza: bool) -> void:
-	if _music != null:
-		_music.stream_paused = pe_pauza
-	# și melodia care tocmai se stingea (crossfade în curs când ai apăsat ESC)
-	if _music_vechi != null and is_instance_valid(_music_vechi):
-		_music_vechi.stream_paused = pe_pauza
 	if _ambient != null:
 		_ambient.stream_paused = pe_pauza
 	for p in _players:
