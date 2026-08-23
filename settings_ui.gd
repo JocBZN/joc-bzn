@@ -25,10 +25,24 @@ const BTN_SECOND := ACCENT_STINS       # conturul
 var _remap_action := ""     # ce direcție așteaptă o tastă nouă (gol = nu remapăm acum)
 var _remap_buttons := {}    # action -> butonul care arată tasta
 
+# Ascultarea unui buton de pad (pagina GAMEPAD). E pe cu totul alt drum decât remaparea tastelor:
+# tastele vin ca evenimente, butoanele se CITESC din starea controllerului — vezi `_process`.
+const PAD_ASTEPTARE := 6.0  # câte secunde ascult înainte să renunț singur
+var _remap_pad := ""        # ce rând așteaptă un buton nou (gol = nu ascult acum)
+var _pad_butoane := {}      # action -> butonul care arată ce e legat
+var _pad_timp := 0.0        # cât mai am de ascultat
+var _pad_eliberat := false  # a fost controllerul lăsat liber de când am început să ascult?
+var _pad_dupa := false      # tocmai am legat un buton: mai înghit ce vine până se lasă pad-ul
+
 var _pagini := {}           # nume pagină -> VBoxContainer
 var _taburi := {}           # nume pagină -> butonul din bara de sus
 
 func _ready() -> void:
+	# Ascultarea butonului de pad merge pe `_process`, iar blocul ăsta stă și în meniul de pauză,
+	# unde jocul e OPRIT — fără linia asta numărătoarea ar sta pe loc fix acolo unde e cel mai
+	# probabil să umble omul prin setări.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process(false)
 	add_theme_constant_override("separation", 12)
 	alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(_bara_taburi())
@@ -91,52 +105,135 @@ func _pagina_graphics() -> VBoxContainer:
 	v.add_child(nota)
 	return v
 
-# Pagina CONTROLLERULUI. Are o singură setare (vibrația) și, în rest, SPUNE ce face fiecare buton.
+# Pagina CONTROLLERULUI: ce controller e conectat, vibrația, și BUTOANELE — fiecare cu rândul lui,
+# de schimbat.
 #
-# De ce o listă scrisă, nu rânduri de remapare ca la taste: pe pad butoanele stau pe convenția
-# consolelor (A confirmă, B iese, START pune pauză), iar mersul e pe aceleași acțiuni ca WASD, deci
-# remaparea de pe pagina KEYBINDS le mută pe amândouă. Ce lipsea era altceva — un loc în care
-# jucătorul să vadă din prima că jocul CHIAR are controller și că i-a fost recunoscut al lui.
+# Se schimbă exact ca tastele de pe pagina KEYBINDS (apeși rândul, apoi butonul nou), doar că
+# ascultarea se face cu totul altfel — vezi `_process`. MERSUL nu are rând de schimbat: stick-ul
+# stâng și crucea sunt ȘI navigarea prin meniuri, deci mutarea lor ar fi însemnat un meniu prin
+# care nu mai poți umbla — adică exact ecranul din care ai fi vrut să repari greșeala.
 func _pagina_gamepad() -> VBoxContainer:
 	var v := _pagina_goala()
 	# rândul de sus: ce controller e conectat (se actualizează singur — vezi `_reimprospateaza_pad`)
 	_pad_nume = _center_label("", 20)
 	v.add_child(_pad_nume)
-	v.add_child(_spacer(6))
-	v.add_child(_toggle_row("VIBRATION", GameSettings.vibration, _on_vibration))
-	v.add_child(_spacer(6))
-	v.add_child(_center_label("BUTTONS", 26))
 	v.add_child(_spacer(4))
-	for r in [
-		{"eticheta": "MOVE",     "cheie": ""},
-		{"eticheta": "INTERACT", "cheie": "interact"},
-		{"eticheta": "SELECT",   "cheie": "accept"},
-		{"eticheta": "BACK",     "cheie": "back"},
-		{"eticheta": "PAUSE",    "cheie": "pause"},
-	]:
-		var rand := _info_row(r["eticheta"], "")
-		_pad_randuri.append({"nod": rand, "cheie": r["cheie"]})
-		v.add_child(rand)
+	v.add_child(_toggle_row("VIBRATION", GameSettings.vibration, _on_vibration))
+	v.add_child(_spacer(4))
+	v.add_child(_center_label("BUTTONS", 26))
+	v.add_child(_info_row("MOVE", "Stick / D-Pad"))
+	for action in Gamepad.PAD_ACTIONS:
+		v.add_child(_pad_row(action))
+	v.add_child(_spacer(4))
+	v.add_child(_reset_row())
 	_reimprospateaza_pad()
 	# numele controllerului și literele de pe butoane depind de ce e băgat în priză ACUM
 	Input.joy_connection_changed.connect(func(_d, _c): _reimprospateaza_pad())
 	return v
 
 var _pad_nume: Label
-var _pad_randuri: Array = []      # {"nod": rândul, "cheie": ce buton scrie în dreapta}
 
-# Scrie numele controllerului conectat și literele potrivite pe fiecare rând (A pe Xbox, ✕ pe
-# PlayStation). Fără controller, lista rămâne pe convenția Xbox — e ce vede oricine deschide
-# pagina din curiozitate, nu un ecran gol.
+# „INTERACT  [ A / X ]" — butonul din dreapta intră în ascultare la apăsare.
+func _pad_row(action: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var l := Label.new()
+	l.text = Gamepad.PAD_ACTIONS[action]["eticheta"]
+	l.custom_minimum_size = Vector2(160, 0)
+	l.add_theme_font_size_override("font_size", 22)
+	row.add_child(l)
+	var b := _buton(Gamepad.nume_coduri(action), 20, Vector2(180, 32))
+	b.pressed.connect(_begin_remap_pad.bind(action))
+	_pad_butoane[action] = b
+	row.add_child(b)
+	return row
+
+# Un singur buton, centrat sub listă: pune butoanele înapoi cum erau din fabrică. E plasa de
+# siguranță a paginii — cine își încurcă legăturile pe un controller ciudat iese de aici fără să
+# fie nevoit să-și amintească ce a legat unde.
+func _reset_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var b := _buton("RESET", 18, Vector2(180, 28))
+	b.pressed.connect(_on_reset_pad)
+	row.add_child(b)
+	return row
+
+func _on_reset_pad() -> void:
+	cancel_remap()
+	Audio.play("button", -3.0, 0.0)
+	Gamepad.reseteaza_butoanele()
+	_reimprospateaza_pad()
+
+# Intră în ascultare pentru un rând. De aici mai departe lucrează `_process`.
+func _begin_remap_pad(action: String) -> void:
+	cancel_remap()
+	_remap_pad = action
+	_pad_timp = PAD_ASTEPTARE
+	_pad_eliberat = false
+	_pad_butoane[action].text = "%d" % ceili(_pad_timp)
+	# ⚠️ „press a button…" se scrie pe rândul de SUS, nu pe buton. Butonul are 180px ficși, iar
+	# rândurile sunt HBox-uri CENTRATE: un text lung îl lățește, împinge eticheta din stânga și
+	# strâmbă toată coloana (aceeași capcană e scrisă și la `_info_row`). Sus e loc, e centrat, și
+	# se vede mai bine decât într-o casetă cât un buton — iar pe buton rămâne numărătoarea, care
+	# spune singură că se poate și renunța.
+	_pad_nume.text = tr("press a button…")
+	_pad_nume.add_theme_color_override("font_color", ACCENT_CLAR)
+	set_process(true)
+
+# Ascultarea butonului nou. Trei lucruri, fiecare învățat pe pielea altcuiva:
+#
+# 1. ÎNTÂI aștept controllerul LIBER. Rândul din meniu se apasă tot cu A (sau cu ce e legat pe
+#    „confirmă"), deci fără pasul ăsta prima citire ar fi găsit chiar butonul care tocmai a
+#    deschis ascultarea și l-ar fi legat pe el însuși, instantaneu, fără ca omul să apuce să
+#    citească „press a button…".
+# 2. CITESC starea pad-ului, nu aștept evenimente (`Gamepad.cod_apasat`). Motivul e scris pe larg
+#    în `gamepad.gd`: apăsarea se consumă la butonul care are focus și nu mai ajunge nicăieri.
+# 3. Se renunță SINGUR după `PAD_ASTEPTARE` secunde, cu numărătoarea scrisă pe rând. Pe un
+#    controller nu poate exista „apasă Escape ca să lași": orice buton ai apăsa, ăla se leagă.
+#    Singura ieșire onestă e să nu apeși nimic — și trebuie să se și VADĂ că e o ieșire.
+func _process(delta: float) -> void:
+	# după ce am legat un buton, mai înghit ce vine până se lasă controllerul din mână: altfel
+	# butonul proaspăt pus pe „confirmă" ar apăsa, la ridicare, chiar rândul de sub cursor
+	if _pad_dupa:
+		if Gamepad.pad_liber():
+			_pad_dupa = false
+			set_process(false)
+		return
+	if _remap_pad == "":
+		set_process(false)
+		return
+	if not _pad_eliberat:
+		_pad_eliberat = Gamepad.pad_liber()
+		return
+	var cod := Gamepad.cod_apasat()
+	if cod != -1:
+		var action := _remap_pad
+		_remap_pad = ""
+		_pad_dupa = true
+		Gamepad.remapeaza(action, cod)
+		Audio.play("button", -3.0, 0.0)
+		_reimprospateaza_pad()
+		return
+	_pad_timp -= delta
+	if _pad_timp <= 0.0:
+		cancel_remap()
+		return
+	_pad_butoane[_remap_pad].text = "%d" % ceili(_pad_timp)
+
+# Scrie numele controllerului conectat și butonul de pe fiecare rând, cu literele potrivite (A pe
+# Xbox, ✕ pe PlayStation). Fără controller, lista rămâne pe convenția Xbox — e ce vede oricine
+# deschide pagina din curiozitate, nu un ecran gol.
 func _reimprospateaza_pad() -> void:
 	if _pad_nume == null or not is_instance_valid(_pad_nume):
 		return
 	var nume := Gamepad.nume_pad()
 	_pad_nume.text = nume if nume != "" else tr("No controller connected")
 	_pad_nume.add_theme_color_override("font_color", ACCENT_CLAR if nume != "" else Color(0.62, 0.58, 0.56))
-	for r in _pad_randuri:
-		var val: Label = r["nod"].get_child(1)
-		val.text = "Stick / D-Pad" if r["cheie"] == "" else Gamepad.nume_pad_buton(r["cheie"])
+	for action in _pad_butoane:
+		if action != _remap_pad:   # rândul care ascultă acum își ține textul lui
+			_pad_butoane[action].text = Gamepad.nume_coduri(action)
 
 # „Etichetă      valoare" — ca `_key_row`, dar valoarea e un text, nu un buton: aici nu se apasă
 # nimic. Un buton care nu face nimic ar fi fost cea mai bună cale de a-l pune pe jucător să dea
@@ -205,8 +302,20 @@ func arata_pagina(nume: String) -> void:
 	for n in _taburi:
 		_stil_tab(_taburi[n], n == nume)
 
-# Cât timp remapăm, următoarea tastă apăsată devine noua comandă (Escape = renunț).
+# Cât timp remapăm, următoarea apăsare devine noua comandă (Escape = renunț).
 func _input(event: InputEvent) -> void:
+	if _remap_pad != "" or _pad_dupa:
+		# Cât ascult un buton de pad, TOT ce vine de la controller e al meu. Dacă l-aș lăsa să
+		# treacă, B ar închide meniul de dedesubt și crucea ar muta focusul pe alt rând fix cât
+		# ascult. Butonul îl citesc din starea pad-ului (`_process`), nu din evenimentul ăsta,
+		# deci nu pierd nimic înghițindu-le pe toate.
+		if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+			get_viewport().set_input_as_handled()
+			return
+		if event is InputEventKey and event.pressed and not event.echo:
+			get_viewport().set_input_as_handled()
+			cancel_remap()   # de la tastatură nu se leagă butoane de pad: orice tastă = „lasă"
+			return
 	if _remap_action == "":
 		return
 	# Pe controller nu se remapează taste (n-are ce tastă să dea), deci ORICE buton de pad apăsat
@@ -224,11 +333,18 @@ func _input(event: InputEvent) -> void:
 		_remap_buttons[_remap_action].text = GameSettings.key_name(_remap_action)
 		_remap_action = ""
 
-# Anulează o remapare în curs (chemat când se închide pagina de settings).
+# Anulează o remapare în curs — de tastă SAU de buton de pad (chemat când se închide pagina de
+# settings și când se schimbă tabul).
 func cancel_remap() -> void:
 	if _remap_action != "" and _remap_buttons.has(_remap_action):
 		_remap_buttons[_remap_action].text = GameSettings.key_name(_remap_action)
 	_remap_action = ""
+	if _remap_pad != "" and _pad_butoane.has(_remap_pad):
+		_pad_butoane[_remap_pad].text = Gamepad.nume_coduri(_remap_pad)
+	_remap_pad = ""
+	_reimprospateaza_pad()   # rândul de sus scrie iar numele controllerului, nu instrucțiunea
+	_pad_dupa = false
+	set_process(false)
 
 # ---------- rânduri ----------
 # „Etichetă  [====slider====]"

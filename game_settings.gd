@@ -75,11 +75,19 @@ const FIX_ACTIONS := {
 }
 
 # --- controller ---
-# Vibrația se poate stinge din Settings → pagina GAMEPAD. E singura setare de pad care are rost
-# să existe: butoanele stau pe convenția consolelor (A confirmă, B iese, START pune pauză), iar
-# stick-ul e pe aceleași acțiuni ca WASD, deci remaparea tastelor le acoperă pe amândouă.
-# Tot ce ține de pad e în `gamepad.gd`; aici stă doar valoarea salvată.
+# Vibrația se stinge din Settings → pagina GAMEPAD. Tot acolo se schimbă și BUTOANELE: ce a ales
+# jucătorul stă în `padbinds`, restul rămâne pe implicitele din `Gamepad.PAD_ACTIONS`.
+#
+# Formatul: acțiune -> listă de coduri. „Acțiune" e numele din InputMap („interact", „ui_accept",
+# „ui_cancel", „pause"), iar codul e un JOY_BUTTON_* sau, peste 1000, un declanșator (vezi
+# `Gamepad.COD_AXA`). Se salvează DOAR ce a schimbat omul: o salvare veche, sau una făcută
+# înainte ca butonul X să existe pe controllere, se citește liniștit — cheia lipsă înseamnă
+# „cum era din fabrică", nu „fără buton".
+#
+# ⚠️ Tot ce ține de pad (ce se poate lega, ce se bate cu ce, cum se cheamă butonul pe ecran) e în
+# `gamepad.gd`. Aici stau doar valorile salvate și drumul lor spre InputMap.
 var vibration: bool = true
+var padbinds: Dictionary = {}
 
 # Upgrade-urile permanente din meniu (ecranul UPGRADES): efect pe nivel, cost de bază, nivel maxim.
 const META := [
@@ -99,6 +107,7 @@ func _ready() -> void:
 		or mod == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
 	_load()
 	_setup_actions()   # după _load, ca să folosim tastele salvate dacă există
+	Gamepad.aplica_butoane()   # butoanele de pad de pe „ui_accept"/„ui_cancel" (vezi `set_padbinds`)
 	aplica_grafica()
 
 # --- taste ---
@@ -186,6 +195,18 @@ func set_vibration(on: bool) -> void:
 	vibration = on
 	if not on:
 		Gamepad.opreste_vibratia()
+	_save()
+
+# Butoanele de pad, schimbate din Settings (le trimite `Gamepad.remapeaza()` / `reseteaza_butoanele()`).
+#
+# ⚠️ Se fac AMÂNDOUĂ drumurile, fiindcă butoanele ajung în InputMap pe două căi: acțiunile
+# jocului („interact", „pause") prin `_setup_actions()` → `Gamepad.leaga_pad()`, iar
+# „ui_accept"/„ui_cancel" prin `aplica_butoane()` — alea sunt acțiuni ale MOTORULUI și nu trec
+# niciodată pe la `_bind()`. Cu unul singur, ai fi rămas cu meniul remapat și jocul nu.
+func set_padbinds(noi: Dictionary) -> void:
+	padbinds = noi
+	_setup_actions()
+	Gamepad.aplica_butoane()
 	_save()
 
 # --- OP start ---
@@ -291,6 +312,7 @@ func _save() -> void:
 		f.store_var({
 			"scores": scores, "coins": coins, "upgrades": upgrades,
 			"music_volume": music_volume, "sfx_volume": sfx_volume, "keybinds": keybinds,
+			"padbinds": padbinds,
 			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
 			"heat_haze": heat_haze,
 			"language": language, "op_start": op_start, "vibration": vibration,
@@ -310,6 +332,8 @@ func _load() -> void:
 		music_volume = float(data.get("music_volume", music_volume))
 		sfx_volume = float(data.get("sfx_volume", sfx_volume))
 		keybinds = data.get("keybinds", {})
+		# salvare de dinainte de remaparea butoanelor de pad (2026-08-23) → rămân cele din fabrică
+		padbinds = data.get("padbinds", {})
 		# `fullscreen` are ca implicit ce-a citit `_ready()` din fereastra reală, nu `false`
 		fullscreen = bool(data.get("fullscreen", fullscreen))
 		vsync = bool(data.get("vsync", vsync))

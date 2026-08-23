@@ -99,6 +99,10 @@ const TRAD := {
 "PAUSE": ["暂停", "PAUSE", "PAUSA", "ПАУЗА", "PAUSE", "ポーズ", "PAUZA", "DURAKLAT"],
 "No controller connected": ["未连接手柄", "Kein Controller verbunden", "Ningún mando conectado", "Геймпад не подключён", "Aucune manette connectée", "コントローラー未接続", "Nie podłączono pada", "Oyun kolu bağlı değil"],
 "Stick / D-Pad": ["摇杆 / 十字键", "Stick / D-Pad", "Stick / Cruceta", "Стик / D-Pad", "Stick / Croix", "スティック / 十字キー", "Drążek / D-Pad", "Çubuk / D-Pad"],
+# butoanele de pad se schimbă din 2026-08-23: rândul apăsat așteaptă un buton, iar RESET pune tot
+# ce ține de controller înapoi cum era din fabrică
+"press a button…": ["按一个按钮…", "Knopf drücken…", "pulsa un botón…", "нажми кнопку…", "appuie sur un bouton…", "ボタンを押して…", "naciśnij przycisk…", "bir düğmeye bas…"],
+"RESET": ["重置", "ZURÜCKSETZEN", "RESTABLECER", "СБРОС", "RÉINIT.", "リセット", "RESETUJ", "SIFIRLA"],
 "ON": ["开", "AN", "SÍ", "ВКЛ", "OUI", "オン", "WŁ", "AÇIK"],
 "OFF": ["关", "AUS", "NO", "ВЫКЛ", "NON", "オフ", "WYŁ", "KAPALI"],
 "press a key…": ["按一个键…", "Taste drücken…", "pulsa una tecla…", "нажми клавишу…", "appuie sur une touche…", "キーを押して…", "naciśnij klawisz…", "bir tuşa bas…"],

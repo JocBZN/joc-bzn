@@ -18,10 +18,60 @@ Quick rules:
 - **⚠️ Și un test care schimbă ceva în `GameSettings` DOAR ÎN RAM poate ajunge în salvarea reală** (prins pe 2026-08-04 cu `op_start`): jocul cheamă `_save()` de la sine, iar `_save()` scrie TOATE valorile din memorie. Deci: ori nu atingi `GameSettings` înainte să pornești `main.tscn`, ori pui valoarea înapoi ȘI salvezi. Verifică la final ce-a rămas în fișier.
 - **Uneltele care au nevoie de autoload-uri se rulează ca SCENĂ, nu cu `--script`** — altfel dau „Identifier not found: GameSettings".
 - **Generator nou în `World` (main.tscn) → trece-l în `WORLD_NODES` din `nether.gd`, `limbo.gd`, `ender.gd` ȘI `prison.gd`** (a patra listă din 2026-08-17). Sunt patru liste separate; dacă lipsește dintr-una, generatorul rămâne aprins acolo și-i vezi obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de trei ori (EGT-uri, portaluri). **Singura excepție (din 2026-08-14): `Dubiosi`** — omul în palton apare NUMAI în Nether, deci lipsește dinadins din lista lui `nether.gd`, iar regula lui e scrisă invers, la el în generator (`dubiosi.gd` se uită la `nether.active` și se golește singur când nu ești acolo). În `limbo.gd` și `ender.gd` e trecut normal.
-- **Ecran nou cu butoane → controllerul merge din prima, dar verifică două lucruri** (suport de pad din 2026-08-20, `gamepad.gd`): (1) ecranul să fie un **CanvasLayer** cu `layer` mai mare decât ce e sub el — după `layer` decide `Gamepad` unde stă cursorul, nu după o listă scrisă de mână; (2) dacă butonul de pe care trebuie să pornească nu e primul din arbore, marchează-l cu **`Gamepad.primul(buton)`** (ca START în meniu și Resume în pauză). Aprinderea de focus, semnalele de mouse și inelul de aramă vin singure, pentru orice `Button`. **Text nou care numește o tastă** se scrie cu `Gamepad.nume_buton("actiune")`, nu cu `GameSettings.key_name()` — altfel scrie „E" și cu controllerul în mână.
+- **Ecran nou cu butoane → controllerul merge din prima, dar verifică două lucruri** (suport de pad din 2026-08-20, `gamepad.gd`): (1) ecranul să fie un **CanvasLayer** cu `layer` mai mare decât ce e sub el — după `layer` decide `Gamepad` unde stă cursorul, nu după o listă scrisă de mână; (2) dacă butonul de pe care trebuie să pornească nu e primul din arbore, marchează-l cu **`Gamepad.primul(buton)`** (ca START în meniu și Resume în pauză). Aprinderea de focus, semnalele de mouse și inelul de aramă vin singure, pentru orice `Button`. **Text nou care numește o tastă** se scrie cu `Gamepad.nume_buton("actiune")`, nu cu `GameSettings.key_name()` — altfel scrie „E" și cu controllerul în mână — iar de pe 2026-08-23 `nume_buton` scrie și butonul REMAPAT (butoanele de pad se schimbă din Settings → GAMEPAD, vezi `PAD_ACTIONS`), deci un tabel scris de mână ar minți. Acțiune nouă care merită un buton de pad → un rând în `PAD_ACTIONS`, cu `unde` pus corect („joc" / „meniu"), și apare singură în meniu.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
 
 ---
+
+## Session log — 2026-08-23, noaptea (butoanele de controller se schimbă din meniu)
+
+**Cerut de Răzvan:** „Vreau sa poti sa customizezi butoanele de la gamepad."
+
+**Atinse:** `gamepad.gd` (`PAD_ACTIONS` + toată remaparea), `game_settings.gd` (`padbinds`, salvat pe disc), `settings_ui.gd` (pagina GAMEPAD, din listă de citit în listă de schimbat), `i18n.gd` (două texte noi). **Fișiere noi, păstrate:** `tool_gamepad.gd` / `.tscn`.
+
+### Ce poate face jucătorul
+În Settings → GAMEPAD, fiecare din cele patru acțiuni are acum un buton pe care apeși, după care apeși pe controller butonul nou. Se schimbă pe loc și se salvează.
+
+| rând | din fabrică | se poate pune pe |
+|---|---|---|
+| INTERACT | A / X | orice buton, plus LT/RT |
+| SELECT (`ui_accept`) | A | idem |
+| BACK (`ui_cancel`) | B | idem |
+| PAUSE | START | idem |
+| MOVE | stick + cruce | **nu se schimbă** (vezi mai jos) |
+
+Sub listă e un **RESET** care pune tot înapoi cum era din fabrică. Ce scrie jocul pe ecran („Press A to interact") se ia acum din ce e CHIAR legat, nu dintr-un tabel fix — deci se schimbă odată cu butonul.
+
+### 1. Regula care nu te poate închide într-un meniu
+Două acțiuni se bat cap în cap **doar dacă se folosesc în același loc** (`unde` din `PAD_ACTIONS`: „joc" / „meniu"). De-aia `interact` și `ui_accept` pot sta amândouă pe A — asta e chiar setarea din fabrică și e corectă: în joc nu e niciun meniu deschis, în meniu n-ai ce interacționa. `ui_accept` și `ui_cancel`, în schimb, trăiesc pe același ecran.
+
+Când butonul cerut e luat de o acțiune cu care se bate:
+- i-l luăm — dacă ăleia îi mai rămâne unul, gata (pui PAUSE pe X, iar INTERACT rămâne pe A);
+- dacă ar rămâne pe zero, primește în schimb butonul tocmai eliberat (pui SELECT pe B, iar BACK se mută pe A, de unde a plecat SELECT).
+
+Așa **nicio acțiune nu poate rămâne fără buton**. Pe tastatură o legătură pierdută se repară cu altă tastă; pe controller, dacă rămâi fără „confirmă" în meniu, nu mai ai cu ce ieși din el. Testul verifică invariantul ăsta după cinci remapări încrucișate.
+
+**Nu se pot lega** crucea (e mers ȘI navigare prin meniuri — pusă pe „confirmă", ar apăsa exact butonul peste care tocmai a ajuns) și butonul de acasă (e al sistemului). Stick-ul nici atât. Se pot lega, în schimb, **declanșatoarele**: pentru Godot alea sunt AXE, nu butoane, deci au coduri de la 1000 în sus (`COD_AXA + axa`) și, la legare, urcă pragul acțiunii la 0.7 — `ui_accept` vine din motor cu deadzone 0.2, iar un declanșator care stă la 0.25 în repaus (drivere de clonă) ar fi apăsat „confirmă" singur, la nesfârșit.
+
+### 2. Ascultarea butonului nou: se CITEȘTE starea pad-ului
+Nu se așteaptă evenimente. Motivul e același cu cel scris deja la `_asculta_padul` pe 2026-08-20: apăsarea ajunge întâi la butonul care are focus (pe pad, A = „apasă butonul focusat") și se consumă acolo — ascultarea ar fi așteptat un eveniment care nu mai vine. Trei paznici în jurul ei:
+- **întâi controllerul liber**: rândul se apasă tot cu A, deci fără pasul ăsta prima citire ar fi legat A pe el însuși, instantaneu;
+- **cât ascult, înghit tot ce vine de la controller** (`_input` + `set_input_as_handled`): altfel B ar fi închis meniul de dedesubt și crucea ar fi mutat focusul fix cât ascult;
+- **după ce am legat**, mai înghit până se lasă controllerul din mână: butonul proaspăt pus pe „confirmă" ar fi apăsat, la ridicare, chiar rândul de sub cursor.
+Și se renunță singur după 6 secunde: pe controller nu poate exista „apasă Escape ca să lași" — orice buton ai apăsa, ăla se leagă. Singura ieșire onestă e să nu apeși nimic, iar numărătoarea de pe rând o face vizibilă.
+
+### 3. „press a button…" se scrie SUS, nu pe buton
+Prima variantă îl scria pe rândul care ascultă. Butonul are 180px ficși, rândurile sunt HBox-uri centrate — textul lung l-a lățit, a împins eticheta din stânga și **toată coloana a ieșit strâmbă** (aceeași capcană e scrisă din iulie la `_info_row`, tot acolo). Prins pe poză. Acum instrucțiunea stă pe rândul de sus al paginii (ăla cu numele controllerului, centrat, cu loc), iar pe buton curge numărătoarea.
+
+### 4. Ordinea autoload-urilor, încă o dată
+`ui_accept` / `ui_cancel` sunt acțiuni ale MOTORULUI: nu trec niciodată prin `GameSettings._bind()`. Le pune `Gamepad.aplica_butoane()`, chemat din `GameSettings._ready()` **după `_load()`** — fiindcă „Gamepad" e primul autoload, deci la `_ready`-ul lui setările încă nu s-au citit de pe disc. Tot acolo se șterg întâi evenimentele de pad puse de motor: fără asta, A ar fi rămas legat pe lângă butonul nou și ai fi avut două butoane de confirmare, din care unul nu apare nicăieri în meniu.
+
+### 5. Verificat rulând (`tool_gamepad.tscn`, păstrată)
+62 de verificări, toate verzi: legăturile din fabrică ajung chiar în `InputMap` (nu doar în dicționar), schimbul de butoane, invariantul „niciun rând fără buton", declanșatoarele, butoanele interzise, RESET-ul, salvarea pe disc — **și capătul celălalt**: bagă în motor un eveniment de controller și întreabă dacă acțiunea s-a aprins (Y aprinde `ui_accept` după remapare, RT aprinde `interact`, un declanșator atins ușor la 0.3 nu aprinde nimic). Partea a șasea deschide meniul adevărat și verifică pe poză că pagina, cu rândurile noi, **încape în ramă** (y=26..621 din 648).
+
+**⚠️ Două capcane:**
+1. **`Input.parse_input_event` nu se vede imediat.** Godot adună evenimentele și le dă drumul la începutul cadrului următor, deci `is_action_pressed` de pe rândul următor răspunde despre cadrul TRECUT — două verificări au picat cu codul sănătos. Leacul: `Input.flush_buffered_events()` între ele.
+2. **Testul scrie în salvarea adevărată** (fiecare remapare cheamă `GameSettings._save()`, care scrie TOT ce e în memorie — regula e deja în „Quick rules"). De-aia primul lucru pe care-l face unealta e o **copie pe octeți** a fișierului, iar ultimul o pune la loc și verifică bit cu bit că e aceeași (1172 octeți, la fel). Fără asta, o rulare de test rămânea în butoanele lui Răzvan.
 
 ## Session log — 2026-08-23, seara (moartea: un CERC care se închide peste tine, cu sunet croit pe el)
 

@@ -13,9 +13,9 @@ extends Node
 #
 # ⚠️ Autoload-ul ăsta e PRIMUL din listă, înaintea lui `GameSettings`. Motivul e la `leaga_pad()`.
 #
-# Ce NU face: nu remapează butoanele de pad din meniu (stick-ul și crucea sunt pe mers, A e pe
-# „folosește", B pe „înapoi" — convenția pe care o știe orice jucător) și nu desenează iconițe
-# de buton, ci le scrie cu litere, cu numele consolei potrivite (A pe Xbox, ✕ pe PlayStation).
+# Ce NU face: nu desenează iconițe de buton, ci le scrie cu litere, cu numele consolei potrivite
+# (A pe Xbox, ✕ pe PlayStation). Stick-ul stâng și crucea rămân pe mers și pe navigare orice ar
+# fi — restul butoanelor se schimbă din Settings → GAMEPAD (vezi `PAD_ACTIONS` și `remapeaza()`).
 
 # Cât trebuie împins stick-ul ca să conteze. 0.22 fiindcă un stick uzat de Xbox stă rar fix pe 0:
 # sub prag, player-ul ar aluneca singur încet într-o parte cât ține mâna departe de controller.
@@ -34,13 +34,36 @@ const META_PRIM := "focus_prim"
 # controller inelul ăsta ține locul cursorului, deci n-are voie să semene cu nimic altceva.
 const FOCUS_MUCHIE := Color8(255, 190, 130)
 
-# Butoanele de pad puse pe acțiunile JOCULUI (pe lângă tastele din `GameSettings.KEY_ACTIONS`).
-# A = folosește, START = pauză. X e al doilea buton de interacțiune fiindcă degetul mare stă
-# oricum pe el la jocurile astea, iar A e și „confirmă" în meniuri.
-const PAD_BUTOANE := {
-	"interact": [JOY_BUTTON_A, JOY_BUTTON_X],
-	"pause": [JOY_BUTTON_START],
+# Butoanele de pad care se pot SCHIMBA din Settings → GAMEPAD. Pentru fiecare: ce scrie pe rândul
+# lui în meniu, pe ce butoane stă din fabrică și în ce context se folosește.
+#
+# `unde` e cheia întregii remapări: două acțiuni se bat cap în cap doar dacă se folosesc în
+# ACELAȘI loc. „interact" (în joc) și „ui_accept" (în meniuri) pot sta liniștite amândouă pe A —
+# asta e chiar setarea din fabrică, și e bună: în joc nu e niciun meniu deschis, iar în meniu
+# n-ai ce interacționa. „ui_accept" și „ui_cancel", în schimb, trăiesc pe același ecran.
+#
+# ⚠️ Ordinea contează: în ea se desenează rândurile din Settings.
+const PAD_ACTIONS := {
+	"interact":  {"eticheta": "INTERACT", "implicit": [JOY_BUTTON_A, JOY_BUTTON_X], "unde": ["joc"]},
+	"ui_accept": {"eticheta": "SELECT",   "implicit": [JOY_BUTTON_A],               "unde": ["meniu"]},
+	"ui_cancel": {"eticheta": "BACK",     "implicit": [JOY_BUTTON_B],               "unde": ["meniu"]},
+	"pause":     {"eticheta": "PAUSE",    "implicit": [JOY_BUTTON_START],           "unde": ["joc", "meniu"]},
 }
+
+# Butoanele pe care NU le dăm la schimbat: crucea (e mers ȘI navigare prin meniuri — pusă pe
+# „confirmă", ar apăsa exact butonul peste care tocmai a ajuns) și butonul de acasă, care e al
+# sistemului, nu al jocului (pe Windows deschide bara de joc, nu ajunge niciodată la noi).
+const INTERZISE := [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT,
+	JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_GUIDE]
+
+# Declanșatoarele (LT/RT, L2/R2) nu sunt butoane pentru Godot, ci AXE. Ca să poată sta în aceeași
+# listă cu butoanele — și în același rând din meniu — le dăm coduri de la 1000 în sus:
+# 1000 + numărul axei. Un cod peste 1000 înseamnă „declanșator", orice altceva e buton.
+const COD_AXA := 1000
+# De la cât în sus zicem că un declanșator e apăsat. Nu e prag de gust: pe unele drivere axele
+# 4-5 stau la valori mici cât nu le atinge nimeni (vezi `_pad_e_atins`), iar 0.7 e destul de sus
+# cât să nu se lege singur un buton în timp ce jucătorul ține controllerul în poală.
+const TRAGACI_APASAT := 0.7
 
 # Mersul: stick-ul stâng ȘI crucea, pe aceleași acțiuni ca WASD. Stick-ul e ANALOG — cu cât îl
 # împingi mai puțin, cu atât mergi mai încet (vezi `player.gd`, `Input.get_vector`).
@@ -51,11 +74,28 @@ const PAD_MISCARE := {
 	"move_down":  {"axa": JOY_AXIS_LEFT_Y, "spre":  1.0, "cruce": JOY_BUTTON_DPAD_DOWN},
 }
 
-# Ce scrie pe ecran pentru fiecare acțiune, pe fiecare fel de controller. Godot numește butoanele
+# Ce scrie pe ecran pentru fiecare BUTON, pe fiecare fel de controller. Godot numește butoanele
 # după Xbox (JOY_BUTTON_A = butonul de jos-dreapta), iar pe PlayStation ăla e ✕.
-const NUME_BUTOANE := {
-	"xbox": {"interact": "A", "accept": "A", "back": "B", "pause": "START"},
-	"ps":   {"interact": "✕", "accept": "✕", "back": "◯", "pause": "OPTIONS"},
+#
+# ⚠️ Tabelul e pe COD, nu pe acțiune (cum era până la remapare): butonul scris în joc („apasă A ca
+# să folosești") se ia acum din ce are jucătorul CHIAR legat, nu dintr-un tabel care presupunea că
+# A rămâne pe „folosește" pentru totdeauna.
+const NUME_COD := {
+	"xbox": {
+		JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
+		JOY_BUTTON_BACK: "VIEW", JOY_BUTTON_START: "START",
+		JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB",
+		JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
+		COD_AXA + JOY_AXIS_TRIGGER_LEFT: "LT", COD_AXA + JOY_AXIS_TRIGGER_RIGHT: "RT",
+	},
+	"ps": {
+		JOY_BUTTON_A: "✕", JOY_BUTTON_B: "◯", JOY_BUTTON_X: "▢", JOY_BUTTON_Y: "△",
+		JOY_BUTTON_BACK: "SHARE", JOY_BUTTON_START: "OPTIONS",
+		JOY_BUTTON_LEFT_SHOULDER: "L1", JOY_BUTTON_RIGHT_SHOULDER: "R1",
+		JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
+		JOY_BUTTON_TOUCHPAD: "TOUCH",
+		COD_AXA + JOY_AXIS_TRIGGER_LEFT: "L2", COD_AXA + JOY_AXIS_TRIGGER_RIGHT: "R2",
+	},
 }
 
 signal dispozitiv_schimbat(pe_pad: bool)
@@ -101,9 +141,9 @@ func leaga_pad(action: String) -> void:
 		InputMap.action_add_event(action, ax)
 		InputMap.action_add_event(action, _buton(m["cruce"]))
 		InputMap.action_set_deadzone(action, DEADZONE)
-	if PAD_BUTOANE.has(action):
-		for b in PAD_BUTOANE[action]:
-			InputMap.action_add_event(action, _buton(b))
+	if PAD_ACTIONS.has(action):
+		for cod in coduri(action):
+			_adauga_cod(action, cod)
 
 func _buton(index: int) -> InputEventJoypadButton:
 	var ev := InputEventJoypadButton.new()
@@ -115,9 +155,10 @@ func _buton(index: int) -> InputEventJoypadButton:
 # categorie întreagă de „la mine merge" (un `project.godot` cu `input_devices/…` reglat altfel,
 # o versiune viitoare care schimbă implicitele).
 func _leaga_ui() -> void:
+	# ⚠️ `ui_accept` și `ui_cancel` NU sunt aici, deși tot navigare sunt: ele se pot schimba din
+	# Settings, deci le pune `aplica_butoane()`, DUPĂ ce s-au citit setările de pe disc. Dacă ar
+	# fi rămas aici, A și B ar fi fost lipite la loc la fiecare pornire, peste alegerea omului.
 	var vrem := {
-		"ui_accept": [JOY_BUTTON_A],
-		"ui_cancel": [JOY_BUTTON_B],
 		"ui_left":   [JOY_BUTTON_DPAD_LEFT],
 		"ui_right":  [JOY_BUTTON_DPAD_RIGHT],
 		"ui_up":     [JOY_BUTTON_DPAD_UP],
@@ -145,6 +186,126 @@ func _leaga_ui() -> void:
 			ax.axis_value = axe[action]["spre"]
 			InputMap.action_add_event(action, ax)
 		InputMap.action_set_deadzone(action, DEADZONE_UI)
+
+# --------------------------------------------------------------------------------------
+# BUTOANELE CARE SE POT SCHIMBA
+# --------------------------------------------------------------------------------------
+# Ce butoane are ACUM o acțiune: cele alese de jucător, altfel cele din fabrică.
+func coduri(action: String) -> Array:
+	if not PAD_ACTIONS.has(action):
+		return []
+	var alese = GameSettings.padbinds.get(action, null)
+	if alese is Array and not alese.is_empty():
+		return alese
+	return PAD_ACTIONS[action]["implicit"]
+
+# Pune pe „ui_accept" și „ui_cancel" butoanele alese de jucător. O cheamă `GameSettings`, o dată
+# la pornire (după `_load()`) și după fiecare remapare.
+#
+# ⚠️ De ce nu direct în `_ready()`-ul de aici: autoload-ul ăsta e PRIMUL din listă, deci când
+# pornește el `GameSettings` încă nu și-a citit fișierul — n-avem de unde ști ce buton a ales
+# jucătorul. Acțiunile de JOC („interact", „pause") ajung pe drumul celălalt, prin
+# `GameSettings._bind()` → `leaga_pad()`, care oricum se cheamă după încărcare.
+func aplica_butoane() -> void:
+	for action in ["ui_accept", "ui_cancel"]:
+		if not InputMap.has_action(action):
+			continue
+		_sterge_padul(action)
+		for cod in coduri(action):
+			_adauga_cod(action, cod)
+
+# Scoate de pe o acțiune TOT ce vine de la controller, lăsând tastele pe loc. Fără asta, butonul
+# din fabrică (A pe „ui_accept", pus de motor, nu de noi) ar fi rămas legat pe lângă cel nou — și
+# ai fi avut două butoane de confirmare, dintre care unul nu scrie nicăieri în meniu.
+func _sterge_padul(action: String) -> void:
+	for ev in InputMap.action_get_events(action):
+		if ev is InputEventJoypadButton or ev is InputEventJoypadMotion:
+			InputMap.action_erase_event(action, ev)
+
+# Un cod (buton sau declanșator) devine eveniment pe acțiune.
+func _adauga_cod(action: String, cod: int) -> void:
+	if cod < COD_AXA:
+		InputMap.action_add_event(action, _buton(cod))
+		return
+	var ax := InputEventJoypadMotion.new()
+	ax.axis = cod - COD_AXA
+	ax.axis_value = 1.0
+	InputMap.action_add_event(action, ax)
+	# ⚠️ Pragul acțiunii, nu doar al evenimentului: `ui_accept` vine din motor cu deadzone 0.2, iar
+	# un declanșator care stă la 0.25 în repaus (drivere de clonă) ar fi apăsat „confirmă" singur,
+	# la nesfârșit, în orice meniu. Acțiunile din PAD_ACTIONS n-au nimic analogic pe ele, deci
+	# pragul ăsta nu strică nimic altceva (mersul e pe alte acțiuni, cu `DEADZONE`).
+	InputMap.action_set_deadzone(action, TRAGACI_APASAT)
+
+# Leagă un buton pe o acțiune. Aici stă toată grija remapării: un buton nu poate sta pe două
+# acțiuni care se folosesc în același loc, iar nicio acțiune n-are voie să rămână FĂRĂ buton —
+# altfel jucătorul ar putea, dintr-o singură apăsare, să rămână închis într-un meniu din care nu
+# mai iese (pe controller nu există „mai apasă o tastă", există doar ce e legat).
+#
+# Regula, în două rânduri:
+#   • butonul cerut se ia de la acțiunea care se bătea cu asta — dacă îi mai rămâne unul, gata;
+#   • dacă aia rămâne pe zero, primește în schimb butonul pe care tocmai l-am eliberat noi.
+# Adică: pui SELECT pe B (unde stătea BACK) → BACK se mută pe A, de unde a plecat SELECT. Iar
+# dacă pui PAUSE pe X, INTERACT (care avea A și X) rămâne pur și simplu pe A.
+func remapeaza(action: String, cod: int) -> void:
+	if not PAD_ACTIONS.has(action) or not e_bun(cod):
+		return
+	var vechi: Array = coduri(action)
+	var noi: Dictionary = GameSettings.padbinds.duplicate(true)
+	for alta in PAD_ACTIONS:
+		if alta == action or not _se_bat(alta, action):
+			continue
+		var lista: Array = coduri(alta).duplicate()
+		if not lista.has(cod):
+			continue
+		lista.erase(cod)
+		if lista.is_empty():
+			lista = [vechi[0]]
+		noi[alta] = lista
+	noi[action] = [cod]
+	GameSettings.set_padbinds(noi)
+
+# Înapoi la butoanele din fabrică (butonul RESET din Settings). Un dicționar gol înseamnă „nimic
+# schimbat", deci `coduri()` cade singur pe `implicit` — nu ținem nicăieri o copie a valorilor
+# din fabrică, care s-ar putea despărți de ele.
+func reseteaza_butoanele() -> void:
+	GameSettings.set_padbinds({})
+
+# Două acțiuni se bat doar dacă se folosesc în același loc (vezi `unde` din PAD_ACTIONS).
+func _se_bat(a: String, b: String) -> bool:
+	for u in PAD_ACTIONS[a]["unde"]:
+		if PAD_ACTIONS[b]["unde"].has(u):
+			return true
+	return false
+
+# Se poate lega butonul ăsta? (crucea și butonul de acasă, nu — vezi INTERZISE)
+func e_bun(cod: int) -> bool:
+	if cod >= COD_AXA:
+		return (cod - COD_AXA) in [JOY_AXIS_TRIGGER_LEFT, JOY_AXIS_TRIGGER_RIGHT]
+	return cod >= 0 and not INTERZISE.has(cod)
+
+# Primul buton bun apăsat CHIAR ACUM, sau -1. Îl folosește pagina de Settings cât ascultă.
+#
+# ⚠️ Se citește starea controllerului, nu se așteaptă evenimente — aceeași capcană ca la
+# `_asculta_padul`: apăsarea ar fi ajuns întâi la butonul din meniu care are focus (pe pad, A
+# înseamnă „apasă butonul focusat") și s-ar fi consumat acolo, iar remaparea ar fi așteptat un
+# eveniment care nu mai vine.
+func cod_apasat() -> int:
+	if _pad_id < 0:
+		return -1
+	for b in JOY_BUTTON_SDL_MAX:
+		if Input.is_joy_button_pressed(_pad_id, b) and e_bun(b):
+			return b
+	for a in [JOY_AXIS_TRIGGER_LEFT, JOY_AXIS_TRIGGER_RIGHT]:
+		if Input.get_joy_axis(_pad_id, a) > TRAGACI_APASAT:
+			return COD_AXA + a
+	return -1
+
+# Nimic apăsat pe controller? Se cere ÎNAINTE de a începe ascultarea: rândul din meniu se apasă
+# tot cu A, deci fără verificarea asta „schimbă butonul" ar fi legat instantaneu A pe el însuși,
+# și n-ai fi apucat să vezi nici măcar textul „press a button…".
+func pad_liber() -> bool:
+	return not _pad_e_atins() and cod_apasat() == -1
 
 func _are_buton(action: String, index: int) -> bool:
 	for ev in InputMap.action_get_events(action):
@@ -246,15 +407,28 @@ func nume_pad() -> String:
 func nume_buton(action: String) -> String:
 	if not pe_pad():
 		return GameSettings.key_name(action)
-	var tabel: Dictionary = NUME_BUTOANE[_fel]
-	return String(tabel.get(action, tabel["accept"]))
+	return nume_coduri(action)
 
-# Numele unui buton de pad, INDIFERENT de ce ține jucătorul în mână (pentru lista din Settings,
-# care e despre controller chiar dacă o deschizi cu mouse-ul). Cheile: „interact", „accept",
-# „back", „pause".
-func nume_pad_buton(cheie: String) -> String:
-	var tabel: Dictionary = NUME_BUTOANE[_fel]
-	return String(tabel.get(cheie, cheie))
+# Numele butoanelor unei acțiuni, INDIFERENT de ce ține jucătorul în mână (pentru lista din
+# Settings, care e despre controller chiar dacă o deschizi cu mouse-ul). Două butoane pe aceeași
+# acțiune se scriu „A / X" — adică exact ce e legat, nu doar primul.
+func nume_coduri(action: String) -> String:
+	var lista: Array = coduri(action)
+	if lista.is_empty():
+		lista = coduri("ui_accept")   # o acțiune fără buton al ei se arată cu cel de „confirmă"
+	var out := PackedStringArray()
+	for cod in lista:
+		out.append(nume_cod(cod))
+	return " / ".join(out)
+
+# Numele unui singur buton, pe felul de controller conectat acum. Unul necunoscut (paletele de pe
+# spatele controllerelor scumpe, butoanele în plus de pe clone) se scrie cu numărul lui: mai bine
+# „B17" decât un rând gol, care pare stricat.
+func nume_cod(cod: int) -> String:
+	var tabel: Dictionary = NUME_COD[_fel]
+	if tabel.has(cod):
+		return String(tabel[cod])
+	return "B%d" % cod
 
 func _pad_schimbat(_device: int, _conectat: bool) -> void:
 	var aveam := _pad_id
