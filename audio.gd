@@ -115,6 +115,31 @@ const SFX := {
 	"roulette_clack":  "res://audio/Casino Audio/Roulette Clack.wav",
 	"roulette_settle": "res://audio/Casino Audio/Roulette Settle.wav",
 	"roulette_riser":  "res://audio/Casino Audio/Roulette Riser.wav",
+	# --- MOARTEA: cercul care se închide peste tine (`gameover.gd`), PATRU straturi ---
+	# Alese din `Soundpack/` și prelucrate ca tot restul (tăiate de liniște, scurtate la cât ține
+	# momentul, fade 3/100 ms, 48 kHz/16 biți și **întâi reeșantionate, apoi** normalizate la vârf
+	# −1 dBFS). În fișiere sunt toate la fel de tari — echilibrul e în `gameover.gd` (`DB_*`).
+	#
+	# De ce PATRU și nu un singur „sunet de game over": momentul are patru lucruri de spus, iar
+	# dacă le spune unul singur nu se aude niciunul. Fiecare are exact o treabă, și fiecare e
+	# lipit de o bucată din animație:
+	#   • `death_hit`    — LOVITURA de la t=0, cât lumea e încă întreagă și înghețată. Joasă și
+	#                      urâtă; e ultimul lucru care ți se întâmplă, nu un clic de meniu.
+	#   • `death_sweep`  — MĂTURA care coboară, exact cât se strânge cercul (1,40 s). Măsurat, e
+	#                      un trece-jos care se închide singur: înaltele lui cad de la −23 la
+	#                      −64 dB, adică FIX ce-i face filtrul muzicii. Așa cercul se AUDE, nu
+	#                      doar se vede.
+	#   • `death_rumble` — HURUITUL de dedesubt, care crește tot timpul (plic exponențial): −86 dB
+	#                      la început, −6 dB în ultima jumătate de secundă. E presiunea din jurul
+	#                      tău și se termină fix pe închidere.
+	#   • `death_snap`   — ÎNCHIDEREA. Un singur fișier, dar DOUĂ sunete mixate în el (un bubuit
+	#                      uscat + un zăvor): transientul trebuie să fie UN eveniment. Pornite din
+	#                      cod ca două `play_ex`, ar fi căzut la câte un cadru distanță (16 ms) și
+	#                      s-ar fi auzit ca o bâlbâială, nu ca o ușă trântită.
+	"death_hit":    "res://audio/Death Audio/Death Hit.wav",
+	"death_sweep":  "res://audio/Death Audio/Death Sweep.wav",
+	"death_rumble": "res://audio/Death Audio/Death Rumble.wav",
+	"death_snap":   "res://audio/Death Audio/Death Snap.wav",
 }
 
 # Cutremurul are volumul lui, într-un singur loc: se aude din cinci locuri din joc (invocarea
@@ -573,6 +598,19 @@ func exit_menu_muffle(cine: String) -> void:
 func _uita_meniurile() -> void:
 	_meniuri.clear()
 	_seteaza_infundat(0.0, 0.0)
+
+# MOARTEA înfundă muzica la fel ca un meniu, dar altfel: nu în 0,20 s, ci în `timp` — exact cât
+# durează cercul să se închidă peste tine (`gameover.gd`). Nu „intri undeva": lumea se închide,
+# iar muzica se duce cu ea, în același ritm cu imaginea.
+#
+# ⚠️ NU trece prin `enter_menu_muffle`: aia se oprește din drum dacă mai e un meniu deschis („e
+# deja înfundat de altcineva"), iar aici mătura TREBUIE să pornească oricum. Numele rămâne în
+# `_meniuri` dinadins — dacă ai murit cu un meniu deschis, închiderea lui n-are voie să
+# redeschidă filtrul peste ecranul de moarte. Se curăță singur la runda următoare
+# (`play_music` / `play_menu_music` cheamă `_uita_meniurile()`).
+func death_muffle(timp: float) -> void:
+	_meniuri["death"] = true
+	_seteaza_infundat(1.0, timp)
 
 # --- Mecanica filtrului ---
 # Magistrala `Music` se face din cod, nu dintr-un `default_bus_layout.tres`: un fișier de layout

@@ -23,6 +23,60 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-23, seara (moartea: un CERC care se închide peste tine, cu sunet croit pe el)
+
+**Cerut de Răzvan:** „Vreau sa faci death screen-ul un cerc care se inchide spre player folosind Asset-uri audio din folderul Soundpack. Vreau animatia sa fie smooth si sa corespunda cu audio-ul pe care il alegi."
+
+**Atinse:** `gameover.gd` (rescris în jurul cinematicii), `audio.gd` (patru sunete noi + `death_muffle`). **Fișiere noi, păstrate:** `moarte_iris.gdshader`, `audio/Death Audio/` (4 wav, 951 KB), `tool_moarte.gd` / `.tscn`.
+
+### Ce se vede și ce se aude
+Între moarte și textul „YOU DIED" sunt acum **2 secunde de cinematică**. Lumea îngheață pe loc (`get_tree().paused`) și **rămâne vizibilă**, cu tot cu HUD, cât un cerc se strânge peste player: ultimul lucru pe care îl vezi ești tu, în mijloc, cu tot ce te-a omorât în jur. Culoarea și lumina se scurg din ce a mai rămas, marginea cercului arde slab roșu, iar la închidere rămâne negru — apoi **o jumătate de secundă de tăcere adevărată**, și abia pe urmă textul.
+
+Coregrafia (constantele din `gameover.gd`; aceleași cifre țin și imaginea, și sunetul):
+
+| t | ce se vede | ce se aude |
+|---|---|---|
+| 0,00 | lumea îngheață, cercul nu s-a mișcat | `death_hit` (bubuitură joasă) + muzica începe să se înfunde + pădurea se stinge |
+| 0,16 | cercul mănâncă ecranul (CUBIC/EASE_OUT) | `death_sweep` (mătura care coboară) + `death_rumble` (huruit care crește) |
+| 0,96 | se strânge încet în jurul tău | huruitul urcă spre vârf; restul se subțiază |
+| 1,46 | se prăbușește la zero în 0,09 s (CUBIC/EASE_IN) | `death_snap` + muzica se taie în 0,18 s |
+| 1,55 | negru | **nimic** |
+| 2,00 | textul apare lin (0,55 s) | stinger-ul `game_over` |
+
+### 1. Cercul e un shader care citește ecranul, nu un dreptunghi negru
+`moarte_iris.gdshader` ia imaginea deja desenată (`hint_screen_texture`, exact ca `limbo_bw.gdshader`) și o dă înapoi cu negru în afara cercului, culoare scursă înăuntru și un inel roșu pe margine. Raza se măsoară în **înălțimi de ecran**, nu în pixeli, cu o corecție de aspect — deci cercul e rotund pe orice rezoluție, iar `gameover.gd` nu trebuie să știe rezoluția.
+
+- **Raza de pornire se CALCULEAZĂ**, nu e „2.0 și gata": colțul cel mai depărtat de player (dacă mori într-un colț, celălalt e la peste 1,2 înălțimi de ecran). Altfel primul cadru ar apărea deja cu colțuri negre.
+- **Centrul e player-ul pe ecran**, luat cu `get_global_transform_with_canvas()`, nu presupus în mijloc: camera poate fi în urmă (tremurat, drag).
+- **`stins` și `rama` se calculează DIN rază**, nu din alt tween. Așa n-au cum să iasă din sincron cu cercul, în nicio fază.
+- ⚠️ Prima variantă a inelului roșu (de la 62% din rază, la putere întreagă) arăta a **filtru de Instagram**: o pată roșie cât jumătate de cerc. Prins pe screenshot, nu bănuit. Acum e o dungă subțire pe ultimele 12% din rază, la 45% putere.
+
+### 2. Sunetul: patru straturi, alese din `Soundpack/` pentru ce FACE fiecare
+Prelucrate ca tot restul (tăiate de liniște, scurtate la cât ține momentul, fade 3/100 ms, 48 kHz/16 biți și **întâi reeșantionate, apoi** normalizate la vârf −1 dBFS). Echilibrul e în `gameover.gd` (`DB_*`), nu în fișiere — se schimbă mixul fără să reexporți nimic.
+
+- **`death_hit`** ← `DSGNImpt_EXPLOSION-Forced Shutdown-003`. Cea mai joasă bubuitură din pachet (−15 dB sub 250 Hz). ⚠️ Sursa are **90 ms de pre-zgomot** înainte de transient — tăiate la 15 ms, altfel lovitura ar fi căzut la o zecime de secundă după moartea ta.
+- **`death_sweep`** ← `MAGSpel_CAST-Teleport Downer-002`, primele 1,40 s. **Ales pe măsurătoare:** înaltele lui cad de la −23 la −64 dB pe durata fișierului, în timp ce josurile urcă — adică e un trece-jos care se închide singur, exact ce face cercul (și exact ce face filtrul muzicii). Cercul se AUDE, nu doar se vede.
+- **`death_rumble`** ← `DSGNImpt_EXPLOSION-Bass Hit-005`, **coborât cu o octavă** (`asetrate`), tăiat sub 160 Hz și cu plic exponențial crescător: −86 dB la început, −6 dB în ultima jumătate de secundă. E presiunea care crește cât se strânge cercul, și se termină fix pe închidere.
+- **`death_snap`** ← `DSGNImpt_EXPLOSION-Thud-003` + `UIMisc_INTERFACE-Lock-003`, **mixate într-UN singur fișier**. 🔑 Nu ca două `play_ex`: două boxe pornite din același cadru pot cădea la 16 ms una de alta și transientul s-ar auzi ca o bâlbâială, nu ca o ușă trântită.
+
+**Muzica se închide cu cercul.** `Audio.death_muffle(T_CERC)` folosește filtrul construit dimineață (magistrala `Music`), doar că mătura ține 1,55 s în loc de 0,20 — deci muzica se duce în spatele ușii în ritmul imaginii, iar la închidere se taie în 0,18 s, sub bubuitură. Nu mai există fade-ul de 3 secunde peste negru: **el mânca tăcerea**, care e cea mai importantă bucată din tot momentul.
+
+### 3. Ce s-a schimbat în purtare
+- La ESC pe ecranul de moarte nu se întâmplă nimic (`pause.gd::_blocked()` se uită la `gameover_screen.visible`, iar el e vizibil din cadrul morții) — cinematica nu poate fi întreruptă din greșeală.
+- Textul + butoanele stau **ascunse** (`_center.visible = false`), nu doar transparente: altfel un jucător care mașină pe butoane la moarte ar fi apăsat PLAY AGAIN prin negru.
+- `show_gameover` are gardă (`_pornit`): două morți în același cadru nu mai pornesc două cinematici.
+
+### 4. Verificat rulând jocul adevărat (`tool_moarte.tscn`, păstrată)
+Unealta pornește `main.tscn`, omoară player-ul și măsoară **pe ceasul motorului**, nu pe ceas de perete.
+- **Netezime: 318 cadre în 2,70 s (118 FPS mediu), cel mai mare salt de rază între două cadre 0,024.** Înainte de moarte jocul mergea la 146 FPS, deci cercul + shaderul nu costă nimic.
+- **Coregrafia:** cerc centrat pe player (0,500/0,500 vs 0,500/0,500), nemișcat până la 0,16 s, `RAZA_MICA` atinsă la 0,96 s, `RAZA_STRANSA` la 1,46 s, zero la 1,55 s, filtrul muzicii ajuns la 700 Hz, textul la 2,00 s cu alpha 0,02 → 1,00.
+- **Mixul nu taie:** vârfuri pe `Master`, aduse la slider maxim: lovitura −4,8 · înghițirea −1,8 · **strângerea −7,9** · închiderea −1,3 · stinger −1,1 dBFS. Groapa de 6 dB dinaintea închiderii e cea care face bubuitura să te facă să tresari.
+- Poze la cele 6 momente (`-- poze`), `tool_check_i18n` → „✔ TOTUL E TRADUS".
+
+**⚠️ Două capcane de măsurat, amândouă costisitoare:**
+1. **`save_png` blochează firul principal ~400 ms.** Cu 6 poze, testul cerea momentele mai devreme decât le putea arăta animația și „pica" degeaba: 9,5 FPS măsurați și 8 verificări roșii, cu codul perfect sănătos. Acum pozele sunt **pe comandă** (`-- poze`), iar netezimea se judecă doar fără ele. (Aceeași capcană era deja în log la cinematica lui Saratalin — a doua oară că mă costă.)
+2. **Cadrul morții e GREU** (`add_score` + `bank_run_coins` scriu salvarea pe disc): 74–84 ms, adică de cinci ori un cadru normal. Se vede în „primele cadre după moarte (ms)" din raport. **De-aia primele 0,16 s sunt înghețare, nu mișcare** — pauza aia înghite hitch-ul, iar cercul pornește pe un joc care deja respiră. Cu cercul pornind din primul cadru, saltul s-ar fi văzut.
+
 ## Session log — 2026-08-23 (muzica se aude ÎNFUNDATĂ în meniuri, ca prin ușă — inclusiv la ESC)
 
 **Cerut de Răzvan:** „Muzica sa se auda infundat atunci cand intrii intr-un meniu (inafara de main menu) inclusiv cand apesi ESC."

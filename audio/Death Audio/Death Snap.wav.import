@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://cok1g4h15boej"
+path="res://.godot/imported/Death Snap.wav-925feb852befb20f85f5a61aaaf52fad.sample"
+
+[deps]
+
+source_file="res://audio/Death Audio/Death Snap.wav"
+dest_files=["res://.godot/imported/Death Snap.wav-925feb852befb20f85f5a61aaaf52fad.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2
