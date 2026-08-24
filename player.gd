@@ -114,6 +114,13 @@ var mankini_stacks: int = 0
 var has_undying: bool = false
 var undying_used: bool = false
 
+# Casino VIP Pass: cât îl ai, masa de ruletă nu se mai închide — jetoanele nu se consumă și
+# niciunul din cele două banuri (cinci jetoane terminate / trei câștiguri la rând) nu mai cade.
+# Steagul stă AICI, pe player, nu în `casino.gd`: cazinoul e un nod din `main.tscn` care trăiește
+# cât runda, dar player-ul e cel care POARTĂ itemul, iar `casino.gd` îl întreabă la fiecare
+# verificare (`_vip()`). Nu se stivuiește: a doua luare nu face nimic în plus.
+var casino_vip: bool = false
+
 # --- tipul de armă (ales din meniu: pistol / mage / sword / scythe) ---
 var weapon_type: String = "pistol"
 

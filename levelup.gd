@@ -82,6 +82,7 @@ var UPGRADES := [
 	{"id": "butterfly_knife", "nume": "Butterfly Knife", "icon": "upgrade_61.png", "rar": "common", "desc": "+5% Crit chance, Attack & Move speed"},
 	{"id": "tome_witchcraft", "nume": "Tome of Witchcraft", "icon": "upgrade_62.png", "rar": "rare", "desc": "+10% Difficulty"},
 	{"id": "bulletproof_vest", "nume": "Bulletproof Vest", "icon": "upgrade_63.png", "rar": "epic", "desc": "+100 Max HP -10% Move speed"},
+	{"id": "casino_vip", "nume": "Casino VIP Pass", "icon": "upgrade_64.png", "rar": "legendary", "desc": "Indefinite access to the roulette wheel", "unic": true},
 ]
 
 const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
@@ -1113,3 +1114,12 @@ func _apply(id: String, p) -> void:
 			# Diesel Power / Megane's Katana, care măsoară viteza curentă față de cea de start.
 			p.upgrade_max_hp(100)
 			p.speed *= 0.90
+		"casino_vip":
+			# Casino VIP Pass: masa de ruletă nu se mai închide. Nici jetoanele (cinci pe rundă),
+			# nici banul de trei câștiguri la rând nu mai cad — vezi `_vip()` / `_masa_inchisa()`
+			# din `casino.gd`, care întreabă steagul ăsta la fiecare verificare.
+			# Luat DUPĂ ce ai fost dat afară, masa se redeschide: starea de ban rămâne scrisă, dar
+			# e ocolită. „Indefinite access" înseamnă exact asta.
+			# E „unic" fiindcă nu se stivuiește: al doilea pas n-ar face nimic, iar un Legendary
+			# irosit doare mai tare decât unul comun.
+			p.casino_vip = true

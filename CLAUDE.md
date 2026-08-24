@@ -23,6 +23,39 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (Casino VIP Pass: masa de ruletă nu se mai închide)
+
+**Cerut de Răzvan:** „baga si upgrade_64 (Legendary) - Casino VIP Pass - Indefinite access to the roulette wheel. (lasa playerul sa joace cat vrea la ruleta)"
+
+**Atinse:** `levelup.gd` (item + ramură în `_apply`), `player.gd` (`casino_vip`), `casino.gd` (`_vip()` / `_masa_inchisa()` / `_fara_jetoane()` + toate locurile care citeau `_banat` sau `_jetoane <= 0`), `i18n.gd` (nume + descriere + „VIP · unlimited spins" × 8 limbi), `codex.html`.
+
+### Cad AMÂNDOUĂ porțile, nu doar jetoanele
+Masa avea două lucruri care o închideau: **cele cinci jetoane pe rundă** și **banul de trei câștiguri la rând** („You've been banned for cheating"). Am scos amândouă, fiindcă oricare dintre ele lăsată în picioare face din „joacă cât vrea" o minciună: cu jetoane nelimitate dar cu banul de trișat intact, jucătorul ar fi ieșit după vreo zece rotiri, la primul șir norocos.
+
+**Nu ștergem starea, o OCOLIM.** `_banat` și `_jetoane` rămân exact ce erau; întrebarea „e masa închisă?" trece de-acum printr-o singură funcție, `_masa_inchisa()` = `_banat and not _vip()`. Două câștiguri: pasul luat **după** ce ai fost dat afară **redeschide masa** (asta și înseamnă „indefinite access"), iar dacă vreodată apare un mod de a-l pierde, banul de dinainte e încă acolo, întreg. La fel, `_fara_jetoane()` în locul lui `_jetoane <= 0`.
+
+Steagul stă pe **player** (`casino_vip`), nu în cazinou: cazinoul e un nod din `main.tscn`, dar itemul e purtat de player, iar `casino.gd` îl întreabă la fiecare verificare — deci pasul se aprinde din clipa în care l-ai luat, fără să anunțe nimeni pe nimeni.
+
+Itemul e **`unic`**: al doilea pas n-ar face nimic, iar un Legendary irosit doare mai tare decât un Common.
+
+### Ce se vede
+Cu pasul luat, raftul de jetoane rămâne **plin** și scrie, cu auriu, **„VIP · unlimited spins"** — în toate trei rafturile (intro, masa, ecranul de ban). Rondelele stinse ar fi mințit, iar ascunse ar fi lăsat un gol în panou.
+
+**⚠️ Prima variantă avea textul de DOUĂ ori** sub aceleași jetoane: o dată ca etichetă de raft (auriu) și o dată ca rândul de regulă de dedesubt, care înainte scria „5 chips per run · one spin each". Se vede doar în captură, nu în cod. Acum rândul de regulă **dispare** cu pasul VIP (`_lbl_regula.visible = not _vip()`): raftul de deasupra spune deja totul.
+
+### ⚠️ Ce înseamnă asta pentru echilibru
+Ruleta plătește **2×** pe roșu/negru și ia **0,5×** la pierdere, cu ~48,6% șanse de câștig — adică fiecare rotire valorează, în medie, **×1,23** din statusul pariat. Cu rotiri nelimitate, orice status urcă **la nesfârșit**; nu mai există nimic care să oprească jucătorul în afară de răbdarea lui. Exact asta a fost cerut („cât vrea"), deci așa a fost făcut — dar merită știut că cele două porți nu erau decor: comentariul de la `JETOANE_START` spune negru pe alb că fără ele ruleta e „un buton de ținut apăsat".
+
+Dacă vrei o variantă mai blândă, e o linie: scoate `_vip()` din `_masa_inchisa()` și lasă-l doar în `_fara_jetoane()` — atunci pasul dă rotiri nelimitate, dar banul de trei câștiguri la rând rămâne, adică „joci până când casa te prinde câștigând".
+
+### Verificat rulând
+- **Cardul de level up** randat în ecranul real: chenar Legendary, iconița bună, descrierea pe **o linie** (39 de caractere, 398 px într-o etichetă de 466).
+- **Ecranul de intro al cazinoului** randat: raft plin, o singură linie aurie „VIP · UNLIMITED SPINS".
+- **Stările:** fără pas → masă deschisă; cu 5 jetoane duse și ban → `_masa_inchisa()` **true**; **iei pasul fiind deja banat** → `_masa_inchisa()` **false** și toate trei rafturile scriu „VIP · unlimited spins"; scoți pasul → banul vechi e din nou activ.
+- **Opt rotiri ADEVĂRATE** (roata învârtită de-a binelea, nu simulată): jetoanele au rămas **5 din 5** la fiecare, iar într-o rulare au picat **trei câștiguri la rând** — `banat` a rămas **false**. Fix cazul care conta.
+- `tool_check_i18n` → **„✔ TOTUL E TRADUS"**.
+- **Codexul:** 57 vs 57, zero diferențe pe `id|iconiță|raritate`; iconița are base64; pagina randată în Chrome headless, cardul apare în grupa Legendary.
+
 ## Session log — 2026-08-24 (trei iteme noi: Butterfly Knife, Tome of Witchcraft, Bulletproof Vest)
 
 **Cerut de Răzvan:** „ti-am bagat upgrade_61 (Common) - Butterfly Knife - +5% Crit Chance, +5% Attack Speed, +5% Movement Speed. - upgrade_62 (Rare) - Tome of Witchcraft - +10% Difficulty - upgrade_63 (Epic) - Bulletproof Vest - +100 HP, -10% Movement Speed."

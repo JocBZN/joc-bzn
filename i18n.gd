@@ -327,6 +327,7 @@ const TRAD := {
 "%d chips left": ["还剩 %d 个筹码", "Noch %d Chips", "Quedan %d fichas", "Осталось %d фишки", "Il reste %d jetons", "残り %d 枚", "Zostały %d żetony", "%d fiş kaldı"],
 "Last chip": ["最后一个筹码", "Letzter Chip", "Última ficha", "Последняя фишка", "Dernier jeton", "最後の1枚", "Ostatni żeton", "Son fiş"],
 "No chips left": ["筹码用完了", "Keine Chips mehr", "No quedan fichas", "Фишек не осталось", "Plus de jetons", "チップ切れ", "Brak żetonów", "Fiş kalmadı"],
+"VIP · unlimited spins": ["VIP · 无限旋转", "VIP · unbegrenzte Drehs", "VIP · giros ilimitados", "VIP · без ограничений", "VIP · tours illimités", "VIP · 回転無制限", "VIP · nieograniczone zakręcenia", "VIP · sınırsız çevirme"],
 
 # ---------- trade-up contract, tot în cazinou (casino.gd, „Gamble your items") ----------
 "TRADE-UP CONTRACT": ["汰换合同", "TAUSCH-VERTRAG", "CONTRATO DE MEJORA", "КОНТРАКТ ОБМЕНА", "CONTRAT D'ÉCHANGE", "トレードアップ契約", "KONTRAKT WYMIANY", "TAKAS SÖZLEŞMESİ"],
@@ -397,6 +398,7 @@ const TRAD := {
 "Butterfly Knife": ["蝴蝶刀", "Butterflymesser", "Navaja Mariposa", "Нож-бабочка", "Couteau Papillon", "バタフライナイフ", "Nóż Motylkowy", "Kelebek Bıçağı"],
 "Tome of Witchcraft": ["巫术之书", "Buch der Hexerei", "Tomo de Brujería", "Том Колдовства", "Tome de Sorcellerie", "魔術の書", "Księga Czarów", "Büyü Kitabı"],
 "Bulletproof Vest": ["防弹衣", "Kugelsichere Weste", "Chaleco Antibalas", "Бронежилет", "Gilet Pare-balles", "防弾ベスト", "Kamizelka Kuloodporna", "Kurşun Geçirmez Yelek"],
+"Casino VIP Pass": ["赌场 VIP 通行证", "Casino-VIP-Pass", "Pase VIP del Casino", "VIP-пропуск казино", "Pass VIP du Casino", "カジノVIPパス", "Przepustka VIP Kasyna", "Kumarhane VIP Kartı"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -455,6 +457,7 @@ const TRAD := {
 "+5% Crit chance, Attack & Move speed": ["+5% 暴击率、攻速、移速", "+5% Kritchance, Angriffstempo & Tempo", "+5% Prob. crítico, Vel. ataque y Velocidad", "+5% шанс крита, скорострельность и скорость", "+5% Critique, Cadence & Vitesse", "+5% クリティカル率・攻撃速度・移動速度", "+5% Kryt, Szybkostrzelność i Szybkość", "+5% Kritik şansı, Saldırı hızı ve Hız"],
 "+10% Difficulty": ["+10% 难度", "+10% Schwierigkeit", "+10% Dificultad", "+10% сложности", "+10% Difficulté", "+10% 難易度", "+10% Trudności", "+10% Zorluk"],
 "+100 Max HP -10% Move speed": ["+100 最大生命 -10% 移速", "+100 Max. HP -10% Tempo", "+100 HP máx. -10% Velocidad", "+100 макс. HP -10% скорость", "+100 PV max -10% Vitesse", "+100 最大HP -10% 移動速度", "+100 Maks. HP -10% Szybkość", "+100 Maks. CAN -10% Hız"],
+"Indefinite access to the roulette wheel": ["轮盘无限次畅玩", "Unbegrenzter Zugang zum Roulette", "Acceso ilimitado a la ruleta", "Неограниченный доступ к рулетке", "Accès illimité à la roulette", "ルーレットに無制限アクセス", "Nieograniczony dostęp do ruletki", "Rulete sınırsız erişim"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 

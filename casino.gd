@@ -386,19 +386,26 @@ func _arata_pagina(care: String) -> void:
 	# Banat = MASA e moartă, nu tot cazinoul: trade-up-ul se plătește în iteme, nu în jetoane, deci
 	# n-are de ce să se închidă odată cu ruleta (Răzvan, 2026-08-19). Redirectarea stă AICI, într-un
 	# singur loc, ca să nu poată fi ocolită: și `_on_stats`, și ESC-ul, și butoanele trec pe aici.
-	if _banat and care == "masa":
+	if _masa_inchisa() and care == "masa":
 		care = "ban"
 	_pagina = care
 	_pag_intro.visible = (care == "intro")
 	_pag_masa.visible = (care == "masa")
 	_pag_iteme.visible = (care == "iteme")
 	_pag_ban.visible = (care == "ban")
+	# Rafturile se re-aprind la FIECARE intrare, nu doar când se cheltuie un jeton: pasul VIP poate
+	# fi luat între două vizite, iar atunci raftul trebuie să scrie altceva fără să fi rotit nimic.
+	_actualizeaza_jetoane()
 	if care == "intro":
-		_lbl_regula.text = tr("%d chips per run · one spin each") % JETOANE_START   # tr() explicit: are %d
+		# Rândul de regulă dispare cu pasul VIP: raftul de deasupra scrie deja „VIP · unlimited
+		# spins", cu auriu, iar același text de două ori sub aceleași jetoane arată a greșeală.
+		# tr() explicit: are %d, vezi i18n.gd.
+		_lbl_regula.visible = not _vip()
+		_lbl_regula.text = tr("%d chips per run · one spin each") % JETOANE_START
 		# Butonul mesei se stinge, iar sub el apare de ce. Un buton care merge și te duce într-un
 		# perete e mai rău decât unul stins care spune ce s-a întâmplat.
-		_btn_stats.disabled = _banat
-		_lbl_masa_inchisa.visible = _banat
+		_btn_stats.disabled = _masa_inchisa()
+		_lbl_masa_inchisa.visible = _masa_inchisa()
 	elif care == "masa":
 		_reseteaza_masa()
 		_relayout()
@@ -735,7 +742,7 @@ func _rect_numar(n: int) -> Rect2:
 	return Rect2(GRID_X0 + col * COL_W, GRID_Y0 + rand * ROW_H, COL_W, ROW_H)
 
 func _pune_pariu(pariu: Dictionary, r: Rect2, eticheta: String) -> void:
-	if _se_invarte or _banat:
+	if _se_invarte or _masa_inchisa():
 		return
 	Audio.play("button", -4.0, 0.0)
 	_pariu = pariu
@@ -900,7 +907,7 @@ func _on_bifa(bifat: bool, id: String) -> void:
 
 # SPIN merge doar dacă ai și pariat pe masă, și ales statusul (și dacă nu ești banat).
 func _actualizeaza_spin() -> void:
-	_btn_spin.disabled = _banat or _se_invarte or _jetoane <= 0 or _pariu == null or _ales == ""
+	_btn_spin.disabled = _masa_inchisa() or _se_invarte or _fara_jetoane() or _pariu == null or _ales == ""
 	if _pariu == null:
 		_lbl_pariu.text = "Place your bet on the table"
 		_lbl_plata.text = ""
@@ -934,7 +941,7 @@ func _goleste_rezultat() -> void:
 # ÎNVÂRTIREA
 # ---------------------------------------------------------------------------
 func _spin() -> void:
-	if _se_invarte or _banat or _jetoane <= 0 or _pariu == null or _ales == "":
+	if _se_invarte or _masa_inchisa() or _fara_jetoane() or _pariu == null or _ales == "":
 		return
 	_se_invarte = true
 	_btn_spin.disabled = true
@@ -947,10 +954,14 @@ func _spin() -> void:
 	# ai rămas — ca la masă, unde jetonul pleacă din fața ta în clipa în care crupierul zice „no
 	# more bets". Sunetul e moneda de la așezarea bilei, urcată în ton: un jeton e mai mic și mai
 	# subțire decât o bilă, deci sună mai ascuțit. Același material, altă masă.
-	_jetoane -= 1
-	_actualizeaza_jetoane()
-	_arde_jetonul(_jetoane)
-	Audio.play_ex("roulette_settle", DB_JETON, 1.18)
+	#
+	# Cu pasul VIP nu se ia nimic: nici jetonul, nici sunetul lui. Casa nu-ți mai numără rotirile,
+	# deci n-are ce să-ți ia din față — iar un clinchet de monedă la fiecare spin ar spune contrariul.
+	if not _vip():
+		_jetoane -= 1
+		_actualizeaza_jetoane()
+		_arde_jetonul(_jetoane)
+		Audio.play_ex("roulette_settle", DB_JETON, 1.18)
 
 	# AICI se trage numărul — cinstit, înainte de orice animație (fără noroc: 0–36, toate la fel).
 	var n := _trage_numarul(_pariu)
@@ -991,8 +1002,13 @@ func _arata_rezultat(n: int) -> void:
 
 	# ȘIRUL DE CÂȘTIGURI → banul. Se numără DUPĂ ce câștigul a fost încasat (vezi CASTIGURI_BAN):
 	# al treilea îți dublează statusul ca oricare altul, abia apoi te dă afară.
+	#
+	# Cu pasul VIP nu cade niciunul din cele două banuri — dar șirul se numără mai departe, ca să
+	# fie corect dacă vreodată apare un mod de a pierde pasul în mijlocul rundei.
 	_castiguri_la_rand = (_castiguri_la_rand + 1) if castigat else 0
-	if _castiguri_la_rand >= CASTIGURI_BAN:
+	if _vip():
+		pass
+	elif _castiguri_la_rand >= CASTIGURI_BAN:
 		_banat = true             # de aici, `_actualizeaza_spin` stinge SPIN și masa e moartă
 		_motiv_ban = "trisat"
 	elif _jetoane <= 0:
@@ -1006,7 +1022,7 @@ func _arata_rezultat(n: int) -> void:
 	_actualizeaza_spin()
 	_relayout()
 
-	if _banat:
+	if _masa_inchisa():
 		# Lăsăm rezultatul o clipă pe ecran: banul trebuie citit ca URMAREA câștigului, nu ca o
 		# fereastră care a sărit peste el. Tween (nu timer), fiindcă jocul e pe pauză.
 		var t := create_tween()
@@ -1036,6 +1052,32 @@ func _motiv_ban_text() -> String:
 	if _motiv_ban == "jetoane":
 		return tr("Your %d chips are gone") % JETOANE_START   # tr() explicit: are %d, vezi i18n.gd
 	return tr("%d wins in a row") % CASTIGURI_BAN
+
+# --- CASINO VIP PASS (itemul Legendary `casino_vip`, 2026-08-24) ---
+# Cerut de Răzvan: „lasă playerul să joace cât vrea la ruletă". Deci pasul trece peste AMÂNDOUĂ
+# porțile care închid masa — și jetoanele terminate, și cele trei câștiguri la rând — fiindcă
+# oricare dintre ele, lăsată în picioare, face „cât vrea" o minciună.
+#
+# Nu ștergem starea, o OCOLIM: `_banat` și `_jetoane` rămân exact ce erau, iar întrebarea „e masa
+# închisă?" trece de-acum prin `_masa_inchisa()`. Două câștiguri din asta: dacă iei pasul DUPĂ ce
+# ai fost dat afară, masa se redeschide singură (asta și înseamnă „indefinite access"), iar dacă
+# vreodată apare un mod de a-l pierde, banul de dinainte e încă acolo, întreg.
+#
+# Steagul stă pe PLAYER (`player.casino_vip`), nu aici: cazinoul e un nod din `main.tscn`, dar
+# itemul e purtat de player. Îl întrebăm la fiecare verificare, deci pasul se aprinde din clipa
+# în care l-ai luat, fără să fie nevoie să anunțe cineva cazinoul.
+func _vip() -> bool:
+	var p = get_tree().get_first_node_in_group("player")
+	return p != null and "casino_vip" in p and p.casino_vip
+
+# „Masa de ruletă e închisă?" — singurul loc din care se răspunde. Înlocuiește citirea directă a
+# lui `_banat` peste tot unde aia însemna „nu mai ai voie la masă".
+func _masa_inchisa() -> bool:
+	return _banat and not _vip()
+
+# „Nu mai am cu ce roti?" Cu pasul VIP jetoanele nici nu se consumă, deci întrebarea n-are obiect.
+func _fara_jetoane() -> bool:
+	return _jetoane <= 0 and not _vip()
 
 # ---------------------------------------------------------------------------
 # JETOANELE (vezi JETOANE_START)
@@ -1107,7 +1149,14 @@ func _actualizeaza_jetoane() -> void:
 			j.scale = Vector2.ONE
 			j.modulate = Color(1, 1, 1, 1) if i < _jetoane else JETON_STINS
 		var lbl: Label = r["lbl"]
-		if _jetoane <= 0:
+		if _vip():
+			# Pasul VIP: raftul rămâne plin și scrie de ce. Rondelele nu mai sunt un contor, sunt
+			# o decorație — dar stinse ar fi mințit, iar ascunse ar fi lăsat un gol în panou.
+			for jt in jetoane:
+				jt.modulate = Color(1, 1, 1, 1)
+			lbl.text = "VIP · unlimited spins"
+			lbl.add_theme_color_override("font_color", Color8(228, 196, 92))
+		elif _jetoane <= 0:
 			lbl.text = "No chips left"
 			lbl.add_theme_color_override("font_color", Color8(214, 78, 64))
 		elif _jetoane == 1:
@@ -1861,7 +1910,7 @@ func _are_set_posibil() -> bool:
 # TRADE-UP: tragerea
 # ---------------------------------------------------------------------------
 func _trade_up() -> void:
-	if _rula or _banat or _sel.size() != TU_CATE:
+	if _rula or _masa_inchisa() or _sel.size() != TU_CATE:
 		return
 	var p = get_tree().get_first_node_in_group("player")
 	var lu = get_tree().get_first_node_in_group("levelup_menu")
