@@ -1,14 +1,34 @@
 extends CanvasLayer
 
-# HUD construit din cod (fără imagini):
-#   - bară de VIAȚĂ (roșu) sus-stânga
-#   - bară de XP (cyan) jos, pe toată lățimea ecranului
-#   - text cu nivelul curent
-# Toate se actualizează din valorile player-ului (grupul "player").
+# HUD-ul, construit din cod dar îmbrăcat în arta jocului (revamp 2026-08-24):
+#   - PLĂCUȚA DE VIAȚĂ sus-stânga: ramă de aramă cu nituri, viața în roșu-sânge, fantoma care
+#     coboară în urma loviturii și cifrele („214 / 320") scrise peste ea;
+#   - BARA DE XP jos, cu INSIGNA nivelului prinsă în capătul din stânga;
+#   - cronometrul rundei, cronometrul hoardei, kill-urile și cheile.
+#
+# Ramele vin din aceeași planșă ca meniul principal, pauza, cazinoul, Alba-Neagra și level up-ul
+# (`harta/EGT/Border EGT.png`); cărămida comună e `hud_bara.gd` — citește acolo cum e făcută o
+# bară. HUD-ul se ocupă doar de AȘEZARE și de REACȚII (clipit la lovitură, puls la viață mică,
+# insigna care sare la level up).
+#
+# ⚠️ Player-ul nu are semnale pentru viață și XP, deci HUD-ul citește valorile la fiecare cadru
+# și le compară cu cele din cadrul trecut (`_hp_ultim`, `_nivel_ultim`). De-acolo știe dacă ai
+# încasat, dacă te-ai vindecat sau dacă ai urcat un nivel. Dacă adaugi vreodată semnale pe
+# player, aici e locul care se simplifică.
 
-var health_bar: ProgressBar
-var xp_bar: ProgressBar
-var level_label: Label
+const BARA := preload("res://hud_bara.gd")
+
+var hp_bara: Control        # plăcuța de viață (o instanță de `hud_bara.gd`)
+var xp_bara: Control        # bara de XP de jos
+var level_label: Label      # cifra din insignă
+var _insigna: Control       # insigna cu nivelul, călare pe capătul din stânga al barei de XP
+
+# Ce era în cadrul trecut, ca să prindem schimbările (vezi nota de sus).
+var _hp_ultim := -1
+var _hp_max_ultim := -1
+var _nivel_ultim := -1
+var _puls := 0.0            # ceasul pulsului de viață mică
+
 var timer_label: Label      # cronometrul mare, sus-centru
 var swarm_label: Label      # cronometrul hoardei de la monument, chiar sub cel de sus
 var kills_label: Label      # numărul de inamici uciși, sus-dreapta
@@ -31,34 +51,18 @@ var _banner_tween: Tween
 
 func _ready() -> void:
 	add_to_group("hud")  # ca spawner-ul să ne găsească pentru anunțuri
+	# ⚠️ `layer = 4`, nu 1 (implicitul), de pe 2026-08-24. Vinieta din `atmosphere.gd` stă pe
+	# stratul 3 și întunecă MARGINILE ecranului — adică exact colțul în care stă plăcuța de viață
+	# și toată banda de XP de jos. Cât barele erau roșu și cyan aprins mai treceau; rama de aramă,
+	# care e o culoare de mijloc, ieșea maro-închis, aproape stinsă.
+	# 4 e slotul liber dintre vinietă (3) și filtrul alb-negru din Limbo (5), care TREBUIE să
+	# rămână peste HUD (vezi `_update_timer`). Tot acolo stau și cronometrele dimensiunilor
+	# (`nether.gd`, `ender.gd`, `prison.gd`), din același motiv. Bara boss-ului e la 6.
+	layer = 4
 	_build_banner()
 
-	# --- Bara de VIAȚĂ (sus-stânga, mărime fixă) ---
-	health_bar = _make_bar(Color(0.85, 0.15, 0.2), Color(0.15, 0.03, 0.03))  # roșu pe fundal închis
-	health_bar.position = Vector2(20, 20)
-	health_bar.size = Vector2(320, 22)
-	add_child(health_bar)
-
-	# --- Bara de XP (jos de tot, întinsă pe toată lățimea) ---
-	xp_bar = _make_bar(Color(0.2, 0.8, 1.0), Color(0.03, 0.08, 0.12))  # cyan pe fundal închis
-	xp_bar.anchor_left = 0.0
-	xp_bar.anchor_right = 1.0
-	xp_bar.anchor_top = 1.0
-	xp_bar.anchor_bottom = 1.0
-	xp_bar.offset_left = 0
-	xp_bar.offset_right = 0
-	xp_bar.offset_top = -20   # înălțimea barei
-	xp_bar.offset_bottom = 0
-	add_child(xp_bar)
-
-	# --- Text cu nivelul (deasupra barei de XP) ---
-	level_label = Label.new()
-	level_label.anchor_top = 1.0
-	level_label.anchor_bottom = 1.0
-	level_label.offset_left = 20
-	level_label.offset_top = -46
-	level_label.add_theme_color_override("font_color", Color.WHITE)
-	add_child(level_label)
+	_fa_viata()
+	_fa_xp()
 
 	# --- Cronometrul (sus, centrat) ---
 	# Întâi numără invers de la 10:00; după ce ajunge la 0 o ia în sus, cu roșu.
@@ -133,19 +137,156 @@ func _ready() -> void:
 	keys_box.add_child(keys_label)
 	add_child(keys_box)
 
-# Creează o ProgressBar colorată (culoare de umplere + culoare de fundal).
-func _make_bar(fill: Color, bg: Color) -> ProgressBar:
-	var bar := ProgressBar.new()
-	bar.show_percentage = false
-	var sb_bg := StyleBoxFlat.new()
-	sb_bg.bg_color = bg
-	sb_bg.set_corner_radius_all(4)
-	var sb_fill := StyleBoxFlat.new()
-	sb_fill.bg_color = fill
-	sb_fill.set_corner_radius_all(4)
-	bar.add_theme_stylebox_override("background", sb_bg)
-	bar.add_theme_stylebox_override("fill", sb_fill)
-	return bar
+# ---------------------------------------------------------------------------
+# CELE DOUĂ BARE
+# ---------------------------------------------------------------------------
+# Culorile: roșul e cel din bara boss-ului (aceeași familie de sânge), iar cyan-ul e cel vechi
+# al XP-ului, doar puțin adâncit ca să nu țipe peste aramă.
+const C_VIATA := Color8(184, 30, 44)          # roșu-sânge
+const C_VIATA_URMA := Color8(232, 168, 176)   # fantoma care rămâne în urma loviturii
+const C_XP := Color8(46, 178, 214)            # cyan
+const C_XP_URMA := Color8(150, 226, 244)
+const ACCENT := Color8(198, 118, 80)          # arama, ca în restul meniurilor
+const ACCENT_CLAR := Color8(222, 152, 116)
+
+const VIATA_RECT := Rect2(20, 18, 340, 38)    # unde stă plăcuța de viață
+const XP_INALT := 30.0                        # grosimea barei de XP
+const XP_DE_JOS := 16.0                       # cât o ridicăm de la marginea de jos
+const INSIGNA := 46.0                         # latura insignei de nivel (pătrată)
+
+# Sub ce fracțiune de viață începe plăcuța să pulseze roșu.
+const PRAG_PERICOL := 0.30
+
+func _fa_viata() -> void:
+	hp_bara = BARA.new()
+	# Celula (0,3) din planșă: colțuri cu nituri și linie dublă — plăcuță de metal bătut în cuie.
+	# `zoom = 1`: la HUD rama trebuie să rămână SUBȚIRE. Boss-ul folosește aceeași celulă la
+	# zoom 2, deci se vede că sunt din aceeași familie, doar că a lui e de două ori mai grea.
+	hp_bara.construieste(Vector2i(0, 3), 1, 12, 8, C_VIATA, C_VIATA_URMA)
+	hp_bara.position = VIATA_RECT.position
+	hp_bara.size = VIATA_RECT.size
+	hp_bara.set_font(15)
+	add_child(hp_bara)
+
+func _fa_xp() -> void:
+	xp_bara = BARA.new()
+	# Celula (3,3): doar o linie dublă, fără ornamente. Bara de XP stă pe toată lățimea ecranului
+	# și e a doua ca importanță — o ramă bogată acolo ar fi tras ochiul de la joc.
+	xp_bara.construieste(Vector2i(3, 3), 1, 10, 6, C_XP, C_XP_URMA)
+	xp_bara.anchor_left = 0.0
+	xp_bara.anchor_right = 1.0
+	xp_bara.anchor_top = 1.0
+	xp_bara.anchor_bottom = 1.0
+	xp_bara.offset_left = INSIGNA * 0.7        # începe pe sub insignă
+	xp_bara.offset_right = -20.0
+	xp_bara.offset_top = -(XP_DE_JOS + XP_INALT)
+	xp_bara.offset_bottom = -XP_DE_JOS
+	xp_bara.set_font(13)
+	xp_bara.set_trepte(10)                     # zece crestături: se vede din ochi cât mai ai
+	xp_bara.porneste_licarirea()               # dunga de lumină care mătură partea plină
+	add_child(xp_bara)
+
+	# INSIGNA: un octogon cu spirale din aceeași planșă, călare pe capătul din stânga al barei.
+	# Cifra nivelului stă în el, cu aramă aprinsă. Ține locul vechiului text „Level 7" scris
+	# deasupra barei — același lucru, dar arată a joc, nu a etichetă.
+	_insigna = Control.new()
+	_insigna.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_insigna.anchor_top = 1.0
+	_insigna.anchor_bottom = 1.0
+	_insigna.offset_left = 12.0
+	_insigna.offset_right = 12.0 + INSIGNA
+	var mijloc := -(XP_DE_JOS + XP_INALT * 0.5)
+	_insigna.offset_top = mijloc - INSIGNA * 0.5
+	_insigna.offset_bottom = mijloc + INSIGNA * 0.5
+	_insigna.pivot_offset = Vector2(INSIGNA, INSIGNA) * 0.5   # sare din centru la level up
+	add_child(_insigna)
+
+	var rama := NinePatchRect.new()
+	rama.texture = BARA.chenar(Vector2i(3, 2), 1)
+	rama.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rama.patch_margin_left = 14
+	rama.patch_margin_right = 14
+	rama.patch_margin_top = 14
+	rama.patch_margin_bottom = 14
+	rama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rama.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_insigna.add_child(rama)
+
+	level_label = Label.new()
+	level_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	level_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	level_label.add_theme_font_size_override("font_size", 22)
+	level_label.add_theme_color_override("font_color", ACCENT_CLAR)
+	level_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	level_label.add_theme_constant_override("outline_size", 5)
+	level_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_insigna.add_child(level_label)
+
+# ---------------------------------------------------------------------------
+# CE SE ÎNTÂMPLĂ LA FIECARE CADRU
+# ---------------------------------------------------------------------------
+func _update_viata(p, delta: float) -> void:
+	var maxim: int = maxi(int(p.max_hp), 1)
+	var acum: int = clampi(int(p.hp), 0, maxim)
+	var f := float(acum) / float(maxim)
+	hp_bara.set_fractie(f)
+	hp_bara.set_text("%d / %d" % [acum, maxim])
+
+	# Crestăturile se refac doar când se schimbă viața MAXIMĂ (un item, un level up) — nu la
+	# fiecare cadru: fiecare refacere înseamnă noduri șterse și făcute la loc.
+	if maxim != _hp_max_ultim:
+		_hp_max_ultim = maxim
+		hp_bara.set_trepte(_cate_crestaturi(maxim))
+
+	# Clipit ALB când încasezi, VERDE când te vindeci. Prima citire (`_hp_ultim < 0`) nu clipește:
+	# altfel plăcuța ar fulgera degeaba în clipa în care apare pe ecran.
+	if _hp_ultim >= 0 and acum != _hp_ultim:
+		if acum < _hp_ultim:
+			hp_bara.fulgera(Color(1, 1, 1, 0.55), 0.22)
+		else:
+			hp_bara.fulgera(Color(0.55, 1.0, 0.60, 0.40), 0.30)
+	_hp_ultim = acum
+
+	# Sub `PRAG_PERICOL` rama pulsează roșu. Se vede cu coada ochiului, fără să acopere jocul —
+	# la un joc în care mori dintr-o lovitură, „mai am puțin" trebuie să se simtă, nu să se
+	# citească. La 0 viață se oprește (ești deja mort, n-are pe cine avertiza).
+	if f <= PRAG_PERICOL and acum > 0:
+		_puls += delta * 6.0
+		var s := 0.5 + 0.5 * sin(_puls)
+		hp_bara.set_ton_rama(Color(1.0, 1.0 - 0.45 * s, 1.0 - 0.45 * s))
+	else:
+		_puls = 0.0
+		hp_bara.set_ton_rama(Color.WHITE)
+
+# Câte crestături pe bara de viață. Pasul pornește de la 25 de viață și se dublează până când
+# ies cel mult 14 — altfel, cu 2000 de viață, bara ar fi fost un pieptene.
+func _cate_crestaturi(maxim: int) -> int:
+	var pas := 25
+	while maxim / pas > 14:
+		pas *= 2
+	return clampi(int(round(float(maxim) / float(pas))), 2, 14)
+
+func _update_xp(p) -> void:
+	var prag: int = maxi(int(p.xp_to_next), 1)
+	var acum: int = clampi(int(p.xp), 0, prag)
+	xp_bara.set_fractie(float(acum) / float(prag))
+	xp_bara.set_text("%d / %d" % [acum, prag])
+	var niv := int(p.level)
+	level_label.text = str(niv)
+	if _nivel_ultim >= 0 and niv > _nivel_ultim:
+		_sare_insigna()
+	_nivel_ultim = niv
+
+# Level up: bara se aprinde auriu și insigna sare o dată. Nu ține locul ecranului de level up —
+# doar leagă momentul de HUD, ca să se vadă de unde a venit.
+func _sare_insigna() -> void:
+	xp_bara.fulgera(Color(1.0, 0.86, 0.45, 0.50), 0.42)
+	var t := create_tween()
+	t.tween_property(_insigna, "scale", Vector2(1.35, 1.35), 0.12) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(_insigna, "scale", Vector2.ONE, 0.28) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 # Construiește bannerul centrat pe ecran (ascuns până la primul anunț).
 func _build_banner() -> void:
@@ -205,11 +346,8 @@ func _process(delta: float) -> void:
 	var player := get_tree().get_first_node_in_group("player")
 	if player == null:
 		return
-	health_bar.max_value = player.max_hp
-	health_bar.value = player.hp
-	xp_bar.max_value = player.xp_to_next
-	xp_bar.value = player.xp
-	level_label.text = tr("Level %d") % player.level
+	_update_viata(player, delta)
+	_update_xp(player)
 
 # Cronometrul: numără invers cele 10 minute, apoi urcă de la 0 cu roșu (Final Swarm).
 func _update_timer() -> void:

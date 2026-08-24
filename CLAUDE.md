@@ -23,6 +23,42 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (HUD-ul de viață, boss și XP, îmbrăcat în ramele jocului)
+
+**Cerut de Răzvan:** „Vreau sa folosesti ce borders ai in joc sa faci un revamp la UI-ul de HP de la Player si Bosses. Si la UI-ul de la xp. Vreau sa arate ca un joc facut de un studio celebru de game dev."
+
+**⚠️ Folderul `Borders/` din repo era GOL** (creat, dar fără niciun fișier — verificat și cu `ls`, și cu PowerShell, și căutând poze noi prin Desktop/Downloads). Deci ramele sunt cele care erau deja în joc: planșa **`harta/EGT/Border EGT.png`**, 5×4 celule de 64px, aceeași din care sunt făcute meniul principal, pauza, cazinoul, Alba-Neagra, Dubiosu și level up-ul. Dacă pune poze acolo, se schimbă o linie per bară (celula).
+
+**Atinse:** `hud_bara.gd` (**nou**), `hud.gd`, `boss_bar.gd`.
+
+### O singură cărămidă pentru toate trei barele
+`hud_bara.gd` e un `Control` care știe să deseneze o bară îmbrăcată în ramă. Îl folosesc și viața playerului, și XP-ul, și boss-ul — înainte fiecare își desena propriul `ProgressBar` cu `StyleBoxFlat`, adică trei dreptunghiuri plate care nu semănau cu nimic altceva din joc.
+
+Straturile, de jos în sus: **rama** (nine-patch din planșă — interiorul ei închis la culoare ține loc de fundal, nu mai desenăm unul), o cutie cu `clip_contents` trasă înăuntru cu grosimea ramei, **fantoma** care rămâne în urma loviturii, **umplerea în trei benzi** (luciu sus / bază / umbră jos), **crestăturile**, **dunga de lumină** care mătură bara, **fulgerul** colorat și **cifrele**.
+
+Umplerea e în trei benzi, nu degrade lin: la pixel art un degrade neted arată ca o bară de Windows lipită peste artă.
+
+### ⚠️ Nu orice celulă din planșă merge ca bară
+Am probat toate rândurile, randate una lângă alta. **Merg doar celulele cu interior DREPTUNGHIULAR** — (0,3), (3,3), (2,3). Cele cu colțuri tăiate sau rotunjite ((3,1), (4,1), (2,0), (1,1)) arată frumos goale, dar umplerea e un dreptunghi și **dă peste ornamentul din colț**, fiindcă `clip_contents` taie tot pe dreptunghi. Nu se vede în cod, se vede doar în captură.
+
+A doua capcană: la nine-patch, marginile de sus+jos nu încap într-o bară mai scundă decât suma lor. O ramă cu colțuri ornamentate mari (16px la ZOOM 2 = 32 pe ecran) cere o bară de minimum 64 înălțime, altfel Godot îi strivește colțurile. De-aia ornamentele bogate NU merg pe bare subțiri, oricât de bine ar arăta în meniuri.
+
+### Ce s-a ales
+- **Viața playerului:** celula (0,3) — colțuri cu nituri, linie dublă — la **ZOOM 1**, plăcuță de 340×38 sus-stânga. Cifrele „214 / 320" peste ea; crestături din 25 în 25 de viață (pasul se dublează singur, ca să nu iasă un pieptene la 2000 HP).
+- **Boss:** **aceeași celulă (0,3), dar la ZOOM 2**, plăcuță de 64 înălțime. Se vede dintr-o privire că-s din aceeași familie și care e cea importantă. Numele rămâne sub ea.
+- **XP:** celula (3,3) — doar linie dublă, fără ornamente — jos, cu **insigna nivelului** (octogonul cu spirale, celula (3,2)) călare pe capătul din stânga. Insigna ține locul vechiului text „Level 7".
+
+### Reacții (astea fac diferența, nu rama)
+Clipit **alb** când încasezi, **verde** când te vindeci, **auriu** pe XP la level up (plus insigna care sare). **Fantoma** roz coboară în urma loviturii, la player și la boss deopotrivă. Sub 30% viață **rama pulsează roșu**. Pe XP mătură o dungă de lumină la ~3 secunde.
+
+### ⚠️ HUD-ul a urcat de pe stratul 1 pe 4
+Prima dată în joc adevărat, HUD-ul ieșea **maro-închis, aproape stins**. Cauza: **vinieta din `atmosphere.gd` stă pe stratul 3 și întunecă marginile ecranului** — adică fix colțul cu viața și toată banda de XP. Cât barele erau roșu și cyan aprins mai treceau; arama, care e o culoare de mijloc, era înghițită.
+
+`layer = 4` e slotul liber dintre vinietă (3) și filtrul alb-negru din Limbo (5), care TREBUIE să rămână peste HUD. Acolo stau deja cronometrele dimensiunilor (`nether.gd`, `ender.gd`, `prison.gd`), din exact același motiv. **Efect secundar, intenționat:** HUD-ul nu mai e acoperit nici de stratul de scântei din Nether/Ender (2) — ceea ce se potrivește cu ce scrie deja în `atmosphere.gd`, că tenta dimensiunilor a fost pusă pe lume tocmai ca să NU înroșească viața și XP-ul.
+
+### Verificat rulând
+Captură din **jocul adevărat** (`main.tscn` instanțiat, nu o scenă de test): HUD lizibil peste iarbă, plăcuță plină, insignă, bară de XP. A doua captură cu **bara de boss chemată peste joc**: fantoma se vede coborând după lovitură. În scenă izolată: viață mică (rama pulsează + fantoma), vindecare (clipit verde), level up (insigna sare, bara se aprinde), patru cadre consecutive care prind dunga de lumină mișcându-se. `tool_check_i18n` → **„✔ TOTUL E TRADUS"** (n-au apărut texte noi de tradus; „Level %d" a rămas în tabel, doar că HUD-ul nu-l mai folosește).
+
 ## Session log — 2026-08-24 (Casino VIP Pass: masa de ruletă nu se mai închide)
 
 **Cerut de Răzvan:** „baga si upgrade_64 (Legendary) - Casino VIP Pass - Indefinite access to the roulette wheel. (lasa playerul sa joace cat vrea la ruleta)"
