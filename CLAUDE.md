@@ -23,6 +23,41 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (toate melodiile la ACELAȘI nivel, măsurat pe RMS · Nether Song și tema lui Saratalin intră fără fade-in)
+
+**Cerut de Răzvan:** „Melodiile Nether Song si Saratalin Theme vreau sa inceapa direct fara fade in sau alte chestii. Ca deja au intro built-in." + „Fa toate melodiile acelasi nivel de audio".
+
+**Atinse:** `audio.gd` (tabelul de volume + cele șase `play_*_music`). **Unealtă nouă, păstrată:** `tool_muzica_niveluri.gd` / `.tscn`.
+
+### 1. Fără fade-in la cele două melodii cu intro
+
+`play_nether_music()` și `play_saratalin_music()` cheamă acum `_play_track(..., 0.0)`, ca meniul principal. Melodia VECHE se stinge tot cu fade (3s), deci nu se taie nimic brusc; doar cea nouă nu mai urcă din tăcere peste propriul ei intro.
+
+Verificat rulând jocul și citind `Audio._music.volume_db` în cadrul imediat următor: nether **−15,10** și saratalin **−18,10** (adică fix volumul lor), față de pușcărie și Ender care pornesc, ca înainte, de la **−59,7** (`TACERE_DB`) și urcă.
+
+**⚠️ Rămâne o muchie, scrisă și în cod:** `play_nether_music()` se cheamă de două ori pe vizită, iar a doua oară (după ce cade Saratalin) `Nether Song` se reia **din mijloc**, de unde rămăsese — deci acolo intrarea e o tăietură bruscă, nu un intro. Se rezolvă cu o linie (`MUSIC_NETHER` în `FARA_MEMORIE`) dacă Răzvan vrea intro-ul și atunci; nu am făcut-o, fiindcă schimbă continuitatea, nu fade-ul.
+
+### 2. Toate melodiile la același nivel — și de ce tabelul vechi era greșit
+
+Tabelul de volume de dinainte era făcut pe **vârfuri** (peak). Vârful spune cât de ascuțită e o tobă, nu cât de tare ți se pare melodia — de-aia numerele lui nu semănau deloc cu realitatea: `Overworld Theme` și `Saratalin Theme` au vârfuri aproape egale dar RMS diferit, iar `sky-lines` părea la vârf cât meniul, deși e cu 2,3 dB mai domoală.
+
+Măsurat din nou, de data asta pe **RMS**: melodia intră pe o magistrală curată cu un `AudioEffectCapture`, se citesc probele care ies din ea, cinci ferestre de 4 s (2%, 20%, 40%, 60%, 80%). Rulează în FEREASTRĂ, nu headless (driverul dummy nu mixează → n-ar ieși nicio probă), cu `Master` pe mut. Ține ~2 minute.
+
+| melodie | RMS fișier | volum vechi | **volum nou** | se auzea | **se aude** |
+|---|---|---|---|---|---|
+| Overworld Theme | −9,7 | −21,0 | **−19,1** | −30,7 | −28,8 |
+| main menu theme | −15,0 | −14,0 | **−13,9** | −29,0 | −28,8 |
+| Nether Song | −13,7 | −14,0 | **−15,1** | −27,7 | −28,8 |
+| sky-lines (pușcărie) | −17,3 | −12,0 | **−11,5** | −29,3 | −28,8 |
+| Ender Theme | −12,1 | −18,0 | **−16,7** | −30,1 | −28,8 |
+| Saratalin Theme | −10,7 | −15,5 | **−18,1** | −26,2 | −28,8 |
+
+Înainte erau **4,5 dB** între cea mai tare (tema lui Saratalin) și cea mai domoală (lumea). Acum, măsurat cu volumele noi în joc: **−28,78 · −28,85 · −28,79 · −28,78 · −28,79 · −28,76** — 0,09 dB între ele, adică nimic la ureche.
+
+Ținta **−28,8** nu e aleasă din burtă: e chiar media de dinainte, deci jocul în ansamblu sună la fel de tare ca înainte — doar s-a aliniat pe dinăuntru. Cea mai mare mișcare o simte tema lui Saratalin, care coboară 2,6 dB: ea era melodia care „ieșea în față" cu decibeli. Că e luptă de boss o spune acum muzica însăși, nu volumul.
+
+**Când mai vine o melodie:** rulează `tool_muzica_niveluri.tscn`, citește RMS-ul și pune în joc `−28,8 − RMS`. Nu potrivi după ureche — de două ori până acum tabelul ăsta a fost greșit fiindcă cineva a măsurat altceva decât ce se aude.
+
 ## Session log — 2026-08-23, noaptea (butoanele de controller se schimbă din meniu)
 
 **Cerut de Răzvan:** „Vreau sa poti sa customizezi butoanele de la gamepad."

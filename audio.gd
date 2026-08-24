@@ -206,7 +206,7 @@ const MUSIC_DIMENSIUNI := [MUSIC_NETHER, MUSIC_SARATALIN, MUSIC_PRISON, MUSIC_EN
 # ⚠️ Până pe 2026-08-23 meniurile astea puneau `sky-lines` peste muzica lumii (`enter_menu_music`
 # / `exit_menu_music`, șterse acum). Cele două idei nu pot sta împreună: o melodie NOUĂ care intră
 # deja tocită nu se aude ca „o ușă închisă", ci ca un fișier stricat. Dacă vrei muzica de meniu
-# înapoi, o rescrii cu `_play_track("res://audio/Nether Audio/sky-lines.ogg", -12.0, 0.45, 0.45)`.
+# înapoi, o rescrii cu `_play_track("res://audio/Nether Audio/sky-lines.ogg", -11.5, 0.45, 0.45)`.
 #
 # --- Cifrele filtrului ---
 # `Music` e o magistrală separată (se face din cod, în `_ready`) cu un singur efect: un trece-jos.
@@ -436,28 +436,52 @@ func stream_for(name: String) -> AudioStream:
 # 🎚️ TABELUL DE VOLUME — de ce fiecare melodie are alt număr.
 # Fiecare fișier vine masterizat altfel: unul e tare, altul e domol. Dacă le-am da tuturor
 # același `volume_db`, s-ar auzi ca la radio când sari între posturi. Deci NU le potrivim după
-# ureche, ci le MĂSURĂM: fiecare melodie e pusă să cânte la 0 dB și se citește vârful magistralei
-# Master în patru locuri din ea (0%, 25%, 50%, 75%), câte 3 secunde; media aia e „cât de tare e
-# fișierul". Volumul din joc iese apoi din scădere. (Unealta: `test_muzica.gd`, 2026-08-20.)
+# ureche, ci le MĂSURĂM.
 #
-#   melodie              media fișierului   volum în joc   cât se aude de fapt
-#   Overworld Theme          -2,1 dBFS          -21,0           -23,1
-#   main menu theme          -8,2               -14,0           -22,2
-#   Nether Song              -7,7               -14,0           -21,7
-#   sky-lines (pușcărie+meniuri) -9,4           -12,0           -21,4
-#   Ender Theme              -3,4               -18,0           -21,4
-#   Saratalin Theme          -4,4               -15,5           -19,9
+# ⚠️ Se măsoară RMS, NU vârful (schimbat pe 2026-08-24). Vârful spune cât de ascuțită e o tobă,
+# nu cât de tare ți se pare melodia: `Overworld Theme` și `Saratalin Theme` au vârfuri aproape
+# egale, dar RMS-ul lor diferă cu 1 dB, iar `sky-lines` — care la vârf părea la fel de tare ca
+# meniul — e de fapt cu 2,3 dB mai domoală. Tabelul de dinainte era făcut pe vârfuri; de-aia
+# numerele lui nu semănau cu astea.
 #
-# Ultima coloană e singura care contează la ureche, și de-aia arată așa: tot jocul stă la ~-21,5;
-# lumea, care cântă zece minute în continuu, cu un pic mai jos; tema boss-ului, cu 1,8 dB peste
-# restul — atât cât să simți că s-a schimbat ceva. Când mai vine o melodie: măsoar-o și scade
-# media din -23 (lume) sau din -21,5 (dimensiuni). Urechea minte, contorul nu.
+# Cum: melodia intră pe o magistrală curată cu un `AudioEffectCapture`, i se citesc PROBELE și li
+# se calculează RMS-ul în cinci locuri din melodie (2%, 20%, 40%, 60%, 80%), câte 4 secunde;
+# media celor cinci e „cât de tare e fișierul". Volumul din joc iese apoi din scădere.
+# Unealta: `tool_muzica_niveluri.tscn` — se rulează în FEREASTRĂ, nu headless (headless n-are
+# mixer, deci n-ar ieși nicio probă), și ține ~2 minute.
+#
+#   melodie              RMS fișier (0 dB)   volum în joc   cât se aude de fapt
+#   Overworld Theme          -9,7 dBFS          -19,1           -28,8
+#   main menu theme         -15,0               -13,9           -28,8
+#   Nether Song             -13,7               -15,1           -28,8
+#   sky-lines (pușcărie)    -17,3               -11,5           -28,8
+#   Ender Theme             -12,1               -16,7           -28,8
+#   Saratalin Theme         -10,7               -18,1           -28,8
+#
+# Ultima coloană e singura care contează la ureche, și de pe 2026-08-24 e ACEEAȘI peste tot:
+# -28,8 dBFS, la cererea lui Răzvan („fă toate melodiile același nivel de audio"). Înainte
+# fiecare stătea altfel, cu 4,5 dB între cea mai tare (tema lui Saratalin, -26,2) și cea mai
+# domoală (lumea, -30,7); acum saltul dintre ecrane nu se mai aude ca o schimbare de volum, ci
+# doar ca o schimbare de melodie. Ținta -28,8 e chiar media de dinainte — jocul, în ansamblu,
+# sună la fel de tare ca înainte; doar s-a aliniat pe dinăuntru.
+# Când mai vine o melodie: măsoar-o cu unealta și scrie aici `-28,8 - RMS-ul ei`.
+# Urechea minte, contorul nu.
+#
+# ⚠️ Dacă vrei totuși ca un loc anume să iasă în față, NU umbla la numărul melodiei: schimbă
+# ținta pentru ea (ex. -27 pentru tema boss-ului) și scrie în tabel de ce. Altfel, peste trei
+# luni, nimeni nu mai știe dacă numărul e măsurat sau ghicit.
 #
 # Meniul o pornește cu play_menu_music(), jocul cu play_music() (spawner._ready).
-# Meniul intră FĂRĂ fade-in (`fade_in = 0`): e primul lucru care se aude la pornirea jocului,
-# iar o urcare de 3 secunde acolo se simte ca și cum sunetul ar fi stricat. Stingerea rămâne
-# cu fade — când pleci din meniu în rundă, cele două melodii tot se încrucișează frumos.
-func play_menu_music(volume_db: float = -14.0) -> void:
+#
+# --- Cine intră FĂRĂ fade-in (`fade_in = 0`) ---
+# Implicit, o melodie nouă urcă din tăcere în FADE (3s), ca să se încrucișeze frumos cu cea
+# veche. Trei melodii sar peste asta, fiindcă au ele intrarea lor scrisă în fișier:
+#  • meniul principal — e primul lucru care se aude la pornirea jocului, iar o urcare de 3
+#    secunde acolo se simte ca și cum sunetul ar fi stricat;
+#  • `Nether Song` și `Saratalin Theme` — au intro built-in (cerut de Răzvan pe 2026-08-24).
+#    Un fade-in peste un intro compus îl mănâncă exact pe partea care trebuia să te lovească.
+# Stingerea melodiei VECHI rămâne cu fade la toate trei — deci tot nu se taie nimic brusc.
+func play_menu_music(volume_db: float = -13.9) -> void:
 	# ai ieșit din joc: nicio melodie de rundă nu mai are ce să continue, iar meniurile rundei
 	# trecute (dacă runda s-a terminat cu unul deschis) nu mai există
 	uita_pozitiile()
@@ -467,10 +491,9 @@ func play_menu_music(volume_db: float = -14.0) -> void:
 # Muzica din joc: alege o melodie la întâmplare din MUSIC_GAME, alta (posibil) la fiecare rundă.
 # Sar peste fișierele care lipsesc, ca să nu iasă tăcere dacă unul e șters/redenumit.
 #
-# ⚠️ -21, nu -12 ca înainte: `Overworld Theme` e masterizată cu 10 dB mai tare decât melodiile pe
-# care le-a înlocuit (medie -2,1 dBFS, față de -12,2 la `Ruined_Place`). Lăsată la -12, ar fi
-# acoperit tot jocul; la -21 se aude fix cât se auzea melodia veche. Vezi tabelul de volume.
-func play_music(volume_db: float = -21.0) -> void:
+# ⚠️ -19,1 e un număr MIC fiindcă `Overworld Theme` e masterizată tare (RMS -9,7 dBFS): scăzut
+# din ținta de -28,8, atât iese. Nu-l muta după ureche — vezi tabelul de volume.
+func play_music(volume_db: float = -19.1) -> void:
 	_nether_prev_path = ""   # rundă nouă → uităm ce cânta înainte de un Nether vechi
 	uita_pozitiile()         # ...și de la ce secundă. O rundă nouă începe cu melodia de la început.
 	_uita_meniurile()
@@ -495,24 +518,29 @@ var _nether_prev_db := 0.0
 # Melodia Nether-ului. Se cheamă de DOUĂ ori pe vizită: la intrare și încă o dată după ce cade
 # Saratalin, ca să ia locul temei lui. A doua oară `_tine_minte_melodia()` nu face nimic — vezi
 # acolo de ce, e chiar lucrul care ține „melodia lumii" nepătată.
-# -14: `Nether Song` are media la -7,7 dBFS, deci ajunge fix unde stătea `sky-lines` la -12.
-func play_nether_music(volume_db: float = -14.0) -> void:
+# -15,1 = ținta -28,8 minus RMS-ul măsurat al fișierului (-13,7 dBFS).
+# `fade_in = 0`: melodia are intro built-in, deci pornește direct la volumul ei.
+# ⚠️ Fără fade-in, a DOUA chemare (după ce cade Saratalin) intră brusc, la volum întreg, în
+# MIJLOCUL melodiei — fiindcă `Nether Song` ține minte secunda la care rămăsese. Dacă vrei ca
+# intro-ul ei să se audă și atunci, adaug-o în `FARA_MEMORIE` (o linie) și va porni de la zero.
+func play_nether_music(volume_db: float = -15.1) -> void:
 	_tine_minte_melodia()
-	_play_track(MUSIC_NETHER, volume_db)
+	_play_track(MUSIC_NETHER, volume_db, 0.0)
 
-# Tema lui Saratalin, când boss-ul atinge pământul. Stă cu 1,8 dB PESTE melodia Nether-ului
-# (media măsurată -4,4 dBFS): atât cât să simți că s-a schimbat ceva, nu cât să dai volumul mai
-# încet. Restul diferenței o face muzica însăși, nu numărul de aici.
-func play_saratalin_music(volume_db: float = -15.5) -> void:
+# Tema lui Saratalin, când boss-ul atinge pământul. -18,1 = ținta -28,8 minus RMS-ul fișierului
+# (-10,7 dBFS): se aude exact cât restul jocului. Că s-a schimbat ceva o spune muzica însăși —
+# intrarea ei de boss — nu un plus de decibeli.
+# `fade_in = 0`: are intro built-in; urcarea de 3 secunde îi mânca fix intrarea.
+func play_saratalin_music(volume_db: float = -18.1) -> void:
 	# Boss-ul a ajuns → gata cu făcutul de loc pentru cutremur (`duck_music` din `invoca()`).
 	# Punem coborârea la zero AICI, nu prin `unduck_music()`: melodia veche oricum se stinge, iar
-	# cea nouă trebuie să urce direct la volumul ei întreg. `unduck_music()` ar fi tras de același
-	# `volume_db` ca fade-in-ul, și se băteau între ele.
+	# cea nouă trebuie să pornească la volumul ei întreg. `unduck_music()` ar fi tras de același
+	# `volume_db`, și se băteau între ele.
 	_duck_db = 0.0
-	_play_track(MUSIC_SARATALIN, volume_db)
+	_play_track(MUSIC_SARATALIN, volume_db, 0.0)
 
 # Pușcăria: aceeași melodie ca înainte (`sky-lines`), doar că acum și-o cere pe nume.
-func play_prison_music(volume_db: float = -12.0) -> void:
+func play_prison_music(volume_db: float = -11.5) -> void:
 	_tine_minte_melodia()
 	_play_track(MUSIC_PRISON, volume_db)
 
@@ -520,9 +548,9 @@ func play_prison_music(volume_db: float = -12.0) -> void:
 # `stop_music_tinand_minte()` la intrarea în dimensiune. Dacă ar ține minte, ar salva „tăcere"
 # peste melodia lumii și la ieșire ai fi primit alta, de la capăt.
 #
-# -18, nu -12 ca celelalte: fișierul e masterizat mai tare (medie -3,4 dBFS). Vezi tabelul de
+# -16,7 = ținta -28,8 minus RMS-ul fișierului (-12,1 dBFS) — e masterizat tare. Vezi tabelul de
 # volume de la începutul secțiunii.
-func play_ender_music(volume_db: float = -18.0) -> void:
+func play_ender_music(volume_db: float = -16.7) -> void:
 	_play_track(MUSIC_ENDER, volume_db)
 
 # Ține minte melodia lumii și TACE. Folosit la intrarea în Ender: peste cinematica lui Celesto
