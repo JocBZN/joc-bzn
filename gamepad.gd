@@ -635,18 +635,30 @@ func _a_luat_focus(c: Control) -> void:
 		c.modulate = Color(1.35, 1.25, 1.15)   # sliderele n-au „hover", deci le luminăm
 		return
 	var hover := c.get_theme_stylebox("hover")
+	var ring: StyleBoxFlat = null
 	if hover is StyleBoxFlat:
 		# Nu punem hover-ul CA ATARE, ci o copie cu muchia aprinsă și trasă puțin în afara
 		# butonului. Motivul se vede pe START: el are deja, în repaus, o muchie de aramă
 		# deschisă (e butonul principal), deci un hover copiat exact peste el nu s-ar fi
 		# deosebit cu nimic — pe controller n-ai cursor, deci dacă nu se vede unde ești, nu
 		# știi ce apeși. Inelul ăsta se vede pe ORICE buton din joc, oricât de luminos ar fi.
-		var ring: StyleBoxFlat = hover.duplicate()
+		ring = hover.duplicate()
 		ring.border_color = FOCUS_MUCHIE
 		ring.set_border_width_all(maxi(3, ring.border_width_top))
-		ring.set_expand_margin_all(3.0)
-		c.add_theme_stylebox_override("focus", ring)
-		_aprinse[c.get_instance_id()] = true
+	else:
+		# ⚠️ Butoanele care poartă o PLĂCUȚĂ de aramă (`menu.gd`, de pe 2026-08-24) au hover-ul
+		# un `StyleBoxTexture` — n-ai ce duplica și ce colora. Fără ramura asta rămâneau complet
+		# fără inel, adică pe controller nu se vedea deloc pe ce buton stai: exact meniul
+		# principal, exact butonul START. Deci desenăm inelul singuri, o ramă goală pe dinăuntru
+		# care se așază peste orice, indiferent din ce e făcut butonul.
+		ring = StyleBoxFlat.new()
+		ring.bg_color = Color(0, 0, 0, 0)
+		ring.border_color = FOCUS_MUCHIE
+		ring.set_border_width_all(3)
+		ring.set_corner_radius_all(0)
+	ring.set_expand_margin_all(3.0)
+	c.add_theme_stylebox_override("focus", ring)
+	_aprinse[c.get_instance_id()] = true
 	c.mouse_entered.emit()   # aprinderea proprie a ecranului (mărire, chenar, fișa armei)
 
 func _a_pierdut_focus(c: Control) -> void:

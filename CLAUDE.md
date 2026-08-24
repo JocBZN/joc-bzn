@@ -19,9 +19,62 @@ Quick rules:
 - **Uneltele care au nevoie de autoload-uri se rulează ca SCENĂ, nu cu `--script`** — altfel dau „Identifier not found: GameSettings".
 - **Generator nou în `World` (main.tscn) → trece-l în `WORLD_NODES` din `nether.gd`, `limbo.gd`, `ender.gd` ȘI `prison.gd`** (a patra listă din 2026-08-17). Sunt patru liste separate; dacă lipsește dintr-una, generatorul rămâne aprins acolo și-i vezi obiectele într-o dimensiune în care n-au ce căuta. S-a întâmplat de trei ori (EGT-uri, portaluri). **Singura excepție (din 2026-08-14): `Dubiosi`** — omul în palton apare NUMAI în Nether, deci lipsește dinadins din lista lui `nether.gd`, iar regula lui e scrisă invers, la el în generator (`dubiosi.gd` se uită la `nether.active` și se golește singur când nu ești acolo). În `limbo.gd` și `ender.gd` e trecut normal.
 - **Ecran nou cu butoane → controllerul merge din prima, dar verifică două lucruri** (suport de pad din 2026-08-20, `gamepad.gd`): (1) ecranul să fie un **CanvasLayer** cu `layer` mai mare decât ce e sub el — după `layer` decide `Gamepad` unde stă cursorul, nu după o listă scrisă de mână; (2) dacă butonul de pe care trebuie să pornească nu e primul din arbore, marchează-l cu **`Gamepad.primul(buton)`** (ca START în meniu și Resume în pauză). Aprinderea de focus, semnalele de mouse și inelul de aramă vin singure, pentru orice `Button`. **Text nou care numește o tastă** se scrie cu `Gamepad.nume_buton("actiune")`, nu cu `GameSettings.key_name()` — altfel scrie „E" și cu controllerul în mână — iar de pe 2026-08-23 `nume_buton` scrie și butonul REMAPAT (butoanele de pad se schimbă din Settings → GAMEPAD, vezi `PAD_ACTIONS`), deci un tabel scris de mână ar minți. Acțiune nouă care merită un buton de pad → un rând în `PAD_ACTIONS`, cu `unde` pus corect („joc" / „meniu"), și apare singură în meniu.
+- **Toată interfața se face din `Borders/` — 16 planșe care sunt ACEEAȘI planșă în 16 palete** (din 2026-08-24). Fiecare are 5×4 celule de 64px, iar siluetele sunt identice pixel cu pixel între toate 16, deci **schimbarea paletei nu mișcă niciun pixel** — de aici se fac stările butoanelor (repaus `07` stins → hover `11` → apăsat `01` aur, verde `04` pentru OP). **`harta/EGT/Border EGT.png` ESTE planșa 11**, octet cu octet: ecranele vechi (cazinou, pauză, level up, HUD, Alba-Neagra, Dubiosu) o încarcă de acolo, cele noi din `Borders/`; e același fișier, nu-l duplica și nu „armoniza" culorile de mână. Celulele folosite până acum: **(2,0)** = panoul cu spirale (ramele de pagină), **(0,3)** = plăcuța cu nituri (barele din HUD **și** butoanele de meniu). ⚠️ Nine-patch-ul nu întinde colțurile: un buton nu poate fi mai scund decât `2 × 16 × zoom`.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
 
 ---
+
+## Session log — 2026-08-24 (butoanele meniului principal, pe plăcuțe din pachetul `Borders/`)
+
+**Cerut de Răzvan:** „Esti un game dev de elita, profesionist. Fa butoanele de la meniul principal folosindu-te de Borders pe care ti le-am dat."
+
+**⚠️ `Borders/` din repo era IARĂȘI gol** (a doua oară, vezi log-ul de la revamp-ul HUD-ului). Planșele erau în `Downloads`: **16 fișiere `NN Border 01.png`, 320×256**. Le-am copiat în `Borders/` și le-am importat (`--headless --import`), deci de acum sunt în repo.
+
+### Descoperirea care a decis tot designul
+
+Am comparat planșele pixel cu pixel, nu din ochi. Două lucruri:
+
+1. **Cele 16 planșe sunt ACEEAȘI planșă în 16 palete.** Aceleași 20 de chenare (5×4 celule de 64px), silueta identică la toate — `0 pixeli` diferență de formă între oricare două.
+2. **`harta/EGT/Border EGT.png`, din care e făcut TOT restul interfeței (meniu, pauză, cazinou, Alba-Neagra, Dubiosu, level up, barele din HUD), ESTE planșa 11** — identică octet cu octet, 0 pixeli diferiți.
+
+Deci pachetul nu e „artă nouă", e **paleta completă a interfeței pe care jocul o are deja**. De aici:
+
+- **Stările butonului sunt schimbări de PLANȘĂ, nu culori inventate.** Repaus = planșa **07** (aramă în umbră), hover = planșa **11** (arama jocului), apăsat = planșa **01** (aur aprins). Fiindcă silueta e identică, **la hover nu se mișcă niciun pixel** — doar se aprinde metalul. Asta n-ar fi mers cu un `lightened(0.10)` peste un `StyleBoxFlat`, care era metoda de până acum.
+- **Nu mai există nicio culoare de buton scrisă de mână.** `StyleBoxFlat` (piatră `Color8(26,22,28)` + muchie de aramă de 3px + rază de 2) a dispărut din butoane: umplutura închisă `#201E26` **vine din planșă**, care e opacă în mijloc (verificat: 3808 din 4096 pixeli ai celulei sunt opaci).
+
+### Ce chenar
+
+**Celula (0,3)** — plăcuța cu nituri în colțuri. Nu de frumusețe: e **exact chenarul pe care îl poartă barele de viață/XP/boss din HUD** (`hud_bara.gd`). Deci butonul de meniu și viața playerului sunt din același metal.
+
+**Ierarhia se face din GREUTATE, nu din umplutură:** aceeași celulă, dar START-ul o poartă la `zoom 2` (ornament de două ori mai gros) și în arama aprinsă, restul la `zoom 1` și în arama stinsă.
+
+⚠️ **`zoom` nu e cosmetic.** Nine-patch-ul nu întinde colțurile, deci un buton nu poate fi mai scund decât `2 × 16 × zoom`: la zoom 1 minimul e 32 (butoanele de 54 și cele din colț, de 52), la zoom 2 e 64 — de-aia **START a crescut de la 68 la 72**. Placa de sub butoane a ieșit cu 4px mai înaltă; verificat pe poză că logo-ul + placa stau în continuare în cei 648px ai ecranului de referință.
+
+### Ce s-a mai schimbat, ca să nu rămână jumătate de treabă
+
+- **Butoanele pătrate din colț** (rotița, steagul, OP) poartă aceeași plăcuță, cu marginile strânse la 7 (`_sb_buton_mic`) — cu cele obișnuite „OP" ieșea tăiat.
+- **Steagul din colț: marginea 8 → 14.** Plăcuța mănâncă vreo 7px din fiecare latură, iar steagul de 36 lat se lipea de ornament. La 14 rămâne o casetă de 24×24 și steagul intră la scara ×1, exact cum e desenat.
+- **Comutatorul OP ON e verde din pachet** (planșa **04**), nu un `StyleBoxFlat` verde. Aceeași plăcuță, altă paletă.
+- **`_chenar()` primește acum planșa și zoom-ul** (`_chenar(celula, foaie, zoom)`, cu valorile vechi ca implicite), iar cache-ul de o singură planșă (`_sheet`) a devenit un dicționar (`_foi`) — se citesc patru planșe, nu una.
+
+### 🐛 Un bug găsit și reparat pe drum: inelul de focus de la controller
+
+`gamepad.gd::_a_luat_focus` desena inelul **doar dacă hover-ul era `StyleBoxFlat`** (îl duplica și-i aprindea muchia). Butoanele noi au hover-ul `StyleBoxTexture` → **ar fi rămas complet fără inel**, adică pe controller nu s-ar mai fi văzut deloc pe ce buton stai. Exact în meniul principal, exact pe START.
+
+Reparat cu o ramură `else`: când nu e de unde duplica, inelul se desenează singur — un `StyleBoxFlat` gol pe dinăuntru, cu muchia `FOCUS_MUCHIE` de 3px trasă 3px în afară. Se așază peste orice buton, indiferent din ce e făcut. Verificat rulând, cu `Gamepad.mod = "pad"` și `grab_focus()` pe START.
+
+### Verificat rulând
+
+- **Meniul principal întreg**, cu intro-ul sărit: cele patru butoane, cele trei din colț, placa de aramă.
+- **Cele trei stări**, luate din codul REAL (`_menu_button`, cu stylebox-ul de hover/pressed copiat peste normal ca să pozez starea): repaus stins → hover arămiu → apăsat auriu, pe START și pe un buton obișnuit.
+- **Toate sub-paginile** (SETTINGS — cea mai înaltă, CHOOSE WEAPON, OP START, LEADERBOARD, LANGUAGE): niciuna nu iese din ecran, comutatorul OP e verde.
+- **Inelul de focus de la controller** pe START.
+- `tool_check_i18n` → **„✔ TOTUL E TRADUS"** (n-am adăugat texte, dar oricum).
+- `scores.save` neatins (17:36, adică dinaintea rulărilor).
+
+### Ce am lăsat DINADINS neatins
+
+Butoanele din pagina SETTINGS (taburile KEYBINDS/GRAPHICS/GAMEPAD și rândurile de taste) sunt din **`settings_ui.gd`**, componentul folosit ȘI de meniul de pauză din joc. Se văd acum ca fiind din alt aliaj decât BACK-ul de sub ele. Le-aș pune pe aceleași plăcuțe într-un minut, dar asta schimbă și pauza din timpul jocului, iar Răzvan a cerut meniul principal. Rămâne la un cuvânt de-al lui.
 
 ## Session log — 2026-08-24 (conturul lui Sir John, exact cyan-ul atacurilor lui)
 

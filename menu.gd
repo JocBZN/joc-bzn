@@ -50,6 +50,30 @@ const SHEET := "res://harta/EGT/Border EGT.png"
 const CELULA_FOAIE := 64
 const ZOOM := 2
 const CH_PANOU := Vector2i(2, 0)
+
+# --- plăcuțele butoanelor (pachetul `Borders/`, pus de Răzvan pe 2026-08-24) ---
+# Cele 16 planșe din `Borders/` sunt ACEEAȘI planșă în 16 palete: aceleași 20 de chenare,
+# pixel cu pixel aceeași siluetă (verificat numărând: 0 pixeli diferență de formă). Iar
+# `harta/EGT/Border EGT.png`, din care e făcut tot restul interfeței, ESTE planșa 11 —
+# identică octet cu octet. De aici vine tot ce urmează:
+#
+#   1. Stările butonului sunt SCHIMBĂRI DE PLANȘĂ, nu culori inventate: repaus stins → hover
+#      arămiu (culoarea jocului) → apăsat auriu. Fiindcă silueta e identică, la hover nu se
+#      mișcă niciun pixel, doar se aprinde metalul.
+#   2. Nu mai există nicio culoare de buton scrisă de mână. `BTN_MAIN`/`BTN_SECOND` erau
+#      piatra și muchia desenate cu `StyleBoxFlat`; acum umplutura (#201E26) și ornamentul vin
+#      din planșă, care e opacă în mijloc.
+const BORDERS := "res://Borders/"
+const FOAIE_STINSA := BORDERS + "07 Border 01.png"    # aramă în umbră — repaus
+const FOAIE_APRINSA := BORDERS + "11 Border 01.png"   # arama jocului (= Border EGT) — hover
+const FOAIE_TARE := BORDERS + "01 Border 01.png"      # aur aprins — apăsat
+const FOAIE_VERDE := BORDERS + "04 Border 01.png"     # verde — cheat-ul OP pornit
+# Celula (0,3): plăcuța cu nituri în colțuri. Nu e aleasă de frumusețe — e chenarul pe care îl
+# poartă deja barele de viață/XP/boss din HUD (`hud_bara.gd`), deci butoanele de meniu și
+# interfața din joc arată ca făcute din același metal.
+const CH_BUTON := Vector2i(0, 3)
+const ZOOM_BUTON := 1        # butoanele obișnuite (54px înălțime) și cele din colț (52)
+const ZOOM_BUTON_MARE := 2   # START — aceeași plăcuță, ornament de două ori mai gros
 # Cât din chenar e COLȚ ORNAMENTAT, adică ce nu se întinde. 16 în pixeli de planșă → 32 pe ecran.
 const RAMA_MARG := 16 * ZOOM
 # Spațiul dintre ramă și conținut. Mult mai mic decât la `Menu.png` (era 72/58/56): ornamentul de
@@ -107,7 +131,7 @@ const INTRO_BUTTONS := 0.35   # cât durează să apară butoanele
 const MENU_BLUR := 3.0        # cât de tare e blur-ul la final (0 = deloc, 8 = maxim)
 
 var _panels := {}
-var _sheet: Image = null       # planșa de chenare, citită o singură dată
+var _foi := {}                 # planșele de chenare, citite o singură dată fiecare
 var _weapon_buttons := []
 var _weapon_detail := {}       # etichetele fișei din dreapta paginii CHOOSE WEAPON
 var _weapon_preview := ""      # arma peste care stă mouse-ul („" = arată-o pe cea aleasă)
@@ -496,14 +520,16 @@ func _rama_container(continut: Control, pad_lat := RAMA_PAD_LAT, pad_sus := RAMA
 # proprie: `StyleBoxTexture` vrea o textură întreagă, iar un `AtlasTexture` nu e de încredere aici.
 # (Aceeași funcție ca în `casino.gd` și `trade.gd`. E copiată, nu pusă la comun, fiindcă fiecare
 # ecran își construiește singur interfața — vezi comentariul din `trade.gd`.)
-func _chenar(celula: Vector2i) -> ImageTexture:
-	if _sheet == null:
-		var tex := load(SHEET) as Texture2D
+func _chenar(celula: Vector2i, foaie: String = SHEET, zoom: int = ZOOM) -> ImageTexture:
+	var img: Image = _foi.get(foaie)
+	if img == null:
+		var tex := load(foaie) as Texture2D
 		if tex == null:
 			return null
-		_sheet = tex.get_image()
-	var bucata := _sheet.get_region(Rect2i(celula.x * CELULA_FOAIE, celula.y * CELULA_FOAIE, CELULA_FOAIE, CELULA_FOAIE))
-	bucata.resize(CELULA_FOAIE * ZOOM, CELULA_FOAIE * ZOOM, Image.INTERPOLATE_NEAREST)
+		img = tex.get_image()
+		_foi[foaie] = img
+	var bucata := img.get_region(Rect2i(celula.x * CELULA_FOAIE, celula.y * CELULA_FOAIE, CELULA_FOAIE, CELULA_FOAIE))
+	bucata.resize(CELULA_FOAIE * zoom, CELULA_FOAIE * zoom, Image.INTERPOLATE_NEAREST)
 	return ImageTexture.create_from_image(bucata)
 
 # Linia subțire de sub titlurile de pagină. Se stinge spre capete (trei bucăți cu alfa diferit),
@@ -572,15 +598,16 @@ func _build_main() -> void:
 
 	_lang_btn = _corner_button(_show.bind("language"), 1)
 	# Steagul din colț are ACEEAȘI problemă ca cele din panoul LANGUAGE, deci același leac: un nod
-	# separat, ancorat pe tot butonul, nu `Button.icon` (vezi `_steag_centrat`). Marginea e mai mică
-	# decât în panou — butonul are doar 52 px și steagul ar ieși un timbru pierdut în mijloc.
-	# 8 pe toate laturile: rămâne o casetă de 36×36 în butonul de 52, iar steagul intră fix pe
-	# lățime (36 = 24×1.5) și lasă 12 px pe verticală, adică 6 și 6 — tot fără jumătăți de pixel.
+	# separat, ancorat pe tot butonul, nu `Button.icon` (vezi `_steag_centrat`).
+	# ⚠️ 14, nu 8, de pe 2026-08-24: butonul din colț poartă acum plăcuța de aramă, a cărei dublă
+	# linie mănâncă vreo 7 px din fiecare latură. Steagul de 36 lat (24×1.5) se lipea de ea și
+	# arăta înghesuit. La 14 rămâne o casetă de 24×24 — steagul intră la scara ×1, exact cum e
+	# desenat, cu 7 px de aer până la ornament.
 	_lang_steag = _steag_centrat(null)
-	_lang_steag.offset_left = 8
-	_lang_steag.offset_top = 8
-	_lang_steag.offset_right = -8
-	_lang_steag.offset_bottom = -8
+	_lang_steag.offset_left = 14
+	_lang_steag.offset_top = 14
+	_lang_steag.offset_right = -14
+	_lang_steag.offset_bottom = -14
 	_lang_btn.add_child(_lang_steag)
 	_panels["main"].add_child(_lang_btn)
 	_refresh_lang_button()
@@ -600,9 +627,10 @@ func _corner_button(cb: Callable, pozitie: int) -> Button:
 	const MARGINE := 16
 	const SPATIU := 10
 	var b := Button.new()
-	b.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
-	b.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
-	b.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	b.add_theme_stylebox_override("normal", _sb_buton_mic(FOAIE_STINSA))
+	b.add_theme_stylebox_override("hover", _sb_buton_mic(FOAIE_APRINSA))
+	b.add_theme_stylebox_override("pressed", _sb_buton_mic(FOAIE_TARE))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.anchor_left = 1.0
 	b.anchor_right = 1.0
@@ -1131,13 +1159,13 @@ func _refresh_op_toggle() -> void:
 	var on: bool = GameSettings.op_start
 	_op_toggle.text = "ON" if on else "OFF"
 	if on:
-		_op_toggle.add_theme_stylebox_override("normal", _sb(OP_VERDE_BG, OP_VERDE_BD, 3))
-		_op_toggle.add_theme_stylebox_override("hover", _sb(OP_VERDE_BG.lightened(0.10), OP_VERDE_BD.lightened(0.10), 3))
-		_op_toggle.add_theme_stylebox_override("pressed", _sb(OP_VERDE_BG.lightened(0.20), OP_VERDE_BD.lightened(0.20), 3))
+		_op_toggle.add_theme_stylebox_override("normal", _sb_buton(FOAIE_VERDE, ZOOM_BUTON))
+		_op_toggle.add_theme_stylebox_override("hover", _sb_buton(FOAIE_VERDE, ZOOM_BUTON, 1.18))
+		_op_toggle.add_theme_stylebox_override("pressed", _sb_buton(FOAIE_VERDE, ZOOM_BUTON, 1.35))
 	else:
-		_op_toggle.add_theme_stylebox_override("normal", _sb(BTN_MAIN, BTN_SECOND, 3))
-		_op_toggle.add_theme_stylebox_override("hover", _sb(BTN_MAIN.lightened(0.10), BTN_SECOND.lightened(0.10), 3))
-		_op_toggle.add_theme_stylebox_override("pressed", _sb(BTN_MAIN.lightened(0.20), BTN_SECOND.lightened(0.20), 3))
+		_op_toggle.add_theme_stylebox_override("normal", _sb_buton(FOAIE_STINSA, ZOOM_BUTON))
+		_op_toggle.add_theme_stylebox_override("hover", _sb_buton(FOAIE_APRINSA, ZOOM_BUTON))
+		_op_toggle.add_theme_stylebox_override("pressed", _sb_buton(FOAIE_TARE, ZOOM_BUTON))
 
 # Butonul din colț se aprinde verde cât cheat-ul e pornit — ca arma aleasă și limba activă.
 # Marginile se strâng la 6px, ca la butonul-steag: cu cele obișnuite (14 lateral) rămâneau 24px
@@ -1148,9 +1176,9 @@ func _refresh_op_button() -> void:
 	var on: bool = GameSettings.op_start
 	var bg := OP_VERDE_BG if on else BTN_MAIN
 	var bd := OP_VERDE_BD if on else BTN_SECOND
-	_op_btn.add_theme_stylebox_override("normal", _sb_stramt(bg, bd))
-	_op_btn.add_theme_stylebox_override("hover", _sb_stramt(bg.lightened(0.10), bd.lightened(0.10)))
-	_op_btn.add_theme_stylebox_override("pressed", _sb_stramt(bg.lightened(0.20), bd.lightened(0.20)))
+	_op_btn.add_theme_stylebox_override("normal", _sb_buton_mic(FOAIE_VERDE if on else FOAIE_STINSA))
+	_op_btn.add_theme_stylebox_override("hover", _sb_buton_mic(FOAIE_VERDE if on else FOAIE_APRINSA, 1.18 if on else 1.0))
+	_op_btn.add_theme_stylebox_override("pressed", _sb_buton_mic(FOAIE_VERDE if on else FOAIE_TARE, 1.18))
 	_op_btn.add_theme_color_override("font_color", OP_VERDE_BD if on else Color(0.94, 0.89, 0.82))
 
 func _sb_stramt(bg: Color, border: Color) -> StyleBoxFlat:
@@ -1199,28 +1227,64 @@ func _sb(bg: Color, border: Color, width: int = 2) -> StyleBoxFlat:
 func _menu_button(text: String, cb: Callable, principal: bool = false) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(380, 68) if principal else Vector2(340, 54)
+	b.custom_minimum_size = Vector2(380, 72) if principal else Vector2(340, 54)
 	# fără asta, VBox-ul din interiorul ramei întinde butonul până în ornament
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", 30 if principal else 22)
 	b.add_theme_color_override("font_color", OS_ALB if principal else Color(0.88, 0.84, 0.80))
 	b.add_theme_color_override("font_hover_color", Color(1, 1, 1))
 	b.add_theme_color_override("font_pressed_color", Color.WHITE)
-	# Opace, NU transparente ca stilul vechi: cu transparență, butoanele de sus ieșeau
-	# vizibil mai deschise decât cele de jos (transpărea cerul din fundalul blurat).
-	#
-	# Piatră închisă cu muchie de aramă. Butonul PRINCIPAL (START) se deosebește prin MUCHIE, nu
-	# prin umplutură: pe piatră aproape neagră o umplutură cu 10% mai deschisă nu se vede, dar o
-	# muchie de aramă aprinsă sare în ochi de la doi metri.
-	var baza := Color8(38, 30, 34) if principal else BTN_MAIN
-	var contur := ACCENT_CLAR if principal else ACCENT_STINS
-	b.add_theme_stylebox_override("normal", _sb(baza, contur, 3))
-	b.add_theme_stylebox_override("hover", _sb(Color8(50, 36, 36), ACCENT, 3))
-	b.add_theme_stylebox_override("pressed", _sb(Color8(64, 42, 36), ACCENT_CLAR, 3))
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # pixel art: fără înmuiere
+	# Butonul PRINCIPAL (START) se deosebește prin GREUTATE, nu prin umplutură: aceeași plăcuță,
+	# dar mărită ×2, deci ornamentul e de două ori mai gros. Pe piatră aproape neagră o umplutură
+	# cu 10% mai deschisă nu se vede; o ramă de două ori mai groasă se vede de la doi metri.
+	var z := ZOOM_BUTON_MARE if principal else ZOOM_BUTON
+	var repaus := FOAIE_APRINSA if principal else FOAIE_STINSA
+	var peste := FOAIE_TARE if principal else FOAIE_APRINSA
+	b.add_theme_stylebox_override("normal", _sb_buton(repaus, z))
+	b.add_theme_stylebox_override("hover", _sb_buton(peste, z))
+	# La START, hover și apăsat ar fi ajuns pe aceeași planșă (aurul e cea mai aprinsă din pachet),
+	# deci apăsatul se distinge prin `modulate` — tot aur, dar ars.
+	b.add_theme_stylebox_override("pressed", _sb_buton(FOAIE_TARE, z, 1.18 if principal else 1.0))
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.pressed.connect(cb)
 	_viata(b)
 	return b
+
+# O plăcuță de buton din pachetul `Borders/`: celula (0,3) — cea cu nituri în colțuri, ACEEAȘI
+# pe care o poartă barele din HUD (`hud_bara.gd`), deci butonul și viața playerului vorbesc
+# aceeași limbă. Umplutura închisă (#201E26) vine din planșă, nu dintr-un `StyleBoxFlat` pus pe
+# dedesubt — celula e opacă în mijloc.
+#
+# ⚠️ `zoom` nu e cosmetic: nine-patch-ul nu întinde colțurile, deci un buton nu poate fi mai
+# scund decât 2 × 16 × zoom. La zoom 1 minimul e 32 (butoanele de 54 și cele din colț, de 52);
+# la zoom 2 e 64, de-aia START-ul a crescut de la 68 la 72.
+func _sb_buton(foaie: String, zoom: int, aprindere: float = 1.0) -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	sb.texture = _chenar(CH_BUTON, foaie, zoom)
+	var m := 16 * zoom
+	sb.texture_margin_left = m
+	sb.texture_margin_right = m
+	sb.texture_margin_top = m
+	sb.texture_margin_bottom = m
+	# Textul stă în interiorul dublei linii, nu peste ea.
+	sb.content_margin_left = 12 * zoom
+	sb.content_margin_right = 12 * zoom
+	sb.content_margin_top = 4 * zoom
+	sb.content_margin_bottom = 4 * zoom
+	if aprindere != 1.0:
+		sb.modulate_color = Color(aprindere, aprindere, aprindere)
+	return sb
+
+# Aceeași plăcuță, dar strânsă pe butoanele pătrate de 52 din colț (rotița, steagul, OP):
+# cu marginile obișnuite (12) ar fi rămas 28px din 52 și „OP" ar fi ieșit tăiat.
+func _sb_buton_mic(foaie: String, aprindere: float = 1.0) -> StyleBoxTexture:
+	var sb := _sb_buton(foaie, ZOOM_BUTON, aprindere)
+	sb.content_margin_left = 7
+	sb.content_margin_right = 7
+	sb.content_margin_top = 7
+	sb.content_margin_bottom = 7
+	return sb
 
 # Butonul crește puțin la hover și se „înfundă" la apăsare. Doar culoarea (cum era înainte)
 # nu se simte — mișcarea, da.
