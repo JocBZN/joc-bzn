@@ -28,7 +28,7 @@ extends CanvasLayer
 const BARA := preload("res://hud_bara.gd")
 
 const LATIME := 0.56          # cât din lățimea ecranului ocupă bara (0..1)
-const INALTIME := 64.0        # grosimea plăcuței (rama mănâncă 16 de fiecare parte, la ZOOM 2)
+const INALTIME := 32.0        # grosimea plăcuței (înjumătățită pe 2026-08-24: era 64 la ZOOM 2)
 const DE_SUS := 88.0          # de la ce înălțime începe plăcuța (sub cele două cronometre)
 const TREPTE := 10            # crestăturile de peste viață — se vede din ochi cât ai mai rupt
 
@@ -55,7 +55,7 @@ func _ready() -> void:
 	_radacina = radacina
 
 	_bara = BARA.new()
-	_bara.construieste(Vector2i(0, 3), 2, 12, 8, C_VIATA, C_URMA)
+	_bara.construieste(Vector2i(0, 3), 1, 12, 8, C_VIATA, C_URMA)
 	_bara.anchor_left = 0.5 - LATIME * 0.5
 	_bara.anchor_right = 0.5 + LATIME * 0.5
 	_bara.anchor_top = 0.0

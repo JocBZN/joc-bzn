@@ -155,8 +155,8 @@ const C_XP_URMA := Color8(150, 226, 244)
 const ACCENT := Color8(198, 118, 80)          # arama, ca în restul meniurilor
 const ACCENT_CLAR := Color8(222, 152, 116)
 
-const VIATA_RECT := Rect2(20, 18, 340, 38)    # unde stă plăcuța de viață
-const XP_INALT := 30.0                        # grosimea barei de XP
+const VIATA_RECT := Rect2(20, 18, 340, 19)    # unde stă plăcuța de viață (înălțimea înjumătățită pe 2026-08-24)
+const XP_INALT := 15.0                        # grosimea barei de XP (înjumătățită pe 2026-08-24)
 const XP_DE_JOS := 16.0                       # cât o ridicăm de la marginea de jos
 const INSIGNA := 46.0                         # latura insignei de nivel (pătrată)
 
@@ -168,17 +168,17 @@ func _fa_viata() -> void:
 	# Celula (0,3) din planșă: colțuri cu nituri și linie dublă — plăcuță de metal bătut în cuie.
 	# `zoom = 1`: la HUD rama trebuie să rămână SUBȚIRE. Boss-ul folosește aceeași celulă la
 	# zoom 2, deci se vede că sunt din aceeași familie, doar că a lui e de două ori mai grea.
-	hp_bara.construieste(Vector2i(0, 3), 1, 12, 8, C_VIATA, C_VIATA_URMA)
+	hp_bara.construieste(Vector2i(0, 3), 0.5, 12, 8, C_VIATA, C_VIATA_URMA)
 	hp_bara.position = VIATA_RECT.position
 	hp_bara.size = VIATA_RECT.size
-	hp_bara.set_font(15)
+	hp_bara.set_font(11, 3)
 	add_child(hp_bara)
 
 func _fa_xp() -> void:
 	xp_bara = BARA.new()
 	# Celula (3,3): doar o linie dublă, fără ornamente. Bara de XP stă pe toată lățimea ecranului
 	# și e a doua ca importanță — o ramă bogată acolo ar fi tras ochiul de la joc.
-	xp_bara.construieste(Vector2i(3, 3), 1, 10, 6, C_XP, C_XP_URMA)
+	xp_bara.construieste(Vector2i(3, 3), 0.5, 10, 6, C_XP, C_XP_URMA)
 	xp_bara.anchor_left = 0.0
 	xp_bara.anchor_right = 1.0
 	xp_bara.anchor_top = 1.0
@@ -187,7 +187,7 @@ func _fa_xp() -> void:
 	xp_bara.offset_right = -20.0
 	xp_bara.offset_top = -(XP_DE_JOS + XP_INALT)
 	xp_bara.offset_bottom = -XP_DE_JOS
-	xp_bara.set_font(13)
+	xp_bara.set_font(10, 3)
 	xp_bara.set_trepte(10)                     # zece crestături: se vede din ochi cât mai ai
 	xp_bara.porneste_licarirea()               # dunga de lumină care mătură partea plină
 	add_child(xp_bara)

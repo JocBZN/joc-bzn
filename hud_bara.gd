@@ -66,27 +66,28 @@ var _licar_t := 0.0
 var _licar_pornit := false
 var _lat_veche := -1.0      # ca să reașezăm crestăturile doar când chiar se schimbă lățimea
 
-# Construiește bara. `celula` = ce chenar din planșă (coloană, rând, de la 0). `zoom` = de câte
-# ori se mărește celula înainte să devină textură (nine-patch-ul întinde doar mijlocul laturii,
-# nu și grosimea ei — o celulă de 64px pe o bară lată lasă linii de 1px). `margine` = câți pixeli
-# din colț NU se întind (cât ține ornamentul). `inset` = grosimea ramei în pixeli de planșă,
+# Construiește bara. `celula` = ce chenar din planșă (coloană, rând, de la 0). `zoom` = cu cât se
+# scalează celula înainte să devină textură — poate fi și 0.5, pentru bare subțiri (vezi `chenar`);
+# nine-patch-ul întinde doar mijlocul laturii, nu grosimea ei. `margine` = câți pixeli DE PLANȘĂ
+# din colț NU se întind (cât ține ornamentul); se scalează și el cu zoom. `inset` = grosimea ramei,
 # adică de cât trebuie trasă înăuntru zona care se mișcă.
-func construieste(celula: Vector2i, zoom: int, margine: int, inset: int, culoare: Color, urma_culoare: Color) -> void:
+func construieste(celula: Vector2i, zoom: float, margine: int, inset: int, culoare: Color, urma_culoare: Color) -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	modulate = UMBRA
 
 	_rama = NinePatchRect.new()
 	_rama.texture = chenar(celula, zoom)
 	_rama.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_rama.patch_margin_left = margine * zoom
-	_rama.patch_margin_right = margine * zoom
-	_rama.patch_margin_top = margine * zoom
-	_rama.patch_margin_bottom = margine * zoom
+	var m := int(roundf(margine * zoom))
+	_rama.patch_margin_left = m
+	_rama.patch_margin_right = m
+	_rama.patch_margin_top = m
+	_rama.patch_margin_bottom = m
 	_rama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_rama.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_rama)
 
-	var g := float(inset * zoom)
+	var g := float(inset) * zoom
 	_clip = Control.new()
 	_clip.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_clip.offset_left = g
@@ -166,8 +167,11 @@ func sari_urma() -> void:
 func set_text(t: String) -> void:
 	_text.text = t
 
-func set_font(marime: int) -> void:
+# Mărimea cifrelor de pe bară. `contur` scade odată cu ea: pe o bară subțire un contur de 4px
+# ar fi mai gros decât liniile literei și cifrele ar ieși o pată neagră.
+func set_font(marime: int, contur: int = 4) -> void:
 	_text.add_theme_font_size_override("font_size", marime)
+	_text.add_theme_constant_override("outline_size", contur)
 
 # Câte crestături se desenează peste bară. 0 = niciuna.
 func set_trepte(cate: int) -> void:
@@ -262,18 +266,34 @@ func _textura_licar() -> GradientTexture2D:
 	t.fill_to = Vector2(1, 0)
 	return t
 
-# Decupează o celulă din planșă și o mărește de `zoom` ori (vecinul cel mai apropiat, deci rămâne
+# Decupează o celulă din planșă și o scalează cu `zoom` (vecinul cel mai apropiat, deci rămâne
 # pixel art curat). `NinePatchRect` vrea o textură întreagă — un `AtlasTexture` nu e de încredere
 # aici, de-aia se face textură nouă, exact ca la `casino.gd`.
-static func chenar(celula: Vector2i, zoom: int) -> ImageTexture:
+#
+# `zoom` are voie să fie și SUBUNITAR (0.5): așa se face o ramă pentru o bară subțire. Nu e un
+# moft — nine-patch-ul nu poate desena o ramă mai scundă decât suma marginilor ei, deci o bară
+# de 19px nu încape într-un chenar cu colțuri de 12px. Micșorând CELULA, se micșorează și
+# ornamentul, deci rama rămâne întreagă, doar mai fină. (Alternativa — să declari colțuri mai
+# mici decât sunt — întinde jumătate de ornament pe toată lățimea barei.)
+static func chenar(celula: Vector2i, zoom: float) -> ImageTexture:
 	if _foaie == null:
 		var tex := load(SHEET) as Texture2D
 		if tex == null:
 			return null
 		_foaie = tex.get_image()
 	var bucata := _foaie.get_region(Rect2i(celula.x * CELULA, celula.y * CELULA, CELULA, CELULA))
-	if zoom > 1:
-		bucata.resize(CELULA * zoom, CELULA * zoom, Image.INTERPOLATE_NEAREST)
+	# ⚠️ La MICȘORARE nu se folosește „vecinul cel mai apropiat": el aruncă un pixel din doi, iar
+	# rama asta e făcută din linii de 1px — la jumătate ieșea o mâzgă maro, cu colțurile rupte și
+	# nesimetrice (probat pe 2026-08-24, se vede doar în captură). `shrink_x2` face MEDIA pe
+	# blocuri de 2×2: liniile subțiri se păstrează ca linii mai stinse, iar niturile rămân nituri.
+	# Doar la MĂRIRE rămâne nearest — acolo el e cel corect (pixel art curat, fără interpolare).
+	if is_equal_approx(zoom, 0.5):
+		bucata.shrink_x2()
+	elif zoom > 1.0:
+		bucata.resize(int(CELULA * zoom), int(CELULA * zoom), Image.INTERPOLATE_NEAREST)
+	elif not is_equal_approx(zoom, 1.0):
+		var lat := maxi(int(roundf(CELULA * zoom)), 8)
+		bucata.resize(lat, lat, Image.INTERPOLATE_LANCZOS)
 	return ImageTexture.create_from_image(bucata)
 
 # Dă un ton ramei (viața sub 30% pulsează roșu). `Color.WHITE` = culoarea ei normală.
