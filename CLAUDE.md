@@ -23,6 +23,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (conturul lui Sir John, din roșu în albastru)
+
+**Cerut de Răzvan:** „Outlineu din rosu in albastru lui sir john"
+
+**Atins un singur rând:** `final_boss.tscn`, `shader_parameter/culoare` — `Color(0.62, 0.10, 0.08)` → `Color(0.15, 0.27, 0.78)`.
+
+Conturul lui **nu e copt în poze**: îl desenează `contur_1px.gdshader` la rulare, pus pe `AnimatedSprite2D` din scenă (același shader ca la Celesto și la coasă — grosimea se măsoară în pixeli de ECRAN, deci rămâne de 1px oricât ar fi mărit sprite-ul). Deci schimbarea e o culoare în scenă, nu 64 de PNG-uri redesenate.
+
+Albastrul ales e **exact cel al lui Celesto și al coasei** (`0.15, 0.27, 0.78`), care e și valoarea implicită din shader. Jocul are așa un singur albastru de contur, nu două care se bat cap în cap.
+
+Se potrivește și cu ce poartă: Sir John are deja o **tunică albastră** pe armură, iar **tăietura** lui (`harta/castle/boss/atac_taietura/`) e desenată în cyan. Roșul era singurul lucru roșu de pe el, în afară de sânge.
+
+**Verificat rulând:** cele două variante randate una lângă alta, din aceeași scenă (`final_boss.tscn` instanțiată de două ori, cu material propriu pe fiecare ca să nu-și împartă sub-resursa).
+
 ## Session log — 2026-08-24 (HUD-ul de viață, boss și XP, îmbrăcat în ramele jocului)
 
 **Cerut de Răzvan:** „Vreau sa folosesti ce borders ai in joc sa faci un revamp la UI-ul de HP de la Player si Bosses. Si la UI-ul de la xp. Vreau sa arate ca un joc facut de un studio celebru de game dev."
