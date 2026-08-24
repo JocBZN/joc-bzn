@@ -23,6 +23,37 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (trei iteme noi: Butterfly Knife, Tome of Witchcraft, Bulletproof Vest)
+
+**Cerut de Răzvan:** „ti-am bagat upgrade_61 (Common) - Butterfly Knife - +5% Crit Chance, +5% Attack Speed, +5% Movement Speed. - upgrade_62 (Rare) - Tome of Witchcraft - +10% Difficulty - upgrade_63 (Epic) - Bulletproof Vest - +100 HP, -10% Movement Speed."
+
+**Atinse:** `levelup.gd` (3 rânduri în `UPGRADES` + 3 ramuri în `_apply`), `i18n.gd` (3 nume + 3 descrieri × 8 limbi), `codex.html` (3 carduri + base64-ul celor 3 iconițe). `upgrade_63.png` n-avea `.import` — rulat `--headless --import`.
+
+| item | raritate | ce face, în cod |
+|---|---|---|
+| **Butterfly Knife** | Common | `crit_chance += 0.05` · `upgrade_fire_rate(0.95)` · `speed *= 1.05` |
+| **Tome of Witchcraft** | Rare | `Difficulty.add_trade_penalty(0.10)` |
+| **Bulletproof Vest** | Epic | `upgrade_max_hp(100)` · `speed *= 0.90` |
+
+### Deciziile care nu erau scrise în cerință
+- **Criticul se ADUNĂ, cadența și viteza sunt PROCENTE pe valoarea curentă** — asta e regula casei (Adrenaline / Hellas pentru critic, Rolling Papers / Big Black Cigar pentru procente), și e singurul mod în care repetarea itemului rămâne rezonabilă.
+- **„+100 HP" = `upgrade_max_hp(100)`**, adică viață maximă + vindecare pe loc cu aceeași sumă — exact ce înseamnă „+35 Max HP" la Beer. Vesta luată la limită te scoate din foc.
+- **„+10% Difficulty" merge pe `Difficulty.trade_penalty`**, canalul prin care se plătește deja la statuia din Ender, la trade-up, la Alba-Neagra, la Dubiosu și la cazinou. Deci **se înmulțește** cu ele (două cărți = ×1,21, nu +20%) și urcă exact ce urcă și acolo: viața, damage-ul de contact, viteza (până la `SPEED_CAP`) și câți inamici apar. Numele variabilei zice „trade", dar mecanismul e de mult generic — al șaselea client nu justifică o redenumire prin cinci fișiere.
+
+### ⚠️ Tome of Witchcraft e, așa cum e scris azi, DOAR minus
+Nu dă nimic în schimb: `xp_mult()` nu trece prin `trade_penalty` (dinadins — vezi comentariul de la `Difficulty.trade_penalty`: dificultatea cumpărată e un COST, nu un târg). Singurul câștig indirect e că 10% mai mulți inamici = 10% mai multe geme pe jos, dar și cu 10% mai multă viață fiecare. Într-un ecran cu trei opțiuni, nimeni nu-l va alege niciodată.
+
+**N-am schimbat nimic din capul meu** — Răzvan a cerut „+10% Difficulty" și atât. Dacă vrea să fie un târg adevărat, linia e `Difficulty.xp_bonus *= 1.10` lângă cealaltă, și itemul devine „mai greu, dar crești mai repede". Scris și în comentariul din `_apply`, ca să nu se piardă.
+
+### Verificat rulând
+- **Cele trei cartonașe randate în ecranul real de Level Up** (captură): iconița bună, chenarul rarității bun (Common albastru / Rare verde / Epic mov), textul pe **o singură linie** — cel mai lung, al briceagului, are 367 px într-o etichetă de 466.
+- **Efectele, măsurate pe un player viu:** crit 0.000 → 0.050 · `fire_interval` 0.7500 → 0.7125 (**+5,3% cadență**) · viteză 265 → 278,3 (**+5,0%**) · apoi vesta: viteză 278,3 → 250,4 (**−10,0%**), `max_hp` 100 → 200 și `hp` 100 → 200 (**vindecă**).
+- **Cartea:** `trade_penalty` 1,0 → 1,1; viața inamicilor **+10,0%**, spawn-ul **+10,0%**, XP-ul **+0,0%** (exact cum trebuie); a doua carte → 1,21, deci se înmulțește.
+- `tool_check_i18n` → **„✔ TOTUL E TRADUS"**.
+- **Codexul:** comparația `id|iconiță|raritate` între `levelup.gd` și `codex.html` → **56 vs 56, zero diferențe**; fiecare iconiță folosită are base64; pagina randată în Chrome headless — toate trei cardurile apar, în grupele lor de raritate, cu badge-ul „NOU".
+
+**⚠️ Capcana din memorie m-a prins din nou:** `sed 'Nr fișier'` inserează DUPĂ linia N, iar eu numărasem greșit capătul ultimului card — cele trei carduri au aterizat între `game:` și `eff:` la Big Black Cigar. Verificarea structurală (fiecare `{ id:` urmat de `game:`) **nu prinde asta**, fiindcă rupe cardul de DEASUPRA, nu unul dintre cele noi. Ce a prins-o a fost cititul liniilor din jurul îmbinării. De data viitoare: după orice inserare în `codex.html`, citește 6 linii în jurul punctului, nu doar rula verificarea.
+
 ## Session log — 2026-08-24 (scos valul de căldură din deșert, cu tot cu setarea lui)
 
 **Cerut de Răzvan:** „Scoate overlay-ul de val de caldura."

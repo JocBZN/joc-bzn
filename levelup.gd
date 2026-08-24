@@ -79,6 +79,9 @@ var UPGRADES := [
 	{"id": "tower_5g", "nume": "5G Tower", "icon": "upgrade_58.png", "rar": "epic", "desc": "Enemies drop 15% more xp"},
 	{"id": "electrolytes", "nume": "Water and electrolytes", "icon": "upgrade_59.png", "rar": "uncommon", "desc": "+2 HP/sec +10% Move speed"},
 	{"id": "big_cigar", "nume": "Big Black Cigar", "icon": "upgrade_60.png", "rar": "epic", "desc": "+40% Damage -25% Move speed"},
+	{"id": "butterfly_knife", "nume": "Butterfly Knife", "icon": "upgrade_61.png", "rar": "common", "desc": "+5% Crit chance, Attack & Move speed"},
+	{"id": "tome_witchcraft", "nume": "Tome of Witchcraft", "icon": "upgrade_62.png", "rar": "rare", "desc": "+10% Difficulty"},
+	{"id": "bulletproof_vest", "nume": "Bulletproof Vest", "icon": "upgrade_63.png", "rar": "epic", "desc": "+100 Max HP -10% Move speed"},
 ]
 
 const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
@@ -1075,3 +1078,38 @@ func _apply(id: String, p) -> void:
 			# (procent citit la fiecare lovitură), ăsta scrie direct în `bullet_damage`.
 			p.bullet_damage = int(round(p.bullet_damage * 1.40))
 			p.speed *= 0.75
+		"butterfly_knife":
+			# briceagul-fluture: trei plusuri mici pe cele trei statusuri de „mână iute". E Common
+			# tocmai fiindcă niciunul nu e mare — dar toate trei se compun cu ce ai deja, deci
+			# luat de mai multe ori devine coloana vertebrală a unui build pe critic.
+			# Criticul se ADUNĂ (ca Adrenaline / Hellas), cadența și viteza sunt PROCENTE pe
+			# valoarea CURENTĂ (ca Rolling Papers / Hellas), deci a doua luare dă tot 5%, dar din
+			# mai mult. Fiind și pe viteză, umflă indirect Diesel Power / Megane's Katana.
+			p.crit_chance += 0.05
+			p.upgrade_fire_rate(0.95)
+			p.speed *= 1.05
+		"tome_witchcraft":
+			# cartea de vrăjitorii: îi face pe INAMICI cu 10% mai tari, pe loc și până la capătul
+			# rundei. E același canal prin care se plătește la statuia din Ender, la trade-up, la
+			# Alba-Neagra, la Dubiosu și la cazinou (`Difficulty.trade_penalty`) — deci se
+			# înmulțește cu ele, nu se adună: două cărți = ×1,21, nu +20%.
+			#
+			# Ce urcă, exact: viața, damage-ul de contact, viteza (până la `SPEED_CAP`) și CÂȚI
+			# inamici apar. Ce NU urcă: XP-ul lor (`xp_mult` nu trece prin `trade_penalty`),
+			# ceasul de pe ecran și scorul — vezi comentariul de la `Difficulty.trade_penalty`.
+			#
+			# ⚠️ Cum e scris azi, itemul e DOAR minus: nu-ți dă nimic în schimb. Singurul câștig
+			# indirect e că 10% mai mulți inamici înseamnă și 10% mai multe geme pe jos. Dacă
+			# vrei să fie un târg adevărat („mai greu, dar mai multă răsplată"), linia de adăugat
+			# e `Difficulty.xp_bonus *= 1.10` — dar asta e o decizie de design, nu o scăpare.
+			Difficulty.add_trade_penalty(0.10)
+		"bulletproof_vest":
+			# vesta antiglonț: cel mai mare plus de viață dintr-o singură luare (de trei ori Beer),
+			# plătit în picioare. `upgrade_max_hp` te și VINDECĂ cu cele 100, deci luată la limită
+			# te scoate din foc pe loc.
+			# ⚠️ Viteza e PROCENT pe valoarea CURENTĂ (ca Big Black Cigar / Death Sentence): a doua
+			# luare taie 10% din ce mai aveai, nu 20% din viteza de start — deci nu te lasă
+			# niciodată pe loc, oricâte iei. Și, ca la orice încetinire, taie indirect și din
+			# Diesel Power / Megane's Katana, care măsoară viteza curentă față de cea de start.
+			p.upgrade_max_hp(100)
+			p.speed *= 0.90

@@ -394,6 +394,9 @@ const TRAD := {
 "5G Tower": ["5G 信号塔", "5G-Mast", "Torre 5G", "Вышка 5G", "Tour 5G", "5Gタワー", "Wieża 5G", "5G Kulesi"],
 "Water and electrolytes": ["水与电解质", "Wasser und Elektrolyte", "Agua y electrolitos", "Вода и электролиты", "Eau et électrolytes", "水と電解質", "Woda i elektrolity", "Su ve Elektrolit"],
 "Big Black Cigar": ["大黑雪茄", "Große schwarze Zigarre", "Gran Puro Negro", "Большая чёрная сигара", "Gros Cigare Noir", "大きな黒い葉巻", "Wielkie Czarne Cygaro", "Büyük Siyah Puro"],
+"Butterfly Knife": ["蝴蝶刀", "Butterflymesser", "Navaja Mariposa", "Нож-бабочка", "Couteau Papillon", "バタフライナイフ", "Nóż Motylkowy", "Kelebek Bıçağı"],
+"Tome of Witchcraft": ["巫术之书", "Buch der Hexerei", "Tomo de Brujería", "Том Колдовства", "Tome de Sorcellerie", "魔術の書", "Księga Czarów", "Büyü Kitabı"],
+"Bulletproof Vest": ["防弹衣", "Kugelsichere Weste", "Chaleco Antibalas", "Бронежилет", "Gilet Pare-balles", "防弾ベスト", "Kamizelka Kuloodporna", "Kurşun Geçirmez Yelek"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -449,6 +452,9 @@ const TRAD := {
 "Enemies drop 15% more xp": ["敌人掉落经验 +15%", "Gegner lassen 15% mehr XP fallen", "Los enemigos sueltan 15% más de XP", "Враги дают на 15% больше опыта", "Les ennemis lâchent 15% d’XP en plus", "敵のXPドロップ +15%", "Wrogowie dają 15% więcej XP", "Düşmanlar %15 daha fazla XP düşürür"],
 "+2 HP/sec +10% Move speed": ["+2 生命/秒 +10% 移速", "+2 HP/Sek. +10% Tempo", "+2 HP/seg +10% Velocidad", "+2 HP/сек +10% скорость", "+2 PV/sec +10% Vitesse", "+2 HP/秒 +10% 移動速度", "+2 HP/sek +10% Szybkość", "+2 CAN/sn +10% Hız"],
 "+40% Damage -25% Move speed": ["+40% 伤害 -25% 移速", "+40% Schaden -25% Tempo", "+40% Daño -25% Velocidad", "+40% урон -25% скорость", "+40% Dégâts -25% Vitesse", "+40% 攻撃力 -25% 移動速度", "+40% Obrażenia -25% Szybkość", "+40% Hasar -25% Hız"],
+"+5% Crit chance, Attack & Move speed": ["+5% 暴击率、攻速、移速", "+5% Kritchance, Angriffstempo & Tempo", "+5% Prob. crítico, Vel. ataque y Velocidad", "+5% шанс крита, скорострельность и скорость", "+5% Critique, Cadence & Vitesse", "+5% クリティカル率・攻撃速度・移動速度", "+5% Kryt, Szybkostrzelność i Szybkość", "+5% Kritik şansı, Saldırı hızı ve Hız"],
+"+10% Difficulty": ["+10% 难度", "+10% Schwierigkeit", "+10% Dificultad", "+10% сложности", "+10% Difficulté", "+10% 難易度", "+10% Trudności", "+10% Zorluk"],
+"+100 Max HP -10% Move speed": ["+100 最大生命 -10% 移速", "+100 Max. HP -10% Tempo", "+100 HP máx. -10% Velocidad", "+100 макс. HP -10% скорость", "+100 PV max -10% Vitesse", "+100 最大HP -10% 移動速度", "+100 Maks. HP -10% Szybkość", "+100 Maks. CAN -10% Hız"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 
