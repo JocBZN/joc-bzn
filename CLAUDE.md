@@ -23,6 +23,31 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (conturul lui Sir John, exact cyan-ul atacurilor lui)
+
+**Cerut de Răzvan:** „Outline u albastru al lui sir john vreau sa fie aceasi culoare ca atacurile lui"
+
+**Atins un singur rând:** `final_boss.tscn`, `shader_parameter/culoare` — `Color(0.15, 0.27, 0.78)` → `Color(0.431, 0.894, 1)`, adică **#6EE4FF**.
+
+**Culoarea nu e nimerită din ochi, e MĂSURATĂ.** O unealtă de o singură rulare (ștearsă după) a citit toate cadrele celor cinci atacuri ale lui — `atac_taietura`, `atac_inel`, `atac_stropi`, `atac_crapatura`, `atac_lovitura` — și a numărat pixelii pe culoare. Ies din **aceeași paletă de patru tonuri**, în toate cinci:
+
+| culoare | rol | unde apare |
+| --- | --- | --- |
+| `#98FFF6` | cel mai deschis, miezul | peste tot |
+| **`#6EE4FF`** | **tonul principal** | cel mai numărat în tăietură (3510 px) și în stropi (4014 px) |
+| `#5ACBFD` | umbra tonului principal | peste tot |
+| `#47AFFA` | marginea, cel mai saturat albastru | inel + stropi |
+
+Alesul e **`#6EE4FF`**, tonul cu cei mai mulți pixeli pe toate atacurile la un loc — nu media (care iese aproape albă, `0.55, 0.91, 0.99`, fiindcă în mijlocul efectelor e mult alb pur) și nu marginea `#47AFFA` (care e culoarea conturului efectului, nu a lui).
+
+⚠️ **Jocul are de acum DOUĂ albastruri de contur, dinadins.** Log-ul de acum câteva ore zicea invers — că e bine să fie unul singur, cel al lui Celesto — dar acela era ales ca să nu se bată cu nimic, pe când ăsta e ales ca să se potrivească **cu ceva anume**: cu ce aruncă Sir John din mână. Celesto și coasa rămân pe `0.15, 0.27, 0.78`; fiecare scenă are propriul `ShaderMaterial` (sub-resursă separată în `.tscn`), deci n-au cum să se atingă între ele.
+
+Se vede și de ce merita: albastrul închis de dinainte, pe o siluetă de armură închisă la culoare, aproape că dispărea; cyan-ul se citește de la distanță și îl leagă vizual de tăietură.
+
+**Verificat rulând, de două ori:**
+1. cele patru variante (vechea + cele trei tonuri de atac) randate una lângă alta, cu semiluna dedesubt ca etalon;
+2. `final_boss.tscn` instanțiată de-adevăratelea, cu semiluna alături la aceeași scară — conturul și miezul tăieturii sunt același pixel.
+
 ## Session log — 2026-08-24 (barele de viață, boss și XP, de două ori mai subțiri)
 
 **Cerut de Răzvan:** „fa barile de hp (player si boss) si de xp de 2x mai subtiri decat sunt acum. Unde scrie numarul levelului e ok"
@@ -119,6 +144,8 @@ Conturul lui **nu e copt în poze**: îl desenează `contur_1px.gdshader` la rul
 Albastrul ales e **exact cel al lui Celesto și al coasei** (`0.15, 0.27, 0.78`), care e și valoarea implicită din shader. Jocul are așa un singur albastru de contur, nu două care se bat cap în cap.
 
 Se potrivește și cu ce poartă: Sir John are deja o **tunică albastră** pe armură, iar **tăietura** lui (`harta/castle/boss/atac_taietura/`) e desenată în cyan. Roșul era singurul lucru roșu de pe el, în afară de sânge.
+
+*(Modificat mai târziu în aceeași zi: albastrul ăsta a ținut câteva ore. Răzvan a cerut apoi conturul **exact în culoarea atacurilor**, deci a devenit `#6EE4FF` — vezi log-ul de sus. Celesto și coasa rămân pe `0.15, 0.27, 0.78`.)*
 
 **Verificat rulând:** cele două variante randate una lângă alta, din aceeași scenă (`final_boss.tscn` instanțiată de două ori, cu material propriu pe fiecare ca să nu-și împartă sub-resursa).
 

@@ -5,7 +5,7 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_warden"]
 shader = ExtResource("2_contur")
-shader_parameter/culoare = Color(0.15, 0.27, 0.78, 1)
+shader_parameter/culoare = Color(0.431, 0.894, 1, 1)
 shader_parameter/grosime = 1.0
 shader_parameter/prag = 0.35
 
