@@ -23,6 +23,23 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (scos valul de căldură din deșert, cu tot cu setarea lui)
+
+**Cerut de Răzvan:** „Scoate overlay-ul de val de caldura."
+
+Scos **de tot**, nu doar stins: un efect lăsat în cod cu comutatorul pe „off" e un lucru pe care îl întreții degeaba.
+
+**Șters:** `desert_heat.gdshader` (+ `.uid`). **Curățat:** `atmosphere.gd` (constantele `HEAT_*`, variabilele `_heat_*`, `_setup_heat()`, `_update_heat()` și chemările lor — 96 de linii), `game_settings.gd` (`heat_haze`, `set_heat_haze()`, cheia din salvare), `settings_ui.gd` (rândul HEAT HAZE din pagina GRAPHICS), `i18n.gd` (intrarea „HEAT HAZE" în 8 limbi).
+
+**Detalii care nu se văd, dar contează:**
+- **`_process` din `atmosphere.gd` nu mai folosea `delta`** după ce a plecat `_update_heat(delta)` → redenumit `_delta`, altfel Godot dă avertisment la fiecare compilare.
+- **Salvările vechi n-au nevoie de nimic.** Cheia `heat_haze` rămâne scrisă în salvarea de pe disc, dar nimeni n-o mai citește; `_load()` ia cheile pe nume (`data.get`), deci una în plus nu deranjează. La prima salvare nouă dispare singură.
+- **Pagina GRAPHICS a rămas cu patru rânduri** (FULLSCREEN, V-SYNC, EFFECTS: VIGNETTE, GLOW). Înălțimea paginilor se recalculează singură (`_egalizeaza_paginile`), deci n-a fost nimic de reglat de mână.
+
+**Verificat rulând:** pagina GRAPHICS randată într-o captură — patru rânduri, niciun HEAT HAZE, aliniere neatinsă. `tool_check_i18n` → **„✔ TOTUL E TRADUS"**. Jocul pornit 300 de cadre pe `main.tscn`: zero erori, zero avertismente.
+
+**Dacă vrei efectul înapoi:** e în istoricul git, commit-ul din 2026-08-22 („deșertul are aer fierbinte"), plus log-ul de atunci de mai jos, care are și toate cifrele shaderului.
+
 ## Session log — 2026-08-24 (toate melodiile la ACELAȘI nivel, măsurat pe RMS · Nether Song și tema lui Saratalin intră fără fade-in)
 
 **Cerut de Răzvan:** „Melodiile Nether Song si Saratalin Theme vreau sa inceapa direct fara fade in sau alte chestii. Ca deja au intro built-in." + „Fa toate melodiile acelasi nivel de audio".

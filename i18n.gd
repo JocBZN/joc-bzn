@@ -84,9 +84,6 @@ const TRAD := {
 "V-SYNC": ["垂直同步", "V-SYNC", "V-SYNC", "ВЕРТ. СИНХР.", "V-SYNC", "垂直同期", "V-SYNC", "V-SYNC"],
 "VIGNETTE": ["暗角", "VIGNETTE", "VIÑETA", "ВИНЬЕТКА", "VIGNETTAGE", "ビネット", "WINIETA", "VİNYET"],
 "GLOW": ["辉光", "LEUCHTEN", "RESPLANDOR", "СВЕЧЕНИЕ", "HALO", "グロー", "POŚWIATA", "PARLAMA"],
-# aerul care tremură deasupra nisipului. Fiecare limbă are cuvântul ei pentru fenomen (rus „марево",
-# japonez „陽炎") — traducerea literală „val de căldură" ar fi vorbit despre vreme, nu despre ce vezi.
-"HEAT HAZE": ["热浪", "HITZEFLIMMERN", "ONDAS DE CALOR", "МАРЕВО", "AIR BRÛLANT", "陽炎", "DRGANIE POWIETRZA", "ISI TİTREŞİMİ"],
 "effects apply in-game": ["效果在游戏中生效", "wirkt sich im Spiel aus", "se aplican en la partida", "применяется в игре", "s’applique en jeu", "ゲーム中に反映されます", "działa w grze", "oyun içinde geçerli"],
 # pagina GAMEPAD din Settings (2026-08-20). Numele butoanelor (A, B, ✕, START) NU se traduc:
 # sunt scrise pe plasticul controllerului, la fel în toate limbile.

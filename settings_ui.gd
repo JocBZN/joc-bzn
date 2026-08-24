@@ -3,7 +3,7 @@ class_name SettingsUI
 
 # Bloc de setări REFOLOSIBIL, cu DOUĂ pagini:
 #   • KEYBINDS — slidere de volum (Muzică / Efecte) + remaparea tastelor de mers;
-#   • GRAPHICS — fullscreen, v-sync, vignette, glow, heat haze.
+#   • GRAPHICS — fullscreen, v-sync, vignette, glow.
 # Sus e o bară cu două butoane care comută între ele; pagina deschisă are butonul mai luminos.
 #
 # Se folosește în DOUĂ locuri — meniul principal (menu.gd) și meniul de pauză din joc (pause.gd) —
@@ -94,10 +94,6 @@ func _pagina_graphics() -> VBoxContainer:
 	v.add_child(_spacer(4))
 	v.add_child(_toggle_row("VIGNETTE", GameSettings.vignette, GameSettings.set_vignette))
 	v.add_child(_toggle_row("GLOW", GameSettings.glow, GameSettings.set_glow))
-	# Singurul efect care mișcă imaginea (aerul fierbinte din deșert), deci singurul care are nevoie
-	# de un „off" din motive de confort, nu de performanță. Rândul nou intră singur în socoteala
-	# mărimii paginilor — vezi `_egalizeaza_paginile`.
-	v.add_child(_toggle_row("HEAT HAZE", GameSettings.heat_haze, GameSettings.set_heat_haze))
 	v.add_child(_spacer(8))
 	# vignette/glow le desenează `atmosphere.gd`, care există doar în joc
 	var nota := _center_label("effects apply in-game", 16)
