@@ -9,6 +9,7 @@ const FIRE_TRAIL := preload("res://firetrail.gd")  # băltoaca de foc lăsată d
 const ICE_TRAIL := preload("res://icetrail.gd")    # dâra de gheață lăsată de Frostwalker
 const GOD_TRAIL := preload("res://godtrail.gd")    # dâra combinată (Firewalker + Frostwalker = Godwalker)
 const SHOCKWAVE := preload("res://shockwave.gd")   # unda de șoc a lui Panic Button
+const DASH_TRAIL := preload("res://dashtrail.gd")  # fantoma albă lăsată de dash (Lightning Step)
 
 # Numele animațiilor, pe optimi de cerc (vezi _update_anim).
 # Ordinea urmează unghiul crescător (y în jos): E, SE, S, SV, V, NV, N, NE.
@@ -623,12 +624,19 @@ var _ground: Node = null    # podeaua, ținută minte: o întrebăm în FIECARE 
 
 func _physics_process(delta: float) -> void:
 	_tick_burst(delta)
+	_tick_dash(delta)	# ceasul dash-ului + butonul lui (vezi secțiunea DASH)
 	# Deadzone-ul e dat EXPLICIT (`Gamepad.DEADZONE`), nu lăsat pe cel al acțiunilor: `get_vector`
 	# îl aplică pe vectorul ÎNTREG, nu pe fiecare axă în parte, deci diagonalele nu mai sunt tăiate
 	# strâmb, iar restul cursei se întinde la loc pe 0…1 (împingi stick-ul pe jumătate → mergi pe
 	# jumătate; îl împingi tot → viteza întreagă, exact ca pe WASD).
 	var directie := Input.get_vector("move_left", "move_right", "move_up", "move_down", Gamepad.DEADZONE)
-	velocity = directie * speed
+	# DASH: cât ține pasul, tastele nu mai contează — zbori pe direcția în care ai plecat.
+	# Rămâne `move_and_slide`, deci zidurile și marginea gropii opresc pasul ca pe orice mers:
+	# un dash care trece prin pereți ar fi fost un dash prin hartă.
+	if _dash_left > 0.0:
+		velocity = _dash_dir * dash_speed()
+	else:
+		velocity = directie * speed
 	move_and_slide()
 	# Marginea Nether-ului / Ender-ului: te oprești pe buza gropii. NU e un zid de coliziune —
 	# un StaticBody în cerc ar fi însemnat un al doilea adevăr despre unde e marginea, iar podeaua
@@ -638,7 +646,12 @@ func _physics_process(delta: float) -> void:
 		_ground = get_tree().get_first_node_in_group("ground")
 	if _ground != null and _ground.has_method("in_margine"):
 		global_position = _ground.in_margine(global_position)
-	if directie != Vector2.ZERO:
+	if _dash_left > 0.0:
+		# cât dai dash te uiți încotro ZBORI, nu încotro ții tastele, iar pașii tac:
+		# picioarele oricum nu mai ating pământul, iar whoosh-ul i-ar acoperi oricum
+		_update_anim(_dash_dir)
+		_step_t = 0.0
+	elif directie != Vector2.ZERO:
 		_facing = directie.normalized()  # reținem direcția reală de privire (pt. tăietura sabiei)
 		_update_anim(directie)
 		_step_t -= delta
@@ -677,6 +690,103 @@ func _update_anim(directie: Vector2) -> void:
 		var progres := anim.frame_progress
 		anim.play(ultima_directie)
 		anim.set_frame_and_progress(cadru, progres)
+
+# ---------------------------------------------------------------------------
+# DASH (upgrade-ul Lightning Step)
+# ---------------------------------------------------------------------------
+# Un pas fulger în direcția în care te uiți, o dată la `DASH_COOLDOWN` secunde. Se aprinde
+# doar cu itemul luat (`dash_unlocked`); până atunci butonul e mort, dar acțiunea există în
+# InputMap de la pornire (vezi `GameSettings.KEY_ACTIONS`), ca să se poată remapa din Settings
+# chiar și înainte să pice itemul.
+#
+# CE ÎNSEAMNĂ „direcția în care te uiți": `_facing`, adică ULTIMA direcție reală de mers —
+# aceeași pe care o folosește tăietura sabiei. Deci se poate da dash și din stat pe loc, pe
+# unde ești întors. Nu folosim direcția tastelor din cadrul ăsta: ar fi însemnat că un dash
+# apăsat fără nicio tastă în mână nu face nimic, ceea ce se simte ca un buton stricat.
+#
+# ⚠️ Distanța e FIXĂ (px), nu un multiplu al vitezei. Cu `speed` în ea, Hermes' Sandals +
+# Weird Concoction ar fi trimis player-ul jumătate de ecran, iar Big Black Cigar l-ar fi lăsat
+# cu un pas de bunicuță: același buton, două jocuri diferite. Așa, dash-ul e o unealtă de
+# scăpare care se comportă la fel toată runda.
+const DASH_DISTANCE := 300.0      # cât de departe te duce un pas (px)
+const DASH_TIME := 0.16           # în cât timp (secunde) — 300/0.16 ≈ 1875 px/s, ~7× mersul normal
+const DASH_COOLDOWN := 10.0       # cât aștepți între două pași (cerut de item: „once every 10 seconds")
+const DASH_GHOST_GAP := 0.022     # la cât timp lași o fantomă albă în urmă (≈ 7 pe un dash)
+
+var dash_unlocked: bool = false   # ai luat Lightning Step?
+var _dash_left: float = 0.0       # secunde rămase din pasul curent (0 = nu dai dash acum)
+var _dash_dir: Vector2 = Vector2.DOWN   # încotro merge pasul (înghețat la pornire)
+var _dash_cd: float = 0.0         # secunde până butonul redevine bun
+var _dash_ghost_t: float = 0.0    # countdown până la următoarea fantomă
+
+# Cât de repede zboară player-ul cât ține pasul.
+func dash_speed() -> float:
+	return DASH_DISTANCE / DASH_TIME
+
+# Cât mai are de așteptat (secunde) și cât la sută s-a încărcat — le citește HUD-ul.
+func dash_cooldown_left() -> float:
+	return _dash_cd
+
+func dash_charge() -> float:
+	if _dash_cd <= 0.0:
+		return 1.0
+	return clampf(1.0 - _dash_cd / DASH_COOLDOWN, 0.0, 1.0)
+
+func dash_is_ready() -> bool:
+	return dash_unlocked and _dash_cd <= 0.0 and _dash_left <= 0.0
+
+# Ceasul dash-ului, chemat din `_physics_process` (deci se oprește pe pauză și pe ecranul de
+# level up — reîncărcarea nu curge cât e jocul înghețat, altfel ai fi ieșit din meniu cu pasul
+# deja gata de fiecare dată).
+func _tick_dash(delta: float) -> void:
+	if _dash_left > 0.0:
+		_dash_left = maxf(0.0, _dash_left - delta)
+		_dash_ghost_t -= delta
+		if _dash_ghost_t <= 0.0:
+			_dash_ghost_t = DASH_GHOST_GAP
+			_drop_dash_ghost()
+	elif _dash_cd > 0.0:
+		_dash_cd = maxf(0.0, _dash_cd - delta)
+		if _dash_cd <= 0.0:
+			_dash_gata()
+	if Input.is_action_just_pressed("dash"):
+		try_dash()
+
+# Pornește pasul, dacă se poate. Întoarce `true` dacă chiar a pornit (o folosesc testele).
+func try_dash() -> bool:
+	if dead or not dash_unlocked or _dash_left > 0.0 or _dash_cd > 0.0:
+		return false
+	_dash_dir = _facing.normalized() if _facing.length() > 0.01 else Vector2.DOWN
+	_dash_left = DASH_TIME
+	_dash_cd = DASH_COOLDOWN
+	_dash_ghost_t = DASH_GHOST_GAP
+	# întoarcem întâi poza pe direcția pasului: fantoma dinaintea plecării trebuie să fie deja
+	# în alergare, încotro zbori. Fără linia asta, prima fantomă rămâne poza de STAT PE LOC și
+	# se vede în captură ca un al doilea player uitat în urmă (prins pe 2026-08-24).
+	_update_anim(_dash_dir)
+	_drop_dash_ghost()          # prima fantomă chiar de la plecare, din locul de unde ai plecat
+	Audio.play("dash", -4.0)
+	add_shake(0.10)             # o îmbrâncire mică de cameră: se simte că ai ȚÂȘNIT
+	Gamepad.vibreaza(0.35, 0.0, 0.10)   # doar motorul mic: un zumzet scurt, nu un bubuit
+	return true
+
+# Pasul e din nou gata: un clinchet discret + o albire scurtă a player-ului. Fără ele n-ai avea
+# cum să știi când poți iar, fără să te uiți la HUD în mijlocul unei hoarde.
+func _dash_gata() -> void:
+	Audio.play("dash_ready", -14.0)
+	if _flash_mat != null:
+		_flash_mat.set_shader_parameter("flash", 0.55)
+		var t := create_tween()
+		t.tween_property(_flash_mat, "shader_parameter/flash", 0.0, 0.30)
+
+# O fantomă albă în locul în care e player-ul ACUM, cu cadrul pe care îl arată ACUM.
+func _drop_dash_ghost() -> void:
+	if anim == null:
+		return
+	var g := DASH_TRAIL.new()
+	g.copiaza(anim)
+	get_parent().add_child(g)   # în World, ca dârele de foc/gheață (y-sort)
+	g.global_position = anim.global_position
 
 # Mărimea armei ca factor de scalare: pixelii ceruți se traduc în scară raportat la glonțul de
 # bază, apoi se aplică procentele (Pufferfish, Double Dose, Rat's Burger — toate în `weapon_size_mult`).

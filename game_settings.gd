@@ -59,6 +59,10 @@ const KEY_ACTIONS := {
 	"move_left":  {"label": "Left",     "keys": [KEY_A, KEY_LEFT]},
 	"move_right": {"label": "Right",    "keys": [KEY_D, KEY_RIGHT]},
 	"interact":   {"label": "Interact", "keys": [KEY_E]},
+	# Dash (Lightning Step). Acțiunea există de la pornire, chiar dacă itemul nu e luat:
+	# altfel n-ai fi putut să-ți alegi tasta din Settings decât după ce-ți pică upgrade-ul.
+	# SPACE fiindcă e singura tastă mare rămasă liberă în joc (E = interact, ESC = pauză).
+	"dash":       {"label": "Dash",     "keys": [KEY_SPACE]},
 }
 var keybinds: Dictionary = {}   # action -> physical_keycode ales de jucător (doar cele schimbate)
 

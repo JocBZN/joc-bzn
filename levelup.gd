@@ -83,6 +83,7 @@ var UPGRADES := [
 	{"id": "tome_witchcraft", "nume": "Tome of Witchcraft", "icon": "upgrade_62.png", "rar": "rare", "desc": "+10% Difficulty"},
 	{"id": "bulletproof_vest", "nume": "Bulletproof Vest", "icon": "upgrade_63.png", "rar": "epic", "desc": "+100 Max HP -10% Move speed"},
 	{"id": "casino_vip", "nume": "Casino VIP Pass", "icon": "upgrade_64.png", "rar": "legendary", "desc": "Indefinite access to the roulette wheel", "unic": true},
+	{"id": "lightning_step", "nume": "Lightning Step", "icon": "upgrade_65.png", "rar": "legendary", "desc": "Dash once every 10 seconds", "unic": true},
 ]
 
 const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
@@ -1123,3 +1124,14 @@ func _apply(id: String, p) -> void:
 			# E „unic" fiindcă nu se stivuiește: al doilea pas n-ar face nimic, iar un Legendary
 			# irosit doare mai tare decât unul comun.
 			p.casino_vip = true
+		"lightning_step":
+			# Lightning Step: deblochează DASH-ul — un pas fulger în direcția în care te uiți,
+			# o dată la 10 secunde (`DASH_COOLDOWN` din `player.gd`). Butonul (SPACE / RB) există
+			# în InputMap de la pornirea jocului, deci nu trebuie legat nimic aici: steagul ăsta
+			# e tot ce desparte „butonul nu face nimic" de „butonul te teleportează 300 px".
+			#
+			# E „unic" din același motiv ca Undying Spirit și Casino VIP Pass: efectul e un
+			# COMUTATOR, nu un status. A doua luare n-ar face nimic, iar un Legendary irosit
+			# doare mai tare decât un Common. Dacă vreodată vrei să se stivuiască, locul e
+			# `DASH_COOLDOWN` (ex. −2 s pe luare), nu aici.
+			p.dash_unlocked = true

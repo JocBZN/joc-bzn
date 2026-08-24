@@ -45,6 +45,10 @@ const FOCUS_MUCHIE := Color8(255, 190, 130)
 # ⚠️ Ordinea contează: în ea se desenează rândurile din Settings.
 const PAD_ACTIONS := {
 	"interact":  {"eticheta": "INTERACT", "implicit": [JOY_BUTTON_A, JOY_BUTTON_X], "unde": ["joc"]},
+	# ⚠️ Dash-ul NU stă pe B, deși B pare liber în joc: `pause.gd` ascultă ȘI `ui_cancel`, care
+	# pe pad e chiar B — deci un dash pus acolo ar fi deschis meniul de pauză la fiecare pas.
+	# RB e butonul de „abilitate" din reflexul oricui a ținut un controller în mână.
+	"dash":      {"eticheta": "DASH",     "implicit": [JOY_BUTTON_RIGHT_SHOULDER],  "unde": ["joc"]},
 	"ui_accept": {"eticheta": "SELECT",   "implicit": [JOY_BUTTON_A],               "unde": ["meniu"]},
 	"ui_cancel": {"eticheta": "BACK",     "implicit": [JOY_BUTTON_B],               "unde": ["meniu"]},
 	"pause":     {"eticheta": "PAUSE",    "implicit": [JOY_BUTTON_START],           "unde": ["joc", "meniu"]},

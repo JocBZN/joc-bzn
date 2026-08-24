@@ -94,6 +94,7 @@ const TRAD := {
 "INTERACT": ["互动", "BENUTZEN", "INTERACTUAR", "ДЕЙСТВИЕ", "INTERAGIR", "調べる", "UŻYJ", "ETKİLEŞİM"],
 "SELECT": ["确认", "AUSWÄHLEN", "SELECCIONAR", "ВЫБОР", "SÉLECTIONNER", "決定", "WYBIERZ", "SEÇ"],
 "PAUSE": ["暂停", "PAUSE", "PAUSA", "ПАУЗА", "PAUSE", "ポーズ", "PAUZA", "DURAKLAT"],
+"DASH": ["冲刺", "SPRINT", "IMPULSO", "РЫВОК", "RUÉE", "ダッシュ", "DOSKOK", "ATILMA"],
 "No controller connected": ["未连接手柄", "Kein Controller verbunden", "Ningún mando conectado", "Геймпад не подключён", "Aucune manette connectée", "コントローラー未接続", "Nie podłączono pada", "Oyun kolu bağlı değil"],
 "Stick / D-Pad": ["摇杆 / 十字键", "Stick / D-Pad", "Stick / Cruceta", "Стик / D-Pad", "Stick / Croix", "スティック / 十字キー", "Drążek / D-Pad", "Çubuk / D-Pad"],
 # butoanele de pad se schimbă din 2026-08-23: rândul apăsat așteaptă un buton, iar RESET pune tot
@@ -108,6 +109,7 @@ const TRAD := {
 "Left": ["左", "Links", "Izquierda", "Влево", "Gauche", "左", "Lewo", "Sol"],
 "Right": ["右", "Rechts", "Derecha", "Вправо", "Droite", "右", "Prawo", "Sağ"],
 "Interact": ["互动", "Interagieren", "Interactuar", "Действие", "Interagir", "調べる", "Interakcja", "Etkileşim"],
+"Dash": ["冲刺", "Sprint", "Impulso", "Рывок", "Ruée", "ダッシュ", "Doskok", "Atılma"],
 
 # ---------- pauză ----------
 "PAUSED": ["已暂停", "PAUSE", "PAUSA", "ПАУЗА", "PAUSE", "ポーズ", "PAUZA", "DURAKLATILDI"],
@@ -399,6 +401,7 @@ const TRAD := {
 "Tome of Witchcraft": ["巫术之书", "Buch der Hexerei", "Tomo de Brujería", "Том Колдовства", "Tome de Sorcellerie", "魔術の書", "Księga Czarów", "Büyü Kitabı"],
 "Bulletproof Vest": ["防弹衣", "Kugelsichere Weste", "Chaleco Antibalas", "Бронежилет", "Gilet Pare-balles", "防弾ベスト", "Kamizelka Kuloodporna", "Kurşun Geçirmez Yelek"],
 "Casino VIP Pass": ["赌场 VIP 通行证", "Casino-VIP-Pass", "Pase VIP del Casino", "VIP-пропуск казино", "Pass VIP du Casino", "カジノVIPパス", "Przepustka VIP Kasyna", "Kumarhane VIP Kartı"],
+"Lightning Step": ["闪电步", "Blitzschritt", "Paso Relámpago", "Молниеносный шаг", "Pas Éclair", "雷光ステップ", "Błyskawiczny Krok", "Şimşek Adımı"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -458,6 +461,7 @@ const TRAD := {
 "+10% Difficulty": ["+10% 难度", "+10% Schwierigkeit", "+10% Dificultad", "+10% сложности", "+10% Difficulté", "+10% 難易度", "+10% Trudności", "+10% Zorluk"],
 "+100 Max HP -10% Move speed": ["+100 最大生命 -10% 移速", "+100 Max. HP -10% Tempo", "+100 HP máx. -10% Velocidad", "+100 макс. HP -10% скорость", "+100 PV max -10% Vitesse", "+100 最大HP -10% 移動速度", "+100 Maks. HP -10% Szybkość", "+100 Maks. CAN -10% Hız"],
 "Indefinite access to the roulette wheel": ["轮盘无限次畅玩", "Unbegrenzter Zugang zum Roulette", "Acceso ilimitado a la ruleta", "Неограниченный доступ к рулетке", "Accès illimité à la roulette", "ルーレットに無制限アクセス", "Nieograniczony dostęp do ruletki", "Rulete sınırsız erişim"],
+"Dash once every 10 seconds": ["每 10 秒可冲刺一次", "Alle 10 Sekunden ein Sprint", "Un impulso cada 10 segundos", "Рывок раз в 10 секунд", "Une ruée toutes les 10 secondes", "10秒ごとにダッシュ", "Doskok co 10 sekund", "10 saniyede bir atılma"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 

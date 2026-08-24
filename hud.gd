@@ -63,6 +63,7 @@ func _ready() -> void:
 
 	_fa_viata()
 	_fa_xp()
+	_fa_dash()
 
 	# --- Cronometrul (sus, centrat) ---
 	# Întâi numără invers de la 10:00; după ce ajunge la 0 o ia în sus, cu roșu.
@@ -354,6 +355,7 @@ func _process(delta: float) -> void:
 		return
 	_update_viata(player, delta)
 	_update_xp(player)
+	_update_dash(player)
 
 # Cronometrul: numără invers cele 10 minute, apoi urcă de la 0 cu roșu (Final Swarm).
 func _update_timer() -> void:
@@ -396,6 +398,94 @@ func _update_swarm(delta: float) -> void:
 		return
 	_swarm_ttl -= delta
 	swarm_label.visible = timer_label.visible and _swarm_ttl > 0.0
+
+
+# ---------------------------------------------------------------------------
+# INSIGNA DE DASH (upgrade-ul Lightning Step)
+# ---------------------------------------------------------------------------
+# O plăcuță pătrată sub bara de viață: iconița itemului în ACELAȘI chenar-octogon ca insigna
+# de nivel, cu un văl închis care coboară pe măsură ce pasul se reîncarcă.
+#
+# De ce există: un buton cu 10 secunde de așteptare fără nimic pe ecran înseamnă că jucătorul
+# îl apasă pe ghicite în mijlocul unei hoarde. Sunetul de „gata" (`_dash_gata` din player.gd)
+# spune CÂND, insigna spune CÂT MAI E.
+#
+# Apare doar cu itemul luat — până atunci n-ar avea ce arăta.
+const DASH_ICON := "res://Upgrades/upgrade_65.png"
+const DASH_BADGE := 46.0                      # latura plăcuței (cât insigna de nivel)
+const DASH_INSET := 9.0                       # cât intră iconița în interiorul ramei
+const DASH_STINS := Color(0.42, 0.44, 0.52)   # cât de stinsă e iconița cât se reîncarcă
+var _dash_box: Control
+var _dash_icon: TextureRect
+var _dash_val: ColorRect      # vălul închis care scade de sus în jos pe măsură ce se încarcă
+var _dash_gata_ultim := true  # ca să prindem CLIPA în care devine gata (o dată, nu în fiecare cadru)
+
+func _fa_dash() -> void:
+	_dash_box = Control.new()
+	_dash_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_box.position = Vector2(VIATA_RECT.position.x, VIATA_RECT.end.y + 10.0)
+	_dash_box.size = Vector2(DASH_BADGE, DASH_BADGE)
+	_dash_box.pivot_offset = Vector2(DASH_BADGE, DASH_BADGE) * 0.5   # sare din centru când e gata
+	_dash_box.modulate = BARA.UMBRA          # stinsă la fel ca barele (vezi UMBRA din hud_bara.gd)
+	_dash_box.visible = false                # până iei itemul, nu există
+	add_child(_dash_box)
+
+	# ⚠️ Rama e PRIMA, nu ultima: `NinePatchRect` își desenează și MIJLOCUL (interiorul închis
+	# al celulei), deci pusă peste iconiță o acoperea de tot — badge-ul ieșea un pătrat negru,
+	# se vedea doar în captură (prins pe 2026-08-24). Așa, interiorul ei ține loc de fundal.
+	var rama := NinePatchRect.new()
+	rama.texture = BARA.chenar(Vector2i(3, 2), 1)   # același octogon cu spirale ca insigna de nivel
+	rama.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rama.patch_margin_left = 14
+	rama.patch_margin_right = 14
+	rama.patch_margin_top = 14
+	rama.patch_margin_bottom = 14
+	rama.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rama.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_box.add_child(rama)
+
+	_dash_icon = TextureRect.new()
+	_dash_icon.texture = load(DASH_ICON)
+	_dash_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_dash_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_dash_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_dash_icon.position = Vector2(DASH_INSET, DASH_INSET)
+	_dash_icon.size = Vector2(DASH_BADGE - DASH_INSET * 2.0, DASH_BADGE - DASH_INSET * 2.0)
+	_dash_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_box.add_child(_dash_icon)
+
+	# Vălul stă PESTE iconiță: e partea care NU s-a încărcat încă. Coboară, nu urcă — ochiul
+	# citește „se golește ce e negru", ca la orice cooldown de abilitate.
+	_dash_val = ColorRect.new()
+	_dash_val.color = Color(0.03, 0.03, 0.05, 0.72)
+	_dash_val.position = Vector2(DASH_INSET, DASH_INSET)
+	_dash_val.size = Vector2(DASH_BADGE - DASH_INSET * 2.0, DASH_BADGE - DASH_INSET * 2.0)
+	_dash_val.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dash_box.add_child(_dash_val)
+
+func _update_dash(p) -> void:
+	if _dash_box == null or not ("dash_unlocked" in p):
+		return
+	_dash_box.visible = bool(p.dash_unlocked)
+	if not _dash_box.visible:
+		return
+	var incarcat: float = float(p.dash_charge())     # 0 = tocmai ai dat, 1 = gata
+	var h: float = DASH_BADGE - DASH_INSET * 2.0
+	_dash_val.size.y = h * (1.0 - incarcat)
+	_dash_val.visible = incarcat < 1.0
+	_dash_icon.modulate = Color.WHITE if incarcat >= 1.0 else DASH_STINS
+	var gata: bool = incarcat >= 1.0
+	if gata and not _dash_gata_ultim:
+		_sare_dash()
+	_dash_gata_ultim = gata
+
+# Aceeași săritură ca la insigna de nivel: se vede cu coada ochiului că s-a întâmplat ceva bun.
+func _sare_dash() -> void:
+	var t := create_tween()
+	t.tween_property(_dash_box, "scale", Vector2(1.3, 1.3), 0.12) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(_dash_box, "scale", Vector2.ONE, 0.26) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _mmss(secunde: float) -> String:
 	var s := int(secunde)

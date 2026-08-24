@@ -25,6 +25,15 @@ const SFX := {
 	"footsteps_grass": "res://audio/Footsteps_Grass_Run_01.wav",       # un pas pe iarbă/pădure
 	"footsteps_sand":  "res://audio/Footsteps_Sand_Run_01.wav",        # un pas pe nisip/deșert
 	"footsteps_nether": "res://audio/Nether Audio/Footsteps_Nether.wav",  # un pas pe cărămida din Nether
+	# --- DASH (Lightning Step) ---
+	# Două straturi puse cap la cap din `Soundpack/` (materie primă, gitignorată) și prelucrate
+	# ca tot ce intră în joc: tăiate de liniște, 48 kHz/16 biți, vârf −1 dBFS, echilibrul în cod.
+	# `Dash.wav` = un whoosh de AER (WHSH_MOVEMENT-Simple Whoosh, 0,27 s, atac sec) peste care
+	# stă, cu −8 dB și 15 ms întârziere, un swish rezonant (SWSH_MOVEMENT-Reso Swish): aerul dă
+	# mișcarea, rezonanța dă „fulgerul" din numele itemului. Numai whoosh-ul suna a pas de om
+	# obișnuit; numai rezonanța suna a vrajă, nu a alergare.
+	"dash":            "res://audio/Dash.wav",             # pasul fulger (0,49 s)
+	"dash_ready":      "res://audio/Dash Ready.wav",       # clinchetul de „poți iar" (MAGSpel_CAST-Skill Ready, 0,75 s)
 	"forest_ambient":  "res://audio/Forest Ambient.wav",               # ambient de pădure (buclă, vezi mai jos)
 	"teleport":        "res://audio/Nether Audio/Teleport Sfx.wav",    # E pe portal: intrarea/ieșirea din Nether
 	"saratalin_flash": "res://audio/Nether Audio/Saratalin Flashing Purple.wav",  # UN puls mov din cinematica lui Saratalin

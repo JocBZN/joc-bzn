@@ -23,6 +23,59 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-24 (DASH — mecanică nouă + itemul Lightning Step)
+
+**Cerut de Răzvan:** „upgrade nou - upgrade_65 (Legendary) - Lightning Step - You can now dash once every 10 seconds […] vreau sa adaugi o mecanica noua in joc (DASH) adica da playerul dash in directia in care se uita. Foloseste ce iti trebuie din Soundpack - ca si efecte vizuale daca ai putea ca playerul sa lase un trail in spatele lui al modelului pe care il foloseste in momentul ala (pe viitor o sa fie mai multe momentan e doar 1). Sa fie trail-ul alb - ca un Speedster."
+
+**Fișier nou:** `dashtrail.gd`. **Atinse:** `player.gd` (secțiunea DASH + 3 locuri în `_physics_process`), `hud.gd` (insigna de dash), `levelup.gd` (item + ramură în `_apply`), `game_settings.gd` (`KEY_ACTIONS`), `gamepad.gd` (`PAD_ACTIONS`), `audio.gd` (2 sunete), `white_flash.gdshader` (reparat, vezi mai jos), `i18n.gd` (4 chei × 8 limbi), `codex.html`, `audio/Dash.wav` + `audio/Dash Ready.wav` (noi). `upgrade_65.png` n-avea `.import` — rulat `--headless --import`.
+
+### Mecanica: 300 px în 0,16 s, o dată la 10 s
+`_facing` (ultima direcție reală de mers, aceeași pe care o folosește tăietura sabiei) → merge și **din stat pe loc**. Un buton de dash care nu face nimic dacă nu ții deja o tastă apăsată se simte stricat, nu „cu condiții".
+
+**⚠️ Distanța e FIXĂ în pixeli, nu multiplu de `speed`.** Cu viteza în ea, Hermes' Sandals + Weird Concoction ar fi trimis player-ul jumătate de ecran, iar Big Black Cigar l-ar fi lăsat cu un pas de bunicuță: același buton, două jocuri diferite. Tot prin `move_and_slide()` trece, deci zidurile și buza gropii îl opresc ca pe orice mers (verificat: un dash spre sud s-a oprit la **71 px** într-o piatră).
+
+Ceasul de reîncărcare stă în `_physics_process`, nu în `_process`: altfel s-ar fi încărcat și cât ești pe pauză sau în ecranul de level up, adică ai fi ieșit din meniu cu pasul mereu gata.
+
+### Dâra: e CHIAR modelul, nu un efect desenat
+`dashtrail.gd` lasă la fiecare 22 ms un `Sprite2D` cu **exact cadrul** pe care îl arăta player-ul atunci, albit și lăsat să se stingă în 0,32 s, la `z_index = -1`. Fiindcă e copiat din `AnimatedSprite2D`-ul viu, merge **neschimbat pentru orice personaj viitor** — nu e nimic per-personaj de adăugat, exact cum a cerut Răzvan.
+
+**⚠️ Reparat un bug tăcut din `white_flash.gdshader`** (îl folosea deja block-ul lui Mike's Hedgehog): citea `texture(TEXTURE, UV)` și **scria peste alfa**, deci `modulate` era aruncat. Prima variantă a dârei ieșea albă plină și dispărea într-un cadru; cifrele spuneau că alfa scade (0,05 … 0,25), captura arăta siluete solide. Acum lucrează pe `COLOR`, pe care Godot îl umple cu textura ÎNMULȚITĂ cu modulate înainte de `fragment()`. Hedgehog nu se schimbă (rulează la modulate 1) și devine corect dacă vreodată se colorează player-ul.
+
+A doua capcană, tot din captură: **prima fantomă ieșea în poza de STAT PE LOC**, ca un al doilea player uitat în urmă. `try_dash()` cheamă acum `_update_anim(_dash_dir)` ÎNAINTE de prima fantomă.
+
+Curba de stingere e **QUAD + EASE_IN** (ține lumina cât ține pasul, apoi cade), nu EASE_OUT: cu stingere rapidă la început, urma se topea până apuca ochiul să o vadă ca dâră.
+
+### Butonul: SPACE și RB — ⚠️ NU B
+`GameSettings.KEY_ACTIONS` (deci apare singur în Settings → KEYBINDS, remapabil) + `Gamepad.PAD_ACTIONS` (Settings → GAMEPAD). **B pare liber în joc, dar `pause.gd` ascultă ȘI `ui_cancel`, care pe pad e chiar B** — dash-ul acolo ar fi deschis meniul de pauză la fiecare pas. RB e oricum butonul de „abilitate" din reflexul oricui a ținut un controller.
+
+Acțiunea există în InputMap **de la pornirea jocului**, nu de când pică itemul: altfel nu ți-ai fi putut alege tasta din Settings decât după ce-ți iese upgrade-ul. Itemul e doar un steag (`dash_unlocked`).
+
+**⚠️ Rândul în plus din KEYBINDS a fost verificat pe captură**, fiindcă `menu.gd` avertizează negru pe alb că pagina aia abia încape în cele 648px: 6 rânduri, rama tot înăuntru (blocul are 384px la y=153).
+
+### Feedback: sunet, cameră, vibrație, insignă
+Un whoosh la plecare, o îmbrâncire mică de cameră, un zumzet scurt pe motorul mic; un clinchet discret + o albire scurtă a player-ului când redevine gata; și o **insignă sub plăcuța de viață** — iconița itemului în același octogon cu spirale ca insigna de nivel, cu un văl întunecat care scade de sus pe măsură ce se încarcă. Insigna apare doar cu itemul luat.
+
+**⚠️ Ordinea copiilor insignei contează:** `NinePatchRect` își desenează și MIJLOCUL, deci rama pusă ultima acoperea iconița de tot — badge-ul ieșea un pătrat negru. Se vede doar în captură. Rama e acum PRIMA, iar interiorul ei ține loc de fundal.
+
+### Sunetele — două straturi, alese pentru ce FAC
+Din `Soundpack/`, prelucrate ca tot ce intră în joc (tăiate de liniște, 48 kHz/16 biți, vârf −1 dBFS, echilibrul în cod). `Dash.wav` = whoosh de AER (`WHSH_MOVEMENT-Simple Whoosh`, atac sec, 0,27 s) + swish rezonant (`SWSH_MOVEMENT-Reso Swish`) la −8 dB, cu 15 ms întârziere: aerul dă mișcarea, rezonanța dă „fulgerul" din nume. Numai whoosh suna a pas de om obișnuit; numai rezonanța suna a vrajă, nu a alergare. `Dash Ready.wav` = `MAGSpel_CAST-Skill Ready`, tăiat la 0,75 s, chemat la −14 dB (trebuie să se audă, nu să anunțe).
+- **Cum am ales fără să pot asculta:** am tăiat 8 candidați de liniște și le-am randat **spectrograme** (`showspectrumpic`) plus anvelopa RMS pe ferestre de 50 ms. Whoosh-ul se vede ca zgomot de bandă largă cu atac sec; „Skill Ready" ca un pieptene armonic cu coadă lungă (deci se poate tăia oriunde, nu e o frază). Metodă bună de refolosit.
+
+### Ce NU are dash-ul: imunitate
+Itemul zice „dash", nu „dodge", deci un pas PRIN inamici te poate costa un tick de damage de contact. E o linie de adăugat în `_take_contact_damage` dacă vrei altfel — dar e decizie de design, nu scăpare.
+
+### Verificat rulând
+- **Izolat:** dash-ul pornește, al doilea în aceeași clipă e refuzat, al treilea (după ce s-a încărcat) e acceptat; alfa fantomelor măsurată pe rând (0,46 · 0,57 · 0,65 · 0,72 · 0,73 · 0,79).
+- **În jocul adevărat:** patru dash-uri (est / sud / vest / nord-est) fotografiate în zbor — dâra se citește în toate direcțiile, iar cel spre sud s-a oprit la 71 px într-o piatră.
+- **HUD:** insigna în toate trei stările (gata, tocmai consumat, ~20% încărcat).
+- **Meniuri:** KEYBINDS cu DASH → SPACE (încape), GAMEPAD cu DASH → RB.
+- **Cardul de level up** randat în ecranul real: chenar Legendary, iconița cu bocancii înaripați, descrierea pe o linie (266 px într-o etichetă de 466).
+- `tool_check_i18n` → **„✔ TOTUL E TRADUS"**.
+- **Codexul:** 58 vs 58 pe `id|iconiță|raritate`, zero diferențe, toate iconițele au base64, pagina randată în Chrome headless fără erori de consolă — **și republicată** pe același URL. Republicarea a dus în sfârșit pe pagină și cele patru carduri care așteptau în repo (Butterfly Knife, Tome of Witchcraft, Bulletproof Vest, Casino VIP Pass).
+- ⚠️ **`tool_gamepad.tscn` NU se rulează headless** (scrie chiar el asta: partea a doua deschide meniul și face poze). Rulat din greșeală așa, s-a agățat, iar el SCRIE în salvarea adevărată. Verificat după aceea, cu o unealtă mică: `padbinds = {}`, `keybinds = {}`, monede și upgrade-uri intacte — salvarea lui Răzvan e curată.
+
+---
+
 ## Session log — 2026-08-24 (conturul lui Sir John, din roșu în albastru)
 
 **Cerut de Răzvan:** „Outlineu din rosu in albastru lui sir john"

@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://d0c10muk0ctv2"
+path="res://.godot/imported/Dash Ready.wav-fed43a4411fcf113332bc3f44e42b818.sample"
+
+[deps]
+
+source_file="res://audio/Dash Ready.wav"
+dest_files=["res://.godot/imported/Dash Ready.wav-fed43a4411fcf113332bc3f44e42b818.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2
