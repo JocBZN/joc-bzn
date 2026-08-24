@@ -135,6 +135,11 @@ func _ready() -> void:
 	keys_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	keys_label.add_theme_constant_override("outline_size", 5)
 	keys_box.add_child(keys_label)
+	# Cifrele de sus-dreapta stau tot în colț, adică tot acolo unde vinieta le stingea înainte
+	# de mutarea pe stratul 4. Le ducem înapoi cu aceeași `UMBRA` ca barele. Cronometrul NU:
+	# el stă în mijloc, unde vinieta oricum nu ajungea, deci n-a pățit nimic.
+	kills_label.modulate = BARA.UMBRA
+	keys_box.modulate = BARA.UMBRA
 	add_child(keys_box)
 
 # ---------------------------------------------------------------------------
@@ -144,7 +149,7 @@ func _ready() -> void:
 # al XP-ului, doar puțin adâncit ca să nu țipe peste aramă.
 const C_VIATA := Color8(184, 30, 44)          # roșu-sânge
 const C_VIATA_URMA := Color8(232, 168, 176)   # fantoma care rămâne în urma loviturii
-const C_XP := Color8(46, 178, 214)            # cyan
+const C_XP := Color8(40, 158, 196)            # cyan, adâncit ca să nu domine verdele hărții
 const C_XP_URMA := Color8(150, 226, 244)
 const ACCENT := Color8(198, 118, 80)          # arama, ca în restul meniurilor
 const ACCENT_CLAR := Color8(222, 152, 116)
@@ -199,6 +204,7 @@ func _fa_xp() -> void:
 	_insigna.offset_top = mijloc - INSIGNA * 0.5
 	_insigna.offset_bottom = mijloc + INSIGNA * 0.5
 	_insigna.pivot_offset = Vector2(INSIGNA, INSIGNA) * 0.5   # sare din centru la level up
+	_insigna.modulate = BARA.UMBRA                            # stinsă la fel ca barele
 	add_child(_insigna)
 
 	var rama := NinePatchRect.new()

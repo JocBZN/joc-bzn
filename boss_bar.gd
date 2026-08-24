@@ -80,6 +80,8 @@ func _ready() -> void:
 	_nume.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_nume.add_theme_constant_override("outline_size", 7)
 	_nume.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# stins la fel ca bara (ea își pune singură `UMBRA`, aici o punem pe nume)
+	_nume.modulate = BARA.UMBRA
 	radacina.add_child(_nume)
 
 	visible = false

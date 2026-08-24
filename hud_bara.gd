@@ -39,6 +39,14 @@ static var _foaie: Image = null
 const ACCENT := Color8(198, 118, 80)        # arama aprinsă
 const OS_ALB := Color8(232, 224, 214)       # alb-os, pentru cifre
 
+# ⚠️ CÂT DE APRINS ARE VOIE SĂ FIE HUD-UL
+# De când HUD-ul a urcat peste vinietă (vezi `hud.gd`), nimic nu-l mai stinge — iar la culoarea
+# plină arama și roșul ies mai tari decât jocul de sub ele („mi se pare ca sunt mult mai
+# luminoase decat jocu in sine", Răzvan, 2026-08-24). `UMBRA` le trage înapoi în tonul lumii.
+# Se schimbă AICI o dată și se mută la toate trei barele, la insigna de nivel și la numele
+# boss-ului. 1.0 = aprins la maximum, mai mic = mai stins.
+const UMBRA := Color(0.68, 0.68, 0.68)
+
 # Cât de repede coboară urma spre valoarea reală (fracțiune din bară pe secundă).
 const URMA_VITEZA := 0.70
 
@@ -65,6 +73,7 @@ var _lat_veche := -1.0      # ca să reașezăm crestăturile doar când chiar s
 # adică de cât trebuie trasă înăuntru zona care se mișcă.
 func construieste(celula: Vector2i, zoom: int, margine: int, inset: int, culoare: Color, urma_culoare: Color) -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modulate = UMBRA
 
 	_rama = NinePatchRect.new()
 	_rama.texture = chenar(celula, zoom)

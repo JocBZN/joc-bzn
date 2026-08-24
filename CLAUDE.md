@@ -56,8 +56,19 @@ Prima dată în joc adevărat, HUD-ul ieșea **maro-închis, aproape stins**. Ca
 
 `layer = 4` e slotul liber dintre vinietă (3) și filtrul alb-negru din Limbo (5), care TREBUIE să rămână peste HUD. Acolo stau deja cronometrele dimensiunilor (`nether.gd`, `ender.gd`, `prison.gd`), din exact același motiv. **Efect secundar, intenționat:** HUD-ul nu mai e acoperit nici de stratul de scântei din Nether/Ender (2) — ceea ce se potrivește cu ce scrie deja în `atmosphere.gd`, că tenta dimensiunilor a fost pusă pe lume tocmai ca să NU înroșească viața și XP-ul.
 
+### ⚠️ …și imediat după, HUD-ul a trebuit STINS
+Prima reacție a lui Răzvan la capturi: „fa-le mai intunecate ca mi se pare ca sunt mult mai luminoase decat jocu in sine". Avea dreptate, și e chiar consecința mutării de mai sus: până atunci vinieta îl stingea fără să vrea nimeni, iar acum, nemaifiind nimic peste el, HUD-ul ieșea la culoarea plină peste o lume verde-stinsă.
+
+Rezolvarea e **o singură constantă**, `UMBRA` din `hud_bara.gd` (acum `Color(0.68, 0.68, 0.68)`), pusă ca `modulate` pe toate trei barele, pe insigna de nivel, pe numele boss-ului și pe cifrele din colțul de sus-dreapta (kill-uri + chei). O schimbi acolo, se schimbă peste tot. Am randat în jocul adevărat patru variante — 100%, 82%, 68%, 55% — una sub alta: la 82% abia se simte, la 55% arama își pierde metalul și cifrele se sting.
+
+**Cronometrul a rămas alb, dinadins:** el stă în mijlocul ecranului, unde vinieta oricum nu ajungea, deci mutarea pe stratul 4 nu l-a schimbat cu nimic. Dacă l-aș fi stins și pe el, aș fi schimbat ceva ce nu se stricase.
+
+Tot atunci, cyan-ul XP-ului a fost adâncit de la `Color8(46, 178, 214)` la `Color8(40, 158, 196)`: pe verdele hărții e culoarea cu contrastul cel mai mare de pe ecran, iar doar din `UMBRA` tot rămânea cea care trage ochiul prima.
+
 ### Verificat rulând
 Captură din **jocul adevărat** (`main.tscn` instanțiat, nu o scenă de test): HUD lizibil peste iarbă, plăcuță plină, insignă, bară de XP. A doua captură cu **bara de boss chemată peste joc**: fantoma se vede coborând după lovitură. În scenă izolată: viață mică (rama pulsează + fantoma), vindecare (clipit verde), level up (insigna sare, bara se aprinde), patru cadre consecutive care prind dunga de lumină mișcându-se. `tool_check_i18n` → **„✔ TOTUL E TRADUS"** (n-au apărut texte noi de tradus; „Level %d" a rămas în tabel, doar că HUD-ul nu-l mai folosește).
+
+După stingere, încă o captură din joc, cu bara de boss pe ecran: HUD-ul stă acum în tonul lumii, iar cel mai aprins lucru rămas e cronometrul — cum era și înainte.
 
 ## Session log — 2026-08-24 (Casino VIP Pass: masa de ruletă nu se mai închide)
 
