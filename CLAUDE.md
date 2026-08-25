@@ -24,7 +24,7 @@ Quick rules:
 
 ---
 
-## Session log — 2026-08-25 (primul build de Steam: preset de export reparat + scripturi SteamPipe)
+## Session log — 2026-08-25 (primul build pe Steam: preset reparat, SteamPipe, bug-ul cu pietrele, plan de lansare)
 
 **Cerut de Răzvan:** „ar fii ok sa facem un build sa pun pe steam asa de test acum? jocul ar fi undeva la 80% gata" — și apoi „cum pun buildu pe steam ca nu mi dau seama".
 
@@ -95,6 +95,35 @@ Reparate **două** fișiere: `rocks.gd` (funcție nouă `_nume_png()`) și `dese
 1. **`print()` NU ajunge nicăieri într-un build de release** — n-are consolă atașată, iar în log nu intră. Pentru orice măsurătoare într-un build exportat: `push_error` (sau `push_warning`), care trec prin canalul erorilor. `rocks.gd` avea de mult un `print("Pietre încărcate: %d")` pe care nu l-a citit nimeni niciodată.
 2. **Log-ul e `logs/godot.log`.** Fișierele `godot2026-...log` sunt copiile ROTITE, iar cea mai recentă e goală (0 octeți) — `ls -t | head -1` nimerește exact fișierul gol și te face să crezi că jocul n-a rulat.
 3. **Lumea se încarcă abia la START.** Un `--quit-after` pe build-ul exportat se termină în meniu, deci nu execută `rocks.gd` deloc. „Zero erori" într-o astfel de rulare **nu** dovedește nimic — codul nici n-a rulat. Sonda a fost mutată în `loading.gd` tocmai ca să nu depindă de apăsat butoane. (`SendKeys` din PowerShell **nu** ajunge la fereastra Godot; nu pierde timpul cu el.)
+
+### Traseul de pe Steam, pas cu pas (ce s-a întâmplat efectiv azi)
+
+Ordinea reală, cu blocajele lovite pe rând — utilă fiindcă niciunul nu e evident dinainte:
+
+1. **`.vdf` + `steamcmd`.** La promptul interactiv `Steam>` se dă **o comandă pe linie, fără `+`**; `run_app_build "...vdf" quit` eșuează cu „App build file does not exist: quit" (crede că `quit` e al doilea fișier de build). Prefixele `+` sunt doar pentru pornirea din afară.
+2. **Branch-ul `test` NU se poate crea la un joc nou.** Scrie chiar pe pagina de Builds: *„Once the default branch has a current build set, you can create other branches."* Deci prima activare e obligatoriu pe `default` (fără risc — jocul nu e lansat, nu-l vede nimeni). Abia după aia apar branch-urile de beta.
+3. **Depot-ul trebuie să fie în pachetul „developer comp"** (cel colorat roșu în lista de packages), altfel jocul nu se instalează la tine în bibliotecă.
+4. **Launch Options** (Installation → General Installation): `Nicotine & Knives.exe`, Windows. Fără ele Steam instalează jocul și butonul Play nu face NIMIC, fără niciun mesaj.
+5. **Setările de Steamworks stau în ciornă până le publici** (tab-ul Publish → *Prepare for Publishing* → *Publish to Steam*, cu codul de confirmare `STEAMWORKS`). Publicarea asta e a SETĂRILOR, nu a jocului — un joc nelansat rămâne nelansat.
+6. Prima instalare a ieșit cu folderul gol și `"buildid" "0"` în `appmanifest_5107310.acf` — clientul nu știa că există un build. Log-urile din `steam-build\output\` arătau urcarea reușită (199,52 MB, 201 chunks), deci problema era la coborâre, nu la urcare.
+
+### Planul de lansare (cercetat azi la sursă, nu din memorie)
+
+Răzvan vrea pagina publică cu lansare **în septembrie 2026**. Termenele Valve, verificate în documentație:
+
+- Pagina trebuie să stea publică în **„Coming Soon" cel puțin 2 săptămâni** înainte de lansare. Regulă de sistem — butonul de lansare nu apare mai devreme.
+- Review-ul paginii de către Valve: **3-5 zile lucrătoare**, iar ei cer trimiterea cu **cel puțin 7 zile** înainte de data dorită pentru publicare.
+- Deci lanțul e: trimitere → ~7 zile → pagină publică → 14 zile → lansare. **Circa 3 săptămâni de la „ready for review".**
+- **Build-ul se revizuiește separat**, de pe branch-ul `default`, și NU poate fi trimis înainte de trimiterea paginii de magazin.
+- ⚠️ Când data de lansare ajunge la **sub 14 zile distanță, nu mai poate fi schimbată** fără să scrii la Valve. Recomandat: dată vagă (lună/trimestru) în Coming Soon, fixare pe zi abia când jocul chiar e gata.
+
+Calculul făcut pe calendar: trimis 28 august → lansare cel mai devreme ~18 septembrie; trimis 1 septembrie → ~22 septembrie; după 10 septembrie → intră în octombrie.
+
+**Active obligatorii pentru pagină:** header capsule 920×430, small capsule 462×174 (logo lizibil — se micșorează automat la 120×45), main capsule 1232×706, vertical capsule 748×896, **minimum 5 capturi 1920×1080 la 16:9** (cel puțin 4 marcate „potrivite pentru orice vârstă"), plus descrieri, taguri, gen, cerințe de sistem, preț, chestionar de vârstă. Trailerul nu e obligatoriu.
+
+Surse: `partner.steamgames.com/doc/store/coming_soon`, `/doc/store/releasing`, `/doc/store/types`, `/doc/store/assets/standard`.
+
+**Nedecis încă:** de unde se începe (capsule sau capturi), data exactă, prețul.
 
 ## Session log — 2026-08-24 (butoanele meniului principal, pe plăcuțe din pachetul `Borders/`)
 
