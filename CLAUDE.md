@@ -24,6 +24,53 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-25 (primul build de Steam: preset de export reparat + scripturi SteamPipe)
+
+**Cerut de Răzvan:** „ar fii ok sa facem un build sa pun pe steam asa de test acum? jocul ar fi undeva la 80% gata" — și apoi „cum pun buildu pe steam ca nu mi dau seama".
+
+Jocul are pagină în Steamworks: **AppID 5107310**, depot **5107311**, numele **Nicotine & Knives**. (Numele ăsta trăia până acum doar în presetul de export — `config/name` din `project.godot` e în continuare `JOC-BZN-Mobile`, vezi mai jos.)
+
+### Ce s-a reparat în `export_presets.cfg`
+
+- **`exclude_filter` era gol** → toate cele **17 unelte `tool_*`** intrau în `.pck`-ul livrat. Nu-s periculoase (nu le poate porni nimeni fără linie de comandă), dar `tool_gamepad.tscn` **scrie în `scores.save`-ul real**, deci n-are ce căuta într-un build public. Acum: `tool_*.gd,tool_*.tscn,tool_*.ps1,debugging/*,*.aseprite,*.bak`. Verificat pe build-ul ieșit: `grep -c tool_gamepad` pe `.pck` dă **0**.
+- **Metadatele exe-ului erau goale** (nume produs, versiune, companie) → în Properties pe fișier scria nimic. Acum: `Nicotine & Knives` / `JocBZN` / `0.8.0.0`.
+
+### Ce NU s-a atins, dinadins
+
+- **`config/name="JOC-BZN-Mobile"`** — ăsta e titlul ferestrei ȘI dictează unde stă salvarea (`user://` → `AppData\Roaming\Godot\app_userdata\JOC-BZN-Mobile\`). Schimbat, progresul local (monede, deblocări) **pare șters**, fiindcă jocul se uită în alt folder. De făcut conștient, cu mutarea folderului, nu în treacăt. Răzvan n-a decis încă.
+- **Icon-ul.** Răzvan a pus `menu/Title/title_1.png` în preset. Godot face singur `.ico` din PNG, deci merge — dar e logo-ul LAT al jocului îndesat într-un pătrat. La un build serios trebuie `.ico` adevărat, cu compoziție separată pentru 16×16 (unde un logo cu text nu se citește deloc).
+
+### Build-ul artefactelor mânca repo-ul
+
+Godot exportă în rădăcina proiectului (`export_path="./Nicotine & Knives.exe"`), deci după fiecare export stau acolo **~209 MB** de `exe`+`pck`, și **nu erau gitignorate**. Un `git add -A` le-ar fi băgat în istoric, la fiecare export — exact capcana evitată la `Soundpack/`. Adăugat în `.gitignore`: `/*.exe` și `/*.pck`.
+
+### Scripturile de SteamPipe (în afara repo-ului)
+
+`Desktop\steam-build\` — **nu în repo**, fiindcă țin de contul lui Răzvan, nu de joc:
+
+```
+steam-build\content\    ← build-ul exportat (exe + pck)
+steam-build\scripts\    ← app_build_5107310.vdf + depot_build_5107311.vdf
+steam-build\output\     ← cache-ul urcării
+```
+
+Cele două `.vdf` au **căi absolute**, nu relative ca în exemplele Valve — așa nu depind de unde ajunge SDK-ul pe disc. `"setlive" ""` gol dinadins: build-ul se urcă, dar nu se activează pentru nimeni până nu apasă Răzvan butonul din Steamworks.
+
+### Verificat
+
+Export release curat, zero erori. Build-ul **pornit chiar** (`--quit-after 600`): D3D12, RTX 3050 Ti, ieșire cod 0. Cele două avertismente de la final (`ObjectDB instances leaked`, `resources still in use`) sunt normale când motorul e tăiat din mers cu `--quit-after`; **n-a fost testată o ieșire normală din meniu**.
+
+### Rămas de făcut (partea lui Răzvan)
+
+1. Steamworks SDK → `steamcmd.exe`.
+2. `steamcmd.exe +login <cont> +run_app_build "...\scripts\app_build_5107310.vdf" +quit`
+3. Steamworks → **Builds** → pune build-ul pe branch-ul **`test`** (nu `default`).
+4. ⚠️ **Launch Options** (Installation → General Installation): fără ele Steam instalează jocul dar butonul Play nu face nimic. Executable `Nicotine & Knives.exe`, OS Windows. Apoi **Publish**.
+
+### Steam Input (întrebarea de la începutul sesiunii)
+
+Jocul **nu** folosește Steam Input API — merge pe suportul nativ SDL din Godot, iar `gamepad.gd:452` detectează PlayStation după numele driverului ca să scrie ✕ ◯ ▢ △. Deci în Steamworks: **bifat Switch + Generic (DirectInput) + Any Future Devices, NEbifat Xbox și PlayStation**. Bifarea PlayStation ar ascunde controllerul real în spatele unui Xbox virtual → detecția ar cădea și glifele PS din `NUME_COD["ps"]` s-ar pierde.
+
 ## Session log — 2026-08-24 (butoanele meniului principal, pe plăcuțe din pachetul `Borders/`)
 
 **Cerut de Răzvan:** „Esti un game dev de elita, profesionist. Fa butoanele de la meniul principal folosindu-te de Borders pe care ti le-am dat."

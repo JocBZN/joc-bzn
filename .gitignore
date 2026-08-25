@@ -31,3 +31,10 @@ harta/Portal Ender/enemy ender/400 Sounds Pack/
 # și se salvează în `audio/`, unde e mic și versionat. Nu chema niciodată un fișier direct din
 # `Soundpack/`: pe alt calculator folderul nu există, iar jocul ar porni fără sunetul ăla.
 Soundpack/
+
+# Build-urile exportate (Godot le scrie în rădăcina proiectului, lângă cod): ~200 MB de
+# fiecare dată, și se schimbă la fiecare export. Un `git add -A` fără liniile astea ar fi
+# băgat exe+pck în istoric. Build-ul care pleacă spre Steam se face în
+# `Desktop\steam-build\content\`, nu de aici.
+/*.exe
+/*.pck
