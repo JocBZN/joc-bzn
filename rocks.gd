@@ -41,6 +41,28 @@ func _ready() -> void:
 	if p != null:
 		_props = p.get_node_or_null("Props") as Node2D
 
+# Numele de fișier dintr-un folder `res://`, curățate de cozile pe care le adaugă exportul.
+#
+# ⚠️ În jocul EXPORTAT, `get_files()` nu întoarce numele de pe disc: în `.pck` stă resursa
+# importată, nu PNG-ul original, iar fișierele apar cu `.import` / `.remap` la coadă. Un filtru
+# pe `.png` trece în editor și nu prinde NIMIC în build. `preload_all.gd` știa asta de mult
+# (`_aduna`); rocks.gd și desert_structures.gd nu — de aici cele 459 de erori pe secundă din
+# primul build de Steam (2026-08-25): `_rocks` gol → `_rocks[-1]` la prima piatră.
+#
+# Dicționarul e pentru DUBLURI: în `.pck` aceeași piatră apare sub ambele forme, iar încărcată
+# de două ori ar strica și determinismul (aceeași cheie de chunk ar alege altă piatră).
+func _nume_png(dir: DirAccess) -> Array:
+	var nume := {}
+	for f in dir.get_files():
+		for coada in [".import", ".remap"]:
+			if f.ends_with(coada):
+				f = f.substr(0, f.length() - coada.length())
+		if f.to_lower().ends_with(".png"):
+			nume[f] = true
+	var out := nume.keys()
+	out.sort()  # ordine fixă → aceleași pietre în același loc de fiecare dată
+	return out
+
 # Încarcă toate imaginile .png dintr-un folder, în ordine STABILĂ (sortată) → determinist.
 func _load_dir(path: String) -> Array[Texture2D]:
 	var out: Array[Texture2D] = []
@@ -48,11 +70,7 @@ func _load_dir(path: String) -> Array[Texture2D]:
 	if dir == null:
 		push_warning("Rocks: nu găsesc folderul " + path)
 		return out
-	var files := dir.get_files()
-	files.sort()  # ordine fixă → aceleași pietre în același loc de fiecare dată
-	for f in files:
-		if not f.to_lower().ends_with(".png"):
-			continue
+	for f in _nume_png(dir):
 		var tex := load(path + f) as Texture2D
 		if tex != null:
 			out.append(tex)

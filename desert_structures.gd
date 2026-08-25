@@ -72,16 +72,26 @@ func _type_key(fname: String) -> String:
 	return ""
 
 # Încarcă .png din folder (la RULARE, ca la rocks.gd) și le indexează pe tip.
+#
+# ⚠️ Aceeași capcană ca la `rocks.gd`: în jocul exportat fișierele vin cu `.import` / `.remap`
+# la coadă, deci un filtru direct pe `.png` nu prinde nimic și deșertul rămâne fără structuri.
+# Vezi comentariul lung de la `rocks.gd::_nume_png` — și `preload_all.gd::_aduna`, care o știa
+# de mult. Dicționarul scoate dublurile (în `.pck` același fișier apare sub ambele forme).
 func _load_dir(path: String) -> void:
 	var dir := DirAccess.open(path)
 	if dir == null:
 		push_warning("Desert structures: nu găsesc folderul " + path)
 		return
-	var files := dir.get_files()
+	var nume := {}
+	for f in dir.get_files():
+		for coada in [".import", ".remap"]:
+			if f.ends_with(coada):
+				f = f.substr(0, f.length() - coada.length())
+		if f.to_lower().ends_with(".png"):
+			nume[f] = true
+	var files := nume.keys()
 	files.sort()
 	for f in files:
-		if not f.to_lower().ends_with(".png"):
-			continue
 		var tex := load(path + f) as Texture2D
 		if tex == null:
 			continue

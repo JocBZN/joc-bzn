@@ -71,6 +71,31 @@ Export release curat, zero erori. Build-ul **pornit chiar** (`--quit-after 600`)
 
 Jocul **nu** folosește Steam Input API — merge pe suportul nativ SDL din Godot, iar `gamepad.gd:452` detectează PlayStation după numele driverului ca să scrie ✕ ◯ ▢ △. Deci în Steamworks: **bifat Switch + Generic (DirectInput) + Any Future Devices, NEbifat Xbox și PlayStation**. Bifarea PlayStation ar ascunde controllerul real în spatele unui Xbox virtual → detecția ar cădea și glifele PS din `NUME_COD["ps"]` s-ar pierde.
 
+### Bug-ul prins de primul build: pietrele și deșertul dispăreau în export
+
+Răzvan a urcat build-ul, l-a instalat de pe Steam, a dat START — **crash**. Nu era de la Steam: `godot.log` avea **459 de erori în ~10 secunde**, `Out of bounds get index '-1' (on base: 'Array[Texture2D]')` la `rocks.gd::_chunk_rocks_raw`, chemat din `chests.gd::_process` la fiecare cadru.
+
+**Cauza:** `_load_dir()` scana folderul la rulare cu `DirAccess` și filtra `if not f.ends_with(".png"): continue`. În editor fișierele chiar se cheamă `Rock1_1.png`. **În `.pck` se cheamă `Rock1_1.png.import`** — acolo stă resursa importată, nu PNG-ul original. Deci filtrul nu prindea nimic, `_rocks` rămânea gol, iar `_rocks[rng.randi_range(0, -1)]` = `_rocks[-1]`.
+
+Măsurat în build exportat, cu o sondă temporară în `loading.gd`:
+
+```
+VERIF res://stones/ -> brut=7 png_curat=7
+  mostra_brut=["Rock1_1.png.import", "Rock1_2.png.import", "Rock1_3.png.import"]
+VERIF res://harta/desert structures/ -> brut=3 png_curat=3
+  mostra_brut=["cactus.png.import", "house abandoned.png.import", "monument.png.import"]
+```
+
+Reparate **două** fișiere: `rocks.gd` (funcție nouă `_nume_png()`) și `desert_structures.gd` (același tratament inline). Al doilea era stricat la fel, dar **în tăcere**: `_process` iese devreme pe `if _by_name.is_empty()`, deci deșertul ar fi rămas fără cactuși, case și monument, fără nicio eroare în log. De-aia s-a măsurat, nu s-a dedus din lipsa erorilor.
+
+⚠️ **`preload_all.gd::_aduna` trata deja corect cozile `.import`/`.remap`**, cu tot cu comentariu. Lecția exista în repo și nu ajunsese în celelalte două locuri. Al treilea consumator de `DirAccess` e acum aliniat cu primul.
+
+### Trei capcane de mediu, plătite cu vreo cinci rulări irosite
+
+1. **`print()` NU ajunge nicăieri într-un build de release** — n-are consolă atașată, iar în log nu intră. Pentru orice măsurătoare într-un build exportat: `push_error` (sau `push_warning`), care trec prin canalul erorilor. `rocks.gd` avea de mult un `print("Pietre încărcate: %d")` pe care nu l-a citit nimeni niciodată.
+2. **Log-ul e `logs/godot.log`.** Fișierele `godot2026-...log` sunt copiile ROTITE, iar cea mai recentă e goală (0 octeți) — `ls -t | head -1` nimerește exact fișierul gol și te face să crezi că jocul n-a rulat.
+3. **Lumea se încarcă abia la START.** Un `--quit-after` pe build-ul exportat se termină în meniu, deci nu execută `rocks.gd` deloc. „Zero erori" într-o astfel de rulare **nu** dovedește nimic — codul nici n-a rulat. Sonda a fost mutată în `loading.gd` tocmai ca să nu depindă de apăsat butoane. (`SendKeys` din PowerShell **nu** ajunge la fereastra Godot; nu pierde timpul cu el.)
+
 ## Session log — 2026-08-24 (butoanele meniului principal, pe plăcuțe din pachetul `Borders/`)
 
 **Cerut de Răzvan:** „Esti un game dev de elita, profesionist. Fa butoanele de la meniul principal folosindu-te de Borders pe care ti le-am dat."
