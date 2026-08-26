@@ -36,6 +36,22 @@ extends StaticBody2D
 # spate îi rămân picioarele afară, sub portal. Copacii și statuia folosesc tot 74. Deci:
 # poți să cobori arta, dar nu s-o urci sub ~64.
 
+# ---------------------------------------------------------------------------
+# VÂLTOAREA MOV DIN GURA ARCADEI
+# ---------------------------------------------------------------------------
+# Nodul `Vartej` (pus ÎNAINTEA lui `Sprite2D` în scenă, deci se desenează SUB piatră) e cel
+# care ține pânza aia care fierbe, ca la portalul de Nether din Minecraft — doar că a noastră
+# arde tot timpul, portalul nostru nu se aprinde cu nimic. Nu iese niciun pixel pe lângă
+# arcadă: `portal_nether.gdshader` taie totul cu o mască pe forma exactă a golului.
+#
+# Cifrele de reglat (viteză, culori, cât de mărunte-s ochiurile) stau în Inspector, pe
+# `Vartej → Material → Shader Parameters`, și se văd pe loc în editor. Explicațiile lor —
+# în capul shaderului. Dacă schimbi arta portalului sau adaugi cadre, rulează din nou
+# `tool_portal_nether.tscn` (vezi comentariul de acolo).
+#
+# ⚠️ `Vartej` trebuie să rămână cu ACELAȘI `offset` și aceeași `scale` ca `Sprite2D` — dacă
+# unul se mișcă și celălalt nu, masca nu mai cade peste gaură și vâltoarea iese pe piatră.
+
 @export var interact_range: float = 200.0   # cât de aproape trebuie să fii ca să apară textul
 @export var retur: bool = false             # true doar pe portalul de întoarcere din Nether
 
@@ -80,4 +96,16 @@ func intra_in_pamant() -> void:
 	t.set_ease(Tween.EASE_IN)
 	t.tween_property(sprite, "position:y", sprite.position.y + sink_depth, sink_duration)
 	t.parallel().tween_property(sprite, "modulate:a", 0.0, sink_duration)
+	# Vâltoarea coboară odată cu piatra și se stinge la fel. ⚠️ Stinsul ei merge pe
+	# `shader_parameter/fade`, NU pe `modulate:a`: `portal_nether.gdshader` își scrie singur
+	# `COLOR`, deci `modulate` n-are niciun efect pe el — ar fi coborât mov-aprins până
+	# la `queue_free` și ar fi pierit dintr-o bucată (aceeași capcană ca la fântâna Ender).
+	var vartej := get_node_or_null("Vartej") as Sprite2D
+	if vartej != null:
+		t.parallel().tween_property(vartej, "position:y", vartej.position.y + sink_depth, sink_duration)
+		var mat := vartej.material as ShaderMaterial
+		if mat != null:
+			t.parallel().tween_property(mat, "shader_parameter/fade", 0.0, sink_duration)
+		else:
+			t.parallel().tween_property(vartej, "modulate:a", 0.0, sink_duration)
 	t.tween_callback(queue_free)

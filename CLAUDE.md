@@ -24,6 +24,39 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-26 (portalul Nether arde: vâltoarea mov din gura arcadei)
+
+**Cerut de Răzvan:** „ti-am bagat in folderul nether niste png-uri numerotate de la 1 la 10. […] La portalul de nether vreau sa pui animatia asta inauntrul portalului. Stii cum arata portalul de nether de pe minecraft ca atunci cand il aprinzi are animatia aia mov, asa vreau sa fie si asta doar ca mereu sa fie pornit. Sa fie inauntrul lui si sa nu dea pe afara animatia asta."
+
+Cele 10 desene (`harta/nether/1.png` … `10.png`, 128×128) sunt o pânză de crăpături albastru-deschis pe transparent — 71% din imagine e gol, restul e pe trei culori (albastru deschis, albastru închis, alb). Se îmbină perfect pe toate laturile (verificat randând o alăturare 2×2) și se închid în buclă: și 10 → 1 schimbă cam tot atâția pixeli ca oricare altă pereche (~22%), deci e o fierbere, nu o alunecare.
+
+### Cum stă montat
+
+- **`portal_nether.gdshader`**, pe un nod nou `Vartej` (`Sprite2D`) pus în `portal.tscn` **înaintea** lui `Sprite2D`, ca să se deseneze SUB piatră. Aceeași `scale` 2.4 și același `offset` `-25.17` ca piatra — de-aia toată socoteala din shader e în `UV` și nu există nicio cifră potrivită cu mâna.
+- **Textura nodului E MASCA** (`harta/nether/portal_masca.png`). Nu se vede niciodată (shaderul scrie `COLOR` peste tot); e acolo ca să dea nodului mărimea și grila UV a arcadei. Tot ce desenează shaderul se înmulțește cu alfa ei → nu poate ieși niciun pixel pe lângă piatră.
+- **`harta/nether/portal_vartej.png`**, cele 10 cadre lipite într-o fâșie de 1280×128. Motivul pentru care nu e `AnimatedSprite2D`: cu o singură textură shaderul poate vedea **două cadre deodată** și le poate topi unul în altul (`topire`), ceea ce un `AnimatedSprite2D` nu permite.
+- **`tool_portal_nether.gd` / `.tscn`** face amândouă fișierele. Se rulează din nou dacă se schimbă arta portalului sau dacă Răzvan mai desenează cadre (le prinde singur, câte `N.png` există; tipărește la final ce trebuie pus în `shader_parameter/cadre`). După el, `--import`.
+
+### Masca nu e un dreptunghi ghicit
+
+Unealta umple **„afarăul"** din `harta/Portal 1.png`, pornind de pe rama de 1px a imaginii. Ce rămâne transparent și neatins e, prin definiție, închis de piatră: golul arcadei (2226 px după umflare, x 43..84, y 32..90) plus rosturile mici de lângă treapta rotundă, care sunt tot înăuntru. Nu trebuie ghicit niciun punct de start și nu se strică dacă arcada se mută prin cele 128×128. Umflarea cu 1px bagă vâltoarea puțin SUB buza de piatră, ca să nu rămână un fir de fundal între ele.
+
+### Capcane
+
+- ⚠️ **`resource_local_to_scene = true` pe ShaderMaterial.** Fără el, toate portalurile din lume ar fi împărțit UN material, iar `intra_in_pamant()` pe unul singur le-ar fi stins pe TOATE. Verificat scufundând unul din două portaluri alăturate: celălalt a rămas aprins. (La fântâna Ender problema nu putea apărea — există una singură.)
+- ⚠️ **Stinsul merge pe `shader_parameter/fade`, nu pe `modulate:a`** — exact capcana de la `portal_ender.gdshader`: shaderul își scrie singur `COLOR`, deci `modulate` pe nodul ăla n-are absolut niciun efect. `portal.gd::intra_in_pamant()` coboară și stinge acum și `Vartej`, în paralel cu piatra.
+- ⚠️ **Foaia de cadre nu poate fi textura nodului.** Prima variantă punea `portal_vartej.png` pe `Vartej` — nodul ar fi ieșit de 10 ori mai lat și UV-ul n-ar mai fi căzut pe arcadă. Inversarea (masca = `TEXTURE`, foaia = `uniform sampler2D foaie`) rezolvă și mărimea, și alinierea, dintr-o mișcare.
+
+### Reglajele, toate în Inspector (`Vartej → Material → Shader Parameters`)
+
+`viteza` 8 cadre/s · `zoom` 2.0 (cât de mărunte-s ochiurile) · `deriva` 0.02 (pânza urcă încet; se poate, fiindcă desenele se îmbină) · `puls` 0.07 la 0.5 rotații/s (o respirație la 2 s) · `topire` 0.0 (salt sec între cadre — pixel art curat; 1.0 = se topesc) · culorile: fundal `#1e0733`, umbră `#6b21a8`, linii `#b56bff`, scântei `#f0e0ff`.
+
+### Verificat rulând
+
+Două portaluri într-o scenă de test, fereastră normală (nu headless), capturi la 0,7 s și la 1,1 s: pânza se schimbă, nimic nu iese pe lângă piatră, câmpul coboară până în spatele treptei rotunde — acolo unde se termină de fapt golul. Plus o captură în timpul scufundării: cel din stânga coboară și se stinge (piatră + vâltoare, sincron), cel din dreapta rămâne aprins.
+
+---
+
 ## Session log — 2026-08-25 (primul build pe Steam: preset reparat, SteamPipe, bug-ul cu pietrele, plan de lansare)
 
 **Cerut de Răzvan:** „ar fii ok sa facem un build sa pun pe steam asa de test acum? jocul ar fi undeva la 80% gata" — și apoi „cum pun buildu pe steam ca nu mi dau seama".

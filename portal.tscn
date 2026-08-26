@@ -2,12 +2,39 @@
 
 [ext_resource type="Script" uid="uid://5lauivygsv28" path="res://portal.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://u6x75iwkbjkx" path="res://harta/Portal 1.png" id="2_tex"]
+[ext_resource type="Shader" uid="uid://b8poq6bpcledr" path="res://portal_nether.gdshader" id="3_shader"]
+[ext_resource type="Texture2D" uid="uid://cn1ixixcqg4wc" path="res://harta/nether/portal_masca.png" id="4_masca"]
+[ext_resource type="Texture2D" uid="uid://cqnqdmeyo1ox5" path="res://harta/nether/portal_vartej.png" id="5_foaie"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_vartej"]
+resource_local_to_scene = true
+shader = ExtResource("3_shader")
+shader_parameter/foaie = ExtResource("5_foaie")
+shader_parameter/cadre = 10.0
+shader_parameter/viteza = 8.0
+shader_parameter/topire = 0.0
+shader_parameter/deriva = 0.02
+shader_parameter/zoom = 2.0
+shader_parameter/culoare_fundal = Color(0.118, 0.027, 0.2, 1)
+shader_parameter/culoare_umbra = Color(0.42, 0.129, 0.659, 1)
+shader_parameter/culoare_linii = Color(0.71, 0.42, 1, 1)
+shader_parameter/culoare_scantei = Color(0.941, 0.878, 1, 1)
+shader_parameter/puls = 0.07
+shader_parameter/viteza_puls = 0.5
+shader_parameter/fade = 1.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_portal"]
-size = Vector2(273, 90)
+size = Vector2(284, 90)
 
 [node name="Portal" type="StaticBody2D" unique_id=1936592460]
 script = ExtResource("1_script")
+
+[node name="Vartej" type="Sprite2D" parent="." unique_id=1044821377]
+texture_filter = 1
+material = SubResource("ShaderMaterial_vartej")
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("4_masca")
+offset = Vector2(0, -25.166668)
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=378377321]
 texture_filter = 1
@@ -16,4 +43,5 @@ texture = ExtResource("2_tex")
 offset = Vector2(0, -25.166668)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1922763015]
+position = Vector2(1, 0)
 shape = SubResource("RectangleShape2D_portal")
