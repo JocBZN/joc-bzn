@@ -37,10 +37,19 @@ uniform float viteza = 8.0;                       // cadre pe secundă
 uniform float topire : hint_range(0.0, 1.0) = 0.0; // 0 = salt sec între cadre (pixel art curat),
                                                    // 1 = se topesc unul în altul (mai lin, dar
                                                    //     apar fantome pe muchii)
-uniform float deriva = 0.02;                       // cât urcă pânza pe secundă (1.0 = o textură întreagă)
-uniform float zoom = 2.0;                          // cât de măruntă e pânza: 1 = desenul la mărimea
-                                                   // lui, 2 = ochiuri de două ori mai mici (încap
-                                                   // mai multe în gaura arcadei)
+// Cât de măruntă e pânza: 1 = desenul la mărimea lui, 2 = ochiuri de două ori mai mici (încap
+// mai multe în gaura arcadei).
+//
+// ⚠️ **NU trece de 2.0.** Peste atât, colțul de sus al arcadei ar cere pixeli din AFARA
+// desenului, iar desenele lui Răzvan **nu se îmbină cap la cap** — măsurat pe cadrul 1: din
+// firele care ating marginea de jos, doar 9 din 21 continuă sus, iar pe verticală 8 din 30.
+// Adică o repetare (`fract`) taie pânza pe o linie dreaptă prin mijlocul portalului: exact
+// cusătura pe care a văzut-o Răzvan pe 2026-08-26. De-aia mai jos se folosește `clamp`, nu
+// `fract`, și de-aia am scos deriva (pânza care urca încet): ea plimba fereastra de citire
+// peste marginea desenului, deci cusătura apărea de la sine după vreo 25 de secunde de joc.
+// La 1.9 fereastra stă între 0.025 și 0.886 pe verticală și 0.188 … 0.796 pe orizontală —
+// bine înăuntru, cu marjă. Mișcarea o dau cele 10 cadre, n-avem nevoie de alunecare.
+uniform float zoom : hint_range(0.5, 2.0) = 1.9;
 
 // --- culorile ------------------------------------------------------------------------------
 uniform vec4 culoare_fundal : source_color = vec4(0.118, 0.027, 0.2, 1.0);
@@ -70,10 +79,12 @@ void fragment() {
 	if (m < 0.5) {
 		COLOR = vec4(0.0);               // nimic nu iese pe lângă piatră
 	} else {
-		// Punctul din pânză. `fract` o face să se repete la infinit — desenele lui Răzvan
-		// se îmbină perfect pe toate laturile, deci nu se vede nicio cusătură nici mărite,
-		// nici în timp ce curg în sus.
-		vec2 uv = fract((UV - 0.5) * zoom + 0.5 - vec2(0.0, TIME * deriva));
+		// Punctul din pânză. `clamp`, NU `fract`: desenele nu se îmbină cap la cap, deci o
+		// repetare ar tăia pânza pe o linie dreaptă prin portal (vezi nota de la `zoom`).
+		// Cu `zoom` sub 2.0 nu se atinge nimic de `clamp` — el e doar plasa de siguranță.
+		// (Marginea de sus e 0.999, nu 1.0: la fix 1.0 citirea ar cădea pe primul pixel al
+		//  cadrului URMĂTOR din foaie, fiindcă acolo se termină felia lui.)
+		vec2 uv = clamp((UV - 0.5) * zoom + 0.5, 0.0, 0.999);
 
 		// Cadrul curent și următorul, amestecate după `topire`.
 		float t = TIME * viteza;

@@ -28,7 +28,7 @@ Quick rules:
 
 **Cerut de Răzvan:** „ti-am bagat in folderul nether niste png-uri numerotate de la 1 la 10. […] La portalul de nether vreau sa pui animatia asta inauntrul portalului. Stii cum arata portalul de nether de pe minecraft ca atunci cand il aprinzi are animatia aia mov, asa vreau sa fie si asta doar ca mereu sa fie pornit. Sa fie inauntrul lui si sa nu dea pe afara animatia asta."
 
-Cele 10 desene (`harta/nether/1.png` … `10.png`, 128×128) sunt o pânză de crăpături albastru-deschis pe transparent — 71% din imagine e gol, restul e pe trei culori (albastru deschis, albastru închis, alb). Se îmbină perfect pe toate laturile (verificat randând o alăturare 2×2) și se închid în buclă: și 10 → 1 schimbă cam tot atâția pixeli ca oricare altă pereche (~22%), deci e o fierbere, nu o alunecare.
+Cele 10 desene (`harta/nether/1.png` … `10.png`, 128×128) sunt o pânză de crăpături albastru-deschis pe transparent — 71% din imagine e gol, restul e pe trei culori (albastru deschis, albastru închis, alb). Se închid în buclă: și 10 → 1 schimbă cam tot atâția pixeli ca oricare altă pereche (~22%), deci e o **fierbere**, nu o alunecare. ⚠️ **NU se îmbină cap la cap** — vezi mai jos, cusătura.
 
 ### Cum stă montat
 
@@ -49,10 +49,20 @@ Unealta umple **„afarăul"** din `harta/Portal 1.png`, pornind de pe rama de 1
 
 ### Reglajele, toate în Inspector (`Vartej → Material → Shader Parameters`)
 
-`viteza` 8 cadre/s · `zoom` 2.0 (cât de mărunte-s ochiurile) · `deriva` 0.02 (pânza urcă încet; se poate, fiindcă desenele se îmbină) · `puls` 0.07 la 0.5 rotații/s (o respirație la 2 s) · `topire` 0.0 (salt sec între cadre — pixel art curat; 1.0 = se topesc) · culorile: fundal `#1e0733`, umbră `#6b21a8`, linii `#b56bff`, scântei `#f0e0ff`.
+`viteza` 8 cadre/s · `zoom` 1.9, **niciodată peste 2.0** (cât de mărunte-s ochiurile) · `puls` 0.07 la 0.5 rotații/s (o respirație la 2 s) · `topire` 0.0 (salt sec între cadre — pixel art curat; 1.0 = se topesc) · culorile: fundal `#1e0733`, umbră `#6b21a8`, linii `#b56bff`, scântei `#f0e0ff`.
+
+### Cusătura (aceeași zi, reparată după o poză din `debugging/`)
+
+Răzvan: „nu se conecteaza de la jumate, vreau sa fie seamless" — și avea dreptate: o linie dreaptă tăia pânza prin mijlocul portalului.
+
+Vina era a mea, nu a desenelor. Prima variantă avea o uniformă `deriva` care plimba încet pânza în sus, pe presupunerea — **privită cu ochiul pe o alăturare 2×2, niciodată măsurată** — că desenele se îmbină cap la cap. **Nu se îmbină:** din firele care ating marginea de jos a cadrului 1, doar **9 din 21** continuă sus, iar peste marginea verticală **8 din 30**. Deci în clipa în care deriva scotea fereastra de citire din imagine, `fract` o întorcea de la capăt și rupea pânza pe o dreaptă.
+
+⚠️ **Și cifra care explică de ce n-am prins-o la verificare:** cu `deriva = 0.02` și `zoom = 2.0`, fereastra ieșea din imagine după **1,25 secunde**. Capturile mele de control fuseseră la 0,7 s și 1,1 s — cu două zecimi înainte să apară. Un efect care se strică ÎN TIMP nu se probează cu o captură la început; capturile trebuie luate și după ce trece timpul pe care îl folosește shaderul.
+
+Reparat: deriva scoasă de tot (mișcarea o dau oricum cele 10 cadre), `fract` → **`clamp`**, și `zoom` limitat la 2.0 prin `hint_range` — peste atât, colțul de sus al arcadei ar cere pixeli din afara desenului. La 1.9 fereastra stă la 0.025..0.886 pe verticală și 0.188..0.796 pe orizontală, bine înăuntru. Re-verificat cu capturi la 0,8 s, 5 s și 12 s: pânză întreagă de fiecare dată.
 
 ### Verificat rulând
-
+Două portaluri într-o scenă de test, fereastră normală (nu headless), capturi la 0,7 s și la 1,1 s: pânza se schimbă, nimic nu iese pe lângă piatră, câmpul coboară până în spatele treptei rotunde — acolo unde se termină de fapt golul. Plus o captură în timpul scufundării: cel din stânga coboară și se stinge (piatră + vâltoare, sincron), cel din dreapta rămâne aprins. ⚠️ **Capturile astea două n-au fost de ajuns** — vezi secțiunea cu cusătura: la 1,25 s apărea un defect pe care niciuna nu-l prindea. Verificarea completă e cea de la 0,8 / 5 / 12 s.
 Două portaluri într-o scenă de test, fereastră normală (nu headless), capturi la 0,7 s și la 1,1 s: pânza se schimbă, nimic nu iese pe lângă piatră, câmpul coboară până în spatele treptei rotunde — acolo unde se termină de fapt golul. Plus o captură în timpul scufundării: cel din stânga coboară și se stinge (piatră + vâltoare, sincron), cel din dreapta rămâne aprins.
 
 ---
