@@ -27,12 +27,9 @@ const PRAG := 0.35                               # de la ce alfa în sus conside
 # presupune un singur rând, ca înainte. Celulele goale (o grilă rar iese fix plină) sunt
 # sărite și numărate în raport — acolo citești câte cadre are de fapt animația.
 const LUCRARI := [
-	{
-		# Saratalin, boss-ul Nether-ului: 3360×240 = 15 cadre de 224×240
-		"sursa": "res://harta/nether/Nether Boss/Saratalin.png",
-		"iesire": "res://harta/nether/Nether Boss/Saratalin_contur.png",
-		"cadre": 15,
-	},
+	# Saratalin a IEȘIT de aici pe 2026-08-27: foaia lui de 15 cadre a fost înlocuită cu 64 de
+	# cadre de mers pe 8 direcții, care vin cu conturul desenat. Sursa nu mai există, deci o
+	# rulare cu intrarea veche ar fi crăpat aici.
 	{
 		# Cheia de cufăr: o singură imagine de 128×128, deci „un cadru"
 		"sursa": "res://harta/Chest/key.png",

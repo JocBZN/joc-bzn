@@ -6,19 +6,29 @@ extends CharacterBody2D
 # — pornește deasupra marginii de sus a ecranului, deci player-ul nu-l vede apărând,
 # doar coborând.
 #
-# ARTA: o singură foaie, `harta/nether/Nether Boss/Saratalin.png`, 3360×240 = 15 cadre
-# de 224×240 lipite pe orizontală. NU e tăiată în 15 fișiere: o feliem la rulare cu
-# `AtlasTexture` (fiecare cadru = o fereastră peste aceeași imagine), ca la frunzele din
-# `leaffall.gd`. Dacă înlocuiești foaia cu una cu alt număr de cadre, schimbi doar
-# `FRAMES` / `FRAME_W` de mai jos.
+# ARTA (schimbată pe 2026-08-27): 64 de PNG-uri în `harta/nether/Nether Boss/frames/`,
+# `walk_<directie>_<0..7>.png`, 96×96 — mers pe 8 direcții, 8 cadre fiecare, exact convenția
+# Gărzii (`garda.gd`). Sursa lui Răzvan sunt GIF-urile `Idle_v3_walking_*.gif` de alături;
+# se retaie oricând cu `tool_taie_gifuri.ps1 -Prefix walk`, apoi `--headless --import`.
 #
-# Cele 15 cadre sunt o singură animație de plutire, în buclă — creatura nu merge pe
-# picioare, deci nu are nevoie de animații pe 8 direcții ca Garda.
+# ⚠️ După retăiere rulează OBLIGATORIU și `tool_aliniaza_talpi.tscn`: GIF-urile vin pe pânze
+# diferite (`north`/`south` pe 88, restul pe 92) și cu tălpile la înălțimi diferite, iar
+# `AnimatedSprite2D` centrează textura — nealiniate, boss-ul SALTĂ 12 px la fiecare întoarcere.
+#
+# Ce era înainte: o singură foaie de 15 cadre (`Saratalin.png` + `Saratalin_contur.png`), o
+# creatură care PLUTEA, desenată doar din față și oglindită stânga/dreapta. Acum e un cavaler
+# care MERGE, deci îi trebuie cele 8 direcții. Conturul mov nu se mai generează cu
+# `tool_contur_foaie.gd` — arta nouă vine cu conturul ei desenat. (Ștreangul pe care-l aruncă
+# e alt fișier, `Saratalin Attack.png`, și a rămas neatins.)
 
-const SHEET := "res://harta/nether/Nether Boss/Saratalin_contur.png"
-const FRAME_W := 224   # lățimea unui cadru din foaie
-const FRAME_H := 240
-const FRAMES := 15     # câte cadre are foaia
+const FRAME_DIR := "res://harta/nether/Nether Boss/frames/"
+# Numele animațiilor pe octanți (după unghi), ordinea 0=est apoi din 45° în 45° — ca la
+# `enemy.gd`, `garda.gd` și `player.gd`.
+const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
+const CADRE := 8       # câte cadre are o direcție
+# Cadrul static de cât COBOARĂ din tavan: un cavaler care dă din picioare în aer ar fi caraghios.
+# Garda are exact același truc — animația „summon", cât iese din pământ.
+const ANIM_COBORARE := "coborare"
 
 const LIGHTNING := preload("res://lightning.tscn")
 
@@ -27,8 +37,8 @@ const LIGHTNING := preload("res://lightning.tscn")
 # ecran și cu o fază care începe exact la jumătate, deci trebuie să fie același prag de fiecare
 # dată. Damage-ul și viteza lui cresc în continuare cu runda — doar viața stă pe loc.
 @export var max_hp: int = 10000
-@export var nume: String = "SARATALIN"   # ce scrie deasupra barei
-@export var anim_fps: float = 10.0     # 15 cadre la 10 fps = o plutire completă la 1.5s
+@export var nume: String = "SARATALIN THE FALLEN"   # ce scrie deasupra barei (tradus în `i18n.gd`)
+@export var anim_fps: float = 10.0     # 8 cadre la 10 fps = un pas complet la 0,8s
 @export var xp_value: int = 100        # cât XP lasă când moare (se înmulțește cu bonusul din Nether)
 
 # --- Cum coboară din tavan ---
@@ -106,29 +116,48 @@ func _ready() -> void:
 		bara.arata(nume, max_hp)
 	_ring_cooldown = ring_interval * 0.5   # nu deschide cu cercul fix în clipa aterizării
 	_build_frames()
-	anim.play("float")
+	anim.play(ANIM_COBORARE)
 	if ResourceLoader.exists("res://xp1.tscn"):
 		_xp1 = load("res://xp1.tscn")
 
-# Feliem foaia în cadre. `AtlasTexture` = o fereastră peste imaginea mare; nu copiem
-# pixeli și nu avem nevoie de 15 fișiere pe disc.
+# Construim animațiile din PNG-uri, la RULARE, ca `garda.gd`: 8 animații de mers (toate în
+# buclă) plus „coborare" — un singur cadru, primul din `south`, adică cel cu fața spre tine.
 func _build_frames() -> void:
 	var frames := SpriteFrames.new()
 	frames.remove_animation("default")
-	frames.add_animation("float")
-	frames.set_animation_speed("float", anim_fps)
-	frames.set_animation_loop("float", true)
-	var sheet := load(SHEET) as Texture2D
-	if sheet == null:
-		push_warning("Saratalin: lipsește %s (rulează --headless --import)" % SHEET)
-		anim.sprite_frames = frames
-		return
-	for i in FRAMES:
-		var at := AtlasTexture.new()
-		at.atlas = sheet
-		at.region = Rect2(i * FRAME_W, 0, FRAME_W, FRAME_H)
-		frames.add_frame("float", at)
+
+	var lipsa := 0
+	for d in DIRECTII:
+		frames.add_animation(d)
+		frames.set_animation_speed(d, anim_fps)
+		frames.set_animation_loop(d, true)
+		for i in CADRE:
+			var tex := load("%swalk_%s_%d.png" % [FRAME_DIR, d, i]) as Texture2D
+			if tex == null:
+				lipsa += 1
+				continue
+			frames.add_frame(d, tex)
+	if lipsa > 0:
+		push_warning("Saratalin: lipsesc %d cadre din %s (rulează --headless --import)" % [lipsa, FRAME_DIR])
+
+	frames.add_animation(ANIM_COBORARE)
+	frames.set_animation_loop(ANIM_COBORARE, false)
+	if frames.get_frame_count("south") > 0:
+		frames.add_frame(ANIM_COBORARE, frames.get_frame_texture("south", 0))
+
 	anim.sprite_frames = frames
+
+# Alege animația după unghiul spre player. Schimbăm animația DOAR când chiar diferă, și
+# păstrăm cadrul + progresul: altfel, exact pe granița dintre doi octanți, `play()` ar reseta
+# cadrul la 0 în fiecare frame și mersul ar părea înghețat (pățania din `player.gd`).
+func _intoarce(dir: Vector2) -> void:
+	var d: String = DIRECTII[wrapi(int(round(dir.angle() / (PI / 4.0))), 0, 8)]
+	if anim.animation == d:
+		return
+	var cadru := anim.frame
+	var progres := anim.frame_progress
+	anim.play(d)
+	anim.set_frame_and_progress(cadru, progres)
 
 # ---------- coborârea din tavan ----------
 # Chemată de `summoning_portal.gd` imediat după ce l-a pus la locul lui: mutăm nodul
@@ -309,9 +338,9 @@ func _physics_process(delta: float) -> void:
 	var dir := (player.global_position - global_position).normalized()
 	velocity = dir * speed
 	move_and_slide()
-	# se uită spre tine: foaia îl desenează cu fața în jos, deci doar oglindim stânga/dreapta
-	if absf(dir.x) > 0.05:
-		anim.flip_h = dir.x < 0.0
+	# Se uită spre tine ALEGÂND direcția desenată, nu oglindind: foaia veche îl avea doar
+	# din față, de aceea era `flip_h`; arta nouă are toate cele 8.
+	_intoarce(dir)
 
 	_atk_cooldown -= delta
 	_ring_cooldown -= delta

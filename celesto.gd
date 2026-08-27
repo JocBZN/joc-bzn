@@ -51,7 +51,7 @@ const SLUGA := preload("res://enemy_ender.tscn")
 # însemne același lucru la fiecare rundă. Mult mai mult decât Saratalin (10 000): ca să ajungi
 # aici trebuie să-l fi bătut deja pe el.
 @export var max_hp: int = 100000
-@export var nume: String = "CELESTO"     # ce scrie deasupra barei
+@export var nume: String = "CELESTO THE ETERNAL"     # ce scrie deasupra barei (tradus în `i18n.gd`)
 @export var xp_value: int = 150          # se înmulțește cu bonusul de XP al Ender-ului
 
 # --- atacul obișnuit: aruncă o coasă spre tine ---

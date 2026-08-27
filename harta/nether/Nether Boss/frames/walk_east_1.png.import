@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://djfmgqsnttxob"
-path="res://.godot/imported/Saratalin.png-6ca2d8c19ef76c624a8efa5feb2f3284.ctex"
+uid="uid://bcgc8ywt5nvbe"
+path="res://.godot/imported/walk_east_1.png-8508a7fb0b1ad4ebc8dfd64ca4609e82.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://harta/nether/Nether Boss/Saratalin.png"
-dest_files=["res://.godot/imported/Saratalin.png-6ca2d8c19ef76c624a8efa5feb2f3284.ctex"]
+source_file="res://harta/nether/Nether Boss/frames/walk_east_1.png"
+dest_files=["res://.godot/imported/walk_east_1.png-8508a7fb0b1ad4ebc8dfd64ca4609e82.ctex"]
 
 [params]
 

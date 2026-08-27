@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4xv37p6w8q51"
-path="res://.godot/imported/Saratalin_contur.png-a93a5292aa3a3531cd6578d2d0412681.ctex"
+uid="uid://dy6g2rxbyksxk"
+path="res://.godot/imported/walk_south_5.png-b467fb214d991d7df35fcf0467871517.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://harta/nether/Nether Boss/Saratalin_contur.png"
-dest_files=["res://.godot/imported/Saratalin_contur.png-a93a5292aa3a3531cd6578d2d0412681.ctex"]
+source_file="res://harta/nether/Nether Boss/frames/walk_south_5.png"
+dest_files=["res://.godot/imported/walk_south_5.png-b467fb214d991d7df35fcf0467871517.ctex"]
 
 [params]
 

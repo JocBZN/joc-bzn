@@ -24,6 +24,65 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-27 (Saratalin e alt personaj: cavaler pe 8 direcții, și numele lung pe bara de boss)
+
+**Cerut de Răzvan:** „ti-am schimbat sprite-ul de la Saratalin si vreau sa updatezi jocul. […] Vreau sa ii schimb si numele din Saratalin in Saratalin the Fallen. si sa ii sa ii schimbi si la Celesto in Celesto the Eternal."
+
+Nu era un schimb de poză, era **schimbare de personaj**: creatura care PLUTEA (o foaie de 15 cadre, desenată doar din față și oglindită stânga/dreapta) a fost înlocuită cu un **cavaler-minotaur care MERGE**, adică are nevoie de 8 direcții. Structura lui `saratalin.gd` s-a mutat pe tiparul Gărzii; luptele, cinematica de fază 2 și coborârea din tavan au rămas neatinse.
+
+### Arta: 9 GIF-uri → 64 de cadre
+
+- Tăiate cu `tool_taie_gifuri.ps1 -Prefix walk` în `harta/nether/Nether Boss/frames/` — `walk_<directie>_<0..7>.png`. Al nouălea GIF, `Idle_rotations_8dir.gif`, **nu e animație**: e arbitrul de scară (toate cele 8 poze desenate în ACEEAȘI imagine). Cadrele scoase din el (`walk_8dir_*`) se șterg după măsurătoare.
+- **Scara e bună, n-a fost nimic de egalizat.** `north` iese cu 8% mai scund decât `south` (59 px față de 64) și arăta a greșeală — dar în arbitru raportul e ACELAȘI (59 vs 62): omul e mai scund văzut din spate fiindcă își ține capul aplecat, nu fiindcă e desenat mai mic. Deci `tool_egaleaza_directii.gd` NU trebuia rulat aici. Fără arbitru aș fi „reparat" o direcție corectă.
+- **Ce trebuia reparat era ÎNREGISTRAREA, și n-o vezi privind cadrele.** `north` și `south` veneau pe pânză de **88×88**, celelalte șase pe **92×92**, iar tălpile cădeau la înălțimi diferite. `AnimatedSprite2D` centrează textura, deci ce ajunge pe ecran e distanța de la mijlocul pânzei la talpă: **28, 31, 32 și 33 px**, după direcție. La `scale = 3.4` sunt **~14 px de săltare** la fiecare întoarcere — exact genul de greșeală pe care ochiul o prinde imediat, deși în folder totul pare în regulă.
+
+### `tool_aliniaza_talpi.gd` / `.tscn` (unealtă nouă)
+
+Aduce toate cadrele pe o pânză comună (**96×96**) cu talpa la același rând (**80**). E fratele lui `tool_egaleaza_directii.gd`, dar rezolvă altceva: acolo o direcție e la altă **scară** (personajul se micșorează când se întoarce), aici e **așezată** altfel (personajul saltă).
+
+- Aliniază **pe direcție, nu pe cadru**: diferența de talpă între cadrele aceleiași direcții e legănatul mersului, adică intenția desenatorului, și rămâne întreagă.
+- Numai mutare, niciun redimensionat (`blit_rect`, pixel la pixel) — deci nici alfa premultiplicat, nici Lanczos, nimic nu se poate încețoșa.
+- **Verifică înainte să scrie**: dacă vreo deplasare ar tăia din desen, se oprește cu folderul neatins.
+- **Re-rulabilă**: a doua trecere calculează deplasare 0 și tipărește „deja aliniat" pentru toate 8 (verificat). Sursa adevărată rămân GIF-urile, deci se poate lua oricând de la capăt.
+- După: `--headless --import`. Raportul „ÎNAINTE/DUPĂ" arată coloana care contează, `centru→talpă`: **28…33 px → 32,0 la toate opt**.
+
+### Codul
+
+- `saratalin.gd`: `SHEET`/`FRAME_W`/`FRAMES` + felierea cu `AtlasTexture` au ieșit; în loc au intrat `FRAME_DIR` + `DIRECTII` (aceiași opt octanți ca `enemy.gd`, `garda.gd`, `player.gd`) și `_build_frames()` care încarcă cele 64 de PNG-uri la rulare, ca Garda.
+- **`flip_h` a dispărut.** Foaia veche îl avea doar din față, deci oglindirea era singura soluție; acum alegem direcția desenată, cu `_intoarce()`.
+- `_intoarce()` schimbă animația **doar când chiar diferă** și păstrează cadrul + `frame_progress` — altfel, exact pe granița dintre doi octanți, `play()` ar reseta cadrul la 0 în fiecare frame și mersul ar părea înghețat (pățania din `player.gd`).
+- **Animația „coborare"**: un singur cadru, primul din `south`, arătat cât plutește în jos din tavan. Un cavaler care dă din picioare în aer ar fi caraghios. E același truc ca „summon"-ul Gărzii, cât iese din pământ.
+- `tool_contur_foaie.gd`: intrarea lui Saratalin a fost **scoasă** — sursa (`Saratalin.png`) nu mai există, deci o rulare ar fi crăpat acolo. Arta nouă vine cu conturul ei desenat, nu mai are nevoie de movul generat. Ștreangul pe care-l aruncă (`Saratalin Attack.png` → `tool_contur.gd`) e alt fișier și a rămas neatins.
+
+### Cât de mare e, și de ce exact atât
+
+`scale = 3.4`, `radius = 13.5` (era `scale` implicit 1 și `radius` 46). Amândouă cifrele sunt **măsurate ca să nu se schimbe nimic pe ecran**, nu alese din ochi:
+
+- silueta nouă are 64 px, cea veche 224 → `3.4` îl aduce la **218 px înălțime**, adică practic exact cât era (−3%). Contează fiindcă distanțele lui de atac, cercul de proiectile și coborârea din tavan au fost reglate pe mărimea aia. Unde cade față de restul: polițist 87 px, creatură Nether 108, Garda 157, Sir John 183, Celesto 211.
+- hitbox-ul: `13,5 × 3,4 = 46` px efectivi, **fix cât înainte** — și, întâmplător dar util, acoperă **42% din înălțimea siluetei**, exact ca vechiul 46 pe 224. Deci nici lupta nu se schimbă, nici proporția nu arată altfel.
+
+### Numele
+
+Alegerea lui Răzvan (întrebat, două opțiuni): numele lung apare **numai pe bara de boss**, iar epitetul **se traduce**.
+
+- `nume` = `"SARATALIN THE FALLEN"` / `"CELESTO THE ETERNAL"`, plus două rânduri noi în `i18n.gd` (× 8 limbi). Bara e un `Label`, deci Godot le traduce singur.
+- **Anunțurile de pe ecran rămân scurte**: `SARATALIN LIVES`, `CELESTO FALLS`, `CELESTO REAPS`, `Kill Celesto to leave`. Așa face și restul jocurilor — titlul complet la prezentare, numele scurt în text curent — și n-a fost nevoie să rescriu ~10 chei × 8 limbi.
+- `tool_check_i18n.tscn`: **333 chei × 8 limbi, „TOTUL E TRADUS"**.
+
+### Verificat rulând (nu doar compilat)
+
+1. **Opt Saratalini într-un inel** în jurul unei momeli din grupul `"player"`, deci fiecare își alege singur direcția prin codul real: au ieșit toate opt, distincte și corecte (cel din est se uită spre vest ș.a.m.d.). Cu o linie albă de „pământ" sub fiecare — toți stau pe ea, săltatul a dispărut.
+2. **Cadrul de joc adevărat**: player + creatură Nether + Saratalin, cu camera player-ului și bara de boss. Bara scrie `SARATALIN THE FALLEN` și încape lejer.
+3. **Coborârea din tavan**: la mijloc animația e `coborare` și e la `y = −274`; după aterizare e `west` (spre player) și `y = 120`, adică fix ținta.
+4. `main.tscn` pornit până în meniu — zero erori, zero avertismente.
+
+### De ținut minte
+
+- 🔑 **`Idle_rotations_8dir.gif` e arbitrul de scară, nu o animație.** Cele 8 poze sunt desenate în aceeași imagine, deci sigur la aceeași scară — e singurul lucru care spune dacă o direcție e desenată mai mic sau doar stă altfel. Aici m-a oprit să „repar" un `north` corect.
+- 🔑 **Două direcții pot fi la aceeași scară și tot să nu fie la fel.** Scara e o problemă (`tool_egaleaza_directii.gd`), înregistrarea e alta (`tool_aliniaza_talpi.gd`) — și a doua nu se vede deloc uitându-te la cadre, doar măsurând distanța de la mijlocul pânzei la talpă.
+- ⚠️ Ce se face **de fiecare dată** când Răzvan pune GIF-uri noi de mers: `tool_taie_gifuri.ps1` → șterge cadrele din `*_8dir_*` → `tool_aliniaza_talpi.tscn` → `--headless --import`. Fără al treilea pas personajul saltă la întoarcere și nimic nu te avertizează.
+- 📌 **Rămas nefolosit:** `Idle_rotations_8dir.gif` stă mai departe în folder (e arta lui, și e arbitrul). Boss-ul n-are cadre de stat pe loc, de atac sau de moarte — moartea rămâne un tween (se umflă și se stinge), ca la Sir John.
+
 ## Session log — 2026-08-26 (portalul Nether arde: vâltoarea mov din gura arcadei)
 
 **Cerut de Răzvan:** „ti-am bagat in folderul nether niste png-uri numerotate de la 1 la 10. […] La portalul de nether vreau sa pui animatia asta inauntrul portalului. Stii cum arata portalul de nether de pe minecraft ca atunci cand il aprinzi are animatia aia mov, asa vreau sa fie si asta doar ca mereu sa fie pornit. Sa fie inauntrul lui si sa nu dea pe afara animatia asta."
