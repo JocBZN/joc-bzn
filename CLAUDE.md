@@ -24,6 +24,80 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-27 (MYTHIC: o raritate nouă la 0.5% și cele două iteme ale ei)
+
+**Cerut de Răzvan:** „vreau sa adaug o categorie noua de iteme (Mythic) sa aiba sansa de 0.5% (iei percentage-ul de la celelalte înafara de legendary in mod egal) - foloseste imaginea din Borders - 16 Border 01 - vreau sa adaug upgrade_66 (Mythic) - Helping Hand - add one random weapon (una din armele din joc fara bonsururile ei gen +1 luck per level) si mai vreau upgrade_67 (Mythic) - Equilibrium - +10% to all stats"
+
+### Raritatea
+
+Șansele erau C 40 · U 35 · R 15 · E 7.5 · L 2.5. Mythic ia **0.5**, în părți egale de la primele patru (câte **0.125** de la fiecare), Legendary rămâne neatins:
+
+```
+common 39.875 · uncommon 34.875 · rare 14.875 · epic 7.375 · legendary 2.5 · mythic 0.5
+```
+
+Verificat pe **100.000 de trageri** prin `_trage_raritate()`: common 40.005 · uncommon 34.721 · rare 14.839 · epic 7.471 · legendary 2.478 · **mythic 0.486**.
+
+**Chenarul** e celula **(0,0)** din `Borders/16 Border 01.png`. Celula NU e numărată de mână: `tool_border_mythic.gd` (unealtă nouă) o găsește comparând **silueta de alfa** cu `Border Legendary.png` — cele 16 planșe sunt aceeași imagine în 16 palete, deci silueta e singurul lucru pe care are voie să-l compare — și se oprește fără să scrie nimic dacă nu se potrivește niciuna. Scrie `Upgrades/Menu UI/Border Mythic.png`.
+
+**Culoarea** e măsurată de aceeași unealtă, și de-aia se poate avea încredere în ea: pusă pe celelalte cinci chenare, scoate **exact** valorile `Color8` scrise deja în `levelup.gd`. Metoda: pixelul opac cel mai des întâlnit, sărind peste tot ce e mai întunecat de 0,25 — fără pragul ăla ieșea umplutura din mijloc (32,30,38), identică la toate. Mythic iese `Color8(22, 86, 77)`.
+
+⚠️ **E cea mai închisă culoare de raritate din joc** (luminozitate 0,34, sub Common). Nu e o problemă de citit, fiindcă `_show_choices` duce oricum eticheta **30% spre alb** — regulă pusă acolo tocmai pentru Common. Chenarul desenat rămâne culoarea adevărată.
+
+### ⚠️ Mythic NU e pe scara rarităților, și e dinadins
+
+`SCARA_RARITATI` e drumul prin care se URCĂ o raritate fără s-o tragi la sorți: **statuia din Ender** urcă un item cu două trepte, **trade-up-ul din cazinou** cu una. Pus pe scară, orice Epic ar fi devenit Mythic la statuie — adică cea mai rară categorie din joc ar fi fost, de fapt, la un drum de mers. Mythic se ia **numai din tragere**.
+
+Ce se întâmplă cu un Mythic dus la statuie: `find` întoarce −1, `raritate_mai_sus` îl dă înapoi neschimbat și primești CELĂLALT Mythic — exact ce pățește un Legendary. Nu crapă.
+
+În cazinou, verificarea „ce e în vârf nu poate intra în contract" era scrisă pe NUME (`rar == "legendary"`). A devenit `raritate_mai_sus(rar, 1) == rar`, adică **întreabă scara** — rămâne adevărată și pentru Mythic, și pentru orice raritate viitoare.
+
+⚠️ **Norocul nu atinge Mythic.** `LUCK_TAKE`/`LUCK_GIVE` au rămas cum erau (ia de la common/uncommon, dă la rare/epic/legendary), deci Mythic stă la 0.5% oricât trifoi ai. N-a fost cerut altfel și orice altă variantă ar fi rescris în tăcere balansul norocului, care e scris explicit în cod. Se schimbă dintr-o linie, dacă vrea.
+
+### Helping Hand — a doua armă
+
+Arma nouă trage **singură, pe cadența ei, în paralel cu prima**. Nu o înlocuiește, nu se schimbă cu ea.
+
+**Problema adevărată era bonusul de nivel.** Fiecare armă dă +1%/nivel pe ceva (crit la cuțit, damage la sabie, attack speed la pistol, weapon size la coasă, +1 noroc la toiag), iar tot codul întreba `weapon_type == "..."`. Cum arma secundară trebuie să tragă cu felul EI de a lovi — sunet, fulger la țeavă, plafon de mărime, AOE-ul mage-ului — dar **fără** bonusul ei, cele două întrebări nu mai pot fi aceeași variabilă. Deci `player.gd` are de acum două:
+
+- **`weapon_type`** = ce trage ACUM. Îl citesc cele opt locuri care desenează lovitura. Arma secundară îl **împrumută** cât ține tragerea (`_fire_secundar`), un singur apel, tot sincron.
+- **`arma_aleasa`** = ce ai ales din meniu. **Numai ea** dă bonusul de nivel (`bonus_arma`, `luck_total`).
+
+Așa împrumutul nu mai e un truc, ci exact ce înseamnă numele variabilei — și niciun status nu se clatină cât trage arma a doua.
+
+- **Cadența**: intervalul de bază al armei noi × factorul de attack speed pe care-l ai deja (`fire_interval_now() / intervalul de bază al armei alese`). Deci intră la nivelul tău de acum, nu la cel de la minutul zero, și un upgrade de cadență le grăbește pe toate deodată (`_seteaza_cadenta` reface toate timerele).
+- **Se poate lua de mai multe ori** (alegerea lui Răzvan), până le ai pe toate cinci. De acolo `_e_disponibil` îl scoate din tragere, ca să nu iasă un Mythic gol.
+- ⚠️ Burst-urile de sabie/coasă se scurg pe cadrele următoare, DUPĂ ce împrumutul s-a întors. Merge fiindcă `_tick_burst` se uită la `_burst_kind`, nu la `weapon_type` — verificat, nu presupus.
+
+### Equilibrium — ×1,1 pe cele 12 statusuri
+
+Toată socoteala e în `player.gd::upgrade_toate_statusurile`, lângă statusuri, nu în `levelup.gd`. Se **stivuiește**.
+
+⚠️ **Ce e la zero rămâne la zero** (crit, pierce, instakill, norocul fără iteme) și numerele mici întregi se rotunjesc înapoi (**Projectiles 1 × 1,1 = 1**). Ales de Răzvan dintre trei variante: cea cu rotunjire în sus dădea **+1 proiectil ȘI +1 pierce** dintr-o singură luare, adică mai mult decât oricare două Legendary la un loc.
+
+⚠️ Se scrie pe **valorile curate**, nu pe cele afișate: `fire_interval` (nu `fire_interval_now`), `weapon_size_mult` (nu `weapon_size_scale`), `luck` (nu `luck_total`). Bonusul de nivel se adaugă peste ele la folosire; înmulțit aici, ar fi fost numărat de două ori și ar fi crescut singur la fiecare level up.
+
+### Verificat rulând
+
+- **Equilibrium**, măsurat pe player adevărat: Damage 24→26 · Attack Speed 0,743→0,675 (fix ÷1,1) · Weapon Size 100%→110% · Move Speed 265→291,5 · Max HP 100→110; Crit/Pierce/Instakill/Luck 0→0 și Projectiles 1→1, adică exact ce s-a cerut.
+- **Helping Hand**: a dat `sword`, s-a creat timer-ul, cadența 0,675s (a armei noi, cu attack speed-ul meu), **bonusul armei primite = 0,000** iar al armei alese 0,010. Luate toate cinci → `arme_libere()` gol → `_e_disponibil` întoarce **false**.
+- **Chiar trage?** Doi player-i identici, fiecare cu un sac de box nemuritor lângă el, 4 secunde: **doar pistol 120 damage · pistol + toiag secundar 386**.
+- **Poză de pe ecranul de level up** cu cele două carduri Mythic lângă un Legendary: chenar verde, eticheta MYTHIC citibilă, iconițele și textele la locul lor.
+- 100.000 de trageri pentru procente (mai sus), `tool_check_i18n` **338 chei × 8 limbi, TOTUL E TRADUS**, `main.tscn` pornit până în meniu fără erori.
+
+### Codex
+
+`codex.html` actualizat: variabila CSS `--mythic`, raritatea în `RARS` (prima, cea mai rară), cele două carduri, chenarul și cele două iconițe în base64, plus **cele două note care aveau cifre vechi** — „Raritatea chiar contează acum" (procentele) și „Cum se adună Norocul" (tabelul la 17,5 noroc devine C 31.125 · U 26.125 · R 21.875 · E 14.375 · L 6 · M 0.5).
+
+Verificat: `id|icon|rar` din `levelup.gd` vs `codex.html` — **zero diferențe, 60 de iteme**; fiecare iconiță folosită are base64; verificarea structurală cu awk; și **randat în Chrome headless** înainte de orice publicare (secțiunea MYTHIC iese prima, cu ambele carduri întregi).
+
+⚠️ Iconițele NU stau toate în același loc: obiectul mare `ICONS={...}` de pe linia de assets, dar și linii separate `ICONS["upgrade_NN.png"]="data:…"` de sub el. O verificare care se uită doar la linia mare raportează 17 iconițe „lipsă" care de fapt există.
+
+### Rămas pe masă (nu s-a cerut, dar cineva trebuie să știe)
+
+- **Alba-Neagra se oprește la Legendary.** `alba_menu.gd::PREMII` dă câte o raritate pe lungimea șirului, 2→common … 6→legendary, iar `SIR_MAXIM` e 6. Ca să existe un premiu Mythic ar trebui un șir de 7 — adică altă dificultate, nu un rând în tabel.
+- **Chenarul de Mythic e verde, ca Rare.** Planșa 16 e un smarald închis iar Rare e un verde-gălbui deschis, deci se deosebesc — dar sunt din aceeași familie de culoare, la cea mai rară și cea de-a treia raritate. Dacă se vrea altceva, se schimbă `PLANSA` din `tool_border_mythic.gd` (sunt 16 palete) și se ia din nou culoarea măsurată.
+
 ## Session log — 2026-08-27 (Saratalin e alt personaj: cavaler pe 8 direcții, și numele lung pe bara de boss)
 
 **Cerut de Răzvan:** „ti-am schimbat sprite-ul de la Saratalin si vreau sa updatezi jocul. […] Vreau sa ii schimb si numele din Saratalin in Saratalin the Fallen. si sa ii sa ii schimbi si la Celesto in Celesto the Eternal."

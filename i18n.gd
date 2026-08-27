@@ -192,6 +192,7 @@ const TRAD := {
 "Rare": ["稀有", "Selten", "Raro", "Редкий", "Rare", "レア", "Rzadki", "Nadir"],
 "Epic": ["史诗", "Episch", "Épico", "Эпический", "Épique", "エピック", "Epicki", "Destansı"],
 "Legendary": ["传说", "Legendär", "Legendario", "Легендарный", "Légendaire", "レジェンダリー", "Legendarny", "Efsanevi"],
+"Mythic": ["神话", "Mythisch", "Mítico", "Мифический", "Mythique", "ミシック", "Mityczny", "Mitik"],
 
 # ---------- panoul de statusuri (rândurile trebuie să rămână SCURTE, panoul are lățime fixă) ----------
 "Damage": ["伤害", "Schaden", "Daño", "Урон", "Dégâts", "攻撃力", "Obrażenia", "Hasar"],
@@ -404,6 +405,8 @@ const TRAD := {
 "Bulletproof Vest": ["防弹衣", "Kugelsichere Weste", "Chaleco Antibalas", "Бронежилет", "Gilet Pare-balles", "防弾ベスト", "Kamizelka Kuloodporna", "Kurşun Geçirmez Yelek"],
 "Casino VIP Pass": ["赌场 VIP 通行证", "Casino-VIP-Pass", "Pase VIP del Casino", "VIP-пропуск казино", "Pass VIP du Casino", "カジノVIPパス", "Przepustka VIP Kasyna", "Kumarhane VIP Kartı"],
 "Lightning Step": ["闪电步", "Blitzschritt", "Paso Relámpago", "Молниеносный шаг", "Pas Éclair", "雷光ステップ", "Błyskawiczny Krok", "Şimşek Adımı"],
+"Helping Hand": ["援手", "Helfende Hand", "Mano Amiga", "Рука помощи", "Coup de Main", "助けの手", "Pomocna Dłoń", "Yardım Eli"],
+"Equilibrium": ["平衡", "Gleichgewicht", "Equilibrio", "Равновесие", "Équilibre", "均衡", "Równowaga", "Denge"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -464,6 +467,8 @@ const TRAD := {
 "+100 Max HP -10% Move speed": ["+100 最大生命 -10% 移速", "+100 Max. HP -10% Tempo", "+100 HP máx. -10% Velocidad", "+100 макс. HP -10% скорость", "+100 PV max -10% Vitesse", "+100 最大HP -10% 移動速度", "+100 Maks. HP -10% Szybkość", "+100 Maks. CAN -10% Hız"],
 "Indefinite access to the roulette wheel": ["轮盘无限次畅玩", "Unbegrenzter Zugang zum Roulette", "Acceso ilimitado a la ruleta", "Неограниченный доступ к рулетке", "Accès illimité à la roulette", "ルーレットに無制限アクセス", "Nieograniczony dostęp do ruletki", "Rulete sınırsız erişim"],
 "Dash once every 10 seconds": ["每 10 秒可冲刺一次", "Alle 10 Sekunden ein Sprint", "Un impulso cada 10 segundos", "Рывок раз в 10 секунд", "Une ruée toutes les 10 secondes", "10秒ごとにダッシュ", "Doskok co 10 sekund", "10 saniyede bir atılma"],
+"Add one random weapon": ["随机获得一把武器", "Eine zufällige Waffe dazu", "Añade un arma al azar", "Добавляет случайное оружие", "Ajoute une arme au hasard", "ランダムな武器を1つ追加", "Dodaje losową broń", "Rastgele bir silah ekler"],
+"+10% to all stats": ["所有属性 +10%", "+10% auf alle Werte", "+10% a todas las estadísticas", "+10% ко всем характеристикам", "+10% à toutes les statistiques", "全ステータス +10%", "+10% do wszystkich statystyk", "Tüm istatistiklere +10%"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 

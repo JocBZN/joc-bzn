@@ -11,7 +11,7 @@ func _ready() -> void:
 			pe_rar[r] = []
 		pe_rar[r].append(u)
 	print("TOTAL=%d" % lv.UPGRADES.size())
-	for r in ["legendary", "epic", "rare", "uncommon", "common"]:
+	for r in ["mythic", "legendary", "epic", "rare", "uncommon", "common"]:
 		var lista: Array = pe_rar.get(r, [])
 		print("--- %s: %d" % [r, lista.size()])
 		for u in lista:

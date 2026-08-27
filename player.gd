@@ -122,8 +122,21 @@ var undying_used: bool = false
 # verificare (`_vip()`). Nu se stivuiește: a doua luare nu face nimic în plus.
 var casino_vip: bool = false
 
-# --- tipul de armă (ales din meniu: pistol / mage / sword / scythe) ---
+# --- tipul de armă ---
+# ⚠️ Două variabile, nu una, de pe 2026-08-27 (itemul Helping Hand, care dă o a doua armă):
+#   `weapon_type` = ce trage ACUM. Îl citesc sunetul, fulgerul la țeavă, plafonul de mărime al
+#                   glonțului, AOE-ul mage-ului, felul loviturii — tot ce ține de CUM arată
+#                   lovitura. Cât trage o armă secundară, e împrumutat de ea (`_fire_secundar`).
+#   `arma_aleasa` = ce ai ales din meniu. Numai ea dă BONUSUL DE NIVEL (vezi mai jos), deci o
+#                   armă primită din item vine fără bonusul ei — exact ce s-a cerut.
+# Până la Helping Hand însemnau același lucru, de-aia era una singură.
 var weapon_type: String = "pistol"
+var arma_aleasa: String = "pistol"
+
+# Armele SECUNDARE primite din Helping Hand, în ordinea primirii. Fiecare are timer-ul ei, deci
+# trage pe cadența ei, în paralel cu prima — nu se schimbă între ele, se adună.
+var arme_secundare: Array = []
+var _timere_secundare: Array = []
 
 # --- FIECARE ARMĂ CU AVANTAJUL ȘI DEZAVANTAJUL EI (cerut de Răzvan, 2026-07-27) ---
 # Până acum toate porneau identic (10 damage, o lovitură la 0.5s) și se deosebeau doar prin
@@ -172,10 +185,12 @@ const ARME := {
 const BONUS_PE_NIVEL := 0.01
 const LUCK_PE_NIVEL := 1.0
 
-# Bonusul armei `pentru`, la nivelul de ACUM. 0 dacă joci cu altă armă — deci fiecare loc de
-# folosire poate să-l adune fără să întrebe de două ori cu ce armă ești.
+# Bonusul armei `pentru`, la nivelul de ACUM. 0 dacă n-ai ALES arma aia din meniu — deci fiecare
+# loc de folosire poate să-l adune fără să întrebe de două ori cu ce armă ești.
+# ⚠️ Se uită la `arma_aleasa`, NU la `weapon_type`: armele primite din Helping Hand împrumută
+# `weapon_type` cât trag, dar nu au voie să aducă și bonusul lor de nivel.
 func bonus_arma(pentru: String) -> float:
-	return level * BONUS_PE_NIVEL if weapon_type == pentru else 0.0
+	return level * BONUS_PE_NIVEL if arma_aleasa == pentru else 0.0
 
 # ITEMELE STRÂNSE ÎN RUNDA ASTA, în ordinea luării (id-uri din `levelup.gd::UPGRADES`).
 #
@@ -191,7 +206,7 @@ var run_items: Array = []
 # care trebuie să-l citească toată lumea (`luck_bonus` aici, `_norocul_meu` în `levelup.gd`,
 # panoul de statusuri) — `luck` gol e doar partea din iteme.
 func luck_total() -> float:
-	return luck + (level * LUCK_PE_NIVEL if weapon_type == "mage" else 0.0)
+	return luck + (level * LUCK_PE_NIVEL if arma_aleasa == "mage" else 0.0)
 
 # Pauza REALĂ dintre lovituri: cea a armei, scurtată de bonusul de nivel al PISTOLULUI.
 # `fire_interval` rămâne statul „curat" (îl scriu arma, meta, OP start și `upgrade_fire_rate`);
@@ -205,6 +220,10 @@ func fire_interval_now() -> float:
 func _seteaza_cadenta() -> void:
 	if fire_timer != null:
 		fire_timer.wait_time = fire_interval_now()
+	# armele secundare merg pe cadența LOR de bază, purtată de același attack speed (vezi
+	# `_interval_secundar`) — deci un upgrade de cadență le grăbește pe toate deodată
+	for i in arme_secundare.size():
+		_timere_secundare[i].wait_time = _interval_secundar(arme_secundare[i])
 var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol/mage)
 var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
 var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
@@ -426,6 +445,7 @@ func _ready() -> void:
 	add_to_group("player")
 	# arma aleasă din meniu (pistol / mage / sword / scythe)
 	weapon_type = GameSettings.weapon_type
+	arma_aleasa = weapon_type      # bonusul de nivel se leagă de ASTA, nu de ce trage acum
 	_aplica_arma()  # damage-ul și cadența de bază ale armei alese — ÎNAINTE de meta
 	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
 	_aplica_op_start()  # cheat-ul din meniu — ULTIMUL, ca să scrie peste armă și peste meta
@@ -2025,6 +2045,93 @@ func upgrade_max_hp(amount: int) -> void:
 
 func upgrade_fire_rate(factor: float) -> void:
 	fire_interval *= factor              # factor < 1 → pauză mai mică între trageri = tragi mai des
+	_seteaza_cadenta()
+
+# --- HELPING HAND: încă o armă, fără bonusul ei de nivel (Mythic, 2026-08-27) ---
+#
+# Arma nouă trage SINGURĂ, pe cadența ei, în paralel cu prima. Nu înlocuiește nimic și nu se
+# alege: e trasă la sorți dintre cele pe care NU le ai.
+#
+# Ce NU aduce cu ea: bonusul de nivel al armei (+1% critic al cuțitului, +1 noroc al toiagului
+# ș.a.m.d.). Ăla stă pe `arma_aleasa` și rămâne al armei din meniu — vezi `bonus_arma`.
+# Ce ADUCE: felul ei de a lovi, cu tot cu sunet, mărime, AOE și rază — adică exact ce face arma
+# să fie ea.
+
+# Armele pe care încă NU le ai (nici aleasă, nici primită). Goală = Helping Hand n-are ce să-ți
+# mai dea, deci iese din tragere (vezi `levelup.gd::_e_disponibil`).
+func arme_libere() -> Array:
+	var libere := []
+	for a in ARME:
+		if a != arma_aleasa and not arme_secundare.has(a):
+			libere.append(a)
+	return libere
+
+# Adaugă o armă secundară la întâmplare. Întoarce ce a dat, sau "" dacă nu mai era nimic.
+func adauga_arma_secundara() -> String:
+	var libere := arme_libere()
+	if libere.is_empty():
+		return ""
+	var noua: String = libere[randi() % libere.size()]
+	arme_secundare.append(noua)
+	var t := Timer.new()
+	t.wait_time = _interval_secundar(noua)
+	# `bind` ca timer-ul să spună CINE trage: un singur `_fire_secundar` pentru toate armele
+	t.timeout.connect(_fire_secundar.bind(noua))
+	add_child(t)
+	t.start()
+	_timere_secundare.append(t)
+	return noua
+
+# Cadența unei arme secundare: intervalul EI de bază, purtat de tot attack speed-ul câștigat
+# până acum. `fire_interval_now() / intervalul de bază al armei alese` e exact factorul ăla
+# (1.0 la începutul rundei, mai mic cu fiecare upgrade de cadență), deci arma nouă intră la
+# nivelul tău de acum, nu la cel de la minutul zero. Se reface din `_seteaza_cadenta`.
+func _interval_secundar(arma: String) -> float:
+	var baza: float = float(ARME.get(arma_aleasa, ARME["pistol"])["interval"])
+	var factor := fire_interval_now() / baza if baza > 0.0 else 1.0
+	return maxf(float(ARME.get(arma, ARME["pistol"])["interval"]) * factor, 0.05)
+
+# ⚠️ ÎMPRUMUTĂM `weapon_type` cât ține tragerea, în loc să dublăm `_fire()`: toate cele opt
+# locuri care întreabă „cu ce armă tragem" vor să știe ce trage ACUM, iar asta e chiar ce
+# înseamnă `weapon_type`. Bonusul de nivel nu se clatină, fiindcă el stă pe `arma_aleasa`.
+# Împrumutul ține un singur apel, tot sincron — burst-urile care se scurg pe cadrele următoare
+# (`_tick_burst`) merg pe `_burst_kind`, nu pe `weapon_type`, deci nu-l cer înapoi.
+func _fire_secundar(arma: String) -> void:
+	if dead:
+		return
+	var vechi := weapon_type
+	weapon_type = arma
+	_fire()
+	weapon_type = vechi
+
+# --- EQUILIBRIUM: +10% la TOATE statusurile (Mythic, 2026-08-27) ---
+#
+# „Toate" = fix cele 12 rânduri din panoul de statusuri (`stat_lines`), în ordinea de acolo.
+# Fiecare se ÎNMULȚEȘTE cu `factor` — deci itemul se stivuiește dacă îl iei de două ori, și
+# fiecare stat crește cu 10% din cât ai TU, nu cu 10% din cât avea altcineva.
+#
+# ⚠️ Ce e la ZERO rămâne la zero (Crit, Pierce, Instakill, Luck fără iteme), iar numerele mici
+# și întregi se rotunjesc înapoi (Projectiles 1 × 1,1 = 1). Așa a fost ales dinadins: varianta
+# care rotunjea în sus dădea +1 proiectil și +1 pierce dintr-un foc, adică mai mult decât
+# oricare două Legendary la un loc.
+#
+# ⚠️ Statusurile se scriu pe VALORILE CURATE, nu pe cele afișate: `fire_interval` (nu
+# `fire_interval_now`), `weapon_size_mult` (nu `weapon_size_scale`), `luck` (nu `luck_total`).
+# Bonusul de nivel al armei se adaugă peste ele la folosire; înmulțit aici, ar fi fost numărat
+# de două ori și ar fi crescut singur la fiecare level up.
+func upgrade_toate_statusurile(factor: float) -> void:
+	bullet_damage = int(round(bullet_damage * factor))
+	fire_interval /= factor          # cadență: se ÎMPARTE (vezi `fire_interval_now`)
+	crit_chance *= factor
+	bullet_count = int(round(bullet_count * factor))
+	pierce = int(round(pierce * factor))
+	weapon_size_mult *= factor
+	knockback *= factor
+	instakill_chance *= factor
+	luck *= factor
+	speed *= factor
+	upgrade_max_hp(int(round(max_hp * factor)) - max_hp)   # te și vindecă cu cât a crescut
+	hp_regen = int(round(hp_regen * factor))
 	_seteaza_cadenta()
 
 # OP START — comutatorul din colțul meniului. Pornește runda cu statusuri de final, ca să se

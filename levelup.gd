@@ -17,6 +17,14 @@ const RARITIES := {
 	"rare":      {"border": "Border Rare.png",      "nume": "Rare",      "color": Color8(58, 160, 76)},
 	"epic":      {"border": "Border Epic.png",      "nume": "Epic",      "color": Color8(122, 22, 225)},
 	"legendary": {"border": "Border Legendary.png", "nume": "Legendary", "color": Color8(236, 114, 103)},
+	# MYTHIC (2026-08-27). Chenarul e celula (0,0) din `Borders/16 Border 01.png` — planșa aleasă
+	# de Răzvan. O taie `tool_border_mythic.gd`, care găsește celula comparând SILUETA cu
+	# `Border Legendary.png` (cele 16 planșe sunt aceeași imagine în 16 palete), nu numărând.
+	# Culoarea e măsurată cu aceeași unealtă, care scoate EXACT valorile de mai sus pentru
+	# celelalte cinci — deci nu e aleasă din ochi. Iese închisă (luminozitate 0,34, sub Common),
+	# fiindcă planșa 16 e mult mai întunecată decât restul; nu e o problemă, `_show_choices`
+	# duce oricum eticheta 30% spre alb tocmai pentru cazul ăsta. Chenarul desenat rămâne cum e.
+	"mythic":    {"border": "Border Mythic.png",    "nume": "Mythic",    "color": Color8(22, 86, 77)},
 }
 
 # "desc" = statul afișat sub nume. "rar" = raritatea (border + culoare). Efectul e în _apply().
@@ -84,6 +92,8 @@ var UPGRADES := [
 	{"id": "bulletproof_vest", "nume": "Bulletproof Vest", "icon": "upgrade_63.png", "rar": "epic", "desc": "+100 Max HP -10% Move speed"},
 	{"id": "casino_vip", "nume": "Casino VIP Pass", "icon": "upgrade_64.png", "rar": "legendary", "desc": "Indefinite access to the roulette wheel", "unic": true},
 	{"id": "lightning_step", "nume": "Lightning Step", "icon": "upgrade_65.png", "rar": "legendary", "desc": "Dash once every 10 seconds", "unic": true},
+	{"id": "helping_hand", "nume": "Helping Hand", "icon": "upgrade_66.png", "rar": "mythic", "desc": "Add one random weapon"},
+	{"id": "equilibrium", "nume": "Equilibrium", "icon": "upgrade_67.png", "rar": "mythic", "desc": "+10% to all stats"},
 ]
 
 const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
@@ -141,13 +151,16 @@ const CARD_HOVER := Color(1, 1, 1)
 # Legendary ieșea la fel de des ca un Common — ba chiar mai des pe categorie, fiindcă acolo
 # sunt mai puține iteme. Acum se trage întâi RARITATEA, după procentele de mai jos, și abia
 # apoi un item din raritatea aia. Deci câte iteme are o categorie nu-i mai schimbă șansa:
-# adaugi un Legendary nou → Legendary rămâne tot 2.5%, doar se împarte între mai multe.
+# MYTHIC (2026-08-27) are 0.5%, luat în PĂRȚI EGALE de la celelalte patru — nu de la Legendary,
+# cum a cerut Răzvan. Adică 0.125 puncte procentuale de la fiecare din common/uncommon/rare/epic;
+# Legendary rămâne neatins, la 2.5%. Totalul e tot 100.
 const RARITY_CHANCE := {
-	"common": 40.0,
-	"uncommon": 35.0,
-	"rare": 15.0,
-	"epic": 7.5,
+	"common": 39.875,
+	"uncommon": 34.875,
+	"rare": 14.875,
+	"epic": 7.375,
 	"legendary": 2.5,
+	"mythic": 0.5,
 }
 const RARITY_TRIES := 12   # câte încercări până cădem pe plasa de siguranță (vezi _trage_unul)
 
@@ -628,7 +641,15 @@ func _trage_unul(deja: Array):
 
 # Un item „unic" (Undying Spirit) iese din joc după prima luare — nu-l mai poți primi în runda asta.
 func _e_disponibil(u) -> bool:
-	return not _luate_unic.has(u["id"])
+	if _luate_unic.has(u["id"]):
+		return false
+	# Helping Hand iese din tragere când n-are ce să-ți mai dea — adică ai deja toate cele cinci
+	# arme. Fără asta, cel mai rar item din joc ar putea să-ți iasă și să nu facă nimic.
+	if u["id"] == "helping_hand":
+		var p = get_tree().get_first_node_in_group("player")
+		if p != null and p.has_method("arme_libere") and p.arme_libere().is_empty():
+			return false
+	return true
 
 # `exclude` = iteme interzise pe lângă cele deja trase în runda asta. Îl folosește Lucky Die,
 # ca pagina de după reroll să fie chiar ALTA, nu aceleași iteme trase din nou.
@@ -652,6 +673,14 @@ func icon_path(u) -> String:
 # care se știe ordinea: dacă mâine apare o raritate nouă, se adaugă în amândouă și gata.
 # ---------------------------------------------------------------------------
 const SCARA_RARITATI := ["common", "uncommon", "rare", "epic", "legendary"]
+
+# ⚠️ MYTHIC NU E PE SCARĂ, ȘI E DINADINS (2026-08-27). Scara asta e drumul prin care se URCĂ o
+# raritate fără s-o tragi la sorți: statuia din Ender urcă un item cu DOUĂ trepte, iar trade-up-ul
+# din cazinou cu una. Pusă pe scară, orice Epic ar fi devenit Mythic la statuie — adică cea mai
+# rară categorie din joc, cu 0.5% șansă, ar fi fost de fapt la un drum de mers. Mythic se ia
+# NUMAI din tragere.
+# Ce se întâmplă cu un Mythic dus la statuie: `find` întoarce −1, deci `raritate_mai_sus` îl dă
+# înapoi neschimbat și primești CELĂLALT Mythic — exact ce pățește și un Legendary. Nu crapă.
 
 # Raritatea cu `trepte` mai sus. Se oprește la Legendary, fiindcă peste el nu mai e nimic: un
 # Epic urcă o singură treaptă, iar un Legendary rămâne Legendary (adică îl schimbi pe ALTUL).
@@ -1135,3 +1164,25 @@ func _apply(id: String, p) -> void:
 			# doare mai tare decât un Common. Dacă vreodată vrei să se stivuiască, locul e
 			# `DASH_COOLDOWN` (ex. −2 s pe luare), nu aici.
 			p.dash_unlocked = true
+		"helping_hand":
+			# MYTHIC. Încă o armă, trasă la sorți dintre cele pe care nu le ai. Trage singură, pe
+			# cadența ei, în paralel cu prima — nu o înlocuiește și nu se schimbă cu ea.
+			#
+			# Vine FĂRĂ bonusul ei de nivel (cerut explicit: „fara bonusurile ei gen +1 luck per
+			# level"). Cum se ține asta: `player.gd` are de acum două variabile — `weapon_type`,
+			# ce trage acum, și `arma_aleasa`, ce ai ales din meniu. Bonusul de nivel se uită
+			# numai la a doua, deci un toiag primit de aici nu-ți dă +1 noroc pe nivel.
+			#
+			# NU e „unic": se poate lua de câte ori apare, până le aduni pe toate cinci. De acolo
+			# încolo `_e_disponibil` îl scoate din tragere, ca să nu iasă un Mythic gol.
+			if p.has_method("adauga_arma_secundara"):
+				p.adauga_arma_secundara()
+		"equilibrium":
+			# MYTHIC. +10% la fiecare din cele 12 statusuri din panou, înmulțit — deci se
+			# stivuiește, iar fiecare stat crește cu 10% din cât ai TU.
+			# Ce e la zero rămâne la zero (Crit, Pierce, Instakill, Luck fără iteme) și numerele
+			# mici întregi se rotunjesc înapoi (Projectiles 1 × 1.1 = 1). Ales dinadins de Răzvan:
+			# varianta cu rotunjire în sus dădea +1 proiectil ȘI +1 pierce dintr-o singură luare.
+			# Toată socoteala e în `player.gd::upgrade_toate_statusurile`, lângă statusuri.
+			if p.has_method("upgrade_toate_statusurile"):
+				p.upgrade_toate_statusurile(1.1)

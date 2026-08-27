@@ -1801,8 +1801,12 @@ func _celula_item(idx: int, u, lu) -> Control:
 func _poate_alege(rar: String) -> bool:
 	if _rula or _sel.size() >= TU_CATE:
 		return false
-	if rar == "legendary":
-		return false                      # peste Legendary nu mai e nimic — vezi capul secțiunii
+	# Peste vârful scării nu mai e nimic, deci un item de acolo n-are ce să primească în schimb.
+	# Întrebăm SCARA, nu numele: așa rămâne adevărat și pentru Mythic (care nu e pe scară
+	# dinadins — vezi `levelup.gd::SCARA_RARITATI`) și pentru orice raritate viitoare.
+	var lu = get_tree().get_first_node_in_group("levelup_menu")
+	if lu != null and String(lu.raritate_mai_sus(rar, 1)) == rar:
+		return false
 	return _rar_blocata == "" or _rar_blocata == rar
 
 func _click_item(idx: int, rar: String) -> void:
