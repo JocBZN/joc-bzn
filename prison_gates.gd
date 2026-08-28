@@ -133,14 +133,30 @@ func _langa_statuie(pos: Vector2, key: Vector2i) -> bool:
 # știe de poartă. E de ajuns ca să nu se încalece — poziția portalului e deterministă și nu se
 # uită la noi, deci dacă ne mutăm NOI, nu se mai suprapun. Invers (amândoi să se ferească unul de
 # altul) ar fi o buclă: fiecare l-ar întreba pe celălalt unde stă, la nesfârșit.
+#
+# ⚠️ De pe 2026-08-28 sunt DOUĂ locuri de ocolit, nu unul: portalul Nether (`chunk_portal_pos`) ȘI
+# fântâna Ender (`chunk_fantana_pos`), fiindcă fântâna nu mai răsare acolo unde stătea portalul,
+# ci în locul ei. Le întrebăm pe amândouă de la începutul rundei, deși fântâna apare abia după
+# Saratalin: pozițiile lor nu depind de vârstă, iar poarta e pusă o singură dată și nu se mai
+# mută după aceea — dacă am întreba doar de vârsta curentă, fântâna ar putea răsări în ea.
 func _langa_portal(pos: Vector2, key: Vector2i) -> bool:
-	if _portals == null or not _portals.has_method("chunk_portal_pos"):
+	if _portals == null:
+		return false
+	var are_portal: bool = _portals.has_method("chunk_portal_pos")
+	var are_fantana: bool = _portals.has_method("chunk_fantana_pos")
+	if not are_portal and not are_fantana:
 		return false
 	for dx in [-1, 0, 1]:
 		for dy in [-1, 0, 1]:
-			var q: Vector2 = _portals.chunk_portal_pos(Vector2i(key.x + dx, key.y + dy))
-			if q != Vector2.INF and pos.distance_to(q) < min_dist_portal:
-				return true
+			var k := Vector2i(key.x + dx, key.y + dy)
+			if are_portal:
+				var q: Vector2 = _portals.chunk_portal_pos(k)
+				if q != Vector2.INF and pos.distance_to(q) < min_dist_portal:
+					return true
+			if are_fantana:
+				var w: Vector2 = _portals.chunk_fantana_pos(k)
+				if w != Vector2.INF and pos.distance_to(w) < min_dist_portal:
+					return true
 	return false
 
 # Chemată din `prison.gd` după ce l-ai bătut pe SIR JOHN și ai ieșit: din clipa aia nu mai există

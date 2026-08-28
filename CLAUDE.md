@@ -24,6 +24,50 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-28 (fântânile Ender au harta lor și nu se mai nasc sub ochii tăi)
+
+**Cerut de Răzvan:** „Vreau ca portalul de Ender sa nu se spawneze fix in locul celor de Nether, vreau sa se spawneze separat dupa ce iesi din Nether dar sa nu intre in campul vizual al Player-ului de la portalul la care a iesit."
+
+Până acum `portals.gd` avea două vârste care ÎMPĂRȚEAU locurile: `chunk_portal_pos()` nu se uita la `ender`, deci fiecare fântână răsărea EXACT unde stătuse portalul ei — inclusiv una sub picioarele tale, în gaura din care tocmai se scufundase portalul prin care ai ieșit. Era o punere în scenă frumoasă, dar însemna că harta fântânilor era harta portalurilor, știută deja.
+
+### Ce s-a schimbat
+
+- **Două hărți, nu una.** `chunk_portal_pos()` a rămas vârsta Nether; fântânile au acum `chunk_fantana_pos()`, cu **sămânța ei** (`SEED_SALT_ENDER = 0x3F2B`) și **șansa ei** (`ender_chance`, tot 1.5% implicit, buton separat de `portal_chance`). Tiparul comun (zar pe chunk + `tries` poziții ferite de copaci/pietre/statui) a ieșit în `_loc_in_chunk(key, salt, sansa)`, deci cele două vârste nu se pot desincroniza.
+- **Golul din jurul ieșirii.** `treci_pe_ender(loc_iesire)` primește acum poziția portalului prin care ai ieșit (`nether.gd::_inchide_portalurile` o reține în `_loc_iesire` ÎNAINTE de scufundare) și își calculează `_raza_ferita = _raza_ecran() × ferire_ecrane`. `_raza_ecran()` e socotită din viewport ÷ zoom-ul camerei reale, ca `player.gd::_raza_ecran` — la 1152×648 cu zoom 0.7 iese **944 px**.
+- **`ferire_ecrane = 2`, nu 1.** Fântânile apar la ~1,1 s după ieșire (`FANTANA_INTARZIERE`, cât ține scufundarea), timp în care player-ul FUGE: cu viteză mare face ~800 px. Golul trebuie să bată „cât fugi + cât vezi": 2 × 944 − 800 = 1088 > 944. Cu 1.5 (prima valoare pusă) un player cu Rabbit's Foot + Alex's + Weird Concoction ar fi putut prinde una ivindu-se la marginea ecranului.
+- **Golul SUPRIMĂ, nu MUTĂ.** Dacă poziția calculată cade în gol, chunk-ul rămâne gol; nu trecem la următoarea încercare din `tries`. Dinadins: `prison_gates.gd` se ferise deja de poziția aia, iar dacă fântâna s-ar muta, s-ar putea muta fix în poartă.
+- **`prison_gates.gd` întreabă acum ambele hărți** (`chunk_portal_pos` ȘI `chunk_fantana_pos`), fiindcă fântâna nu mai stă pe portal. ⚠️ Fereala rămâne **într-o singură direcție** — portalul nu întreabă niciodată de porți. Invers ar fi recursie infinită: poarta îl întreabă pe portal, portalul pe poartă, la nesfârșit. Am fost la un pas să o scriu așa.
+
+### Verificat prin rulare — `tool_portale_ender.tscn`
+
+Unealtă nouă, rulează pe **lumea adevărată** (instanțiază `main.tscn`), fiindcă un `Portals` gol n-ar respinge nicio poziție și cifrele ar fi minciună. Rulare tipică, headless:
+
+```
+raza ecranului: 1164 px            (viewport headless; în joc ~944)
+portaluri Nether: 207   fantani Ender: 159
+fantani nascute PE un portal (trebuie 0): 0
+raza golului: 2327 px   (player fugit 800 px de la iesire)
+fantani care erau in raza aia inainte: 2   → 2 suprimate
+fantani IN GOL (trebuie 0): 0     IN CADRU (trebuie 0): 0
+cea mai apropiata fantana de iesire: 3573 px = 3.07 ecrane
+mers 4097 px pana la ea: StaticBody2D, interactable: true
+REZULTAT: OK
+```
+
+⚠️ **Două capcane de măsurare, amândouă m-au făcut să trec un test care nu verifica nimic:**
+1. **Grila trebuie centrată pe PLAYER, nu pe origine.** `main.tscn` te lasă în lume la coordonate mari și diferite la fiecare rulare (ex. −79 000, 66 000), deci o grilă în jurul lui (0,0) cădea la 73 000 px de gol și „0 fântâni în gol" ieșea adevărat degeaba.
+2. **Ieșirea de test trebuie pusă PE un loc de fântână.** Dintr-un punct oarecare, densitatea (~1 fântână la 17 milioane px²) face ca de cele mai multe ori să nu fie nimic în rază — testul trecea fără să fi suprimat ceva. Acum unealta caută cea mai apropiată fântână, iese din ea și cere `inainte >= 1`.
+
+Legătura completă (portal fals lângă player → `_inchide_portalurile()` → `_loc_iesire` → timer → `treci_pe_ender`) a fost probată separat: `_loc_iesire` a ieșit exact poziția portalului, `portals.ender` false înainte de timer și true după, `_raza_ferita` 2327.
+
+**Sămânța nouă nu e „mai săracă":** peste 58 081 de chunk-uri, 0x3F2B dă 1.579% față de 1.558% al lui 0x9C4E (nominal 1.5%). Diferența 207/159 dintr-o rulare e varianță de regiune plus respingerile de copaci/pietre, nu bias de sămânță — verificat înainte de a schimba ceva.
+
+### Ce simte jucătorul
+
+Ieși din Nether, portalul tău intră în pământ **și în jur nu se schimbă nimic la vedere**. Semnalul rămâne sunetul de teleportare și bannerul „A WELL RISES" (textele nu s-au atins — sunt traduse în 8 limbi). Fântânile există, dar la ~2–3 ecrane, în alte locuri decât portalurile pe care le știai: trebuie căutate. Dacă i se pare prea departe, butonul e `ender_chance` (mai dese) sau `ferire_ecrane` (gol mai mic) din Inspector, pe nodul `Portals`.
+
+---
+
 ## Session log — 2026-08-28 (codexul republicat: MYTHIC + iconițele redesenate 59/60)
 
 **Cerut de Răzvan:** „updateaza artifactul".

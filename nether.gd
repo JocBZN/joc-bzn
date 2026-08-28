@@ -106,6 +106,9 @@ var _entry_diff_time := 0.0  # în ce secundă a rundei ai intrat (de acolo plea
 var _swarm_announced := false
 var _boss_invins := false    # cât e `false`, portalul de întoarcere nu te lasă să pleci
 var _suspendat := false      # ești în Limbo, murit AICI — vezi `suspenda()`
+# Locul din care se măsoară golul fără fântâni Ender: portalul prin care ai ieșit din Nether.
+# Reținut în `_inchide_portalurile`, folosit ~1,1 s mai târziu în `_pune_fantanile`.
+var _loc_iesire := Vector2.INF
 
 func _ready() -> void:
 	add_to_group("nether")
@@ -399,11 +402,14 @@ func _bara_boss(on: bool) -> void:
 		bara.arata(boss.nume, boss.max_hp)
 		bara.set_hp(boss.hp)
 
-# L-ai bătut pe Saratalin și te-ai întors în lume → PORTALURILE SE ÎNCHID PE RESTUL RUNDEI,
-# dar locul lor nu rămâne gol: îl iau FÂNTÂNILE ENDER. Cel prin care tocmai ai ieșit intră în
-# pământ cu cutremur (ca statuia după invocare), apoi generatorul de portaluri trece pe fântâni
-# (`portals.gd::treci_pe_ender`) și fiecare loc de portal de pe hartă naște una — inclusiv cel
-# de sub picioarele tale, fiindcă pozițiile sunt deterministe. Un Nether pe rundă.
+# L-ai bătut pe Saratalin și te-ai întors în lume → PORTALURILE SE ÎNCHID PE RESTUL RUNDEI și în
+# locul lor, pe hartă, apar FÂNTÂNILE ENDER. Cel prin care tocmai ai ieșit intră în pământ cu
+# cutremur (ca statuia după invocare), apoi generatorul de portaluri trece pe fântâni
+# (`portals.gd::treci_pe_ender`). Un Nether pe rundă.
+#
+# ⚠️ „În locul lor" e la figurat de pe 2026-08-28: fântânile au locurile LOR, nu ale portalurilor,
+# și niciuna nu răsare acolo unde ai vedea-o ivindu-se. De-aia îi dăm generatorului poziția
+# portalului prin care ai ieșit (`_loc_iesire`) — din ea își măsoară golul.
 #
 # Se cheamă doar de pe drumul VOLUNTAR de ieșire, care există numai după ce boss-ul a căzut.
 func _inchide_portalurile() -> void:
@@ -430,22 +436,33 @@ func _inchide_portalurile() -> void:
 	if al_nostru != null and world != null:
 		al_nostru.reparent(world)
 
+	# De aici își măsoară `portals.gd` golul fără fântâni: din portalul prin care ai ieșit, adică
+	# din locul în care stai și te uiți. Îl reținem ÎNAINTE de scufundare și îl ducem până la
+	# `_pune_fantanile` (peste ~1,1 s). Dacă n-am găsit niciun portal, cădem pe poziția ta — tot
+	# aia e, stăteai lângă el.
+	_loc_iesire = al_nostru.global_position if al_nostru != null else _player.global_position
+
 	if al_nostru != null:
 		Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 		_zguduie_camera()
 		al_nostru.intra_in_pamant()
 	_deschide_fantanile_ender()
 
-# Din locul FIECĂRUI portal iese o FÂNTÂNĂ ENDER — ușa spre a treia dimensiune (`ender.gd`).
-# E singurul mod de a ajunge acolo, iar ele sunt plata pentru Saratalin: până nu cade el, nu
-# există niciuna pe hartă.
+# Undeva pe hartă răsar FÂNTÂNILE ENDER — ușa spre a treia dimensiune (`ender.gd`). E singurul
+# mod de a ajunge acolo, iar ele sunt plata pentru Saratalin: până nu cade el, nu există niciuna.
+#
+# ⚠️ De pe 2026-08-28 fântânile NU mai ies din locurile portalurilor și niciuna nu se naște în
+# câmpul tău vizual (cerut de Răzvan). Deci aici nu se mai vede niciun schimb: portalul tău intră
+# în pământ și atât. Ce le ține locul ca semnal e sunetul de teleportare de mai jos și bannerul
+# „A WELL RISES" — de-aia răsar exact atunci, nu mai devreme.
 #
 # Nu le punem noi de mână, ci îi spunem generatorului de portaluri să treacă pe fântâni
-# (`portals.gd::treci_pe_ender`). Așa apar și în chunk-urile în care ajungi peste zece minute,
-# și tot el le încarcă/descarcă pe măsură ce umbli, ca pe orice decor.
-# Așteptăm cât ține scufundarea portalului (`sink_duration`), ca să se vadă schimbul: unul
-# intră în pământ, celălalt iese exact acolo. Timer legat prin `connect`, nu `await` — dacă
-# player-ul dă Restart între timp, Godot rupe singur legătura către un nod șters.
+# (`portals.gd::treci_pe_ender`), dându-i locul din care te uiți, ca să lase golul în jurul lui.
+# Așa apar și în chunk-urile în care ajungi peste zece minute, și tot el le încarcă/descarcă pe
+# măsură ce umbli, ca pe orice decor.
+# Așteptăm cât ține scufundarea portalului (`sink_duration`), ca să nu se calce peste cutremur.
+# Timer legat prin `connect`, nu `await` — dacă player-ul dă Restart între timp, Godot rupe
+# singur legătura către un nod șters.
 const FANTANA_INTARZIERE := 1.1   # puțin peste `sink_duration` (1.0) din `portal.gd`
 # Anunțul vine mult mai târziu decât fântâna. Bannerul din HUD e UNUL singur și fiecare anunț
 # nou îl taie pe cel dinainte (~2,45s de la apariție până se stinge), iar la ieșirea din Nether
@@ -464,14 +481,15 @@ func _pune_fantanile() -> void:
 	var portals := _generator("Portals")
 	if portals == null or not portals.has_method("treci_pe_ender"):
 		return
-	portals.treci_pe_ender()
+	portals.treci_pe_ender(_loc_iesire)
 	Audio.play("teleport", TELEPORT_DB, 0.0)
 	get_tree().create_timer(FANTANA_ANUNT).timeout.connect(_anunta_fantana)
 
 func _anunta_fantana() -> void:
-	# Nici dacă te-ai întors în Nether, nici dacă ai apucat deja să COBORI în fântână — și e
-	# ușor: ea răsare fix sub picioarele tale, iar anunțul vine abia peste câteva secunde.
+	# Nici dacă te-ai întors în Nether, nici dacă ai apucat deja să COBORI într-o fântână.
 	# Prins la testare pe 2026-08-03: bannerul „A WELL RISES" apărea peste ecranul Ender-ului.
+	# (Atunci era ușor de nimerit — fântâna răsărea fix sub picioarele tale. De pe 2026-08-28 se
+	# nasc departe, în afara ecranului, deci verificarea e mai mult plasă de siguranță.)
 	if active:
 		return
 	var ender := get_tree().get_first_node_in_group("ender")
