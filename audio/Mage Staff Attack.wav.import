@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://my31op6baypu"
+path="res://.godot/imported/Mage Staff Attack.wav-7e4aa377093b27a9b120d25f663800f8.sample"
+
+[deps]
+
+source_file="res://audio/Mage Staff Attack.wav"
+dest_files=["res://.godot/imported/Mage Staff Attack.wav-7e4aa377093b27a9b120d25f663800f8.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

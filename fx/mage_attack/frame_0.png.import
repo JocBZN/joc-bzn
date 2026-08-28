@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c4v5iwmv5753f"
-path="res://.godot/imported/spritesheet.png-f537d7eca7f55e568f80cfc01f87af68.ctex"
+uid="uid://b86da1bt0fxkn"
+path="res://.godot/imported/frame_0.png-7b9759d05e1c77caa3068303dc05fece.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://fx/mage_impact/spritesheet.png"
-dest_files=["res://.godot/imported/spritesheet.png-f537d7eca7f55e568f80cfc01f87af68.ctex"]
+source_file="res://fx/mage_attack/frame_0.png"
+dest_files=["res://.godot/imported/frame_0.png-7b9759d05e1c77caa3068303dc05fece.ctex"]
 
 [params]
 

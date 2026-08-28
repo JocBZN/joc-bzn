@@ -12,11 +12,7 @@ var knockback: float = 0.0 # cât de tare împinge inamicul înapoi
 var is_crit: bool = false  # dacă lovitura e critică (pentru numărul galben)
 var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără explozie) — Jean's Bomb
 var explosion_damage: int = 0      # cât damage face explozia asupra inamicilor din rază
-var explosion_frames: SpriteFrames = null  # animație de explozie (mage = izbucnirea galbenă); null → Fx.explosion
-# Ce se AUDE odată cu animația de mai sus (numele din `Audio.SFX`), gol = nimic. Ține pereche cu
-# `explosion_frames`: cine dă arma dă și poza, și sunetul, iar glonțul nu trebuie să știe ce armă
-# l-a tras. Mage Staff pune „mage_impact"; Jean's Bomb pe pistol lasă gol și rămâne mut, ca înainte.
-var explosion_sound: String = ""
+var explosion_frames: SpriteFrames = null  # animație de explozie (mage = violet); null → Fx.explosion
 var instakill_chance: float = 0.0  # șansa (0..1) să ucidă instant inamicul (Hacksaw)
 var thunder: bool = false          # Thunder God: la impact, curent electric spre inamicii din jur
 
@@ -218,33 +214,16 @@ func _explode() -> void:
 			# tocmai din gramada in care abia ii adunasesi, iar gloantele trase dupa ea
 			# ramaneau fara tinta. Knockback-ul de la GLONT (Knockback Stick) ramane.
 
-# Explozia animată de la impact (Mage Staff). Adăugată în lume, scalată la rază; se auto-distruge.
-#
-# ⚠️ ARTA E ORIENTATĂ, nu e un cerc: are miezul plin în față și limbile aruncate în spate. De-aia
-# se ROTEȘTE după direcția de zbor a glonțului (`direction.angle()`, adică +x al desenului = încotro
-# mergea glonțul) — fără asta, toate exploziile ar împroșca spre stânga, oricât ai învârti camera.
-# Peste rotație punem o clătinare mică, la întâmplare: cu ea, două gloanțe trase în același inamic
-# din același loc nu mai lasă exact aceeași ștampilă pe ecran.
-const BOOM_JITTER := 0.10   # radiani (±6°); atât cât să nu se vadă că e aceeași poză
-
+# Explozie animată (ex. violet pentru mage). Adăugată în lume, scalată la rază; se auto-distruge.
 func _play_boom() -> void:
 	var a := AnimatedSprite2D.new()
 	a.sprite_frames = explosion_frames
 	a.animation = "fx"
 	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	a.z_index = 60
-	a.rotation = direction.angle() + randf_range(-BOOM_JITTER, BOOM_JITTER)
 	var fw := explosion_frames.get_frame_texture("fx", 0).get_width()
 	a.scale = Vector2.ONE * (explosion_radius * 2.0 * BOOM_VISUAL_SCALE) / float(max(fw, 1))
 	get_parent().add_child(a)
 	a.global_position = global_position
 	a.play("fx")
 	a.animation_finished.connect(a.queue_free)
-	# Sunetul merge cu animația, nu cu explozia: cine n-are poză (Jean's Bomb pe pistol) rămâne mut,
-	# exact ca înainte. Volumul e ales pe RMS măsurat, ca restul: fișierul are −17,2 dBFS pe primele
-	# 250 ms, deci la −14 iese ~−31,2 dBFS efectiv — adică FIX pe nivelul lui `enemy_hit` (−31,5).
-	# Dinadins la fel: cele două pornesc în același cadru și trebuie să se audă ca UN singur impact
-	# (bubuitura joasă de aici umple exact ce n-are ticul ascuțit al lui `enemy_hit`), nu ca două
-	# sunete care se calcă. Mai tare de-atât, explozia ar acoperi și „vuietul" de tragere (−33,9).
-	if explosion_sound != "":
-		Audio.play(explosion_sound, -14.0)

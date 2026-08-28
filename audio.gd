@@ -12,18 +12,24 @@ extends Node
 const SFX := {
 	"button":         "res://audio/button.wav",
 	"shoot":          "res://audio/Bullet.mp3",                         # glonțul de pistol
-	"mage_shoot":     "res://audio/Mage Staff Audio.wav",               # proiectilul de Mage Staff (are alt sunet decât pistolul)
-	# Explozia de la impact a Mage Staff-ului. Făcut din DOUĂ sunete din `Soundpack/`, ca `Dash.wav`:
+	# ⛔ NEFOLOSIT din 2026-08-28: sunetul VECHI de tragere al Mage Staff-ului. Rămâne în listă (ca
+	# `Cursed Sword.wav`) ca să se poată da înapoi dintr-o singură linie din `player.gd::_fire_bullets`.
+	# De ce a plecat: e brut din `Soundpack/` (96 kHz/24 biți, netrecut prin pipeline-ul casei), are
+	# 1,43 s de conținut real la o cadență de 0,5 s — deci se călca de trei ori peste el însuși — și
+	# toată energia îi stă sub 200 Hz și PESTE 8 kHz, adică exact șuieratul care obosește urechea.
+	"mage_shoot":     "res://audio/Mage Staff Audio.wav",               # vechiul sunet de tragere (vezi mai sus)
+	# Atacul Mage Staff-ului: bubuitura care merge cu izbucnirea galbenă de la vârful toiagului.
+	# Făcut din DOUĂ sunete din `Soundpack/`, stratificate ca `Dash.wav`:
 	# `DSGNImpt_EXPLOSION-Thud-004` (primele 130 ms, tăiat peste 800 Hz) dă GREUTATEA, iar
 	# `DSGNMisc_HIT-Spell Hit-004` (240 ms, tăiat sub 170 Hz, −4 dB la 3,2 kHz și −6 dB peste 7 kHz)
 	# dă partea de VRAJĂ. 48 kHz/16 biți, vârf −1 dBFS, ca tot ce intră în joc.
 	#
-	# 🔑 De ce e scobit exact la 3–8 kHz: ăsta e sunetul pe care îl auzi de câteva ori pe SECUNDĂ
-	# cât ții Mage Staff-ul, iar urechea obosește cel mai repede fix în banda aia. Aici basul e la
-	# −3,5 dBFS și 3–8 kHz la −15,5: se aude ca o izbitură cu greutate, nu ca un țiuit. Tot de-aia
-	# e scurt (240 ms, stins complet la ~200 ms) — cozile lungi s-ar călca una peste alta la
-	# cadență mare și ar face terci.
-	"mage_impact":    "res://audio/Mage Staff Impact.wav",             # explozia AOE de la impactul Mage Staff-ului
+	# 🔑 De ce e scobit exact la 3–8 kHz: ăsta e sunetul pe care îl auzi de cel puțin două ori pe
+	# SECUNDĂ cât ții Mage Staff-ul în mână, iar urechea obosește cel mai repede fix în banda aia.
+	# Aici basul e la −3,5 dBFS și 3–8 kHz la −15,5: se aude ca o izbitură cu greutate, nu ca un
+	# țiuit. Tot de-aia e scurt (240 ms, stins complet la ~200 ms) — la o lovitură la 0,5 s, o coadă
+	# mai lungă ar intra peste tragerea următoare și ar face terci (fix ce făcea cel vechi, cu 1,43 s).
+	"mage_attack":    "res://audio/Mage Staff Attack.wav",              # tragerea de Mage Staff (a înlocuit `mage_shoot`)
 	"levelup":        "res://audio/Choose Item Menu Open - Close.wav",  # ecranul de Level Up
 	"hurt":           "res://audio/When enemy hits player.wav",         # player-ul primește damage
 	# Sabia sună cu fostul sunet de STINGĂTOR: cerut de Răzvan pe 2026-08-04, odată cu scoaterea
