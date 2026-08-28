@@ -12,7 +12,7 @@ var knockback: float = 0.0 # cât de tare împinge inamicul înapoi
 var is_crit: bool = false  # dacă lovitura e critică (pentru numărul galben)
 var explosion_radius: float = 0.0  # raza exploziei AOE la impact (0 = fără explozie) — Jean's Bomb
 var explosion_damage: int = 0      # cât damage face explozia asupra inamicilor din rază
-var explosion_frames: SpriteFrames = null  # animație de explozie (mage = violet); null → Fx.explosion
+var explosion_frames: SpriteFrames = null  # animație de explozie (mage = galben, ca proiectilul); null → Fx.explosion
 var instakill_chance: float = 0.0  # șansa (0..1) să ucidă instant inamicul (Hacksaw)
 var thunder: bool = false          # Thunder God: la impact, curent electric spre inamicii din jur
 
@@ -200,7 +200,7 @@ func _sari_la_alt_inamic() -> bool:
 # Explozie AOE (Jean's Bomb): animația de explozie + damage tuturor inamicilor din rază.
 func _explode() -> void:
 	if explosion_frames != null and explosion_frames.get_frame_count("fx") > 0:
-		_play_boom()  # explozie animată (mage = violet)
+		_play_boom()  # explozie animată (mage = galben, ca proiectilul)
 	else:
 		Fx.explosion(global_position, explosion_radius)
 	for e in get_tree().get_nodes_in_group("enemy"):
@@ -214,7 +214,7 @@ func _explode() -> void:
 			# tocmai din gramada in care abia ii adunasesi, iar gloantele trase dupa ea
 			# ramaneau fara tinta. Knockback-ul de la GLONT (Knockback Stick) ramane.
 
-# Explozie animată (ex. violet pentru mage). Adăugată în lume, scalată la rază; se auto-distruge.
+# Explozie animată (ex. izbucnirea galbenă a mage-ului). Adăugată în lume, scalată la rază; se auto-distruge.
 func _play_boom() -> void:
 	var a := AnimatedSprite2D.new()
 	a.sprite_frames = explosion_frames

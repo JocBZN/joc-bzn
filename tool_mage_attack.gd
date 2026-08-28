@@ -15,11 +15,13 @@ extends Node2D
 #   3. ORIENTAREA: opt gloanțe trase în stea. Arta are miezul în față și limbile în spate, deci
 #      fiecare trebuie să lase limbile spre CENTRU, de unde a plecat. Dacă toate arată la fel sau
 #      toate sunt întoarse cu 90°, corecția de `-PI/2` din `_make_mage_projectile` e greșită;
-#   4. glonțul normal e ascuns dedesubt (`Sprite2D.visible == false`).
+#   4. glonțul normal e ascuns dedesubt (`Sprite2D.visible == false`);
+#   5. CULOAREA: explozia de la impact folosește doar culori din paleta proiectilului.
 
 const CADRE_ASTEPTATE := 4
 const RAZA := 210.0          # cât de departe de centru se face captura
 const VITEZA := 520.0        # ca să ajungă acolo în ~0,4 s
+const RAZA_EXPLOZIE := 110.0 # cat pune `player.gd` pentru mage
 
 var _player: Node2D
 var _bullet_scene: PackedScene = preload("res://bullet.tscn")
@@ -65,6 +67,22 @@ func _ready() -> void:
 		_erori.append("sunetul `mage_attack` NU e in Audio.SFX")
 	else:
 		print("sunet mage_attack: %.3f s" % s.get_length())
+
+	# CULOAREA: explozia de la impact trebuie să folosească DOAR culori din paleta proiectilului.
+	# Asta e verificarea adevărată a lui „aceeași culoare" — o poză poate păcăli ochiul, un set de
+	# culori nu. Dacă cineva schimbă arta proiectilului și uită să re-ruleze `tool_recolor_boom`,
+	# aici pică imediat.
+	var pal_atac := _paleta(_player._mage_attack_frames)
+	var pal_boom := _paleta(_player._mage_boom_frames)
+	print("culori proiectil: %d, culori explozie: %d" % [pal_atac.size(), pal_boom.size()])
+	var straine := 0
+	for k in pal_boom:
+		if not pal_atac.has(k):
+			straine += 1
+			if straine <= 5:
+				print("  culoare straina in explozie: #%06X" % k)
+	if straine > 0:
+		_erori.append("explozia are %d culori care nu sunt in paleta proiectilului" % straine)
 	Audio.play("mage_attack", -16.0)
 	_ruleaza()
 
@@ -91,8 +109,13 @@ func _ruleaza() -> void:
 	if spr != null and spr.visible:
 		_erori.append("`Sprite2D`-ul glontului a ramas vizibil sub proiectil")
 
-	# îi lăsăm să zboare până se depărtează bine de centru, apoi facem poza
-	await get_tree().create_timer(RAZA / VITEZA).timeout
+	# Explozia de la impact, în aceeași poză: pornită mai târziu ca la captură să fie pe la
+	# mijlocul animației ei (10 cadre / 24 fps = 0,42 s), nu deja stinsă.
+	await get_tree().create_timer(RAZA / VITEZA - 0.15).timeout
+	_explozie(centru + Vector2(-330, 0))
+	_explozie(centru + Vector2(330, 0))
+
+	await get_tree().create_timer(0.15).timeout
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(ProjectSettings.globalize_path("user://mage_attack.png"))
 
@@ -103,3 +126,30 @@ func _ruleaza() -> void:
 			print("EROARE: ", e)
 		print("REZULTAT: PICAT")
 	get_tree().quit()
+
+# O explozie de impact ca a mage-ului, cu cadrele pe care le-a încărcat chiar player-ul.
+func _explozie(poz: Vector2) -> void:
+	var b := _bullet_scene.instantiate()
+	add_child(b)
+	b.global_position = poz
+	b.explosion_radius = RAZA_EXPLOZIE
+	b.explosion_damage = 1
+	b.explosion_frames = _player._mage_boom_frames
+	b.set_direction(Vector2.RIGHT)
+	b.visible = false          # ne interesează explozia, nu glonțul
+	b._explode()
+
+# Culorile opace dintr-un `SpriteFrames`, ca set de chei RGB.
+func _paleta(f: SpriteFrames) -> Dictionary:
+	var culori := {}
+	if f == null:
+		return culori
+	for i in f.get_frame_count("fx"):
+		var img := f.get_frame_texture("fx", i).get_image()
+		img.convert(Image.FORMAT_RGBA8)
+		for y in img.get_height():
+			for x in img.get_width():
+				var c := img.get_pixel(x, y)
+				if c.a > 0.5:
+					culori[(int(round(c.r * 255.0)) << 16) | (int(round(c.g * 255.0)) << 8) | int(round(c.b * 255.0))] = true
+	return culori

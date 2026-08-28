@@ -226,7 +226,7 @@ func _seteaza_cadenta() -> void:
 		_timere_secundare[i].wait_time = _interval_secundar(arme_secundare[i])
 var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol și mage)
 var _mage_attack_frames: SpriteFrames  # izbucnirea galbenă = PROIECTILUL mage (a înlocuit sfera movă)
-var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
+var _mage_boom_frames: SpriteFrames  # explozia de la impact (mage staff), în paleta proiectilului
 @export var muzzle_scale: float = 1.2
 # Cât e de lat proiectilul mage pe ecran, în pixeli. Glonțul are scale 0.1 în bullet.tscn, așa că
 # sprite-ul trebuie să compenseze scara părintelui (vezi `_make_mage_projectile`). Rămâne 35, cât
@@ -459,7 +459,10 @@ func _ready() -> void:
 	# Proiectilul Mage Staff-ului: izbucnirea galbenă, în BUCLĂ (`loop = true`) — trebuie să pulseze
 	# cât zboară, nu să se stingă la jumătatea drumului. 18 fps × 4 cadre = un ciclu de 0,22 s.
 	_mage_attack_frames = _load_fx_frames("res://fx/mage_attack", 18.0, true)
-	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
+	# Explozia de la impact, recolorată în paleta PROIECTILULUI (`fx/mage_boom` e originalul mov, care
+	# rămâne pe disc neatins). Nu e `modulate` peste desen — mov × galben ar da maro murdar; e o
+	# schimbare de paletă, culoare cu culoare, făcută de `tool_recolor_boom.tscn`. Vezi acolo.
+	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom_yellow", 24.0, false)
 	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (12 cadre)
 	# lama coasei: o singură poză, aceeași pe care o aruncă Celesto (n-are cadre, se rotește)
 	if ResourceLoader.exists(SCYTHE_ART):
@@ -1124,7 +1127,7 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.target = tinta
 	bullet.homing_turn = aimbot_turn()
 	if weapon_type == "mage":
-		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact (arta ei se schimbă separat)
+		bullet.explosion_frames = _mage_boom_frames  # explozia de la impact, aceleași culori ca proiectilul
 		_make_mage_projectile(bullet)                # proiectil = izbucnirea galbenă, orientată pe zbor
 	elif weapon_type == "knife":
 		_make_knife(bullet)                          # proiectil = cuțitul, învârtindu-se în zbor

@@ -24,12 +24,13 @@ Quick rules:
 
 ---
 
-## Session log — 2026-08-28 (Mage Staff: izbucnirea galbenă E PROIECTILUL; sfera movă a fost ștearsă)
+## Session log — 2026-08-28 (Mage Staff: izbucnirea galbenă E PROIECTILUL; sfera movă ștearsă, explozia recolorată)
 
-**Cerut de Răzvan**, în trei pași, fiindcă primele două oare am pus arta unde nu trebuia:
+**Cerut de Răzvan**, în patru pași, fiindcă primele două oare am pus arta unde nu trebuia:
 1. „ti-am pus un png in folderul de fx - vreau sa inlocuiesti attack-ul de la mage staff cu noua animatie [...] si vreau sa alegi din Soundpack ce se potriveste. [...] Vreau sa se auda sa nu fie extraordinar de deranjant pentru ca asta auzi incontinuu cand ataci dar sa fie si un sunet foarte profesionist."
 2. „ba nu vreau la impact, aia schimbam dupa - vreau sa il faci animatia de attack"
 3. **„Ba nu langa caracter, vreau sa stergi attack-ul vechi si sa il pui pe asta"**
+4. **„Si fa si overlay la impact sa aiba aceasi culoare ca attack-ul"**
 
 ⚠️ **Lecția, înainte de orice.** Mage Staff-ul are TREI vizuale: fulgerul de la țeavă, **proiectilul care zboară**, și explozia AOE de la impact. Fișierul se cheamă „Yellow Effect Bullet Impact **Explosion** 32x32", așa că prima oară a ajuns pe explozia de la impact, a doua oară pe un efect lângă personaj — două rulări pierdute. **„Attack" la Răzvan înseamnă PROIECTILUL**: chestia pe care o vezi zburând când ataci, nu ceva aprins la vârful toiagului și nu ce se întâmplă la capătul celălalt. Numele fișierului din pack e al artistului; când o artă poate intra în mai multe locuri, întreabă din prima, nu ghici după nume.
 
@@ -37,10 +38,19 @@ Quick rules:
 
 - **Proiectilul mage e izbucnirea galbenă** (`fx/mage_attack/frame_0..3.png`, 4 cadre, 18 fps, **în buclă**), construit de `player.gd::_make_mage_projectile`. **Sfera movă (`fx/mage_orb/`) a fost ȘTEARSĂ din repo**, cerut explicit — se aduce înapoi cu `git checkout 883dd3f -- fx/mage_orb` dacă se răzgândește.
 - **Fulgerul de la țeavă a revenit la normal:** mage-ul folosește iar `_muzzle`, ca pistolul. Efectul de lângă personaj (`_mage_attack_fx`) și `MAGE_ATTACK_JITTER` au fost șterse cu totul.
-- **Explozia de la impact e tot sfera movă** (`fx/mage_boom`, 10 cadre). Se schimbă separat, altă dată.
+- **Explozia de la impact are acum culorile proiectilului** (`fx/mage_boom_yellow`, 10 cadre) — cerut de Răzvan: „fa si overlay la impact sa aiba aceasi culoare ca attack-ul". Desenul e același, doar paleta s-a schimbat; vezi „Recolorarea" mai jos. Originalul mov (`fx/mage_boom`) rămâne pe disc, neatins, fiindcă e SURSA uneltei.
 - ⚠️ **Rotația: `-PI/2` pe sprite, nu pe nod.** Arta e ORIENTATĂ (miez plin în față, limbi în spate) — perfect pentru un proiectil, dar numai dacă e întoarsă pe direcția de zbor. Nodul-glonț se rotește singur cu `direction.angle() + PI/2` (`bullet.gd::set_direction`, reîmprospătat la fiecare cadru de homing), iar sprite-ul e COPILUL lui și moștenește rotația aia. De-aia `bolt.rotation = -PI / 2.0`: ca rotația în LUME să iasă fix `direction.angle()`. Fără corecție, proiectilul ar zbura întors cu 90° toată cursa. Sfera movă era simetrică și n-avea nevoie de nimic.
 - **Cadru de pornire ales la întâmplare** (`bolt.frame = randi() % 4`). Fără asta, toate gloanțele unei salve pulsează la unison și în loc de patru proiectile se vede un bloc care clipește.
 - **Mărimea n-a scăzut deși arta e mai mică:** `mage_attack_size` (fost `mage_orb_size`) rămâne **35 px pe ecran**, fiindcă scara se calculează din lățimea cadrului (`35 / fw / parent_scale`), nu din fișier — arta nouă e 32×32, cea veche era 64×64, iar pe ecran ies la fel. Măsurat în captură: ~34 px.
+
+### Recolorarea (`tool_recolor_boom.tscn`)
+
+- ⚠️ **NU e `modulate`.** Un filtru de culoare pus peste desen ÎNMULȚEȘTE, iar mov × galben dă maro murdar: movul (`#873AD5`) n-are aproape deloc verde, deci galbenul n-are ce înmulți. Pe pixel art, „aceeași culoare" se face prin **schimbare de paletă**, nu prin filtru.
+- Amândouă animațiile sunt pixel art curat: **exact 5 culori opace** fiecare, alfa numai 0 sau 255 (măsurat, nu presupus). Deci le ordonăm pe amândouă după **luminozitate percepută** (Rec. 601 — o medie simplă ar pune movul închis peste galbenul deschis, fiindcă ochiul vede verdele de vreo cinci ori mai tare ca albastrul) și le legăm una la una. Rezultatul: explozia iese cu **FIX cele cinci culori ale proiectilului**, iar umbrele rămân umbre — contrastul desenului original nu se atinge.
+- Legăturile ieșite: `#873AD5→#CA6230`, `#C95AF8→#E48334`, `#F899DA→#F4AA38`, `#FBCCEC→#F5C94A`, `#E2F1F1→#F8E97D`. Numărul de pixeli pe fiecare culoare a rămas identic cu al originalului, deci nu s-a pierdut nimic.
+- Unealta **citește din `fx/mage_boom` și scrie în `fx/mage_boom_yellow`**, niciodată peste sursă — altfel a doua rulare ar măcina ce a măcinat prima (lecția de la conturul negru al sferei mage, 2026-08-01). Convertește tot în memorie și scrie **abia la sfârșit, doar dacă n-a scârțâit nimic**: o unealtă care pică la jumătate ar lăsa pe disc o animație jumătate recolorată. Pică zgomotos dacă paletele n-au aceeași mărime (fără asta ar trebui ghicit ce culoare la ce culoare merge) sau dacă apare un pixel în afara paletei.
+- ⚠️ După ce scrie PNG-uri noi trebuie **`--headless --import`**, altfel n-au `.import` și `_load_fx_frames` nu le vede.
+- 🐞 Prima rulare a ieșit „PICAT, 18471 pixeli în afara paletei" — adică TOȚI. Cauza: harta se construia cu chei `Color` (`harta[pal_sursa[i]]`) și se citea cu chei `int` (`harta.has(_cheie(c))`), deci nu se potrivea niciodată. Bine că unealta număra pixelii neatinși, nu doar „am scris 10 cadre".
 
 ### Sunetul (neschimbat față de pasul 2)
 
@@ -52,7 +62,11 @@ Quick rules:
 
 ### Verificat rulând
 
-`tool_mage_attack.tscn` (**cu fereastră**, headless nu desenează). Folosește player-ul ADEVĂRAT din `player.tscn` și gloanțe ADEVĂRATE din `bullet.tscn`, construite prin chiar `_make_mage_projectile`: 4 cadre toate 32×32, animația e **în buclă** (altfel proiectilul s-ar stinge la jumătatea drumului), `Sprite2D`-ul obișnuit al glonțului e ascuns dedesubt, sunetul e în `Audio.SFX` (0,240 s), apoi opt gloanțe trase în stea — în captură fiecare își lasă limbile spre centru, de unde a plecat, deci corecția de rotație e bună. ⚠️ Camera player-ului trebuie **oprită** în unealtă (`cam.enabled = false`), altfel duce vederea la locul unde l-am parcat și captura iese goală.
+`tool_mage_attack.tscn` (**cu fereastră**, headless nu desenează). Folosește player-ul ADEVĂRAT din `player.tscn` și gloanțe ADEVĂRATE din `bullet.tscn`, construite prin chiar `_make_mage_projectile`: 4 cadre toate 32×32, animația e **în buclă** (altfel proiectilul s-ar stinge la jumătatea drumului), `Sprite2D`-ul obișnuit al glonțului e ascuns dedesubt, sunetul e în `Audio.SFX` (0,240 s), apoi opt gloanțe trase în stea — în captură fiecare își lasă limbile spre centru, de unde a plecat, deci corecția de rotație e bună. În aceeași poză intră și două explozii de impact, pornite mai târziu ca să fie prinse pe la mijlocul animației lor.
+
+🔑 **Culoarea se verifică NUMERIC, nu din poză:** unealta strânge culorile opace din `_mage_attack_frames` și din `_mage_boom_frames` și cere ca explozia să nu aibă **nicio** culoare din afara paletei proiectilului. O captură poate păcăli ochiul; un set de culori nu. Dacă cineva schimbă arta proiectilului și uită să re-ruleze `tool_recolor_boom`, testul pică imediat, cu culorile străine tipărite.
+
+⚠️ Camera player-ului trebuie **oprită** în unealtă (`cam.enabled = false`), altfel duce vederea la locul unde l-am parcat și captura iese goală.
 
 ℹ️ La ieșire, `main.tscn --headless --quit-after N` scrie „9 ObjectDB instances were leaked" + „4 resources still in use". **Nu e de la schimbarea asta** — verificat A/B pe codul de dinainte, iese identic, și nu depinde de câte cadre rulează. E curățenia de la închiderea forțată, nu o eroare în joc.
 ---
