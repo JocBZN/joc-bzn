@@ -24,6 +24,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-28 (codexul republicat: MYTHIC + iconițele redesenate 59/60)
+
+**Cerut de Răzvan:** „updateaza artifactul".
+
+Codexul publicat rămăsese la commit-ul dinaintea lui MYTHIC. `codex.html` din repo era deja corect (sesiunea de MYTHIC îl actualizase în același commit), deci n-a fost nimic de scris de mână la carduri — dar **base64-ul a două iconițe era vechi**: `upgrade_59.png` (Water and electrolytes) și `upgrade_60.png` (Big Black Cigar) fuseseră redesenate și stăteau nesalvate în working tree, cu codexul arătând tot desenul vechi. Și `Border Common.png` din pagină era o variantă cu alte culori decât fișierul din joc (aceeași siluetă, alfa identic, diferență de ~22 dB PSNR — nu se vedea, dar nu era fișierul jocului).
+
+**Ce s-a schimbat în `codex.html`:** doar cele trei blocuri base64, re-encodate din fișierele de pe disc.
+
+**Cum, ca să nu se rupă linia de assets:** înlocuirea s-a făcut cu un script `awk` care caută cheia literal (`index`/`substr`, nu regex) și taie până la următorul `"` — nici `sed` cu șiruri de 8 KB, nici comenzi lungi de shell. ⚠️ Capcană nouă: cheia `common:` se găsește **și în interiorul lui `uncommon:`**. Aici a mers din noroc (în `BORDERS={…}` ordinea e `mythic, common, uncommon, …`, deci `index()` a nimerit cheia adevărată), dar **verificarea** cu `grep -o "common:…"` scotea două șiruri lipite și raporta fals „DIFERIT". Ancorează întotdeauna cheia: `[{,]common:`.
+
+**Verificat înainte de publicare:**
+- `id|iconiță|raritate` din `levelup.gd` vs `codex.html` → **60 = 60, zero diferențe**; `META` din `game_settings.gd` identic cu tabelul magazinului; tabelul `ARME` din `player.gd` neatins de commit-urile recente, deci „Statusuri de start" rămâne valabil.
+- Toate cele 60 de iconițe + toate cele 6 chenare: base64 din pagină **octet cu octet** egal cu fișierul din `Upgrades/`.
+- Randare în Chrome headless (`--dump-dom`): 60 `<img src="data:image…">`, zero `SyntaxError` — verificarea structurală cu awk nu prinde o inserare greșită, randarea da.
+- Diff cu versiunea LIVE (prin `Artifact action:"read"`, nu WebFetch): live era în urmă exact cu commit-ul MYTHIC (culoarea `--mythic`, treapta din listă, cele două carduri, notele de raritate/noroc).
+
+⚠️ **Pagina are o versiune PINUITĂ pentru vizitatori.** Publicarea a mers, dar cine intră pe link vede în continuare versiunea fixată — trebuie schimbată din meniul de versiuni al artifactului, altfel actualizarea nu ajunge la nimeni.
+
+---
 ## Session log — 2026-08-27 (MYTHIC: o raritate nouă la 0.5% și cele două iteme ale ei)
 
 **Cerut de Răzvan:** „vreau sa adaug o categorie noua de iteme (Mythic) sa aiba sansa de 0.5% (iei percentage-ul de la celelalte înafara de legendary in mod egal) - foloseste imaginea din Borders - 16 Border 01 - vreau sa adaug upgrade_66 (Mythic) - Helping Hand - add one random weapon (una din armele din joc fara bonsururile ei gen +1 luck per level) si mai vreau upgrade_67 (Mythic) - Equilibrium - +10% to all stats"
