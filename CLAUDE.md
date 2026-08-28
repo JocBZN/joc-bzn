@@ -24,6 +24,39 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-28 (Mage Staff: explozie nouă la impact + sunetul ei)
+
+**Cerut de Răzvan:** „ti-am pus un png in folderul de fx - vreau sa inlocuiesti attack-ul de la mage staff cu noua animatie [...] si vreau sa alegi din Soundpack ce se potriveste. [...] Vreau sa se auda sa nu fie extraordinar de deranjant pentru ca asta auzi incontinuu cand ataci dar sa fie si un sunet foarte profesionist."
+
+PNG-ul lăsat în `fx/mage_new/` se cheamă **„Yellow Effect Bullet Impact Explosion 32x32"** — o planșă, nu un cadru. „Attack-ul" cerut e deci **explozia AOE de la impact** (`_mage_boom_frames`, sfera movă de 10 cadre), nu fulgerul de la țeavă (ăla e comun cu pistolul) și nici sfera-proiectil (aia se rotește în buclă, o planșă de 4 cadre one-shot n-ar merge).
+
+### Arta
+
+- **Planșa NU e ce scrie în nume.** Fișierul e 137×35, nu 4×32². Cadrele sunt împachetate strâns: blocurile pline stau la x 4..34, 40..65, 68..98, 100..131. Grila adevărată se deduce din faptul că **cadrul 0 și cadrul 2 sunt identice octet cu octet** (485 pixeli fiecare, aceeași amprentă md5): asta fixează pasul la 32, iar celulele ies **(4,2), (36,2), (68,2), (100,2), fiecare 32×32**. Toate cele patru blocuri intră fix înăuntru, iar centrele lor pe verticală sunt toate la y=17 în planșă — deci artistul chiar le-a aliniat. Tăiate așa în `fx/mage_impact/frame_0..3.png`, cu numărul de pixeli neschimbat (485/576/485/431). Planșa originală a rămas alături, ca `spritesheet.png`.
+- ⚠️ **Cadrele TREBUIE să fie toate de aceeași mărime.** `bullet.gd::_play_boom` calculează scara **o singură dată, din cadrul 0** (`get_frame_texture("fx", 0).get_width()`); cadre de lățimi diferite ar sări în mărime în timpul animației. De-aia se taie celule egale, nu se decupează fiecare blob pe conturul lui.
+- ⚠️ **Arta e ORIENTATĂ, nu e un cerc.** Are miezul plin în față și limbile aruncate în spate. Sfera movă veche era simetrică, deci `_play_boom` n-avea nevoie de rotație; asta are. Acum se rotește cu `direction.angle()` (+x al desenului = încotro mergea glonțul), plus o clătinare de ±0,10 rad la întâmplare (`BOOM_JITTER`), ca două gloanțe trase în același inamic din același loc să nu lase aceeași ștampilă.
+- **18 fps × 4 cadre = 0,22 s**, față de 24 fps × 10 = 0,42 s cât ținea sfera. Scurtat dinadins: se aprinde la fiecare glonț, iar la cadență mare cea veche ar fi stat două trageri pe ecran.
+- Mărimea pe ecran **nu s-a schimbat**: `_play_boom` scalează după rază, nu după fișier (110 × 2 × `BOOM_VISUAL_SCALE` ≈ 95 px), deci arta de 32 px se umflă ×3 și iese la fel de lată ca sfera de 96 px de dinainte.
+- Sfera-proiectil a rămas **movă** (`player.gd::_make_mage_orb`, `modulate`). Proiectil mov + explozie galbenă e o alegere de artă, nu o scăpare — dacă vrei să se potrivească, se schimbă culoarea aia dintr-o linie.
+- `fx/mage_boom/` (sfera movă) **a rămas pe disc, nefolosită** — ca `Cursed Sword.wav`. Ca s-o aduci înapoi, schimbi calea din `player.gd` și scoți rotația din `_play_boom`.
+
+### Sunetul
+
+Cerința „să nu fie deranjant, dar profesionist" **e o cerință de mixaj, nu de gust**: la Mage Staff tragi de 2 ori pe secundă din start și de câteva ori pe secundă cu attack speed, iar urechea obosește cel mai repede în banda **3–8 kHz**. Deci sunetul bun aici e unul cu **greutate jos și scobitură fix acolo**, scurt, fără coadă.
+
+- Am măsurat 18 familii candidate din `Soundpack/` (durata reală după tăierea liniștii, anvelopa RMS pe ferestre de 5 ms, energia pe cinci benzi). Niciuna singură nu făcea treaba: `Spell Hit` e singura cu anvelopă curată de impact (vârf la 0, stinsă la ~450 ms) dar **n-are deloc bas** (−20 dBFS sub 200 Hz) → ar fi ieșit un tic ascuțit; `Thud` are izbitura de jos (−3 dBFS) dar e surdă, fără nimic de vrajă.
+- **Deci `audio/Mage Staff Impact.wav` e făcut din amândouă**, ca `Dash.wav`: `DSGNImpt_EXPLOSION-Thud-004` (primele 130 ms, tăiat peste 800 Hz) = greutatea, `DSGNMisc_HIT-Spell Hit-004` (240 ms, tăiat sub 170 Hz, −4 dB la 3,2 kHz, −6 dB peste 7 kHz) = vraja. 48 kHz/16 biți, vârf −1 dBFS, ca tot ce intră în joc.
+- Rezultatul măsurat: **bas −3,5 dBFS, 3–8 kHz −15,5 dBFS** (scobitură de 12 dB fix unde doare), **240 ms lungime, stins la ~200 ms**.
+- **Volumul: −14 dB**, ales pe RMS ca restul (fișierul are −17,2 dBFS pe primele 250 ms → iese ~−31,2 dBFS efectiv). Asta îl pune **FIX pe nivelul lui `enemy_hit` (−31,5)**, dinadins: cele două pornesc în același cadru și trebuie să se audă ca UN impact, nu ca două sunete care se calcă. Scara din joc: tăietura săbiei −25, `enemy_hit` −31,5, **explozia mage −31,2**, `mage_shoot` −33,9, pași −37.
+- ⚠️ **Mage Staff are acum TREI sunete pe tragere** (`mage_shoot` la plecare, `enemy_hit` + explozia la sosire). De-aia explozia nu e mai tare — dacă ți se pare aglomerat, ea e prima care se dă mai jos, din `bullet.gd::_play_boom`.
+- Sunetul **merge cu animația, nu cu explozia**: câmp nou `explosion_sound` pe glonț, pereche cu `explosion_frames`, pus de `player.gd` doar la mage. Jean's Bomb pe pistol n-are nici poză, nici sunet — rămâne exact ca înainte.
+
+### Verificat rulând
+
+`tool_mage_impact.tscn` (**cu fereastră**, headless nu desenează): încarcă arta prin același tipar ca `player.gd`, probează că sunt 4 cadre toate 32×32, că `mage_impact` chiar e în `Audio.SFX` și se încarcă (0,240 s), apoi aprinde opt explozii pe un cerc, fiecare trasă spre exterior — în captură toate opt împroașcă înapoi spre centru, deci rotația se aplică. Pe rândul de jos, patru explozii pornite decalat cu exact un cadru, ca să se vadă stadiile una lângă alta. Separat, cu player-ul ADEVĂRAT instanțiat: `_mage_impact_frames` = 4 cadre, iar glonțul tras iese cu `explosion_sound = "mage_impact"` și raza 110.
+
+---
+
 ## Session log — 2026-08-28 (fântânile Ender au harta lor și nu se mai nasc sub ochii tăi)
 
 **Cerut de Răzvan:** „Vreau ca portalul de Ender sa nu se spawneze fix in locul celor de Nether, vreau sa se spawneze separat dupa ce iesi din Nether dar sa nu intre in campul vizual al Player-ului de la portalul la care a iesit."

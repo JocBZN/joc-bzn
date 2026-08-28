@@ -225,7 +225,7 @@ func _seteaza_cadenta() -> void:
 	for i in arme_secundare.size():
 		_timere_secundare[i].wait_time = _interval_secundar(arme_secundare[i])
 var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol/mage)
-var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
+var _mage_impact_frames: SpriteFrames  # izbucnirea galbenă de la impact (mage staff)
 var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 @export var muzzle_scale: float = 1.2
 # Diametrul sferei mage pe ecran, în pixeli. Glonțul are scale 0.1 în bullet.tscn,
@@ -454,7 +454,9 @@ func _ready() -> void:
 	# din magazin — altfel cine are Speed-ul maxat ar începe cu bonusul deja pe jumătate dat.
 	_speed_base = speed
 	_muzzle_frames = _load_fx_frames("res://fx/muzzle", 26.0, false)
-	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
+	# 18 fps × 4 cadre = 0,22 s. Scurt dinadins: se aprinde la fiecare glonț, iar o explozie care
+	# ține cât cea veche (10 cadre, 0,42 s) ar sta două trageri pe ecran la cadență mare.
+	_mage_impact_frames = _load_fx_frames("res://fx/mage_impact", 18.0, false)
 	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
 	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (12 cadre)
 	# lama coasei: o singură poză, aceeași pe care o aruncă Celesto (n-are cadre, se rotește)
@@ -1112,7 +1114,8 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.target = tinta
 	bullet.homing_turn = aimbot_turn()
 	if weapon_type == "mage":
-		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact
+		bullet.explosion_frames = _mage_impact_frames  # izbucnirea galbenă la impact
+		bullet.explosion_sound = "mage_impact"        # ...cu bubuitura ei (vezi `_play_boom` din bullet.gd)
 		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
 	elif weapon_type == "knife":
 		_make_knife(bullet)                          # proiectil = cuțitul, învârtindu-se în zbor
@@ -1801,7 +1804,7 @@ func _make_mage_orb(bullet: Node) -> void:
 	orb.sprite_frames = _mage_orb_frames
 	orb.animation = "fx"
 	orb.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	orb.modulate = Color(0.72, 0.45, 1.0)  # filtru mov ca să semene cu explozia mage_boom
+	orb.modulate = Color(0.72, 0.45, 1.0)  # filtru mov; sfera a rămas movă, explozia de la impact e galbenă
 	# Sfera e copil al glonțului, deci moștenește scale-ul lui (0.1). Împărțim la el
 	# ca `mage_orb_size` să însemne chiar pixeli pe ecran, nu pixeli × 0.1.
 	var fw := _mage_orb_frames.get_frame_texture("fx", 0).get_width()
