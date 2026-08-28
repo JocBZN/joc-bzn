@@ -224,17 +224,15 @@ func _seteaza_cadenta() -> void:
 	# `_interval_secundar`) — deci un upgrade de cadență le grăbește pe toate deodată
 	for i in arme_secundare.size():
 		_timere_secundare[i].wait_time = _interval_secundar(arme_secundare[i])
-var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol; mage are efectul lui, mai jos)
-var _mage_attack_frames: SpriteFrames  # izbucnirea galbenă din vârful toiagului (atacul mage)
+var _muzzle_frames: SpriteFrames     # fulger la țeavă (pistol și mage)
+var _mage_attack_frames: SpriteFrames  # izbucnirea galbenă = PROIECTILUL mage (a înlocuit sfera movă)
 var _mage_boom_frames: SpriteFrames  # explozie violet la impact (mage staff)
-var _mage_orb_frames: SpriteFrames   # sfera magică (proiectilul mage)
 @export var muzzle_scale: float = 1.2
-# Cât de lată e izbucnirea de atac a mage-ului pe ecran. Arta e 32×32, ca fulgerul de pistol, dar
-# toiagul lovește AOE și merită să se citească puțin mai mare: 1.4 → ~45 px (fulgerul are ~38).
-@export var mage_attack_scale: float = 1.4
-# Diametrul sferei mage pe ecran, în pixeli. Glonțul are scale 0.1 în bullet.tscn,
-# așa că sfera trebuie să compenseze scara părintelui (vezi _make_mage_orb).
-@export var mage_orb_size: float = 35.0
+# Cât e de lat proiectilul mage pe ecran, în pixeli. Glonțul are scale 0.1 în bullet.tscn, așa că
+# sprite-ul trebuie să compenseze scara părintelui (vezi `_make_mage_projectile`). Rămâne 35, cât
+# avea sfera movă: arta nouă e 32×32 în loc de 64×64, dar mărimea se calculează din lățimea
+# cadrului, nu din fișier, deci proiectilul se vede exact cât înainte.
+@export var mage_attack_size: float = 35.0
 
 # --- Cursed Sword: taie automat în direcția în care se uită player-ul ---
 #
@@ -355,7 +353,7 @@ func luck_bonus() -> float:
 # a trecut pe mărime de ARMĂ, procentual); rămâne ca reglaj de bază din inspector.
 @export var bullet_scale: float = 1.0
 # --- mărimea ARMEI (sprite + hitbox), comună tuturor armelor ---
-# Pistol/Mage: mărește glonțul (și sfera mage, fiind copil al lui) — dar PLAFONAT, vezi
+# Pistol/Mage: mărește glonțul (și proiectilul mage, fiind copil al lui) — dar PLAFONAT, vezi
 # `BULLET_SIZE_CAP`. Sabie: tăietura. Coasă: lama și raza cercului. Toate: dârele de foc/gheață.
 const BULLET_BASE_PX := 27.0               # cât are glonțul de bază pe ecran (193px × 1.4 sprite × 0.1 root)
 # Pixeli adăugați la mărimea armei. Niciun upgrade nu-l mai folosește de pe 2026-08-15
@@ -458,12 +456,10 @@ func _ready() -> void:
 	# din magazin — altfel cine are Speed-ul maxat ar începe cu bonusul deja pe jumătate dat.
 	_speed_base = speed
 	_muzzle_frames = _load_fx_frames("res://fx/muzzle", 26.0, false)
-	# Izbucnirea de la vârful toiagului, la fiecare tragere de Mage Staff. 18 fps × 4 cadre = 0,22 s:
-	# se stinge exact odată cu sunetul (240 ms) și e gata cu mult înainte de tragerea următoare
-	# (0,50 s). Mai lentă ar însemna două izbucniri suprapuse pe ecran la Attack Speed mare.
-	_mage_attack_frames = _load_fx_frames("res://fx/mage_attack", 18.0, false)
+	# Proiectilul Mage Staff-ului: izbucnirea galbenă, în BUCLĂ (`loop = true`) — trebuie să pulseze
+	# cât zboară, nu să se stingă la jumătatea drumului. 18 fps × 4 cadre = un ciclu de 0,22 s.
+	_mage_attack_frames = _load_fx_frames("res://fx/mage_attack", 18.0, true)
 	_mage_boom_frames = _load_fx_frames("res://fx/mage_boom", 24.0, false)
-	_mage_orb_frames = _load_fx_frames("res://fx/mage_orb", 18.0, true)  # loop = proiectil continuu
 	_sword_frames = _load_fx_frames("res://fx/cursed sword fx", 22.0, false)  # animația de tăiere (12 cadre)
 	# lama coasei: o singură poză, aceeași pe care o aruncă Celesto (n-are cadre, se rotește)
 	if ResourceLoader.exists(SCYTHE_ART):
@@ -1056,11 +1052,10 @@ func _fire_bullets() -> void:
 		Audio.play("sword", -9.0)   # șuieratul de lamă al săbiei; un cuțit aruncat nu bubuie
 	else:
 		Audio.play("shoot", -12.5)
-	# Efectul de la tragere e al armelor de FOC. Cuțitul nu are țeavă — se aruncă din mână.
-	# Mage-ul are izbucnirea lui galbenă; pistolul rămâne pe fulgerul comun de la țeavă.
-	if weapon_type == "mage":
-		_mage_attack_fx(global_position + dir * 34.0, dir)
-	elif weapon_type != "knife":
+	# Fulgerul la țeavă e al armelor de FOC. Cuțitul nu are țeavă — se aruncă din mână.
+	# Mage-ul îl folosește la fel ca pistolul: izbucnirea lui galbenă e PROIECTILUL, nu ceva
+	# aprins lângă personaj (cerut de Răzvan pe 2026-08-28: „ba nu lângă caracter").
+	if weapon_type != "knife":
 		_muzzle(global_position + dir * 34.0, dir)
 	# damage-ul acestei salve, cu procentele care depind de starea de acum (Theo's / Cigarette / Diesel)
 	var dmg_base := int(round(bullet_damage * damage_mult()))
@@ -1130,10 +1125,10 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 	bullet.homing_turn = aimbot_turn()
 	if weapon_type == "mage":
 		bullet.explosion_frames = _mage_boom_frames  # explozie violet la impact (arta ei se schimbă separat)
-		_make_mage_orb(bullet)                       # proiectil = sferă magică animată
+		_make_mage_projectile(bullet)                # proiectil = izbucnirea galbenă, orientată pe zbor
 	elif weapon_type == "knife":
 		_make_knife(bullet)                          # proiectil = cuțitul, învârtindu-se în zbor
-	# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus sfera mage
+	# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus proiectilul mage
 	bullet.scale *= bullet_size_scale()   # cu plafonul armei: pistol 100%, mage 250%
 	bullet.set_direction(dir)
 	return is_crit
@@ -1739,7 +1734,7 @@ func _spawn_sword_slash(dir: Vector2) -> AnimatedSprite2D:
 	a.animation_finished.connect(a.queue_free)
 	return a
 
-# --- efecte animate din gigapack (muzzle / explozie mage / sferă mage) ---
+# --- efecte animate din gigapack (muzzle / explozie mage / proiectil mage) ---
 # Încarcă frame_0.png, frame_1.png ... dintr-un folder, într-o animație numită "fx".
 func _load_fx_frames(dir: String, fps: float, loop: bool) -> SpriteFrames:
 	var sf := SpriteFrames.new()
@@ -1777,30 +1772,9 @@ func _muzzle(pos: Vector2, dir: Vector2) -> void:
 	else:
 		Fx.muzzle(pos)
 
-# Atacul Mage Staff-ului: izbucnirea galbenă din vârful toiagului, în locul fulgerului de pistol.
-# Toiagul e singura armă de foc care are efect propriu la tragere; pistolul rămâne pe `_muzzle`.
-#
-# ⚠️ ARTA E ORIENTATĂ, nu e un cerc: are miezul plin în față și limbile aruncate în spate. De-aia
-# primește `dir.angle()` — adică +x al desenului = încotro pleacă glonțul. Fără rotația asta,
-# toate izbucnirile ar împroșca spre dreapta, oricât te-ai învârti.
-#
-# Peste rotație punem o clătinare mică, la întâmplare. Fără ea, două trageri spre același inamic
-# lasă EXACT aceeași ștampilă pe ecran, iar la două lovituri pe secundă se vede imediat că e o
-# buclă de patru cadre. Cu ea, ochiul citește „încă o explozie", nu „aceeași poză iar".
-const MAGE_ATTACK_JITTER := 0.10   # radiani (±6°); atât cât să rupă tiparul, nu cât să pară strâmb
-
-func _mage_attack_fx(pos: Vector2, dir: Vector2) -> void:
-	# Dacă arta nu e importată, cade înapoi pe fulgerul de pistol — mai bine ceva decât nimic.
-	if _mage_attack_frames == null or _mage_attack_frames.get_frame_count("fx") == 0:
-		_muzzle(pos, dir)
-		return
-	var rot := dir.angle() + randf_range(-MAGE_ATTACK_JITTER, MAGE_ATTACK_JITTER)
-	_play_effect(_mage_attack_frames, pos, mage_attack_scale, 60, rot)
-
-# Înlocuiește vizualul glonțului mage cu sfera magică animată (loop).
 # THROWING KNIFE: proiectilul e chiar iconița armei, care se rotește în zbor.
 #
-# Nu e o scenă nouă de glonț, ci același `bullet.tscn` cu altă poză pe `Sprite2D` — exact ca sfera
+# Nu e o scenă nouă de glonț, ci același `bullet.tscn` cu altă poză pe `Sprite2D` — exact ca proiectilul
 # mage. Așa cuțitul primește pe gratis tot ce știe glonțul: străpungere, ricoșeu, urmărire,
 # Thunder God, explozia lui Jean's Bomb. O scenă separată ar fi însemnat un al doilea loc de
 # ținut la zi la fiecare item nou.
@@ -1821,31 +1795,44 @@ func _make_knife(bullet: Node) -> void:
 	spr.texture = tex
 	spr.rotation = 0.0
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	# Ca la sfera mage: sprite-ul e copil al glonțului (scale 0.1), deci împărțim la scara
+	# Ca la proiectilul mage: sprite-ul e copil al glonțului (scale 0.1), deci împărțim la scara
 	# părintelui ca `knife_size` să însemne chiar pixeli pe ecran.
 	var parent_scale: float = max(bullet.scale.x, 0.001)
 	spr.scale = Vector2.ONE * (knife_size / float(max(tex.get_width(), 1))) / parent_scale
 	bullet.spin = knife_spin
 
-func _make_mage_orb(bullet: Node) -> void:
-	if _mage_orb_frames == null or _mage_orb_frames.get_frame_count("fx") == 0:
-		bullet.modulate = Color(0.7, 0.5, 1.0)  # fallback mov dacă sfera nu e importată
+# Proiectilul Mage Staff-ului: izbucnirea galbenă a lui Răzvan, care zboară spre inamic.
+#
+# ⚠️ ARTA E ORIENTATĂ: are miezul plin în față și limbile aruncate în spate — exact ce-ți trebuie
+# la un proiectil, cu condiția s-o întorci pe direcția de zbor. Nodul-glonț se rotește singur cu
+# `direction.angle() + PI/2` (vezi `bullet.gd::set_direction`, iar homing-ul o reîmprospătează la
+# fiecare cadru), iar sprite-ul e COPILUL lui, deci moștenește rotația aia. Îi dăm `-PI/2` al lui
+# ca rotația în lume să iasă fix `direction.angle()`: limbile rămân în urmă oricât ar vira glonțul.
+# Fără corecția asta, izbucnirea ar zbura întoarsă cu 90° pe toată cursa.
+#
+# Sfera movă de dinainte era simetrică, deci n-avea nevoie de nimic din toate astea.
+func _make_mage_projectile(bullet: Node) -> void:
+	if _mage_attack_frames == null or _mage_attack_frames.get_frame_count("fx") == 0:
+		bullet.modulate = Color(1.0, 0.78, 0.3)  # fallback galben dacă arta nu e importată
 		return
 	var spr = bullet.get_node_or_null("Sprite2D")
 	if spr != null:
 		spr.visible = false  # ascundem glonțul normal
-	var orb := AnimatedSprite2D.new()
-	orb.sprite_frames = _mage_orb_frames
-	orb.animation = "fx"
-	orb.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	orb.modulate = Color(0.72, 0.45, 1.0)  # filtru mov ca să semene cu explozia mage_boom
-	# Sfera e copil al glonțului, deci moștenește scale-ul lui (0.1). Împărțim la el
-	# ca `mage_orb_size` să însemne chiar pixeli pe ecran, nu pixeli × 0.1.
-	var fw := _mage_orb_frames.get_frame_texture("fx", 0).get_width()
+	var bolt := AnimatedSprite2D.new()
+	bolt.sprite_frames = _mage_attack_frames
+	bolt.animation = "fx"
+	bolt.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	bolt.rotation = -PI / 2.0   # anulează rotația nodului-glonț; vezi comentariul de mai sus
+	# Proiectilul e copil al glonțului, deci moștenește scale-ul lui (0.1). Împărțim la el
+	# ca `mage_attack_size` să însemne chiar pixeli pe ecran, nu pixeli × 0.1.
+	var fw := _mage_attack_frames.get_frame_texture("fx", 0).get_width()
 	var parent_scale: float = max(bullet.scale.x, 0.001)
-	orb.scale = Vector2.ONE * (mage_orb_size / float(max(fw, 1))) / parent_scale
-	bullet.add_child(orb)
-	orb.play("fx")
+	bolt.scale = Vector2.ONE * (mage_attack_size / float(max(fw, 1))) / parent_scale
+	bullet.add_child(bolt)
+	bolt.play("fx")
+	# Pornit de la un cadru ALES LA ÎNTÂMPLARE: altfel toate gloanțele unei salve pulsează la
+	# unison și în loc de patru proiectile se vede un singur bloc care clipește.
+	bolt.frame = randi() % _mage_attack_frames.get_frame_count("fx")
 
 func _nearest_enemy() -> Node2D:
 	var nearest: Node2D = null

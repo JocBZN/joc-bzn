@@ -912,7 +912,7 @@ func _apply(id: String, p) -> void:
 			p.knockback += 250.0
 		"pufferfish":
 			# arma se umflă cu 10% peste mărimea curentă: sprite ȘI hitbox
-			# (glonț / sferă mage / tăietură / lama coasei). Se compune la fiecare luare.
+			# (glonț / proiectil mage / tăietură / lama coasei). Se compune la fiecare luare.
 			p.weapon_size_mult *= 1.10
 		"burger":
 			# arma crește cu 30% peste mărimea curentă (se compune dacă îl iei de mai multe ori)
