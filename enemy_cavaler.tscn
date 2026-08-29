@@ -1,0 +1,25 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://ddgmjeb7k2ayu" path="res://enemy.gd" id="1_script"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_cavaler"]
+radius = 16.0
+
+[node name="EnemyCavaler" type="CharacterBody2D"]
+scale = Vector2(1.8, 1.8)
+collision_layer = 4
+script = ExtResource("1_script")
+speed = 150.0
+max_hp = 160
+damage_mult = 1.4
+xp_drop_mult = 2.5
+frames_dir = "res://harta/castle/castle enemies/frames"
+frames_count = 8
+frames_fps = 10.0
+stop_dist = 55.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_cavaler")

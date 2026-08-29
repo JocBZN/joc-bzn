@@ -68,9 +68,12 @@ const ROOT_NODES := ["Paths"]
 
 var active := false
 
-# Cât de îngroșați sunt inamicii de aici. Cerut de Răzvan: „folosește enemy-ii care există deja,
-# doar fă-i mai OP deocamdată". Îl citește `spawner.gd` și îl pune pe `enemy.gd::power_mult`
+# Cât de îngroșat e inamicul de aici. Îl citește `spawner.gd` și îl pune pe `enemy.gd::power_mult`
 # ÎNAINTE de `add_child` (acolo se coace viața), plus un plus de viteză.
+#
+# ⚠️ De pe 2026-08-29 castelul are UN SINGUR fel de inamic, CAVALERUL (`enemy_cavaler.tscn`) —
+# lista veche cu toate felurile din joc a dispărut din `spawner.gd`. Multiplicatorii de mai jos
+# se aplică peste cifrele LUI, nu peste o medie de șase feluri.
 #
 # ⚠️ CIFRELE ASTEA AU FOST TĂIATE pe 2026-08-17, după ce Răzvan a jucat-o: „se buguiește,
 # monstrul nu apare și mă bagă random în Limbo". Nu era un bug — MUREA în prima secundă și nu mai
@@ -78,8 +81,8 @@ var active := false
 #
 # 🔑 Ce l-a omorât e DAMAGE-UL, nu viața. Damage-ul de contact se plătește PER INAMIC LIPIT DE
 # TINE, la fiecare 0,5 s (`player._take_contact_damage`), și se înmulțește deja de două ori:
-# o dată cu `damage_mult` al felului (creatura Ender are 2.0, pompierul 2.0, SWAT 1.3) și o dată
-# cu `Difficulty.enemy_damage_mult()`, care la minutul la care ajungi în pușcărie e ~×2,5. Un al
+# o dată cu `damage_mult` al felului (cavalerul are 1.4) și o dată cu
+# `Difficulty.enemy_damage_mult()`, care la minutul la care ajungi în castel e ~×2,5. Un al
 # treilea multiplicator de la mine peste ele înmulțea, nu aduna: 5 × 2,5 × 2,0 × 1,6 = 40 de damage
 # per creatură, la fiecare jumătate de secundă. Cu cinci pe tine, 400/s dintr-o viață de ~150.
 #
@@ -87,9 +90,12 @@ var active := false
 # lăsăm în pace, fiindcă el e cel care se înmulțește cu numărul lor.
 # ⚠️ 1.25, nu 3.0 cum era la prima scriere. Viața în plus e cea care te omoară INDIRECT: la
 # minutul 8 inamicii au deja ×16,3 din dificultate, iar dacă nu-i mai poți curăța se adună pe
-# tine, iar damage-ul de contact se plătește per inamic. Îngroșarea adevărată a pușcăriei nu e
-# multiplicatorul ăsta, ci FAPTUL CĂ VIN TOATE FELURILE DEODATĂ: în lumea normală te bat mai ales
-# polițiști, aici îți vin SWAT, pompieri și creaturi de Ender în același val.
+# tine, iar damage-ul de contact se plătește per inamic.
+#
+# ⚠️ Îngroșarea adevărată a castelului n-a fost niciodată multiplicatorul ăsta. Până pe 2026-08-29
+# era FAPTUL CĂ VENEAU TOATE FELURILE DEODATĂ; acum e CAVALERUL însuși — 160 HP de bază (mai mult
+# decât SWAT-ul, 150) și damage 1.4, adică aproape media amestecului vechi (1,43). Dacă vreodată
+# castelul iese prea moale, cifra care trebuie mișcată e a LUI, în `enemy_cavaler.tscn`, nu asta.
 const ENEMY_POWER := 1.25       # de câte ori mai multă viață
 const ENEMY_SPEED := 1.10       # de câte ori mai iuți
 const ENEMY_DAMAGE := 1.0       # NU-l urca fără să măsori întâi cât încasezi pe secundă

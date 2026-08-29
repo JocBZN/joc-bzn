@@ -35,10 +35,20 @@ const ENEMY_SWAT := preload("res://enemy_swat.tscn")
 # `homeless directii/Firefighter/`.
 const ENEMY_FIREFIGHTER := preload("res://enemy_firefighter.tscn")
 
-# Ce curge în PUȘCĂRIE: toate felurile din joc, amestecate în părți egale. Nu sunt inamici noi —
-# sunt exact ăștia, doar îngroșați (vezi `prison.gd::ENEMY_POWER` și `_spawn_enemy` mai jos).
-# Dacă adaugi vreodată un inamic nou și vrei să apară și acolo, îl treci aici.
-const PRISON_FELURI := [ENEMY, ENEMY_SKINNY, ENEMY_SWAT, ENEMY_FIREFIGHTER, ENEMY_NETHER, ENEMY_ENDER]
+# Ce curge în CASTEL (a patra dimensiune): DOAR CAVALERUL, de pe 2026-08-29. Cerut de Răzvan:
+# „ăsta o să fie singurul inamic din dimensiunea castle în afară de boss".
+#
+# Până azi acolo se trăgeau la sorți, în părți egale, toate felurile din joc, îngroșate — o
+# soluție de așteptare („folosește enemy-ii care există deja, doar fă-i mai OP deocamdată",
+# 2026-08-17). Acum castelul își are inamicul lui desenat, deci lista a dispărut: în castel nu
+# mai intră nimic din lumea normală, din Nether sau din Ender.
+#
+# ⚠️ Cifrele de sub el (viață, viteză, damage) sunt așezate ca APĂSAREA castelului să rămână cam
+# ce era: unul singur, dar mai gras decât media amestecului vechi și cu damage-ul lui aproape de
+# media aceleia (1,4 față de 1,43). Vezi `enemy_cavaler.tscn` și comentariul de la
+# `prison.gd::ENEMY_POWER` pentru de ce damage-ul e cel care nu se umflă.
+# Arta e a lui Răzvan, pusă pe 2026-08-29 în `harta/castle/castle enemies/`.
+const ENEMY_CAVALER := preload("res://enemy_cavaler.tscn")
 
 @export var spawn_interval: float = 1.0   # pauza de bază între apariții (la secunda 0)
 @export var min_interval: float = 0.2     # cât de des poate porni un lot de spawn
@@ -415,13 +425,12 @@ func _distanta_spawn() -> float:
 # Întrebăm nodul din grupul „nether" (e `nether.gd`, un CanvasLayer din `main.tscn`) — el ține
 # atât `active`, cât și `escaped`. Dacă lipsește (o scenă de test fără el), rămân cei normali.
 func _scena_inamic() -> PackedScene:
-	# PUȘCĂRIA (a patra) n-are inamici desenați ai ei: cerut explicit — „folosește enemy-ii care
-	# există deja, doar fă-i mai OP deocamdată". Deci trage la sorți din TOATE felurile din joc,
-	# cu ponderi egale, iar îngroșarea o face `_spawn_enemy` (viață, viteză, damage).
-	# Se întreabă PRIMA: în pușcărie nu poți fi în altă dimensiune.
+	# CASTELUL (a patra) ÎȘI ARE inamicul lui de pe 2026-08-29: cavalerul, și numai el. Îngroșarea
+	# (viață, viteză, damage) tot `_spawn_enemy` o pune, peste cifrele din `enemy_cavaler.tscn`.
+	# Se întreabă PRIMA: în castel nu poți fi în altă dimensiune.
 	var pr := get_tree().get_first_node_in_group("prison")
 	if pr != null and pr.get("active") == true:
-		return PRISON_FELURI[randi() % PRISON_FELURI.size()]
+		return ENEMY_CAVALER
 	# Ender-ul (a treia dimensiune) ÎȘI ARE inamicii lui de pe 2026-08-04 (`enemy_ender.tscn`).
 	# Se întreabă primul: în Ender nu poți fi și în Nether.
 	var e := get_tree().get_first_node_in_group("ender")

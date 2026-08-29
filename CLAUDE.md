@@ -24,6 +24,75 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-29 (CAVALERUL: singurul inamic al castelului, 8 direcții din 6 desenate)
+
+**Cerut de Răzvan:** „ti-am facut un folder nou in folderul castle - se numeste castle enemies. [...] In folderul castle enemies sunt sprite-urile de la noul inamic care vreau sa se spawneze in castle dimension. Nu are directia de north-east, vreau sa ii faci tu mirror ca sa arate bine. Asta o sa fie singurul inamic din dimensiunea castle inafara de boss."
+
+### ⚠️ Ce lipsea de fapt: DOUĂ direcții, nu una
+
+În folder erau **șase** GIF-uri de mers (east, west, south, south-east, south-west, north), nu șapte. Lipseau **și `north-east`, și `north-west`** — deci „oglindește-mi north-east" nu se putea face literal: n-avea din ce, fiindcă perechea lui lipsea și ea. (Exact lecția din log-ul de pe 2026-07-27, la Grasu: *uită-te ÎNTÂI în folder ce lipsește, nu în mesaj*.)
+
+Am căutat GIF-ul lipsă și pe disc, în `Downloads` — acolo **există** un set complet de opt cu aceleași nume (`Idle_v3_walking_*`, 27 august), dar e **alt personaj**: războinicul cu coarne, negru-portocaliu (arta lui Saratalin). Nu se amestecă.
+
+**Ce am făcut până apare arta adevărată:** `north_east` e SUPLINIT din `north` (spatele curat), iar `north_west` e oglinda lui. Alegerea nu e la întâmplare — în foaia de rotații (`Idle_rotations_8dir.gif`) pozele de trei-sferturi-spate seamănă cu SPATELE, nu cu profilul; un profil de `east` pus pe o mișcare în sus-dreapta ar aluneca vizibil lateral, ca un crab. Se vede la ~25% din inamici (două octante din opt), deci contează, dar citește corect: un cavaler care urcă spre tine îți arată spatele oricum.
+
+**Când vine `Idle_v3_walking_north-east.gif`:** retai GIF-urile, **golește `SUPLINIRI` din `tool_mirror_cavaler.gd`**, rulează unealta (face singură `north_west` din el), apoi `tool_aliniaza_talpi` și `--import`. Două minute.
+
+### 🔑 Oglindirea: CURATĂ, fără recentrare — și de ce e invers decât la Grasu
+
+Înainte să scriu ceva, am măsurat: **`west` este hflip-ul EXACT, pixel cu pixel, al lui `east`** (md5 pe RGBA, toate cele 8 cadre), iar `south_west` la fel față de `south_east`. Adică generatorul lui Răzvan a desenat de mână doar jumătatea de est și a oglindit-o pe cealaltă. Deci metoda corectă e chiar aia, nu alta.
+
+`tool_mirror_grasu.gd` face altceva: **recentrează** după `flip_x()`, fiindcă acolo arta nu stătea în mijlocul pânzei și personajul sărea lateral la întoarcere. **Aici ar STRICA:** pânza e 88, mijlocul 43,5, iar `east` iese pe coloanele 32..55 — fix în centru. Diagonalele se sprijină INTENȚIONAT într-o parte (`south_east` 30..61, `south_west` 26..57, adică ±2 față de mijloc). O recentrare ar trage sprijinul înapoi în mijloc, ar rupe înclinarea desenatorului și ar face `south_west`-ul nostru diferit de cel livrat.
+
+De-aia `tool_mirror_cavaler.gd` (unealtă nouă) începe cu o **autoverificare**: reface cu metoda lui perechile pe care generatorul le-a livrat deja (`west` din `east`, `south_west` din `south_east`) și cere egalitate pixel cu pixel. Dacă pică, nu scrie nimic — arta s-a schimbat sub noi și metoda trebuie regândită. La rulare: *„west == flip(east) pe toate cele 8 cadre"*.
+
+### Restul lanțului de artă
+
+1. **Sufixul „ (1)" scos întâi** din toate cele 7 fișiere. `tool_taie_gifuri.ps1` ia direcția din COADA numelui, deci ar fi ieșit `south_east (1)`. Aceeași capcană ca la SWAT (2026-08-07).
+2. `tool_taie_gifuri.ps1` → 8 cadre × 7 fișiere. **Cadrele `run_8dir_*` se șterg** — `Idle_rotations_8dir.gif` e foaia de ROTAȚII, arbitrul de scară, nu o animație.
+3. `tool_mirror_cavaler.tscn` → suplinire + oglindire, 64 de cadre complete.
+4. **`tool_aliniaza_talpi.tscn`, RE-ȚINTIT** pe folderul nou (constantele de sus spun pe ce lucrează acum; ținta veche, Saratalin, e scrisă în comentariu). Tălpile veneau la 75/75/75/75/**77**/77/75/75 — diagonalele de sud cu 2 px mai jos, adică 3,6 px de săltat pe ecran la fiecare întoarcere. După: toate pe 80, pe pânză comună 96, „centru→talpă" **32,0 la toate opt**.
+5. `--headless --import` → 64 de `.import`.
+
+⚠️ **Arta se preîncarcă singură:** `preload_all.gd` scanează `res://harta` recursiv, iar folderul e înăuntru. N-a trebuit trecut nicăieri.
+
+### Cine e cavalerul, în cifre (`enemy_cavaler.tscn`)
+
+| | cavaler | de comparat |
+|---|---|---|
+| `speed` | **150** | polițist 120 · SWAT 160 · pompier 210 · Ender 380 |
+| `max_hp` | **160** | SWAT 150 · pompier 225 · Ender 50 |
+| `damage_mult` | **1.4** | media amestecului vechi din castel era **1,43** |
+| `xp_drop_mult` | **2.5** | media veche 2,0 (peste `XP_BONUS = 4` al dimensiunii) |
+| `scale` | **1.8** | silueta desenată e 45×61, cea mai lată din joc |
+| `stop_dist` | **55** | 45/2 × 1,8 + 15 (jumătate de player) = 55,5 |
+| `frames_fps` | **10** | 8 cadre = ciclu de 0,8 s, greu, ca un om în platoșă |
+
+🔑 **De ce cifrele astea și nu altele:** castelul trebuia să rămână cam la fel de apăsat ca înainte, cu un singur fel de inamic în loc de șase. Viața (160) e peste media amestecului vechi (91,7), fiindcă acum nu mai vin și polițiști de 30 HP printre ei. **Damage-ul l-am ținut la media veche dinadins** — el e cel care se înmulțește cu NUMĂRUL lor (se plătește per inamic lipit de tine, la fiecare 0,5 s) și tot el a fost cauza dezastrului din 2026-08-17, când castelul te omora în 1,4 secunde. Vezi comentariul lung de la `prison.gd::ENEMY_POWER`, rescris azi.
+
+⚠️ **`frames_fps = 10`, nu 5 cum zice GIF-ul.** GIF-urile vin exportate la 0,2 s pe cadru (5 fps) — e implicitul exportului, nu o intenție: la 5 fps ar fi mers ca într-un film mut. La 10 fps ciclul de 8 cadre e 0,8 s, adică ~60 px de pas la viteza 150 pentru o siluetă de 110 px pe ecran.
+
+### Legătura (`spawner.gd`, `prison.gd`)
+
+- **`PRISON_FELURI` a DISPĂRUT.** Era lista cu toate cele șase feluri din joc, trase la sorți în părți egale — soluția de așteptare din 2026-08-17 („folosește enemy-ii care există deja, doar fă-i mai OP deocamdată"). În locul ei, `_scena_inamic()` întoarce **`ENEMY_CAVALER`** cât timp grupul „prison" e aprins. În castel nu mai intră nimic din lumea normală, din Nether sau din Ender.
+- Îngroșarea rămâne unde era: `_ingroasa_pentru_puscarie()` pune `ENEMY_POWER` / `ENEMY_SPEED` / `ENEMY_DAMAGE` din `prison.gd` **peste** cifrele cavalerului, înainte de `add_child`.
+- **Vin cu el și cele două lucruri care întreabă spawner-ul:** valul de la intrare (`prison.gd::BURST`, 8 inamici, prin `naste_inamic_aici`) și **Limbo** (`limbo.gd::_scena_inamic()` deleagă spre spawner) — deci dacă mori în castel, în Limbo te așteaptă tot cavaleri. Amândouă au ieșit corect fără nicio linie în plus.
+- Comentariul de la `prison.gd::ENEMY_POWER` zicea că îngroșarea adevărată a dimensiunii e „FAPTUL CĂ VIN TOATE FELURILE DEODATĂ". **Nu mai e adevărat** — rescris: acum e cavalerul însuși, iar butonul de reglat e al lui, nu multiplicatorul.
+
+### ✅ Verificat rulând (patru scene de test, toate șterse după)
+
+1. **Cele 8 direcții pe o linie de pământ** — toate tălpile pe linie, niciuna cu 2 px mai jos. `north` și `north_east` ies identice (suplinirea), `north_west` e oglinda lor.
+2. **Care direcție e care** — pe cadre mărite ×10: `east` are ciocul coifului spre DREAPTA, `west` spre stânga, `south` are viziera, `north` are ceafa. Numele din GIF-uri sunt corecte, nu inversate.
+3. **În mișcare**: opt cavaleri porniți din opt puncte, la 260 px de un „player". Toți ajung, se opresc la **52,5–55** (`stop_dist = 55`) și fiecare afișează **exact direcția în care merge** — opt animații diferite, niciuna repetată, deci nimeni nu merge cu spatele.
+4. **Legătura, cu un castel fals aprins**: 400 din 400 de trageri la sorți = `enemy_cavaler.tscn`, iar cu el stins spawner-ul se întoarce la polițiști (263 / 89 / 48). Îngroșarea măsurată pe un cavaler: power 1.25, viteză 150 → **165**, damage 1.4.
+5. **Scara**, pe o captură cu tot ce se vede în joc unul lângă altul (player, polițist, Skinny, SWAT, pompier, creatura Ender, cavaler): e cel mai lat și cel mai înalt, dar nu iese din lume.
+
+### Rămas de făcut
+
+- **`Idle_v3_walking_north-east.gif`** — singurul lucru care lipsește. Vezi mai sus procedura de două minute.
+
+---
+
 ## Session log — 2026-08-28 (Mage Staff: izbucnirea galbenă E PROIECTILUL; sfera movă ștearsă, explozia recolorată)
 
 **Cerut de Răzvan**, în patru pași, fiindcă primele două oare am pus arta unde nu trebuia:

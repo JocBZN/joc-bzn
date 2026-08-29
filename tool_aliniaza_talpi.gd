@@ -27,8 +27,11 @@ extends Node
 # deci a doua rulare calculează deplasare 0 și scrie fișiere identice. Sursa adevărată rămân
 # GIF-urile de alături — oricând se poate lua de la capăt cu `tool_taie_gifuri.ps1`.
 
-const FOLDER := "res://harta/nether/Nether Boss/frames"
-const PREFIX := "walk"
+# ⚠️ SE RE-ȚINTEȘTE, nu se copiază: constantele de mai jos spun pe ce folder lucrează ACUM.
+# Ținte de până acum: `harta/nether/Nether Boss/frames` (Saratalin, 2026-08-27),
+# `harta/castle/castle enemies/frames` (cavalerul de castel, 2026-08-29 — ținta curentă).
+const FOLDER := "res://harta/castle/castle enemies/frames"
+const PREFIX := "run"
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 const CADRE := 8
 
