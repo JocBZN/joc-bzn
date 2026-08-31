@@ -24,6 +24,72 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-31 (conturul mov al lui Saratalin, desenat la rulare)
+
+**Cerut de Răzvan:** „fa i un outline mov de 1px lu saratalin".
+
+### Ce am făcut
+
+`contur_1px.gdshader` pus pe `AnimatedSprite2D` din `saratalin.tscn`, cu movul casei
+**`(0.72, 0.28, 1.0)`** — același ca la ștreangul lui (`tool_contur.gd`) și ca la foaia veche.
+Trei linii în scenă, zero fișiere de artă atinse.
+
+### 🔑 De ce shaderul și nu `tool_contur_foaie.gd`, care exact asta făcea pentru el
+
+Cel mai subțire contur care se poate **coace într-un PNG** e de 1 pixel DIN PNG, iar Saratalin se
+afișează la **scale 3.4** — deci „1px" copt ar ieși pe ecran un chenar de 3-4 px. Shaderul măsoară
+grosimea în pixeli de ECRAN (derivata lui UV), deci rămâne 1px oricât ar fi mărit sprite-ul și
+oricât ar zoom-a camera. Exact motivul pentru care Celesto (albastru), coasa și SIR JOHN erau deja
+pe el. Arta lui Răzvan rămâne neatinsă pe disc — se poate retăia oricând din GIF-uri fără să se
+piardă conturul, cum se întâmpla la varianta coaptă.
+
+### ⚠️ Verificat ÎNTÂI că e loc de contur în cadru
+
+Conturul se desenează ÎN AFARA siluetei, în marginea transparentă. Artă lipită de marginea
+cadrului = contur tăiat pe latura aia, iar asta nu se vede în cod, se vede doar în joc. Măsurat cu
+`ffmpeg -vf alphaextract,cropdetect` (vezi [[joc-bzn-run-verify]]): cadrele sunt 96×96, desenul ține
+x 24..70, y 17..79 → 17 px marjă în cel mai strâmt loc. E loc.
+
+### 🎭 Flash-ul, pulsul și stinsul vin gratis
+
+Toate stările lui trec prin `anim.modulate`: flash-ul alb la lovitură (`Color(5,5,5)`), pulsul mov
+din cinematica de la jumătate (`3.2, 0.8, 4.0`), stinsul de la moarte (`modulate:a → 0`). Shaderul
+duce `COLOR` din `vertex()` (varying `modulare`) și pe ramura conturului, deci inelul nu rămâne
+aprins pe un boss care s-a stins deja. Nimic de scris în `saratalin.gd`.
+
+### ✅ Unealtă nouă: `tool_saratalin_contur.gd/.tscn`
+
+Îl pune în lumea LUI (podea + atmosferă de Nether — pe cărămida roșie se judecă movul, nu pe iarbă),
+așteaptă coborârea din tavan (1,9 s), **pune jocul pe pauză** și face DOUĂ capturi din același cadru:
+una cu materialul și una cu `material = null`, adică arta curată.
+
+⚠️ Pauza nu e cosmetică: fără ea boss-ul continuă să lovească player-ul, iar o rulare mai lungă
+l-ar omorî — moartea scrie în leaderboard-ul REAL.
+
+🔑 **Proba care contează e DIFERENȚA celor două capturi, amplificată** (`ffmpeg blend=difference` +
+`eq=contrast=8`): iese conturul și NIMIC altceva. Tot restul ecranului — tufe, cărămizi, bara de
+boss — e identic pixel cu pixel. Ochiul ar fi ratat asta: în captura cu contur se vedea o linie
+violetă și lângă tufa din stânga-jos și era gata să dau vina pe shader; în diferență se vede că
+linia aia era acolo și înainte, deci nu e a noastră.
+
+### 🔎 Două lucruri prinse pe drum (nu erau în cerere)
+
+⚠️ **Prima variantă a uneltei l-a OMORÂT pe player.** Boss-ul lovește cât coboară, iar `gameover.gd`
+cheamă `add_score` + `bank_run_coins`, adică scrie în salvarea adevărată. Verificat imediat ce am
+văzut data fișierului schimbată: leaderboard-ul e curat (cel mai mic scor din top 10 e de **671 s**,
+deci runda falsă de 3 secunde a fost tăiată de plafon), dar fișierul chiar a fost rescris. Reparat:
+unealta umflă `player.max_hp`/`hp` la 999999 — sunt doar în RAM, nu se salvează nicăieri. Regula
+generală rămâne cea din capul fișierului: **orice unealtă care lasă un inamic lângă player trebuie
+să-l facă nemuritor sau să-i țină inamicii departe.**
+
+⚠️ **Corectat un număr din log-ul de mai jos** (Ender-ul mai luminos, azi): scrisesem „media
+ecranului 0.056 → 0.063 (+12%)", amestecând o măsurătoare de pe ALT cadru. Pe același cadru,
+singura comparație validă, e **0.056 → 0.064 (+14%)**. Între două rulări media sare singură între
+0.063 și 0.069, fiindcă nebuloasa și aurora se mișcă — de-aia `tool_ender_lumina.gd` are `VARIANTE`,
+ca să compare pe un singur cadru.
+
+---
+
 ## Session log — 2026-08-31 (CASTELUL, iar la capătul lanțului: porțile se aprind când cade Celesto)
 
 **Cerut de Răzvan:** „Vreau sa se spawneze Castle Dimension dupa ce termina playerul de batut pe Celesto si vreau sa aiba spawn rate la fel ca celelalte."
@@ -84,7 +150,7 @@ Comentariul de deasupra lui `_deschide_fantanile_ender` zicea negru pe alb „ce
 
 🔑 **Vinieta shaderului nu e doar cosmetică aici.** Inamicii intră pe ecran DIN MARGINI, iar creatura de Ender aleargă cu **380** (cea mai iute din joc). Fiecare zecime de vinietă e timp de reacție cumpărat înapoi. De-aia am coborât-o pe ea în loc să împing tintul și mai sus. Și tot aici: Ender-ul plătește **DOUĂ** viniete — a lui plus cea obișnuită din `atmosphere.gd` (0.55), pe care o are orice dimensiune.
 
-**Măsurat, nu din ochi:** aceeași scenă, cu valorile vechi forțate înapoi la rulare → media ecranului **0.056 → 0.063 (+12%)**, colțurile mult mai mult.
+**Măsurat, nu din ochi:** ACELAȘI CADRU, cu valorile vechi forțate înapoi la rulare → media ecranului **0.056 → 0.064 (+14%)**, colțurile mult mai mult. ⚠️ Neapărat același cadru: între două rulări media sare singură între 0.063 și 0.069 (nebuloasa și aurora se mișcă), deci o comparație între rulări n-ar fi dovedit nimic.
 
 ### 🧰 `tool_ender_lumina.gd/.tscn` (unealtă nouă)
 

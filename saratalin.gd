@@ -17,9 +17,21 @@ extends CharacterBody2D
 #
 # Ce era înainte: o singură foaie de 15 cadre (`Saratalin.png` + `Saratalin_contur.png`), o
 # creatură care PLUTEA, desenată doar din față și oglindită stânga/dreapta. Acum e un cavaler
-# care MERGE, deci îi trebuie cele 8 direcții. Conturul mov nu se mai generează cu
-# `tool_contur_foaie.gd` — arta nouă vine cu conturul ei desenat. (Ștreangul pe care-l aruncă
-# e alt fișier, `Saratalin Attack.png`, și a rămas neatins.)
+# care MERGE, deci îi trebuie cele 8 direcții. (Ștreangul pe care-l aruncă e alt fișier,
+# `Saratalin Attack.png`, și a rămas neatins.)
+#
+# ⚠️ CONTURUL MOV S-A ÎNTORS pe 2026-08-31 („fă-i un outline mov de 1px lu saratalin"), dar
+# ALTFEL decât la arta veche: nu mai e COPT în poze cu `tool_contur_foaie.gd`, ci desenat la
+# rulare de `contur_1px.gdshader`, pus pe `AnimatedSprite2D` din `saratalin.tscn` (mov
+# `(0.72, 0.28, 1.0)`, același ca la ștreang și ca la vechea foaie). De ce așa: boss-ul se
+# afișează la **scale 3.4**, deci cel mai subțire contur care se poate desena într-un PNG — 1
+# pixel din poză — ar ieși un chenar de 3-4 px pe ecran. Shaderul măsoară grosimea în pixeli de
+# ECRAN, deci rămâne 1px oricât l-am mări și oricât ar zoom-a camera. Același lucru ca la Celesto
+# (albastru) și la coasă. Arta lui Răzvan rămâne neatinsă pe disc.
+#
+# ⚠️ Conturul se desenează ÎN AFARA siluetei, în marginea transparentă a cadrului: cadrele sunt
+# 96×96, iar desenul ține x 24..70, y 17..79 — deci are loc. Dacă vreodată arta ajunge lipită de
+# marginea cadrului, conturul iese TĂIAT pe latura aia (vezi capul shaderului).
 
 const FRAME_DIR := "res://harta/nether/Nether Boss/frames/"
 # Numele animațiilor pe octanți (după unghi), ordinea 0=est apoi din 45° în 45° — ca la

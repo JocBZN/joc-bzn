@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tool_saratalin_contur.gd" id="1"]
+
+[node name="ToolSaratalinContur" type="Node"]
+script = ExtResource("1")

@@ -37,10 +37,12 @@ const DIM_TINT := {
 	# în Ender"). Nu în aceeași proporție pe toate canalele: roșul a urcat cel mai mult (+21%),
 	# albastrul aproape deloc (+5%). Dacă l-aș fi înmulțit pe tot cu același număr, albastrul ar fi
 	# ajuns la 1.34 și nebuloasa (deja albastră) s-ar fi lipit de vârful canalului — ar fi ieșit un
-	# ecran mai luminos, dar și mai albastru, adică exact ce nu ceruse. Așa, luminanța crește ~12%
+	# ecran mai luminos, dar și mai albastru, adică exact ce nu ceruse. Așa, luminanța crește ~14%
 	# și lumea rămâne rece, doar puțin mai puțin saturată — cum se întâmplă și cu lucrurile
-	# adevărate când le luminezi. Măsurat pe capturi (cu vinieta coborâtă odată cu el, vezi
-	# `ender_cosmic.gdshader`): media ecranului 0.056 → 0.063.
+	# adevărate când le luminezi. Măsurat pe ACELAȘI CADRU (cu vinieta coborâtă odată cu el, vezi
+	# `ender_cosmic.gdshader`): media ecranului 0.056 → 0.064. ⚠️ Comparația TREBUIE făcută pe același
+	# cadru (`VARIANTE` din `tool_ender_lumina.gd`): între două rulări, media sare singură între 0.063
+	# și 0.069, fiindcă nebuloasa și aurora se mișcă — o diferență de +14% se pierde în zgomotul ăla.
 	"ender": Color(0.82, 0.92, 1.18),
 	# PUȘCĂRIA: lumină rece de temniță, stinsă și ușor verzuie (mucegai pe piatră). Nu coborâm
 	# tare toate canalele — pavajul e deja închis, iar inamicii trebuie să rămână vizibili pe el.
