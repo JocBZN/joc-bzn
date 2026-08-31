@@ -24,6 +24,126 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-31 (laggul de late game: podeaua, nu gloata)
+
+**Cerut de Răzvan:** „In late game - gen dupa ce trec 9 minute sa zic in lumea normala incepe sa
+lagheze rau jocul. Vreau sa incerci sa vezi care este problema si daca ai cum sa optimizezi jocul."
+
+### Rezultatul, pe scurt
+
+Un cadru de minutul 9 cu 300 de inamici, la 1920×1080: **9,47 ms → 7,83 ms**, adică **106 → 128 fps**.
+Într-o rundă întreagă jucată în timp real, la minutul 9: **8,5 ms / 117 fps → 7,3 ms / 137 fps**, iar
+cel mai prost cadru din fiecare 15 secunde a coborât de la **30–36 ms la 19–25 ms**.
+
+O singură schimbare în joc: **cinci rânduri în `biome.gdshader`**. Restul sesiunii a fost măsurat.
+
+### 1. Ce NU era: o scurgere
+
+Prima ipoteză, cea evidentă, era că se adună ceva pe parcurs. `tool_profil_lung.gd` *(nou)* joacă
+runda ÎNTREAGĂ în timp real (11 minute, player nemuritor care se plimbă în cerc și își alege singur
+upgrade-urile) și tipărește la fiecare 15 secunde noduri, orfani, memorie, inamici, geme, gloanțe.
+
+De la **3:00 la 11:00 totul e plat**: noduri ~2900–3100, **orfani 0**, memoria abia se mișcă. Nimic
+nu se adună. În schimb s-a văzut altceva: **numărul de inamici atinge plafonul de 300 pe la minutul
+3 și nu mai coboară niciodată** — inamicii nu se șterg când rămân în urmă (`queue_free` apare în
+`enemy.gd` doar în tween-ul de moarte). Deci costul e al DENSITĂȚII, nu al vechimii rundei.
+
+🔑 **De ce Răzvan îl simte abia la 9 și nu la 3:** în rularea automată „player-ul" e slab și nu mai
+face față de la minutul 3. Un jucător adevărat ține gloata jos până când dificultatea îl întrece —
+adică pe la 8–10 minute. Plafonul de 300 se atinge când nu mai omori destul de repede, nu la o oră
+fixă.
+
+### 2. Cine plătește: ablație, nu ghicit
+
+`tool_profil_greu.gd` *(nou)* ține gloata FIXĂ la un număr (naște ce lipsește, șterge ce e în plus)
+și taie pe rând câte un sistem; diferența față de scenariul de bază e costul acelui sistem. Un
+profiler pe funcții nu se poate porni din linia de comandă, deci asta e metoda.
+
+Măsurat la 300 de inamici, minutul 9, 1920×1080, v-sync scos (cadru total 9,47 ms):
+
+| ce tai | cât se câștigă |
+|---|---|
+| **podeaua** | **1,93 ms** |
+| desenul inamicilor | 2,45 ms |
+| AI-ul inamicilor | 0,82 ms |
+| vinieta | 0,39 ms |
+| glow | 0,30 ms |
+| decor / HUD / arma / y-sort | sub 0,15 ms — zgomot |
+
+**Podeaua e UN nod** și costa mai mult decât tot AI-ul celor 300 de inamici la un loc.
+
+### 3. Optimizarea: `biome.gdshader`, bucla peste macro-celule
+
+Shaderul podelei desena deșertul uitându-se, pentru fiecare pixel, la macro-celula curentă **plus
+cele 8 vecine** — 9 hash-uri pe 32 de biți cu împărțiri și moduri pe întregi (cele mai lente
+operații de pe o placă video). La 1920×1080: **18,6 milioane de hash-uri pe cadru**.
+
+Argumentul care taie 8 din 9: un petic de deșert stă întotdeauna ÎNĂUNTRUL macro-celulei lui
+(`snap_axis` duce marginile cel mult până la 0 și `macro`, nu dincolo). Deci de dincolo de graniță
+nu poate ajunge mai aproape de tine decât granița însăși. Iar aportul lui e `1 - ss(0, blend_chunks,
+dist)`, adică **fix 0** de la `blend_chunks` încolo. Dacă ești mai departe de graniță decât
+`blend_chunks`, vecinul de dincolo contribuie cu zero **garantat**, iar `d = max(d, 0)` nu schimbă
+nimic. O macro-celulă are 20 de chunk-uri, banda de lângă graniță 1,5 → **92,5% din ecran face acum
+o singură trecere în loc de nouă.**
+
+**Podeaua: 1,93 ms → 0,15 ms.** De treisprezece ori mai ieftină.
+
+### 4. Verificat că nu s-a schimbat niciun pixel
+
+`tool_biome_identic.gd/.tscn` *(nou)*: golește ecranul de tot în afară de podea, o pune în 8 locuri
+din lume și o fotografiază de fiecare dată cu shaderul nou și cu cel vechi (scos din git în
+`biome_vechi.gdshader`), pe același cadru. **Toate 8 identice bit cu bit** (`cmp`).
+
+🔑 **Pozițiile nu sunt la întâmplare.** O macro-celulă are 10240 px, ecranul vreo 1920 — dacă
+fotografiai doar prin mijloc, N-AI FI VĂZUT NICIODATĂ o graniță, adică exact locurile unde
+optimizarea are voie să greșească. Jumătate din poziții sunt fix pe colțuri și pe muchii, plus
+coordonate negative și foarte mari.
+
+⚠️ **Și un MARTOR: a treia captură, tot cu shaderul nou.** Prima rulare zicea că 2 din 8 poziții
+diferă — părea că optimizarea strică pixeli. Martorul a arătat că acolo diferă și **două capturi
+făcute cu ACELAȘI shader**: camera încă aluneca spre poziția nouă, deci fiecare captură prindea altă
+bucată de lume. Cu player-ul înghețat și alunecarea camerei stinsă, toate 8 ies identice. Fără
+martor, aș fi dat vina pe schimbare și aș fi dat-o înapoi degeaba.
+
+### 5. O ipoteză testată și ARUNCATĂ (atlasul de sprite-uri)
+
+`enemy_frames.tres` are **48 de PNG-uri separate** (8 direcții × 6 cadre), și încă o dată atâtea
+pentru fiecare fel de polițist. Doi inamici vecini în sortarea pe Y au aproape sigur alt cadru, deci
+altă textură — și, într-adevăr, se numărau ~300 de draw call-uri la 300 de inamici. Concluzia
+firească: coace-le într-un atlas, ca desenatorul să le grupeze.
+
+Testat înainte de a coace ceva (partea D din `tool_profil_greu.gd`, la 600 de inamici ca să trecem
+de plafonul ecranului, cu AI-ul și arma oprite ca singura diferență să fie textura):
+**312 → 215 draw call-uri = 0,24 ms.** Nimic. Costul e per sprite, nu per lot.
+
+**Atlasul nu s-ar fi meritat** — ar fi însemnat planșe noi, `enemy_frames.tres` rescris pentru șase
+feluri de inamic și o reimportare, pentru un sfert de milisecundă. Măsurătoarea a costat 5 minute.
+
+### 6. Ce NU am făcut, dinadins
+
+- **Nu am șters inamicii rămași în urmă și nu am coborât plafonul de 300.** Ar aduce ~0,01 ms de
+  fiecare inamic scos (deci ~1 ms dacă plafonul ar coborî la 200), dar amândouă sunt schimbări de
+  JOC, nu optimizări: „gloata din spate dispare" și „vin mai puțini" se simt la fel de tare ca un
+  reglaj de dificultate. E decizia lui Răzvan, nu a mea.
+- **Nu am umblat în `enemy.gd`.** AI-ul întreg al celor 300 costă 0,82 ms; micro-optimizările de
+  acolo ar scoate poate 0,2, în cod de luptă care merge bine.
+- **Glow-ul și vinieta** (0,69 ms împreună) se pot stinge deja din Settings → GRAPHICS. Sunt reglaje
+  de jucător, nu ceva de tăiat din cod.
+
+### 🔎 O urmă lăsată și ștearsă
+
+O versiune intermediară a profilerului stingea v-sync-ul prin `GameSettings.set_vsync(false)` — care
+cheamă și `_save()`, adică scrie în `user://scores.save`. Rezultat: **i-a rămas lui Răzvan v-sync-ul
+stins în joc**, deși el nu ceruse asta. Exact capcana scrisă deja în regulile de sus („un test care
+schimbă ceva în `GameSettings` DOAR ÎN RAM poate ajunge în salvarea reală"), și tot am călcat în ea.
+Profilerul pune acum câmpul direct și cheamă el DisplayServer-ul, fără `_save`; setarea a fost pusă
+la loc pe `true` cu `tool_repara_vsync.gd/.tscn` *(nou)*. Leaderboard-ul și monedele n-au fost
+atinse (1168 octeți, aceiași).
+
+⚠️ Și încă una, la început: **un Godot rămas agățat din sesiunea trecută** (`tool_saratalin_contur`
+lăsase arborele pe pauză) ardea CPU în fundal și a otrăvit prima măsurătoare. Când o cifră arată
+ciudat, uită-te întâi ce mai rulează pe mașină: `Get-Process Godot*`.
+
 ## Session log — 2026-08-31 (conturul mov al lui Saratalin, desenat la rulare)
 
 **Cerut de Răzvan:** „fa i un outline mov de 1px lu saratalin".

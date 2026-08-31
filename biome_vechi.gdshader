@@ -1,5 +1,13 @@
 shader_type canvas_item;
 
+// ⚠️ COPIA DE DINAINTE DE OPTIMIZARE a lui `biome.gdshader` (2026-08-31). NU e folosită de joc:
+// singurul care o încarcă e `tool_biome_identic.gd`, care fotografiază podeaua cu shaderul nou
+// și cu ăsta, în același cadru, și verifică dacă ies pixel cu pixel la fel. E aici fiindcă o
+// unealtă nu poate încărca un fișier direct din istoricul git, iar verificarea trebuie să se
+// poată repeta oricând, nu doar în ziua în care s-a făcut schimbarea.
+// Dacă `biome.gdshader` se schimbă cu adevărat (alt aspect, nu doar mai repede), fișierul ăsta
+// trebuie împrospătat: `git show HEAD:biome.gdshader > biome_vechi.gdshader`.
+
 // Podea cu 2 biome: iarbă + deșert. Deșertul apare în PETICE PĂTRATE random (vezi biome_map.gd),
 // cu latura între min_size și max_size chunk-uri, plasate aleator prin lume. Margini soft (smootherstep).
 // IMPORTANT: matematica biomului de aici trebuie să fie IDENTICĂ cu cea din biome_map.gd.
@@ -88,31 +96,8 @@ void fragment() {
 	ivec2 base_macro = ivec2(floor(chunkf / float(macro)));
 	float d = 0.0;                                            // „deșert-ime": 0 = iarbă, 1 = deșert
 	// Ne uităm la macro-celula curentă + cele 8 vecine, ca marginile soft să se lege corect peste granițe.
-	//
-	// ⚠️ DAR NU LA TOATE NOUĂ (optimizat pe 2026-08-31). Bucla asta rula întreagă pe FIECARE PIXEL
-	// de pe ecran: la 1920×1080 înseamnă 18,6 milioane de hash-uri pe cadru, fiecare cu împărțiri
-	// și moduri pe întregi — cele mai lente operații de pe o placă video. Măsurat prin ablație
-	// (`tool_profil_greu.gd`, scenariul „fără PODEA"): 1,93 ms din cele 9,47 ale cadrului, adică
-	// mai mult decât AI-ul tuturor celor 300 de inamici la un loc.
-	//
-	// Ce se poate sări, fără să se schimbe NICIUN pixel: un petic de deșert stă întotdeauna
-	// ÎNĂUNTRUL macro-celulei lui (`snap_axis` duce marginile cel mult până la 0 și `macro`, nu
-	// dincolo). Deci cel mai aproape de noi poate ajunge un petic din celula vecină e chiar
-	// GRANIȚA dintre celule. Iar aportul unui petic e `1 - ss(0, blend_chunks, dist)`, care e fix
-	// 0 de la `blend_chunks` încolo. Dacă suntem mai departe de graniță decât `blend_chunks`,
-	// vecinul de dincolo de ea contribuie cu zero garantat — și `d = max(d, 0)` nu schimbă nimic.
-	//
-	// O macro-celulă are 20 de chunk-uri, banda de lângă graniță are 1,5 → 92,5% din ecran face
-	// acum O SINGURĂ trecere în loc de nouă. Ieșirea e identică pe bit, nu aproximată.
-	vec2 local = chunkf - vec2(base_macro) * float(macro);    // unde suntem în macro-celulă (chunk-uri)
-	bool vest = local.x < blend_chunks;
-	bool est = local.x > float(macro) - blend_chunks;
-	bool nord = local.y < blend_chunks;
-	bool sud = local.y > float(macro) - blend_chunks;
 	for (int dy = -1; dy <= 1; dy++) {
-		if ((dy < 0 && !nord) || (dy > 0 && !sud)) { continue; }
 		for (int dx = -1; dx <= 1; dx++) {
-			if ((dx < 0 && !vest) || (dx > 0 && !est)) { continue; }
 			ivec2 m = base_macro + ivec2(dx, dy);
 			uint h = hashu(m.x, m.y);
 			if ((h % 100u) < pct) {
