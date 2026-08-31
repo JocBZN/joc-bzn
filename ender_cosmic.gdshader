@@ -38,7 +38,12 @@ uniform vec3 nebula_a : source_color = vec3(0.42, 0.16, 0.75);    // violet
 uniform vec3 nebula_b : source_color = vec3(0.05, 0.55, 0.72);    // turcoaz
 uniform vec3 nebula_c : source_color = vec3(0.78, 0.24, 0.55);    // roz, doar în miezurile groase
 uniform vec3 vignette_color : source_color = vec3(0.01, 0.0, 0.05);
-uniform float vignette_strength : hint_range(0.0, 1.0) = 0.55;
+// Coborâtă pe 2026-08-31 de la 0.55, odată cu ridicarea lui `DIM_TINT["ender"]` din
+// `atmosphere.gd` (Răzvan: „puțin mai bright în Ender"). E vinieta PROPRIE a dimensiunii, peste
+// cea obișnuită din `atmosphere.gd` — două straturi de întuneric pe aceleași colțuri. Aici
+// contează și pentru joc, nu doar pentru aspect: inamicii intră pe ecran DIN MARGINI, iar
+// creatura de Ender vine cu 380 viteză, deci fiecare zecime de vinieta e timp de reacție.
+uniform float vignette_strength : hint_range(0.0, 1.0) = 0.44;
 uniform float star_density : hint_range(0.0, 2.0) = 1.0;
 uniform float nebula_strength : hint_range(0.0, 1.0) = 0.30;
 uniform float aurora_strength : hint_range(0.0, 1.0) = 0.10;

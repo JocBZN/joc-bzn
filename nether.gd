@@ -453,8 +453,9 @@ func _inchide_portalurile() -> void:
 #
 # ⚠️ De pe 2026-08-28 fântânile NU mai ies din locurile portalurilor și niciuna nu se naște în
 # câmpul tău vizual (cerut de Răzvan). Deci aici nu se mai vede niciun schimb: portalul tău intră
-# în pământ și atât. Ce le ține locul ca semnal e sunetul de teleportare de mai jos și bannerul
-# „A WELL RISES" — de-aia răsar exact atunci, nu mai devreme.
+# în pământ și atât. Singurul semnal rămas e bannerul „A WELL RISES" — de-aia răsar exact atunci,
+# nu mai devreme. (Sunetul de teleportare de la naștere a fost scos pe 2026-08-31; vezi
+# `_pune_fantanile`.)
 #
 # Nu le punem noi de mână, ci îi spunem generatorului de portaluri să treacă pe fântâni
 # (`portals.gd::treci_pe_ender`), dându-i locul din care te uiți, ca să lase golul în jurul lui.
@@ -482,7 +483,12 @@ func _pune_fantanile() -> void:
 	if portals == null or not portals.has_method("treci_pe_ender"):
 		return
 	portals.treci_pe_ender(_loc_iesire)
-	Audio.play("teleport", TELEPORT_DB, 0.0)
+	# ⚠️ FĂRĂ SUNET AICI (scos pe 2026-08-31, cerut de Răzvan: „când spawnezi portalele după
+	# nether să nu se mai audă sunetul de spawn"). Era un `Audio.play("teleport")`, pus pe vremea
+	# când fântâna răsărea sub picioarele tale și trebuia un semnal pentru schimbul care se vedea.
+	# De pe 2026-08-28 nu se mai vede nimic pe ecran în clipa asta, deci sunetul suna a teleport
+	# care nu s-a întâmplat — al treilea zgomot la 1,1 s după cutremurul portalului care se
+	# scufundă. Semnalul rămâne bannerul „A WELL RISES", care vine oricum (`_anunta_fantana`).
 	get_tree().create_timer(FANTANA_ANUNT).timeout.connect(_anunta_fantana)
 
 func _anunta_fantana() -> void:

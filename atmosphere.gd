@@ -33,7 +33,15 @@ const DIM_SHADERS := {
 const DIM_TINT := {
 	"": Color(1.0, 1.0, 1.0),
 	"nether": Color(1.05, 0.80, 0.72),
-	"ender": Color(0.68, 0.80, 1.12),
+	# ⚠️ Ridicat pe 2026-08-31 de la (0.68, 0.80, 1.12), cerut de Răzvan („să fie puțin mai bright
+	# în Ender"). Nu în aceeași proporție pe toate canalele: roșul a urcat cel mai mult (+21%),
+	# albastrul aproape deloc (+5%). Dacă l-aș fi înmulțit pe tot cu același număr, albastrul ar fi
+	# ajuns la 1.34 și nebuloasa (deja albastră) s-ar fi lipit de vârful canalului — ar fi ieșit un
+	# ecran mai luminos, dar și mai albastru, adică exact ce nu ceruse. Așa, luminanța crește ~12%
+	# și lumea rămâne rece, doar puțin mai puțin saturată — cum se întâmplă și cu lucrurile
+	# adevărate când le luminezi. Măsurat pe capturi (cu vinieta coborâtă odată cu el, vezi
+	# `ender_cosmic.gdshader`): media ecranului 0.056 → 0.063.
+	"ender": Color(0.82, 0.92, 1.18),
 	# PUȘCĂRIA: lumină rece de temniță, stinsă și ușor verzuie (mucegai pe piatră). Nu coborâm
 	# tare toate canalele — pavajul e deja închis, iar inamicii trebuie să rămână vizibili pe el.
 	# N-are shader propriu (nu i s-a cerut unul): doar culoarea + vinieta obișnuită.

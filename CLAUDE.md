@@ -24,6 +24,38 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-31 (fântânile Ender răsar în tăcere; Ender-ul, puțin mai luminos)
+
+**Cerut de Răzvan:** „Atunci cand spanwezi portalele dupa nether sa nu se mai auda sunetu de spawn." și „vreau Sa fie putin mai bright in Ender".
+
+### 🔇 Care sunet, mai exact — și de ce ăla era de prisos
+
+La ieșirea din Nether se aud, în ordine: **teleportarea** (`exit_nether`, în clipa în care apeși E), **cutremurul** portalului tău care intră în pământ (`_inchide_portalurile`), iar la **1,1 s** după — încă o dată **teleportarea**, din `_pune_fantanile`. Al doilea whoosh, la mai puțin de două secunde după primul, e cel scos azi.
+
+🔑 **N-a fost scos fiindcă „e un sunet în plus", ci fiindcă mințea.** Era pus pe vremea când fântâna răsărea FIX pe locul portalului, sub picioarele tale: sunetul ținea locul unui schimb care se vedea pe ecran. De pe **2026-08-28** niciuna nu se mai naște în câmpul tău vizual (`portals.gd::ferire_ecrane`), deci sunetul anunța o teleportare care nu se întâmpla nicăieri — auzeai „ceva s-a mutat" și nu se mișca nimic. Semnalul rămâne bannerul **„A WELL RISES"** (`_anunta_fantana`, la 4,5 s), care e și el mai potrivit: fântânile trebuie CĂUTATE acum.
+
+Comentariul de deasupra lui `_deschide_fantanile_ender` zicea negru pe alb „ce le ține locul ca semnal e sunetul de teleportare de mai jos" — rescris, altfel rămânea o notă care trimite la un cod care nu mai există.
+
+### 💡 Ender mai luminos: aceleași două butoane ca la Nether pe 2026-08-06
+
+`DIM_TINT["ender"]` **(0.68, 0.80, 1.12) → (0.82, 0.92, 1.18)** în `atmosphere.gd`, plus `vignette_strength` **0.55 → 0.44** în `ender_cosmic.gdshader`. Nicio altă dimensiune atinsă.
+
+🔑 **De ce NU l-am înmulțit pe tot cu 1.2.** Roșu +21%, verde +15%, albastru +5% — dinadins. Înmulțit egal, albastrul ar fi ajuns la 1.34 peste o podea care e deja o nebuloasă albastră: ar fi ieșit un ecran mai luminos ȘI mai albastru, adică fix pe lângă ce a cerut. Ridicat așa, luminanța crește iar imaginea se desaturează puțin — ce face lumina adevărată cu o culoare.
+
+🔑 **Vinieta shaderului nu e doar cosmetică aici.** Inamicii intră pe ecran DIN MARGINI, iar creatura de Ender aleargă cu **380** (cea mai iute din joc). Fiecare zecime de vinietă e timp de reacție cumpărat înapoi. De-aia am coborât-o pe ea în loc să împing tintul și mai sus. Și tot aici: Ender-ul plătește **DOUĂ** viniete — a lui plus cea obișnuită din `atmosphere.gd` (0.55), pe care o are orice dimensiune.
+
+**Măsurat, nu din ochi:** aceeași scenă, cu valorile vechi forțate înapoi la rulare → media ecranului **0.056 → 0.063 (+12%)**, colțurile mult mai mult.
+
+### 🧰 `tool_ender_lumina.gd/.tscn` (unealtă nouă)
+
+Pornește `main.tscn`, îmbracă lumea în hainele Ender-ului (exact cele trei apeluri pe care le face `ender.gd::enter()`), pune doi inamici de Ender lângă player, salvează captura și tipărește **luminanța medie**. Cu `VARIANTE` umplut, mătură mai multe reglaje **pe același cadru** — singurul mod cinstit de a compara două nuanțe de aproape-negru (nebuloasa se mișcă singură, deci două rulări nu sunt comparabile).
+
+⚠️ **NU trece prin `enter()` dinadins:** ar cere o fântână adevărată și ar porni cinematica lui Celesto, cu benzi negre și vinietă peste tot ecranul — adică exact ce n-ai voie să măsori.
+
+⚠️ **Inamicii primesc `damage_mult = 0`.** Prima versiune nu-l punea și, la a treia captură, player-ul era pe **20/100** — o rulare puțin mai lungă l-ar fi omorât, iar moartea scrie în leaderboard-ul REAL. Verificat după fiecare rulare: `scores.save` neatins (29 aug).
+
+---
+
 ## Session log — 2026-08-29 (CAVALERUL: singurul inamic al castelului, 8 direcții din 6 desenate)
 
 **Cerut de Răzvan:** „ti-am facut un folder nou in folderul castle - se numeste castle enemies. [...] In folderul castle enemies sunt sprite-urile de la noul inamic care vreau sa se spawneze in castle dimension. Nu are directia de north-east, vreau sa ii faci tu mirror ca sa arate bine. Asta o sa fie singurul inamic din dimensiunea castle inafara de boss."
