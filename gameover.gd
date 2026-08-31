@@ -28,7 +28,12 @@ extends CanvasLayer
 # marginea lui arde slab, roșu. Nu sunt animate separat: se calculează DIN rază, deci n-au cum să
 # iasă din sincron cu ea (vezi `_seteaza_raza`).
 
-const IRIS_SHADER := preload("res://moarte_iris.gdshader")
+# Cercul propriu-zis. De pe 2026-08-31 nu mai e scris aici: îl împarte cu INTRAREA în rundă
+# (`intro.gd`), care e aceeași animație rulată pe dos. Vezi `iris.gd` pentru de ce a fost scos.
+const IRIS := preload("res://iris.gd")
+
+# Inelul de pe marginea cercului arde în roșul de la „YOU DIED". Intrarea folosește cyan.
+const CULOARE_INEL := Color(0.60, 0.05, 0.07)
 
 # --- COREGRAFIA (secunde) ---
 const T_LOVITURA := 0.16     # cât stă lumea înghețată înainte să pornească cercul
@@ -60,10 +65,15 @@ var time_label: Label
 var level_label: Label
 var kills_label: Label
 
-var _mat: ShaderMaterial
+var _iris: ColorRect         # diafragma (`iris.gd`), împărțită cu intrarea în rundă
 var _center: CenterContainer
-var _raza_start := 1.2       # se recalculează la moarte, din poziția player-ului pe ecran
 var _pornit := false         # ca o a doua moarte în același cadru să nu pornească două cinematici
+
+# Raza de la care ecranul e întreg, de unde pleacă cercul. Trăiește în `iris.gd`; rămâne citibilă
+# de aici sub numele vechi ca `tool_moarte.gd` (testul cinematicii) să meargă neatins.
+var _raza_start: float:
+	get:
+		return _iris.raza_start if _iris != null else 1.2
 
 func _ready() -> void:
 	add_to_group("gameover_screen")
@@ -75,13 +85,9 @@ func _ready() -> void:
 	# desenează depinde de rază — la început nu se vede nimic din el, la sfârșit e negru complet.
 	# ⚠️ Se adaugă PRIMUL, ca textul de mai jos să se deseneze peste el. Shader-ul citește ecranul
 	# deja desenat, deci vede lumea și HUD-ul, dar nu și textul (care vine după) — exact ce vrem.
-	_mat = ShaderMaterial.new()
-	_mat.shader = IRIS_SHADER
-	var iris := ColorRect.new()
-	iris.material = _mat
-	iris.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	iris.mouse_filter = Control.MOUSE_FILTER_IGNORE   # altfel ar mânca clicurile butoanelor
-	add_child(iris)
+	_iris = IRIS.new()
+	_iris.culoare_inel = CULOARE_INEL
+	add_child(_iris)
 
 	_center = CenterContainer.new()
 	_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -162,26 +168,10 @@ func show_gameover(secunde: float, nivel: int) -> void:
 	get_tree().paused = true   # lumea îngheață aici și rămâne așa, sub cerc
 	_cinematica()
 
-# Pune cercul peste player și îi dă raza de la care nu se vede nimic negru.
+# Pune cercul peste player și îi dă raza de la care nu se vede nimic negru. Geometria e în
+# `iris.gd` (o împarte cu intrarea în rundă); aici rămâne doar „și pornim cu ecranul întreg".
 func _aseaza_cercul() -> void:
-	var vp := get_viewport().get_visible_rect().size
-	var centru := Vector2(0.5, 0.5)
-	var pl := get_tree().get_first_node_in_group("player")
-	if pl is Node2D and vp.x > 0.0 and vp.y > 0.0:
-		# poziția player-ului PE ECRAN (nu în lume): transformarea lui, prin cameră, în pixeli
-		centru = pl.get_global_transform_with_canvas().origin / vp
-	# dacă ar muri cumva în afara ecranului, cercul tot trebuie să rămână pe undeva pe aproape
-	centru.x = clampf(centru.x, -0.25, 1.25)
-	centru.y = clampf(centru.y, -0.25, 1.25)
-	var raport := Vector2(vp.x / maxf(vp.y, 1.0), 1.0)
-	# Raza de pornire = colțul cel mai DEPĂRTAT de player, plus o idee. Se calculează, nu e „2.0
-	# și gata": dacă mori într-un colț, colțul opus e la peste 1,2 înălțimi de ecran distanță.
-	_raza_start = 0.0
-	for colt in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 1)]:
-		_raza_start = maxf(_raza_start, ((colt - centru) * raport).length())
-	_raza_start += 0.02
-	_mat.set_shader_parameter("centru", centru)
-	_mat.set_shader_parameter("raport", raport)
+	_iris.aseaza_pe_player()
 	_seteaza_raza(_raza_start)
 
 # Cinematica, într-un SINGUR lanț de tween-uri. Sunetele sunt `tween_callback`-uri în același lanț,
@@ -200,15 +190,10 @@ func _cinematica() -> void:
 	tw.tween_callback(_arata_textul)
 
 # Un pas al animației. Culoarea care se scurge și inelul roșu se calculează DIN rază, nu din timp:
-# cât de închis e ecranul urmează exact cât de mic e cercul, în orice fază.
+# cât de închis e ecranul urmează exact cât de mic e cercul, în orice fază. Socoteala e în
+# `iris.gd`; aici rămâne numele vechi, fiindcă tot lanțul de tween-uri de mai sus îl cheamă.
 func _seteaza_raza(r: float) -> void:
-	_mat.set_shader_parameter("raza", r)
-	var p := clampf(1.0 - r / maxf(_raza_start, 0.001), 0.0, 1.0)
-	# `pow(p, 1.6)`: culoarea nu se scurge de la prima mișcare a cercului, ci pe măsură ce el chiar
-	# se strânge. Liniar, lumea se făcea gri în prima jumătate de secundă și restului nu-i mai
-	# rămânea unde să meargă.
-	_mat.set_shader_parameter("stins", pow(p, 1.6))
-	_mat.set_shader_parameter("rama", clampf(p * 1.3, 0.0, 1.0))
+	_iris.seteaza_raza(r)
 
 func _sunet_lovitura() -> void:
 	Audio.play_ex("death_hit", DB_HIT)

@@ -87,6 +87,13 @@ func _blocked() -> bool:
 	var boss = get_tree().get_first_node_in_group("saratalin")
 	if boss != null and boss.has_method("in_cinematic") and boss.in_cinematic():
 		return true
+	# ...și nici peste cele două secunde de la începutul rundei, cât se deschide diafragma
+	# (`intro.gd`). Același motiv ca la Saratalin: intrarea pune SINGURĂ jocul pe pauză și și-o ia
+	# înapoi la final. Dacă meniul s-ar deschide peste ea, închiderea lui ar da drumul lumii mai
+	# devreme — ai începe runda mișcându-te pe un ecran încă negru.
+	var intrare = get_tree().get_first_node_in_group("intro_screen")
+	if intrare != null and intrare.visible:
+		return true
 	return false
 
 func _open_menu() -> void:

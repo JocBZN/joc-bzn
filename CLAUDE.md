@@ -24,6 +24,114 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-31 (intrarea în rundă: moartea, rulată pe dos)
+
+**Cerut de Răzvan:** „Vreau sa faci atunci cand dai Start la joc sa fie o animatie ca aia de la
+moarte doar ca pe invers."
+
+### Ce se vede
+
+La moarte, o diafragmă se ÎNCHIDE peste tine: ultimul lucru pe care îl vezi ești tu, în mijloc,
+cu tot ce te-a omorât în jur. Acum, la începutul rundei, aceeași diafragmă se DESCHIDE de pe tine:
+0,45 s de negru, cercul se smucește de la zero (se vede numai capul tău), se lărgește încet, apoi
+lumea năvălește toată deodată. Două secunde fix, aceleași ca moartea, în ordine inversă.
+
+Culoarea se întoarce în imagine pe măsură ce cercul crește, iar inelul de pe margine arde **cyan**
+— exact cyanul barei de încărcare (`loading.gd::CYAN`), adică al ecranului de dinaintea rundei —
+în loc de roșul de la „YOU DIED".
+
+Rulează la ORICE intrare în rundă: START din meniu, dar și PLAY AGAIN de pe ecranul de Game Over.
+E o proprietate a rundei, nu a butonului.
+
+### 🔑 Decizia care contează: `iris.gd`, un singur cod pentru amândouă
+
+Varianta ușoară era să copiez în `intro.gd` geometria cercului și formula rază → culoare scursă →
+inel aprins. Ar fi mers din prima, și s-ar fi stricat la prima reglare a morții — fiindcă **cele
+două cinematici nu se văd niciodată una lângă alta**: una e la începutul rundei, cealaltă la
+sfârșitul ei. S-ar fi despărțit în tăcere și nimeni n-ar fi prins-o.
+
+Deci diafragma a fost scoasă din `gameover.gd` într-un `ColorRect` cu script propriu (`iris.gd`),
+pe care îl folosesc amândouă, iar `intro.gd` își citește TOȚI timpii și TOATE razele direct din
+constantele lui `gameover.gd` (`preload` + `MOARTE.T_TACERE` etc.). Dacă Răzvan reglează moartea,
+intrarea se mută singură după ea. Nu e o cifră scrisă de două ori nicăieri.
+
+### Coregrafia, oglindită fază cu fază
+
+| moartea | intrarea |
+|---|---|
+| 0,00 lovitura (lumea îngheață) | 2,00 **gata** — lumea pornește |
+| 0,16 înghițirea (CUBIC/EASE_OUT) | 1,04 **năvala** (CUBIC/EASE_**IN**) |
+| 0,96 strângerea (SINE) | 0,54 **respirația** (SINE) |
+| 1,46 închiderea (CUBIC/EASE_IN) | 0,45 **deschiderea** (CUBIC/EASE_**OUT**) |
+| 1,55 tăcerea, 0,45 s de negru | 0,00 **tăcerea**, 0,45 s de negru |
+
+Cele 0,45 s de negru de la început nu sunt doar dramă: sub ele se așază lumea care tocmai s-a
+încărcat, deci hopul de la primele cadre nu se mai vede.
+
+### Sunetul face același drum
+
+Muzica pornește **înfundată** (ușa închisă) și se deschide pe exact atâtea secunde cât face cercul
+drumul — `Audio.intro_inchide()` / `intro_deschide(T_CERC)`, oglinda lui `death_muffle(T_CERC)`,
+pe aceeași mecanică de filtru. Nu s-a adăugat niciun sunet nou: jingle-ul de început
+(`game_start`) și muzica erau deja pornite de `spawner.gd`, iar acum cad sub negru, ca un cartonaș
+de titlu.
+
+⚠️ `intro_inchide()` se cheamă din `call_deferred`, nu din `_ready`: `play_music()` (din
+`_ready`-ul spawner-ului) deschide filtrul instant, deci altfel ar fi contat unde stă nodul `Intro`
+în arbore și mutarea lui l-ar fi stricat în tăcere.
+
+### Lumea stă pe loc, ca la moarte
+
+`get_tree().paused = true` pe toată durata. De aici vin gratis două lucruri: **cronometrul rundei
+nu curge** cât nu vezi și nu poți face nimic (autoload-urile sunt pauzabile implicit), și inamicii
+nu se nasc peste tine în negru. Meniul de pauză e blocat cât ține cinematica, prin exact același
+tipar ca la cinematica lui Saratalin (`pause.gd::_blocked`, grupul `intro_screen`) — altfel
+închiderea meniului ar fi dat drumul lumii mai devreme și ai fi început runda mișcându-te pe negru.
+
+### Verificat prin rulare, în trei feluri
+
+1. **Mutarea diafragmei n-a schimbat niciun pixel din moarte.** `tool_iris_identic.gd/.tscn`
+   *(nou)* trece cercul prin 7 raze (alese ca să prindă și scurgerea culorii, și inelul aprins) și
+   fotografiază fiecare pas. Înainte și după mutare: **7 din 7 identice bit cu bit**, iar
+   `raza_start` iese aceeași cifră până la a șasea zecimală (1.039865). ⚠️ Unealta NU cheamă
+   `show_gameover()` — aia scrie în leaderboard-ul real.
+2. **Testul vechi al morții trece neatins.** `tool_moarte.gd` (scris pe 2026-08-23) n-a fost
+   modificat în niciun fel care să conteze — de-aia `gameover.gd` și-a păstrat numele
+   `_raza_start` și `_seteaza_raza`, acum simple delegări. Toate verificările trec.
+3. **Intrarea are testul ei.** `tool_intro.gd/.tscn` *(nou)*, 21 de verificări: negrul din primul
+   cadru, tăcerea, fiecare rază la fiecare fază, inelul, culoarea care se întoarce, pauza, ceasul
+   rundei, filtrul muzicii.
+
+### 🔎 Ce a prins testul — și n-aș fi văzut cu ochiul
+
+Prima variantă așeza cercul în `_ready`. Animația mergea, arăta bine, dar `tool_intro.gd` a raportat
+**`raza_start = 2.57` în loc de 1.04** — adică un centru împins tocmai în afara ecranului: în
+primele cadre camera nu-și luase încă locul, deci `get_global_transform_with_canvas()` întorcea o
+poziție fără sens, iar **cercul se deschidea din COLȚUL ecranului, nu de pe player**. Pe un ecran
+negru care se deschide, diferența e greu de prins cu ochiul liber, dar e chiar cerința: „pe invers"
+înseamnă că se deschide DE PE TINE. Reparat mutând așezarea la capătul celor 0,45 s de negru — când
+camera e de mult la locul ei, și când raza e oricum 0, deci nu se pierde nimic.
+
+Am adăugat apoi în test verificarea care lipsea (centrul cercului să cadă pe player) — acum
+2 zecimale, nu ochiometrie.
+
+### 🔎 Trei lucruri de spus cinstit
+
+- **O verificare din `tool_moarte.gd` pică din când în când, și nu din vina schimbării ăsteia.**
+  Vârful mixului de moarte, adus la slider-ul de efecte maxim, se plimbă între **−1,2 și 0,0 dBFS**
+  de la o rulare la alta (referința scrisă în README pe 2026-08-23 e −1,3), fiindcă se măsoară pe
+  `Master`, unde intră și muzica — și muzica e în alt punct al ei de fiecare dată. Deci mixul morții
+  stă la un decibel de tăiere, iar testul dă „picat" când nimerește prost. Nu l-am umblat: e o
+  reglare de sunet, nu ține de ce mi s-a cerut. Zi dacă vrei coborât.
+- **Testele morții i-au adăugat 6 monede** (212144 → 212150): `pl.die()` trece prin
+  `bank_run_coins()`, iar player-ul apucă să calce pe ceva în cele 2,5 secunde. Am pus fișierul
+  înapoi exact cum era; leaderboard-ul n-a fost atins (cel mai mic scor din top 10 e 671 s, deci
+  rundele false de o secundă cad oricum). Există acum `tool_arata_salvarea.gd/.tscn` *(nou)* care
+  tipărește ce e în salvare, fără să scrie nimic.
+- **`tool_moarte.gd` nu mai salva pozele de luni de zile:** `POZE` arăta spre scratchpad-ul unei
+  sesiuni Claude demult șterse (`551d4bf5-...`). Acum scrie în `user://`. Nu se plângea nimeni,
+  fiindcă n-avea cine.
+
 ## Session log — 2026-08-31 (laggul de late game: podeaua, nu gloata)
 
 **Cerut de Răzvan:** „In late game - gen dupa ce trec 9 minute sa zic in lumea normala incepe sa

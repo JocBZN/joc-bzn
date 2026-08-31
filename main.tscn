@@ -14,25 +14,26 @@
 [ext_resource type="Script" uid="uid://db54v5w8totxb" path="res://desert_structures.gd" id="13_desert"]
 [ext_resource type="Script" uid="uid://di3mvgfhw7dac" path="res://interact_ui.gd" id="14_interact"]
 [ext_resource type="Script" uid="uid://duywgyk0aubho" path="res://limbo.gd" id="15_limbo"]
-[ext_resource type="Script" path="res://pathways.gd" id="16_paths"]
-[ext_resource type="Script" path="res://portals.gd" id="18_portals"]
-[ext_resource type="Script" path="res://pause.gd" id="17_pause"]
-[ext_resource type="Script" path="res://nether.gd" id="19_nether"]
-[ext_resource type="Script" path="res://boss_bar.gd" id="20_bossbar"]
-[ext_resource type="Script" path="res://chests.gd" id="21_chests"]
-[ext_resource type="Script" path="res://egts.gd" id="22_egts"]
-[ext_resource type="Script" path="res://casino.gd" id="23_casino"]
-[ext_resource type="Script" path="res://ender.gd" id="24_ender"]
-[ext_resource type="Script" path="res://prison.gd" id="30_prison"]
-[ext_resource type="Script" path="res://monuments.gd" id="25_monuments"]
-[ext_resource type="Script" path="res://ender_statues.gd" id="26_ender_statues"]
-[ext_resource type="Script" path="res://trade.gd" id="27_trade"]
-[ext_resource type="Script" path="res://albas.gd" id="28_albas"]
-[ext_resource type="Script" path="res://alba_menu.gd" id="29_alba_menu"]
-[ext_resource type="Script" path="res://dubiosi.gd" id="30_dubiosi"]
-[ext_resource type="Script" path="res://dubios_menu.gd" id="31_dubios_menu"]
-[ext_resource type="Script" path="res://bushes.gd" id="32_bushes"]
-[ext_resource type="Script" path="res://prison_gates.gd" id="33_prison_gates"]
+[ext_resource type="Script" uid="uid://cgpv38cfrdcj0" path="res://pathways.gd" id="16_paths"]
+[ext_resource type="Script" uid="uid://hemv6iv15da4" path="res://pause.gd" id="17_pause"]
+[ext_resource type="Script" uid="uid://bdgixb7y1dohp" path="res://portals.gd" id="18_portals"]
+[ext_resource type="Script" uid="uid://rw75t2b3t0cc" path="res://nether.gd" id="19_nether"]
+[ext_resource type="Script" uid="uid://gg3at32fil0u" path="res://boss_bar.gd" id="20_bossbar"]
+[ext_resource type="Script" uid="uid://203n65sllwo" path="res://chests.gd" id="21_chests"]
+[ext_resource type="Script" uid="uid://dphrakhqkkqbi" path="res://egts.gd" id="22_egts"]
+[ext_resource type="Script" uid="uid://ohhapir2r7wn" path="res://casino.gd" id="23_casino"]
+[ext_resource type="Script" uid="uid://c6bdce62p1aie" path="res://ender.gd" id="24_ender"]
+[ext_resource type="Script" uid="uid://sdrcc1mj0nsh" path="res://monuments.gd" id="25_monuments"]
+[ext_resource type="Script" uid="uid://l2kfvrlnhjoq" path="res://ender_statues.gd" id="26_ender_statues"]
+[ext_resource type="Script" uid="uid://dqj8ft5e8hj6h" path="res://trade.gd" id="27_trade"]
+[ext_resource type="Script" uid="uid://dqf57a3wa2yet" path="res://albas.gd" id="28_albas"]
+[ext_resource type="Script" uid="uid://cq7vxfj8wscl" path="res://alba_menu.gd" id="29_alba_menu"]
+[ext_resource type="Script" uid="uid://daglpahg3fay8" path="res://dubiosi.gd" id="30_dubiosi"]
+[ext_resource type="Script" uid="uid://cgb61quppq7h7" path="res://prison.gd" id="30_prison"]
+[ext_resource type="Script" uid="uid://ri3s4305waob" path="res://dubios_menu.gd" id="31_dubios_menu"]
+[ext_resource type="Script" uid="uid://2w2r708whwe4" path="res://bushes.gd" id="32_bushes"]
+[ext_resource type="Script" uid="uid://1a43s6e7ah0u" path="res://prison_gates.gd" id="33_prison_gates"]
+[ext_resource type="Script" path="res://intro.gd" id="34_intro"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -68,7 +69,7 @@ hitbox_north = 0.8
 hitbox_south = -0.5
 sort_anchor = 0.8
 
-[node name="Bushes" type="Node2D" parent="World"]
+[node name="Bushes" type="Node2D" parent="World" unique_id=723403329]
 y_sort_enabled = true
 script = ExtResource("32_bushes")
 
@@ -84,7 +85,7 @@ script = ExtResource("12_statues")
 y_sort_enabled = true
 script = ExtResource("18_portals")
 
-[node name="PrisonGates" type="Node2D" parent="World"]
+[node name="PrisonGates" type="Node2D" parent="World" unique_id=1835334884]
 y_sort_enabled = true
 script = ExtResource("33_prison_gates")
 
@@ -96,11 +97,11 @@ script = ExtResource("21_chests")
 y_sort_enabled = true
 script = ExtResource("22_egts")
 
-[node name="AlbaNeagras" type="Node2D" parent="World"]
+[node name="AlbaNeagras" type="Node2D" parent="World" unique_id=1861616908]
 y_sort_enabled = true
 script = ExtResource("28_albas")
 
-[node name="Dubiosi" type="Node2D" parent="World"]
+[node name="Dubiosi" type="Node2D" parent="World" unique_id=887261103]
 y_sort_enabled = true
 script = ExtResource("30_dubiosi")
 
@@ -108,10 +109,10 @@ script = ExtResource("30_dubiosi")
 y_sort_enabled = true
 script = ExtResource("25_monuments")
 
-[node name="EnderStatues" type="Node2D" parent="World"]
+[node name="EnderStatues" type="Node2D" parent="World" unique_id=858126603]
+process_mode = 4
 visible = false
 y_sort_enabled = true
-process_mode = 4
 script = ExtResource("26_ender_statues")
 
 [node name="Player" parent="World" unique_id=129841357 instance=ExtResource("2_0xm2m")]
@@ -138,29 +139,32 @@ script = ExtResource("10_atmo")
 [node name="Limbo" type="CanvasLayer" parent="." unique_id=1141763660]
 script = ExtResource("15_limbo")
 
-[node name="Pause" type="CanvasLayer" parent="."]
+[node name="Pause" type="CanvasLayer" parent="." unique_id=1137227966]
 script = ExtResource("17_pause")
 
-[node name="Nether" type="CanvasLayer" parent="."]
+[node name="Nether" type="CanvasLayer" parent="." unique_id=2022091365]
 script = ExtResource("19_nether")
 
-[node name="Ender" type="CanvasLayer" parent="."]
+[node name="Ender" type="CanvasLayer" parent="." unique_id=1617058493]
 script = ExtResource("24_ender")
 
-[node name="Prison" type="CanvasLayer" parent="."]
+[node name="Prison" type="CanvasLayer" parent="." unique_id=484967943]
 script = ExtResource("30_prison")
 
-[node name="BossBar" type="CanvasLayer" parent="."]
+[node name="BossBar" type="CanvasLayer" parent="." unique_id=2013417959]
 script = ExtResource("20_bossbar")
 
-[node name="Casino" type="CanvasLayer" parent="."]
+[node name="Casino" type="CanvasLayer" parent="." unique_id=448928470]
 script = ExtResource("23_casino")
 
-[node name="Trade" type="CanvasLayer" parent="."]
+[node name="Trade" type="CanvasLayer" parent="." unique_id=834809790]
 script = ExtResource("27_trade")
 
-[node name="AlbaMenu" type="CanvasLayer" parent="."]
+[node name="AlbaMenu" type="CanvasLayer" parent="." unique_id=1233589815]
 script = ExtResource("29_alba_menu")
 
-[node name="DubiosMenu" type="CanvasLayer" parent="."]
+[node name="DubiosMenu" type="CanvasLayer" parent="." unique_id=1513782828]
 script = ExtResource("31_dubios_menu")
+
+[node name="Intro" type="CanvasLayer" parent="." unique_id=1204471703]
+script = ExtResource("34_intro")

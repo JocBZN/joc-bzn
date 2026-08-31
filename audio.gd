@@ -666,6 +666,27 @@ func death_muffle(timp: float) -> void:
 	_meniuri["death"] = true
 	_seteaza_infundat(1.0, timp)
 
+# NAȘTEREA UNEI RUNDE — oglinda lui `death_muffle` (vezi `intro.gd`, cinematica de intrare).
+# La moarte, ușa se închide peste muzică în ritmul cercului care se strânge. La intrare, runda
+# începe cu ușa deja închisă (ecranul e negru) și ușa se deschide în ritmul cercului care se
+# deschide. Aceeași mecanică, filmul întors.
+#
+# 🔑 Sunt DOUĂ funcții, nu una cu întârziere: între ele stau cele 0,45 s de negru și tăcere, iar
+# cine hotărăște cât ține tăcerea aia e cinematica, nu mixerul. Aici rămâne doar „închide" și
+# „deschide în atâtea secunde".
+#
+# ⚠️ `intro_inchide()` trebuie chemată DUPĂ `play_music()` (adică după `_ready`-ul spawner-ului),
+# fiindcă `play_music` cheamă `_uita_meniurile()`, care deschide filtrul instant. `intro.gd` o
+# cheamă din `call_deferred`, adică după ce s-au trezit toate nodurile scenei — așa nu contează
+# unde stă nodul `Intro` în arbore, și nimeni nu poate strica sunetul mutându-l.
+func intro_inchide() -> void:
+	_meniuri["intro"] = true
+	_seteaza_infundat(1.0, 0.0)
+
+func intro_deschide(timp: float) -> void:
+	_meniuri.erase("intro")
+	_seteaza_infundat(0.0, timp)
+
 # --- Mecanica filtrului ---
 # Magistrala `Music` se face din cod, nu dintr-un `default_bus_layout.tres`: un fișier de layout
 # în plus ar trebui importat de editor înainte să existe, iar rularea directă a unei scene (cum

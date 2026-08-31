@@ -16,7 +16,10 @@ extends Node
 # Momentele cerute se citesc din constantele lui `gameover.gd`, nu sunt scrise de mana aici:
 # daca schimbi coregrafia acolo, testul se muta singur dupa ea.
 
-const POZE := "C:/Users/GHEORG~1/AppData/Local/Temp/claude/C--WINDOWS-system32/551d4bf5-3856-4389-8b46-37e7316ca081/scratchpad/moarte_%s.png"
+# ⚠️ Pozele merg in `user://`, nu intr-un scratchpad de sesiune. Calea de dinainte arata spre
+# dosarul unei sesiuni Claude de mult sterse (`551d4bf5-...`), deci de luni de zile unealta
+# rula fara sa mai salveze nimic — si nimeni n-avea de unde sti, ca nu se plange.
+const POZE := "user://moarte_%s.png"
 
 var _erori := 0
 var _go: CanvasLayer
