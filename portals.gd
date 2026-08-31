@@ -24,10 +24,12 @@ extends Node2D
 # și `treci_pe_ender`. Ieși, portalul tău intră în pământ, iar în jur nu se schimbă nimic la
 # vedere — fântânile există, dar dincolo de marginea ecranului, și trebuie găsite.
 #
-# ⚠️ PUȘCĂRIA NU MAI E AICI (2026-08-18). Între 2026-08-17 și 2026-08-18 generatorul ăsta avea și
-# o a TREIA vârstă — după ce cădea Celesto, aceleași locuri scoteau porți de pușcărie. Răzvan a
-# cerut altceva: porțile să existe DE LA ÎNCEPUTUL rundei, împrăștiate random, cu 1% pe chunk.
-# Deci și-au luat generator propriu (`prison_gates.gd`), iar aici am rămas cu două vârste.
+# ⚠️ PORȚILE DE CASTEL NU SUNT AICI, deși din nou vin după Celesto (2026-08-31). Între 2026-08-17
+# și 2026-08-18 ele erau chiar A TREIA VÂRSTĂ a generatorului ăstuia: aceleași locuri, altă ușă.
+# Apoi (08-18) au ieșit de tot, cu generator propriu aprins din minutul zero, iar acum (08-31) s-au
+# întors la capătul lanțului — dar tot pe generatorul lor (`prison_gates.gd`, aprins din
+# `ender.gd::boss_invins`). Diferența care contează: au SĂMÂNȚA lor, deci nu răsar în locurile
+# portalurilor și ale fântânilor. Aici rămân două vârste, cu opririle lor.
 
 const PORTAL := preload("res://portal.tscn")
 const FANTANA := preload("res://portal_ender.tscn")   # ce naște chunk-ul după Saratalin
@@ -64,8 +66,9 @@ var _loaded := {}
 var ender := false
 # Închiderea definitivă pentru runda asta: după ce cade Celesto și ai ieșit din Ender (vezi
 # `ender.gd::_inchide_fantana`). Cât e `true` nu mai generăm nimic — nici în chunk-urile în care
-# ai fi ajuns abia peste zece minute. Porțile de pușcărie NU se opresc odată cu noi: au
-# generatorul lor (`prison_gates.gd`), care se stinge separat, când cade SIR JOHN.
+# ai fi ajuns abia peste zece minute. Porțile de castel NU se opresc odată cu noi: au
+# generatorul lor (`prison_gates.gd`), care se aprinde când cade CELESTO și se stinge când cade
+# SIR JOHN.
 var oprit := false
 # Centrul golului fără fântâni: portalul prin care ai ieșit din Nether. Vector2.INF = n-avem gol
 # (înainte de ieșire, sau dacă `nether.gd` n-a apucat să ne spună de unde).
@@ -111,7 +114,10 @@ func chunk_portal_pos(key: Vector2i) -> Vector2:
 
 # Unde e FÂNTÂNA ENDER a chunk-ului — ALT loc decât portalul, fiindcă are altă sămânță și altă
 # șansă. Se poate întreba oricând, și înainte să cadă Saratalin: nu se uită la `ender`, e doar
-# geometrie. (Așa o poate ocoli `prison_gates.gd` de la începutul rundei.)
+# geometrie. (Așa o poate ocoli `prison_gates.gd`, care de pe 2026-08-31 se aprinde abia când cade
+# Celesto — atunci noi suntem de obicei deja opriți, dar NU întotdeauna: dacă îl bați pe Celesto și
+# apoi mori în Ender, ieșirea victorioasă nu se mai cheamă, deci fântânile rămân pe hartă lângă
+# porțile proaspăt apărute. De-aia fereala trebuie să existe în continuare.)
 #
 # ⚠️ Golul din jurul ieșirii din Nether se aplică AICI, și SUPRIMĂ fântâna, nu o mută: dacă locul
 # calculat cade prea aproape de portalul prin care ai ieșit, chunk-ul rămâne pur și simplu gol.

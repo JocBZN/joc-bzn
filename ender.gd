@@ -277,6 +277,7 @@ func boss_invins() -> void:
 		return
 	_boss_invins = true
 	celesto_invins = true   # de aici încolo creaturile lui apar și în lumea normală
+	_deschide_portile_castelului()
 	_announce("CELESTO FALLS", "Press E at the well to go back")
 	Audio.play("levelup", -2.0)
 
@@ -368,10 +369,12 @@ func _bara_boss(on: bool) -> void:
 # celelalte de pe hartă dispar odată cu generatorul, care nu mai naște nimic (`portals.gd`).
 # Un Ender pe rundă, ca Nether-ul — de aici încolo nu mai ai unde intra.
 #
-# ⚠️ „Nu mai ai unde intra" e doar despre LOCURILE ASTEA. Porțile de pușcărie sunt pe generator
-# separat (`prison_gates.gd`, aprins din minutul zero), deci ele rămân pe hartă și după ce cade
-# Celesto. Între 2026-08-17 și 2026-08-18 aici se chema `treci_pe_prison()`, fiindcă pușcăria era
-# a treia vârstă a acelorași locuri; acum lanțul se termină iar cu Ender-ul.
+# ⚠️ „Nu mai ai unde intra" e doar despre LOCURILE ASTEA. Din 2026-08-31, exact acum se deschid
+# PORȚILE DE CASTEL — dar nu de aici, ci din `boss_invins()`, în clipa morții lui Celesto (vezi
+# `_deschide_portile_castelului` și capul lui `prison_gates.gd`). Ele au generatorul lor, cu harta
+# lor, deci nu răsar în locurile fântânilor. Între 2026-08-17 și 2026-08-18 aici se chema
+# `treci_pe_prison()`, fiindcă pușcăria era a treia vârstă a ACELORAȘI locuri; acum e a patra
+# dimensiune a lanțului, dar cu locurile ei.
 #
 # Se cheamă doar de pe drumul VOLUNTAR de ieșire, care există numai după ce boss-ul a căzut.
 func _inchide_fantana() -> void:
@@ -384,6 +387,22 @@ func _inchide_fantana() -> void:
 	_zguduie_camera()
 	_fantana.intra_in_pamant()
 	_fantana = null
+
+# CELESTO A CĂZUT → se aprinde generatorul PORȚILOR DE CASTEL (`prison_gates.gd`), a patra
+# dimensiune. Cerut de Răzvan pe 2026-08-31: „vreau să se spawneze Castle Dimension după ce
+# termină playerul de bătut pe Celesto".
+#
+# Chemată din `boss_invins()`, adică în clipa morții boss-ului — NU la ieșirea din Ender. Dacă îl
+# bați și apoi mori aici, ieșirea victorioasă nu se mai cheamă niciodată, iar castelul ar fi rămas
+# închis pe runda asta deși boss-ul căzuse.
+#
+# ⚠️ Generatorul e STINS acum (l-a stins `_set_world_enabled(false)` la intrare), dar metodele lui
+# se pot chema oricum — `porneste()` doar pune un steag. Porțile se nasc la ieșire, în aceeași
+# clipă cu copacii și pietrele, deci nu apare niciuna „pocnind" sub ochii tăi.
+func _deschide_portile_castelului() -> void:
+	var porti := _generator("PrisonGates")
+	if porti != null and porti.has_method("porneste"):
+		porti.porneste()
 
 # Nodul unui generator de decor din `World` (Props, Rocks, Portals...). Ca în `nether.gd`.
 func _generator(nume: String) -> Node:

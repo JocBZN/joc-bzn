@@ -24,6 +24,46 @@ Quick rules:
 
 ---
 
+## Session log — 2026-08-31 (CASTELUL, iar la capătul lanțului: porțile se aprind când cade Celesto)
+
+**Cerut de Răzvan:** „Vreau sa se spawneze Castle Dimension dupa ce termina playerul de batut pe Celesto si vreau sa aiba spawn rate la fel ca celelalte."
+
+### Ce s-a schimbat, în trei linii
+
+`prison_gates.gd` pornește **stins** (`activ = false`; `_process` iese din prima linie, deci nu se calculează niciun chunk) și îl aprinde **`ender.gd::boss_invins()`**, în clipa morții lui Celesto. `gate_chance` **0.01 → 0.015**, cât `portal_chance` și `ender_chance`. Lanțul are din nou patru verigi: **portal Nether → (cade Saratalin) → fântână Ender → (cade Celesto) → poartă de castel.**
+
+### 🔑 Nu e o întoarcere la ce era înainte de 08-18, deși seamănă
+
+Atunci poarta era **a treia vârstă a aceluiași generator** (`portals.gd`), deci răsărea EXACT unde stătuse un portal și apoi o fântână. Acum porțile rămân pe generatorul lor, cu **sămânța lor** (`SEED_SALT`), deci au **harta lor** — regula pe care au primit-o și fântânile pe 2026-08-28. Ce ai învățat în primele două treimi ale rundei nu-ți spune unde e o poartă.
+
+### 🔑 De ce la MOARTEA lui Celesto și nu la ieșirea din Ender
+
+Două motive, dincolo de formularea cererii:
+
+1. **Vizual nu e nicio diferență.** Generatorul e stins cât ești dincolo, iar `_set_world_enabled(true)` îl aprinde la ieșire **în același cadru cu copacii și pietrele** — deci nu vezi nicio poartă „pocnind" lângă tine, vine odată cu restul lumii. (Exact opusul situației de la fântâni, care apăreau singure, la 1,1 s, într-o lume deja refăcută — de-aia au avut ele nevoie de `ferire_ecrane`, iar porțile nu.)
+2. **Cârligul de la ieșire ar fi fost o capcană.** `_inchide_fantana()` se cheamă doar pe ieșirea VICTORIOASĂ. Cine îl bate pe Celesto și apoi **moare** în Ender n-ar mai fi văzut nicio poartă în runda aia, deși boss-ul căzuse.
+
+### 🎲 „Spawn rate la fel": butonul e identic, măsurătoarea e la un fir de păr
+
+Măsurat pe **25 600 de chunk-uri** (zgomot de eșantionare ±0,08 pp): porți **1,30%** · portaluri Nether **1,41%** · fântâni Ender **1,47%**. Toate trei sub 1,5% fiindcă `tries` renunță la ușă când toate cele 12 poziții încercate cad lângă un copac, o piatră sau o statuie. Porțile pierd puțin mai mult: ele ocolesc **încă un lucru** — portalurile ȘI fântânile, la 320 px.
+
+⚠️ **Am PĂSTRAT fereala aia dinadins**, deși porțile se nasc acum după ce fântânile s-au închis. „S-au închis" e aproape mereu adevărat, nu mereu: `portals.opreste()` se cheamă din ieșirea victorioasă din Ender, deci pe drumul „bat Celesto → mor acolo" fântânile rămân pe hartă exact când se aprind porțile. Costă ~8% din porți și cumpără garanția că nu se suprapun două uși.
+
+### ✅ Verificat rulând — `tool_porti_castel.gd/.tscn` (unealtă nouă, merge headless)
+
+1. înainte de Celesto: `activ = false`, **0** chunk-uri încărcate după o secundă de joc;
+2. lanțul ADEVĂRAT `boss_invins()` → `_deschide_portile_castelului()` → `porneste()` îl aprinde — **ăsta e pasul care prinde un nume de nod greșit**, fiindcă `_generator("PrisonGates")` întoarce `null` fără să se plângă nimeni;
+3. **49** de chunk-uri (7×7) încărcate imediat după;
+4. ratele de mai sus, pe același teren pentru toate trei;
+5. player mutat într-un chunk despre care unealta ȘTIE că are poartă → **poarta chiar e acolo**, cu `prison = true` (fără pasul ăsta, restul dovedea doar că generatorul „se învârte", nu că iese o ușă din el);
+6. `opreste()` apoi `porneste()` → rămâne stins: un castel consumat nu se redeschide.
+
+### 🧹 Comentarii aduse la zi (toate spuneau „aprins din minutul zero")
+
+`prison.gd` (capul fișierului), `ender.gd::_inchide_fantana`, `portals.gd` (capul fișierului, `var oprit`, `chunk_fantana_pos`) și `prison_gates.gd::_langa_portal`. Bannerul de ieșire **„BACK / The wells have become gates"** a redevenit adevărat din întâmplare: fusese scris pentru varianta din 08-17 și a fost o mică minciună două săptămâni.
+
+---
+
 ## Session log — 2026-08-31 (fântânile Ender răsar în tăcere; Ender-ul, puțin mai luminos)
 
 **Cerut de Răzvan:** „Atunci cand spanwezi portalele dupa nether sa nu se mai auda sunetu de spawn." și „vreau Sa fie putin mai bright in Ender".

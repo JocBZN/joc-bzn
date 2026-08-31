@@ -1,18 +1,33 @@
 extends Node2D
 
-# PORȚILE DE PUȘCĂRIE — generator PROPRIU, separat de `portals.gd`.
+# PORȚILE DE CASTEL — generator PROPRIU, separat de `portals.gd`.
 #
-# ⚠️ SCHIMBAT pe 2026-08-18 (cerut de Răzvan: „la dimensiunea prison nu vreau ca portalele să se
-# spawneze după ce termini Ender. Vreau să fie de la început random pe hartă cu 1% șansă de spawn
-# per chunk"). Până acum poarta era A TREIA VÂRSTĂ a locurilor de portal din `portals.gd`:
-#      portal Nether → (cade Saratalin) → fântână Ender → (cade Celesto) → poartă de pușcărie
-# adică nu exista niciuna până nu terminai celelalte două dimensiuni. Acum lanțul ăla s-a rupt:
-# `portals.gd` are din nou DOUĂ vârste (Nether → Ender) și se oprește la ieșirea din Ender, iar
-# porțile de pușcărie sunt un generator de sine stătător, aprins DE LA ÎNCEPUTUL RUNDEI.
+# ⚠️ CÂND SE APRINDE — SCHIMBAT pe 2026-08-31 (cerut de Răzvan: „vreau să se spawneze Castle
+# Dimension după ce termină playerul de bătut pe Celesto și vreau să aibă spawn rate la fel ca
+# celelalte"). Generatorul pornește STINS (`activ = false`) și îl aprinde `ender.gd::boss_invins()`,
+# adică fix în clipa în care cade CELESTO, boss-ul Ender-ului. Cât e stins, `_process` iese din
+# prima linie: zero chunk-uri calculate, zero porți pe hartă.
 #
-# Deci pușcăria nu mai e „ultima dimensiune, după toate celelalte": poți intra în ea din minutul
-# zero, dacă dai peste o poartă. Inamicii de acolo rămân cei îngroșați (`prison.gd`), deci e tot
-# cea mai grea — doar că acum e o alegere, nu un capăt de drum.
+# Deci lanțul dimensiunilor e din nou unul singur, dar acum are patru verigi:
+#      portal Nether → (cade Saratalin) → fântână Ender → (cade Celesto) → poartă de castel
+# Castelul redevine CAPĂTUL drumului, cum era între 2026-08-17 și 2026-08-18. Diferența față de
+# atunci — și motivul pentru care generatorul rămâne separat — e că porțile NU mai sunt „a treia
+# vârstă" a locurilor din `portals.gd`: au sămânța lor (`SEED_SALT`) și harta lor, deci nu răsar
+# unde stăteau portalurile Nether sau fântânile Ender. Aceeași regulă pe care au primit-o și
+# fântânile pe 2026-08-28: fiecare ușă are locurile ei, iar ce știai din partea de dinainte a
+# rundei nu-ți mai spune nimic.
+#
+# 🔑 De ce la MOARTEA lui Celesto și nu la ieșirea din Ender: „termină de bătut" înseamnă boss-ul
+# căzut. Sunt și două motive practice. Unul, la ieșire porțile s-ar naște oricum abia atunci —
+# generatorul e stins cât ești dincolo, iar `ender.gd::_set_world_enabled(true)` îl aprinde la loc
+# în aceeași clipă cu tot restul decorului, deci nu vezi nicio poartă „pocnind" lângă tine, apare
+# odată cu copacii și pietrele. Doi, dacă îl bați pe Celesto și MORI acolo, ieșirea victorioasă
+# (`_inchide_fantana`) nu se mai cheamă niciodată — legat de ea, castelul ar fi rămas închis pe
+# rundă deși boss-ul căzuse.
+#
+# Între 2026-08-18 și 2026-08-31 porțile erau aprinse DE LA ÎNCEPUTUL rundei, cu 1% pe chunk
+# (atunci ceruse Răzvan asta), și puteai intra în castel din minutul zero. Nu era o greșeală, era
+# altă alegere de design; dacă se vrea înapoi, se șterge `activ` și garda din `_process`.
 #
 # Restul e tiparul obișnuit de generator (`portals.gd`, `statues.gd`): lumea e împărțită în
 # chunk-uri, fiecare chunk are `gate_chance` să conțină O SINGURĂ poartă, iar sămânța vine din
@@ -27,7 +42,13 @@ const POARTA := preload("res://portal_ender.tscn")
 const SEED_SALT := 0x51B7
 
 @export var chunk_size: int = 512
-@export var gate_chance: float = 0.01       # 1% din chunk-uri au o poartă (portalurile: 1.5%)
+# 1.5% din chunk-uri au o poartă — ACEEAȘI cifră ca portalurile Nether și fântânile Ender
+# (`portals.gd::portal_chance` / `ender_chance`), cerut de Răzvan pe 2026-08-31 („vreau să aibă
+# spawn rate la fel ca celelalte"). Era 1% de pe 2026-08-18, când porțile existau de la începutul
+# rundei și erau al treilea fel de ușă pe hartă în același timp cu celelalte; acum ele apar SINGURE
+# pe hartă (portalurile și fântânile sunt deja închise când cade Celesto), deci n-are ce să
+# aglomereze și n-are de ce să fie mai rară.
+@export var gate_chance: float = 0.015
 @export var load_radius: int = 3
 @export var margin: float = 140.0           # cât de departe stă de marginea chunk-ului (e lată)
 @export var min_dist_tree: float = 220.0    # cât de departe stă de un copac
@@ -40,6 +61,11 @@ const SEED_SALT := 0x51B7
 # `node.set("_loaded", {})` când intri într-o dimensiune. Dacă îl redenumești, generatorul rămâne
 # cu chunk-urile marcate ca încărcate și nu mai reconstruiește nimic la întoarcere.
 var _loaded := {}
+
+# ⚠️ PORNIT DIN AFARĂ, NU DE LA ÎNCEPUT (2026-08-31). Cât e `false` nu se naște nicio poartă și
+# `_process` iese din prima linie — adică nici nu se calculează nimic. Îl aprinde `porneste()`,
+# chemată de `ender.gd` în clipa în care cade CELESTO. Vezi capul fișierului.
+var activ := false
 
 # Gata cu porțile în runda asta: după ce cade SIR JOHN și ieși din castel
 # (`prison.gd::_inchide_poarta`). O pușcărie pe rundă, ca la celelalte dimensiuni.
@@ -60,7 +86,7 @@ func _ready() -> void:
 		_portals = p.get_node_or_null("Portals") as Node2D
 
 func _process(_delta: float) -> void:
-	if oprit:
+	if not activ or oprit:
 		return
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
@@ -136,9 +162,15 @@ func _langa_statuie(pos: Vector2, key: Vector2i) -> bool:
 #
 # ⚠️ De pe 2026-08-28 sunt DOUĂ locuri de ocolit, nu unul: portalul Nether (`chunk_portal_pos`) ȘI
 # fântâna Ender (`chunk_fantana_pos`), fiindcă fântâna nu mai răsare acolo unde stătea portalul,
-# ci în locul ei. Le întrebăm pe amândouă de la începutul rundei, deși fântâna apare abia după
-# Saratalin: pozițiile lor nu depind de vârstă, iar poarta e pusă o singură dată și nu se mai
-# mută după aceea — dacă am întreba doar de vârsta curentă, fântâna ar putea răsări în ea.
+# ci în locul ei. Amândouă se pot întreba oricând — pozițiile lor sunt geometrie, nu depind de
+# vârsta generatorului lor.
+#
+# 🔑 De ce mai are rost fereala asta, de când noi ne naștem abia după Celesto (2026-08-31), adică
+# după ce portalurile și fântânile s-au închis: fiindcă „s-au închis" nu e garantat. Închiderea lor
+# (`portals.opreste()`) se cheamă din ieșirea VICTORIOASĂ din Ender. Dacă îl bați pe Celesto și
+# apoi MORI acolo, ieșirea aia nu se mai cheamă niciodată, iar fântânile rămân pe hartă — lângă
+# porțile care tocmai s-au aprins. Costă ~8% din porți (aruncate ca prea apropiate) și cumpără
+# liniștea că nu se încalecă două uși.
 func _langa_portal(pos: Vector2, key: Vector2i) -> bool:
 	if _portals == null:
 		return false
@@ -158,6 +190,21 @@ func _langa_portal(pos: Vector2, key: Vector2i) -> bool:
 				if w != Vector2.INF and pos.distance_to(w) < min_dist_portal:
 					return true
 	return false
+
+# CELESTO A CĂZUT → de aici încolo lumea scoate porți de castel. Chemată din `ender.gd::boss_invins()`,
+# în clipa în care moare boss-ul Ender-ului (vezi capul fișierului pentru „de ce atunci").
+#
+# Nu ne uităm NOI, în fiecare cadru, dacă a căzut (`ender.celesto_invins`) — cine schimbă starea ne
+# spune. Aceeași regulă ca la `portal_ender.gd::set_cosmic` și `portals.gd::treci_pe_ender`.
+#
+# ⚠️ Se cheamă în timp ce suntem STINȘI (`process_mode = DISABLED`, ne-a stins `ender.gd` la
+# intrarea în dimensiune). E în regulă: un nod stins nu-și mai rulează `_process`, dar metodele lui
+# se pot chema normal. Steagul rămâne pus, iar porțile se nasc la ieșire, în clipa în care
+# `_set_world_enabled(true)` aprinde la loc tot decorul.
+func porneste() -> void:
+	if oprit:
+		return   # castelul s-a consumat deja în runda asta (a căzut SIR JOHN)
+	activ = true
 
 # Chemată din `prison.gd` după ce l-ai bătut pe SIR JOHN și ai ieșit: din clipa aia nu mai există
 # porți în runda asta. Poarta prin care ai ieșit e deja mutată în `World` (o scoate `prison.gd`

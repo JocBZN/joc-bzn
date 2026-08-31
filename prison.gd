@@ -12,13 +12,20 @@ extends CanvasLayer
 # fost o schimbare mare, cu risc, pe care nimeni n-a cerut-o — iar `harta/castle/prison tileset.png`
 # poartă și el amândouă numele, de la Răzvan.
 #
-# ⚠️ CUM AJUNGI AICI — SCHIMBAT pe 2026-08-18 (cerut de Răzvan: „nu vreau ca portalele să se
-# spawneze după ce termini Ender, vreau să fie de la început random pe hartă cu 1% șansă per
-# chunk"). Porțile au acum generator PROPRIU, `prison_gates.gd`, aprins din minutul zero al
-# rundei; nu mai sunt a treia vârstă a locurilor din `portals.gd`.
-# Deci castelul NU e închis până termini celelalte dimensiuni: poți intra oricând dai peste
-# o poartă. Ce o ține grea rămâne ce e ÎNĂUNTRU — inamicii îngroșați (`ENEMY_POWER` & co.) și
-# SIR JOHN cu 260 000 de viață, nescalată. Dacă intri devreme, intri nepregătit.
+# ⚠️ CUM AJUNGI AICI — SCHIMBAT pe 2026-08-31 (cerut de Răzvan: „vreau să se spawneze Castle
+# Dimension după ce termină playerul de bătut pe Celesto și vreau să aibă spawn rate la fel ca
+# celelalte"). Porțile au în continuare generator PROPRIU, `prison_gates.gd`, dar el pornește
+# STINS și se aprinde în clipa în care cade CELESTO, boss-ul Ender-ului (`ender.gd::boss_invins`).
+# Șansa lor e acum 1.5% pe chunk, ca a portalurilor Nether și a fântânilor Ender.
+#
+# Deci castelul e din nou CAPĂTUL lanțului: Nether → Ender → Castel. Nu mai poți intra din minutul
+# zero, cum se putea între 2026-08-18 și 2026-08-31 — dar nici nu mai e „a treia vârstă" a
+# locurilor din `portals.gd`, cum era înainte de 08-18: porțile au harta LOR, deci nu răsar acolo
+# unde ai văzut un portal sau o fântână.
+#
+# Ce o ține grea rămâne ce e ÎNĂUNTRU — inamicii îngroșați (`ENEMY_POWER` & co.) și SIR JOHN cu
+# 260 000 de viață, nescalată. Acum însă ajungi aici după două dimensiuni terminate, deci cu
+# upgrade-uri și niveluri pe măsură; înainte se putea intra nepregătit, dinadins.
 #
 # ⚠️ TOT UNA PE RUNDĂ: la ieșirea victorioasă se oprește generatorul PORȚILOR
 # (`prison_gates.opreste()`), nu cel de portaluri. Lanțul Nether → Ender merge mai departe,
