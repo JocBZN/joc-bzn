@@ -53,26 +53,28 @@ De aici mai iese ceva: `label_offset_y = -238`. Poarta e mult mai înaltă decâ
 arcadei e la ~204 px deasupra nodului), iar pe valoarea obișnuită din `interact_ui.gd` (−175)
 „ENTER THE CASTLE" ar fi ieșit **în piatră**, peste gargui.
 
-### 💡 De ce are lumină (și de ce două cifre, nu una)
+### 💡 Lumina albastră: pusă dimineața, scoasă după-amiaza
 
-O ușă închisă, desenată în pietre cenușii, e decor — treci pe lângă ea. Fântâna Ender avea aceeași
-problemă și a rezolvat-o cu un halou care respiră; poarta primește același tratament, dar în două
-locuri: o **baltă de lumină pe jos, în fața ușii**, și **crăpătura dintre canaturi**, o fâșie
-îngustă și înaltă. Amândouă aditive (`BLEND_MODE_ADD`), amândouă pe același tween, ca să respire
-împreună. Albastru rece, nu portocaliu de torță: e culoarea tăieturii lui SIR JOHN și singura care
-nu se confundă cu focul din Nether sau cu urmele player-ului.
+Poarta a avut, câteva ore, lumină aditivă albastră în două locuri — o **baltă pe jos, în fața
+ușii**, și **crăpătura dintre canaturi** — amândouă pe același tween, ca să respire împreună.
+Ideea era că o ușă închisă, desenată în pietre cenușii, e decor: treci pe lângă ea. Fântâna Ender
+are exact aceeași problemă și o rezolvă cu un halou care respiră.
 
-⚠️ **Lumina aditivă se poartă complet diferit pe cele două podele** — asta a costat două runde de
-capturi. Balta la 0,55 arată perfect pe lespedea aproape neagră a castelului și iese **ALBĂ pe
-nisip**, ca o lanternă uitată pe jos: canalele roșu și verde ale solului sunt deja aproape pline
-și mai adaugi peste ele. Deci are două cifre, `glow_alpha = 0.26` (în lume) și
-`glow_alpha_castel = 0.72` (dincolo), schimbate de `set_in_castel()` — chemată din `prison.gd`,
-fix lângă `retur`, ca `set_cosmic` la fântână. Crăpătura rămâne la fel de tare în amândouă: ea
-cade pe **lemn închis**, care nu se albește.
+**Răzvan a cerut-o scoasă în aceeași zi:** „Scoate lumina albastra de la portal." Deci nu mai
+există: `poarta_castel.gd` are acum doar umbra de la bază, ca orice copac sau piatră, iar ușa se
+citește **numai din desen**. Au dispărut odată cu ea `glow_*`, `seam_*`, `puls*`, funcțiile
+`_lumina()` / `_textura_lumina()` / `_porneste_pulsul()` și cele două `Sprite2D` aditive — scriptul
+a scăzut de la 248 la 146 de linii. `set_in_castel()` **rămâne** (o cheamă `prison.gd` și o caută
+unealta), dar acum stinge doar umbra: `0.45` în lume → `0.30` pe lespezile castelului, fiindcă
+acolo o pată neagră tare arată ca o gaură în podea.
 
-Prima variantă a crăpăturii era o elipsă lată cât toată ușa. Ieșea un abur cenușiu peste lemn și
-nu se citea deloc ca lumină; îngustată la 56×210 px, se vede de la un ecran distanță că ușa aia
-are ceva viu în spate.
+⚠️ **Merită ținut minte un singur lucru din varianta ștearsă**, fiindcă e o capcană de randare, nu
+o chestiune de gust: lumina **aditivă** (`BLEND_MODE_ADD`) se poartă complet diferit pe cele două
+podele. Balta la 0,55 arăta perfect pe lespedea aproape neagră a castelului și ieșea **ALBĂ pe
+nisip**, ca o lanternă uitată pe jos — canalele roșu și verde ale solului sunt deja aproape pline
+și mai aduni peste ele. De aia avea două cifre, `glow_alpha = 0.26` / `glow_alpha_castel = 0.72`.
+Oricine mai pune vreodată lumină aditivă pe ceva ce trece prin mai multe dimensiuni are nevoie de
+două intensități, nu de una. Codul șters e în git, la commit-ul `140296a`.
 
 ### 🧱 Ce NU s-a schimbat
 
@@ -80,7 +82,7 @@ are ceva viu în spate.
 aceeași aprindere la moartea lui Celesto și aceeași fereală de copaci/pietre/statui/portaluri.
 S-a schimbat o singură linie: ce scenă instanțiază. Și a dispărut linia `s.prison = true`.
 
-Interfața cerută de `prison.gd` (`retur`, `visible`, `process_mode`, `intra_in_pamant()`) și de
+Interfața cerută de `prison.gd` (`retur`, `visible`, `process_mode`, `set_in_castel()`, `intra_in_pamant()`) și de
 `interact_ui.gd` (`interact_range`, `poate_invoca()`, `invoca()`, `eticheta()`) e identică — de
 aia restul jocului n-a trebuit atins. Cheile de traducere „Enter the Castle" / „Leave the Castle"
 existau deja din 2026-08-22; `tool_check_i18n` zice **„TOTUL E TRADUS"**.
@@ -108,21 +110,26 @@ nu de vechiul steag · după SIR JOHN nu se mai redeschide.
 
 Și în fereastră, cu poze (`--quit-after`, scenă de unică folosință, ștearsă după):
 
-1. **poarta pe nisip** — mărimea față de player, umbra la bază, lumina discretă;
+1. **poarta pe nisip** — mărimea față de player, umbra la bază;
 2. **zidul** — intrat în ea cu „sus" apăsat două secunde: player-ul se oprește la **54 px** sub
    nod, adică fix cu tălpile la pragul ușii (talpa desenată e la +74);
 3. **eticheta** — „ENTER THE CASTLE" deasupra arcadei, nu în ea;
-4. **dincolo** — `set_in_castel(true)`: pe lespedea castelului lumina urcă și umbra slăbește,
+4. **dincolo** — `set_in_castel(true)`: pe lespedea castelului umbra slăbește, iar
    eticheta devine „LEAVE THE CASTLE";
 5. **drumul întreg** — E pe poartă → `prison.active = true`, poarta mutată în `World`, `retur`
    aprins, cinematica lui SIR JOHN, boss + inamici; apoi ieșirea → generatorul oprit;
 6. **scufundarea** — `intra_in_pamant()`: coboară 90 px, se stinge (aici `modulate:a` CHIAR merge,
-   spre deosebire de fântână, unde shaderul îl ignoră), umbra și luminile se sting cu ea, nodul e
+   spre deosebire de fântână, unde shaderul îl ignoră), umbra se stinge cu ea, nodul e
    șters după 1 s.
 
 ⚠️ La proba 5 poza a ieșit acoperită de ecranul de **LEVEL UP** (cavalerii morți în castel dau XP,
 iar level up-ul pune jocul pe pauză — deci și tween-ul de scufundare stă). Nu e un bug: e motivul
 pentru care scufundarea se verifică izolat, nu la capătul unei runde jucate.
+
+**După scoaterea luminii** s-au rulat din nou toate cele șase probe ale uneltei — aceleași cifre
+(49 de chunk-uri, 1,30%) — plus una țintită pe curățenie: poarta are exact **3 copii** (sprite,
+hitbox, umbră), **niciun material aditiv rămas**, `set_in_castel` duce umbra 0,45 ↔ 0,30 în ambele
+sensuri, iar `intra_in_pamant()` tot șterge nodul după 1 s.
 
 **Fișiere noi:** `poarta_castel.gd` + `.tscn`, `harta/castle/Castle_Door_Portal.png`.
 **Atinse:** `prison_gates.gd` (scena instanțiată), `prison.gd` (`set_in_castel` la intrare/ieșire),
