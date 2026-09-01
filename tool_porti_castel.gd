@@ -43,8 +43,18 @@ func _ready() -> void:
 	print("2) dupa boss_invins(): activ=%s  (trebuie true)" % porti.activ)
 	ender.active = false         # îl lăsăm cum l-am găsit, altfel `_process`-ul lui pornește
 
-	await get_tree().create_timer(0.6).timeout
-	print("   chunk-uri incarcate acum=%d  (7x7 = 49)" % porti._loaded.size())
+	# ⚠️ NU „mai așteptăm 0,6 s", ci așteptăm până când generatorul chiar poate să ruleze. De pe
+	# 2026-08-31 (cinematica de intrare în rundă) jocul pornește PE PAUZĂ vreo două secunde, iar
+	# `_process` nu curge deloc cât ține ea: pe fereastra fixă de 0,6 s unealta raporta „0 chunk-uri
+	# încărcate" și părea că generatorul e stricat, deși doar nu-i venise rândul. (Prins pe
+	# 2026-09-01, la schimbarea artei porții.)
+	var asteptat := 0.0
+	while not porti.can_process() and asteptat < 10.0:
+		await get_tree().create_timer(0.2).timeout
+		asteptat += 0.2
+	await get_tree().create_timer(0.3).timeout
+	print("   chunk-uri incarcate acum=%d  (7x7 = 49; jocul a stat pe pauza %.1f s)"
+		% [porti._loaded.size(), asteptat])
 
 	# 3. rata, pe același teren pentru toate trei
 	var n_porti := 0
@@ -65,8 +75,12 @@ func _ready() -> void:
 			n_portal, n_portal / total * 100.0, n_fantana, n_fantana / total * 100.0])
 
 	# 3b. proba de la capăt: mutăm player-ul într-un chunk despre care ȘTIM că are poartă și ne
-	# uităm dacă nodul chiar apare pe hartă, cu pielea de castel (`prison = true`). Fără asta,
-	# pașii de sus ar dovedi doar că generatorul „se învârte", nu că iese o ușă din el.
+	# uităm dacă nodul chiar apare pe hartă, cu arta lui de castel. Fără asta, pașii de sus ar
+	# dovedi doar că generatorul „se învârte", nu că iese o ușă din el.
+	# ⚠️ De pe 2026-09-01 nu mai întrebăm de steagul `prison` (a dispărut odată cu recolorarea
+	# fântânii Ender), ci de scena PROPRIE a porții: eticheta „Enter the Castle" și `set_in_castel`
+	# există DOAR în `poarta_castel.gd`. Dacă generatorul s-ar întoarce din greșeală la fântână,
+	# proba asta pică — exact ce vrem.
 	var cheie := Vector2i.ZERO
 	for x in LATURA:
 		for y in LATURA:
@@ -81,13 +95,18 @@ func _ready() -> void:
 	var gasite := 0
 	for c in porti.get_children():
 		for n in c.get_children():
-			if n.get("prison") == true:
+			if n.has_method("set_in_castel") and n.has_method("eticheta") \
+					and n.eticheta() == "Enter the Castle":
 				gasite += 1
-	print("3b) mutat in chunk-ul %s: porti pe harta=%d (trebuie >=1), toate cu prison=true" % [cheie, gasite])
+	print("3b) mutat in chunk-ul %s: porti pe harta=%d (trebuie >=1), toate cu arta de castel" % [cheie, gasite])
 
 	# 4. după SIR JOHN nu se mai redeschid
 	porti.opreste()
 	porti.porneste()
-	print("4) opreste() apoi porneste(): activ=%s oprit=%s  (trebuie false/true)"
-		% [porti.activ, porti.oprit])
+	# ⚠️ Ce contează e `oprit`, nu `activ`: `opreste()` nu stinge steagul de aprindere, ci pune
+	# lacătul — iar `_process` iese din prima linie pe ORICARE din ele (`if not activ or oprit`).
+	# `porneste()` chemat după lacăt nu face nimic. Măsurăm și chunk-urile, ca să se vadă că harta
+	# chiar s-a golit, nu doar că un steag arată bine.
+	print("4) opreste() apoi porneste(): oprit=%s (trebuie true) | chunk-uri ramase=%d (trebuie 0)"
+		% [porti.oprit, porti._loaded.size()])
 	get_tree().quit()

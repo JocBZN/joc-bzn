@@ -24,6 +24,112 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-01 (poarta castelului: ușă adevărată, nu fântână vopsită)
+
+**Cerut de Răzvan:** „Ti-am pus in folderul castle un fisier - Castle_Door_Portal - asta vreau sa
+fie portalul pentru castle dimension."
+
+### Ce era înainte
+
+A patra ușă a jocului n-a avut niciodată artă proprie. De pe 2026-08-17 poarta castelului era
+`portal_ender.tscn` — **fântâna Ender**, cu un steag `prison = true` pus înainte de `add_child`,
+care îi spăla piatra în verde-mucegai (`prison_tint`) și îi schimba eticheta. Adică ultima
+dimensiune din lanț se deosebea de a treia prin culoare și prin două cuvinte scrise deasupra.
+
+Acum are scena ei: **`poarta_castel.tscn` + `poarta_castel.gd`**, cu
+`harta/castle/Castle_Door_Portal.png` (128×128) — arcadă de piatră, ușă dublă de lemn ferecat,
+doi gargui pe coloane. Steagul `prison` și `prison_tint` **au dispărut de tot** din
+`portal_ender.gd`, împreună cu ramura lui din `invoca()` și cu `eticheta()`: fântâna Ender e iar
+doar fântână Ender, cu „Press E to interact" al ei.
+
+### 📐 Cifra care nu se vede: **74**
+
+`offset = (0, -28.166668)` la scara 2,4 nu e ales din ochi. Talpa desenată a portalului Nether
+cade la **+74 px** sub nodul lui; a fântânii Ender, tot la **+74**. Sunt calculate din pixelii
+reali ai fiecărui desen (`used_rect().end.y`), iar ușa are alt contur decât fântâna — deci ca să
+stea pe pământ ca surorile ei, offset-ul trebuia recalculat, nu copiat. De aia iese cu virgulă.
+
+De aici mai iese ceva: `label_offset_y = -238`. Poarta e mult mai înaltă decât o fântână (vârful
+arcadei e la ~204 px deasupra nodului), iar pe valoarea obișnuită din `interact_ui.gd` (−175)
+„ENTER THE CASTLE" ar fi ieșit **în piatră**, peste gargui.
+
+### 💡 De ce are lumină (și de ce două cifre, nu una)
+
+O ușă închisă, desenată în pietre cenușii, e decor — treci pe lângă ea. Fântâna Ender avea aceeași
+problemă și a rezolvat-o cu un halou care respiră; poarta primește același tratament, dar în două
+locuri: o **baltă de lumină pe jos, în fața ușii**, și **crăpătura dintre canaturi**, o fâșie
+îngustă și înaltă. Amândouă aditive (`BLEND_MODE_ADD`), amândouă pe același tween, ca să respire
+împreună. Albastru rece, nu portocaliu de torță: e culoarea tăieturii lui SIR JOHN și singura care
+nu se confundă cu focul din Nether sau cu urmele player-ului.
+
+⚠️ **Lumina aditivă se poartă complet diferit pe cele două podele** — asta a costat două runde de
+capturi. Balta la 0,55 arată perfect pe lespedea aproape neagră a castelului și iese **ALBĂ pe
+nisip**, ca o lanternă uitată pe jos: canalele roșu și verde ale solului sunt deja aproape pline
+și mai adaugi peste ele. Deci are două cifre, `glow_alpha = 0.26` (în lume) și
+`glow_alpha_castel = 0.72` (dincolo), schimbate de `set_in_castel()` — chemată din `prison.gd`,
+fix lângă `retur`, ca `set_cosmic` la fântână. Crăpătura rămâne la fel de tare în amândouă: ea
+cade pe **lemn închis**, care nu se albește.
+
+Prima variantă a crăpăturii era o elipsă lată cât toată ușa. Ieșea un abur cenușiu peste lemn și
+nu se citea deloc ca lumină; îngustată la 56×210 px, se vede de la un ecran distanță că ușa aia
+are ceva viu în spate.
+
+### 🧱 Ce NU s-a schimbat
+
+`prison_gates.gd` e același generator, cu aceeași sămânță (`0x51B7`), aceeași șansă (1,5%),
+aceeași aprindere la moartea lui Celesto și aceeași fereală de copaci/pietre/statui/portaluri.
+S-a schimbat o singură linie: ce scenă instanțiază. Și a dispărut linia `s.prison = true`.
+
+Interfața cerută de `prison.gd` (`retur`, `visible`, `process_mode`, `intra_in_pamant()`) și de
+`interact_ui.gd` (`interact_range`, `poate_invoca()`, `invoca()`, `eticheta()`) e identică — de
+aia restul jocului n-a trebuit atins. Cheile de traducere „Enter the Castle" / „Leave the Castle"
+existau deja din 2026-08-22; `tool_check_i18n` zice **„TOTUL E TRADUS"**.
+
+### 🪤 Capcana găsită pe drum: unealta care „dovedea" că generatorul e stricat
+
+`tool_porti_castel.gd` raporta **0 chunk-uri încărcate** acolo unde își aștepta 49. Nu de la
+poartă: de pe 2026-08-31, cinematica de intrare în rundă ține jocul **pe pauză vreo două secunde**
+la pornire, iar `_process` nu curge deloc cât ține ea. Fereastra fixă de 0,6 s a uneltei expira
+înainte să-i vină rândul generatorului. Acum unealta **așteaptă până când `porti.can_process()`**
+și tipărește și cât a stat pe pauză. Aceeași capcană pândește orice unealtă care instanțiază
+`main.tscn` și măsoară ceva după un `create_timer` scurt.
+
+Tot acolo: pasul 4 scria „(trebuie false/true)" pentru `activ`/`oprit`, dar `opreste()` nu stinge
+niciodată `activ` — pune lacătul `oprit`, iar `_process` iese pe **oricare** din ele. Textul
+promitea o cifră care n-avea cum să iasă. Acum se măsoară `oprit` **și** chunk-urile rămase.
+
+### ✅ Verificat rulând
+
+`tool_porti_castel.tscn` (headless), toate șase probele: generatorul stins înainte de Celesto ·
+lanțul real `boss_invins()` îl aprinde · **49** de chunk-uri · rata **1,30%** (portaluri 1,41%,
+fântâni 1,47% — neatinse) · poarta chiar apare pe hartă, iar proba întreabă acum de **arta de
+castel** (`set_in_castel` + „Enter the Castle", metode care există DOAR în `poarta_castel.gd`),
+nu de vechiul steag · după SIR JOHN nu se mai redeschide.
+
+Și în fereastră, cu poze (`--quit-after`, scenă de unică folosință, ștearsă după):
+
+1. **poarta pe nisip** — mărimea față de player, umbra la bază, lumina discretă;
+2. **zidul** — intrat în ea cu „sus" apăsat două secunde: player-ul se oprește la **54 px** sub
+   nod, adică fix cu tălpile la pragul ușii (talpa desenată e la +74);
+3. **eticheta** — „ENTER THE CASTLE" deasupra arcadei, nu în ea;
+4. **dincolo** — `set_in_castel(true)`: pe lespedea castelului lumina urcă și umbra slăbește,
+   eticheta devine „LEAVE THE CASTLE";
+5. **drumul întreg** — E pe poartă → `prison.active = true`, poarta mutată în `World`, `retur`
+   aprins, cinematica lui SIR JOHN, boss + inamici; apoi ieșirea → generatorul oprit;
+6. **scufundarea** — `intra_in_pamant()`: coboară 90 px, se stinge (aici `modulate:a` CHIAR merge,
+   spre deosebire de fântână, unde shaderul îl ignoră), umbra și luminile se sting cu ea, nodul e
+   șters după 1 s.
+
+⚠️ La proba 5 poza a ieșit acoperită de ecranul de **LEVEL UP** (cavalerii morți în castel dau XP,
+iar level up-ul pune jocul pe pauză — deci și tween-ul de scufundare stă). Nu e un bug: e motivul
+pentru care scufundarea se verifică izolat, nu la capătul unei runde jucate.
+
+**Fișiere noi:** `poarta_castel.gd` + `.tscn`, `harta/castle/Castle_Door_Portal.png`.
+**Atinse:** `prison_gates.gd` (scena instanțiată), `prison.gd` (`set_in_castel` la intrare/ieșire),
+`portal_ender.gd` (curățat de `prison`), `tool_porti_castel.gd`.
+
+---
+
 ## Session log — 2026-08-31 (intrarea în rundă: moartea, rulată pe dos)
 
 **Cerut de Răzvan:** „Vreau sa faci atunci cand dai Start la joc sa fie o animatie ca aia de la

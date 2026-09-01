@@ -33,10 +33,12 @@ extends Node2D
 # chunk-uri, fiecare chunk are `gate_chance` să conțină O SINGURĂ poartă, iar sămânța vine din
 # cheia chunk-ului → același loc are mereu aceeași poartă, chiar dacă pleci și te întorci.
 #
-# Arta e tot `portal_ender.tscn`, cu steagul `prison` pus ÎNAINTE de `add_child` (își citește
-# pielea — culoarea verde-piatră și eticheta — în `_ready`). N-avem artă separată de poartă.
+# ⚠️ ARTA: de pe 2026-09-01 poarta are SCENA EI, `poarta_castel.tscn` (arcadă de piatră cu ușă
+# dublă de lemn, din `harta/castle/Castle_Door_Portal.png`). Până atunci era `portal_ender.tscn`
+# cu un steag `prison` pus înainte de `add_child` — adică fântâna Ender spălată în verde. Steagul
+# a dispărut cu totul din `portal_ender.gd`; aici nu se mai pune nimic la naștere.
 
-const POARTA := preload("res://portal_ender.tscn")
+const POARTA := preload("res://poarta_castel.tscn")
 # Sămânță proprie, ALTA decât a portalurilor (0x9C4E) și a statuilor: altfel porțile ar cădea
 # exact în aceleași chunk-uri ca portalurile Nether, iar harta ar arăta ca și cum ar fi legate.
 const SEED_SALT := 0x51B7
@@ -226,10 +228,6 @@ func _build_chunk(key: Vector2i) -> Node2D:
 	var pos := chunk_gate_pos(key)
 	if pos != Vector2.INF:
 		var s: Node2D = POARTA.instantiate()
-		# ⚠️ `prison` se pune ÎNAINTE de `add_child`: `portal_ender.gd` își citește pielea
-		# (culoarea și eticheta) în `_ready()`, adică fix la intrarea în arbore. Pus după, ar
-		# rămâne fântână la vedere, deși ar duce în pușcărie.
-		s.prison = true
 		s.position = pos
 		container.add_child(s)
 	return container

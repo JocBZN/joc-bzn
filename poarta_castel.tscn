@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://poarta_castel.gd" id="0_script"]
+[ext_resource type="Texture2D" path="res://harta/castle/Castle_Door_Portal.png" id="1_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_poarta"]
+size = Vector2(256, 84)
+
+[node name="PoartaCastel" type="StaticBody2D"]
+script = ExtResource("0_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("1_tex")
+offset = Vector2(0, -28.166668)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_poarta")

@@ -216,6 +216,11 @@ func enter(player: Node2D, poarta: Node2D) -> void:
 	if world != null and _poarta.get_parent() != world:
 		_poarta.reparent(world)
 	_poarta.retur = true
+	# ⚠️ Numai poarta cu artă proprie (`poarta_castel.gd`) știe metoda asta — de aia întrebăm
+	# întâi. Dincolo, umbra ei slăbește (lespede cenușie, nu iarbă) și lumina crește: din clipa
+	# asta ea nu mai e „ceva ciudat pe câmp", e SINGURA ieșire și trebuie găsită de departe.
+	if _poarta.has_method("set_in_castel"):
+		_poarta.set_in_castel(true)
 	_elapsed = 0.0
 	_entry_diff_time = Difficulty.time
 	_swarm_announced = false
@@ -274,6 +279,9 @@ func exit_prison(anunt: bool = true) -> void:
 
 	if _poarta != null and is_instance_valid(_poarta):
 		_poarta.retur = false
+		# înapoi în lume: umbra se îngroașă la loc, lumina scade (vezi `poarta_castel.gd`)
+		if _poarta.has_method("set_in_castel"):
+			_poarta.set_in_castel(false)
 	_clock.visible = false
 	_arrow.visible = false
 	_dist.visible = false
