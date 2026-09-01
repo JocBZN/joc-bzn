@@ -43,10 +43,11 @@ const ENEMY_FIREFIGHTER := preload("res://enemy_firefighter.tscn")
 # 2026-08-17). Acum castelul își are inamicul lui desenat, deci lista a dispărut: în castel nu
 # mai intră nimic din lumea normală, din Nether sau din Ender.
 #
-# ⚠️ Cifrele de sub el (viață, viteză, damage) sunt așezate ca APĂSAREA castelului să rămână cam
-# ce era: unul singur, dar mai gras decât media amestecului vechi și cu damage-ul lui aproape de
-# media aceleia (1,4 față de 1,43). Vezi `enemy_cavaler.tscn` și comentariul de la
-# `prison.gd::ENEMY_POWER` pentru de ce damage-ul e cel care nu se umflă.
+# ⚠️ Cifrele de sub el au fost URCATE pe 2026-09-01 („la Sir John inamicii de acolo vreau să fie
+# cei mai OP din joc"): viață 160 → 280, damage 1.4 → 2.4, viteză 150 → 200, XP 2.5 → 5.0. Până
+# atunci pompierul din lumea normală era mai gras, lovea mai tare și alerga mai repede decât
+# paznicii ultimei dimensiuni. Vezi `enemy_cavaler.tscn`, comentariul de la `prison.gd::ENEMY_POWER`
+# și `tool_castel_op.tscn`, unealta care măsoară clasamentul.
 # Arta e a lui Răzvan, pusă pe 2026-08-29 în `harta/castle/castle enemies/`.
 const ENEMY_CAVALER := preload("res://enemy_cavaler.tscn")
 

@@ -9,13 +9,13 @@ radius = 16.0
 scale = Vector2(1.8, 1.8)
 collision_layer = 4
 script = ExtResource("1_script")
-speed = 150.0
-max_hp = 160
-damage_mult = 1.4
-xp_drop_mult = 2.5
+speed = 200.0
+max_hp = 280
+damage_mult = 2.4
+xp_drop_mult = 5.0
 frames_dir = "res://harta/castle/castle enemies/frames"
 frames_count = 8
-frames_fps = 10.0
+frames_fps = 13.33
 stop_dist = 55.0
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]

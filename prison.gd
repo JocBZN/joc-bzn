@@ -82,30 +82,43 @@ var active := false
 # lista veche cu toate felurile din joc a dispărut din `spawner.gd`. Multiplicatorii de mai jos
 # se aplică peste cifrele LUI, nu peste o medie de șase feluri.
 #
-# ⚠️ CIFRELE ASTEA AU FOST TĂIATE pe 2026-08-17, după ce Răzvan a jucat-o: „se buguiește,
-# monstrul nu apare și mă bagă random în Limbo". Nu era un bug — MUREA în prima secundă și nu mai
-# apuca să găsească statuia. Erau 3.0 / 1.25 / 1.6.
+# 🔑 CERUT PE 2026-09-01: „La Sir John inamicii de acolo vreau să fie cei mai OP din joc."
+# Nu erau. Măsurat cu `tool_castel_op.tscn` la minutul 8, cu toți multiplicatorii puși, cavalerul
+# de castel ieșea AL DOILEA la viață și abia al treilea la damage — îl bătea POMPIERUL, care apare
+# în lumea normală, pe iarbă, la minutul 3: 3658 viață / 44 damage pe secundă / 294 viteză, față de
+# 3251 / 32 / 231 ale cavalerului. Ultima dimensiune din joc era păzită de inamici mai slabi decât
+# cei de pe câmp. Acum cavalerul e primul cu 50% peste al doilea la viață și 19% la damage; singurul
+# lucru care rămâne mai iute e creatura din Ender (532), care ZBOARĂ și are 812 viață — un cavaler
+# în platoșă mai rapid decât ea ar fi însemnat că nu-l mai poți nici fugi, nici omorî.
 #
-# 🔑 Ce l-a omorât e DAMAGE-UL, nu viața. Damage-ul de contact se plătește PER INAMIC LIPIT DE
-# TINE, la fiecare 0,5 s (`player._take_contact_damage`), și se înmulțește deja de două ori:
-# o dată cu `damage_mult` al felului (cavalerul are 1.4) și o dată cu
-# `Difficulty.enemy_damage_mult()`, care la minutul la care ajungi în castel e ~×2,5. Un al
-# treilea multiplicator de la mine peste ele înmulțea, nu aduna: 5 × 2,5 × 2,0 × 1,6 = 40 de damage
-# per creatură, la fiecare jumătate de secundă. Cu cinci pe tine, 400/s dintr-o viață de ~150.
+# Cifrele cavalerului stau în `enemy_cavaler.tscn` (viață 280, damage 2.4, viteză 200, XP 5.0),
+# fiindcă ele spun CINE E EL; multiplicatorii de aici spun cât îl îngroașă DIMENSIUNEA.
 #
-# Deci „mai OP" înseamnă acum: mai GRAȘI (îi tai mai greu) și puțin mai iuți — dar damage-ul îl
-# lăsăm în pace, fiindcă el e cel care se înmulțește cu numărul lor.
-# ⚠️ 1.25, nu 3.0 cum era la prima scriere. Viața în plus e cea care te omoară INDIRECT: la
-# minutul 8 inamicii au deja ×16,3 din dificultate, iar dacă nu-i mai poți curăța se adună pe
-# tine, iar damage-ul de contact se plătește per inamic.
+# ⚠️ CIFRELE ASTEA AU FOST TĂIATE o dată, pe 2026-08-17, după ce Răzvan a jucat-o: „se buguiește,
+# monstrul nu apare și mă bagă random în Limbo". Nu era un bug — MUREA în prima secundă. Erau
+# 3.0 / 1.25 / 1.6.
 #
-# ⚠️ Îngroșarea adevărată a castelului n-a fost niciodată multiplicatorul ăsta. Până pe 2026-08-29
-# era FAPTUL CĂ VENEAU TOATE FELURILE DEODATĂ; acum e CAVALERUL însuși — 160 HP de bază (mai mult
-# decât SWAT-ul, 150) și damage 1.4, adică aproape media amestecului vechi (1,43). Dacă vreodată
-# castelul iese prea moale, cifra care trebuie mișcată e a LUI, în `enemy_cavaler.tscn`, nu asta.
-const ENEMY_POWER := 1.25       # de câte ori mai multă viață
+# 🔑 Ce l-a omorât atunci a fost DAMAGE-UL DE AICI, nu viața. Damage-ul de contact se plătește PER
+# INAMIC LIPIT DE TINE, la fiecare 0,5 s (`player._take_contact_damage`), și se înmulțește deja de
+# două ori: o dată cu `damage_mult` al felului și o dată cu `Difficulty.enemy_damage_mult()`, care
+# la minutul la care ajungi în castel e ~×2,24. Un AL TREILEA multiplicator peste ele înmulțea, nu
+# aduna. De-aia `ENEMY_DAMAGE` a rămas 1.0 și acum: cavalerul lovește mai tare fiindcă `damage_mult`
+# al LUI a urcat (1.4 → 2.4), adică o singură dată, nu de două ori.
+#
+# Măsurat pe același build (`tool_castel_op.tscn`, sămânță fixă, player de minutul 8):
+#   • încolțit, stând pe loc:  15 → 68 damage/secundă (de 4,5 ori mai mult, dar departe de cei
+#     109 din 2026-08-17, fiindcă `SPAWN_MULT` ține gloata rară);
+#   • fugind în cerc:          2 → 5 damage/secundă (tot se poate juca);
+#   • un cavaler trăiește 3,9 → 5,0 s, iar pe hartă sunt 8,4 → 10 deodată.
+#
+# ⚠️ `SPAWN_MULT` NU s-a atins. El e supapa care a salvat dimensiunea (vezi mai jos): „cei mai OP"
+# înseamnă fiecare în parte, nu mai mulți. Ritmul de omorâri a rămas același (129 → 123 pe minut).
+#
+# ⚠️ Dacă vreodată castelul iese prea moale SAU prea greu, prima cifră de mișcat e a CAVALERULUI,
+# în `enemy_cavaler.tscn`, nu asta: aici se reglează cât îl îngroașă locul, acolo cine e el.
+const ENEMY_POWER := 1.6        # de câte ori mai multă viață
 const ENEMY_SPEED := 1.10       # de câte ori mai iuți
-const ENEMY_DAMAGE := 1.0       # NU-l urca fără să măsori întâi cât încasezi pe secundă
+const ENEMY_DAMAGE := 1.0       # NU-l urca: damage-ul se umflă din `enemy_cavaler.tscn`, o dată
 
 # 🔑 CÂT DE DEASĂ E PLOAIA. Ăsta e butonul care chiar a salvat dimensiunea, și merită explicat.
 # Ca să ajungi în pușcărie trebuie să treci prin Nether ȘI Ender, adică ajungi târziu în rundă —

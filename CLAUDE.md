@@ -24,6 +24,114 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-01 (cavalerii lui Sir John, cei mai OP din joc — măsurat, nu simțit)
+
+**Cerut de Răzvan:** „La Sir John inamicii de acolo vreau să fie cei mai OP din joc."
+
+### 🔎 Prima întrebare: erau?
+
+Nu. Și nu era nici pe departe aproape. Unealta nouă (`tool_castel_op.tscn`) pune toți inamicii
+jocului pe același tabel, la același moment de rundă (minutul 8 — cât îți ia să treci prin Nether
+și Ender), cu TOȚI multiplicatorii aplicați ca în joc. Așa arăta castelul înainte:
+
+| fel | viață | damage/sec | viteză | XP/mort | unde |
+|---|---|---|---|---|---|
+| **pompier** | **3658** | **44** | **294** | 130 | lumea normală |
+| cavaler de castel | 3251 | 32 | 231 | 257 | castel |
+| SWAT | 2438 | 30 | 224 | 78 | lumea normală |
+| creatura Ender | 812 | 44 | 532 | 78 | Ender |
+
+Ultima dimensiune din joc, cea în care ajungi după doi boși, era păzită de inamici mai slabi decât
+**pompierul de pe iarbă**, pe care îl întâlnești la minutul 3 fără să treci prin nimic.
+
+### 🛡️ Ce s-a schimbat
+
+Cifrele cavalerului, în `enemy_cavaler.tscn` — acolo e locul lor, fiindcă ele spun CINE E EL:
+
+| | înainte | acum | de ce |
+|---|---|---|---|
+| `max_hp` | 160 | **280** | dublul pompierului după îngroșarea de castel |
+| `damage_mult` | 1.4 | **2.4** | peste 2.0, cât aveau pompierul și creatura Ender |
+| `speed` | 150 | **200** | cel mai iute de pe jos (308 cu tot cu multiplicatori) |
+| `xp_drop_mult` | 2.5 | **5.0** | XP-ul urmează viața (vezi mai jos) |
+| `frames_fps` | 10 | **13.33** | pasul, nu patinajul (vezi mai jos) |
+
+Plus o singură cifră a dimensiunii, în `prison.gd`: **`ENEMY_POWER` 1.25 → 1.6**.
+
+Rezultatul, măsurat de aceeași unealtă: **viață 7284** (al doilea, pompierul, are cu 50% mai puțin),
+**54 damage/secundă** (cu 19% peste al doilea), **viteză 308**.
+
+### ⚠️ Ce NU s-a atins, și de ce contează
+
+**`ENEMY_DAMAGE` a rămas 1.0.** Damage-ul de contact se plătește PER INAMIC LIPIT DE TINE, la
+fiecare 0,5 s, și trece deja prin două înmulțiri (`damage_mult` al felului × `enemy_damage_mult()`
+al dificultății, ~×2,24 la minutul 8). Un al treilea multiplicator, aici, e exact ce a omorât
+dimensiunea pe 2026-08-17 („se buguiește, monstrul nu apare și mă bagă random în Limbo" — de fapt
+mureai în 1,4 secunde). Cavalerul lovește mai tare fiindcă a crescut cifra LUI, o dată, nu de două.
+
+**`SPAWN_MULT` a rămas 0.35.** „Cei mai OP" înseamnă fiecare în parte, nu mai mulți: în castel e o
+luptă cu boss, iar gloata trebuie să rămână fundal. Ritmul de omorâri a ieșit neschimbat, 123 pe
+minut față de 129 înainte.
+
+**Viteza nu trece de creatura din Ender (532).** Ea zboară și are 812 viață — un cavaler în platoșă
+cu 7284 de viață, mai rapid decât ea, ar fi însemnat un inamic pe care nici nu-l fugi, nici nu-l
+omori. Cavalerul e primul dintre cei de pe jos, adică îl întrece pe pompier (294).
+
+### 👣 Detaliul care se vede, dar nu se caută: animația
+
+`frames_fps = 10` fusese ales pe 2026-08-29 ca cele 8 cadre să fie un ciclu de 0,8 s, adică pași de
+~60 px la viteza 150. La viteza 200 aceiași pași ar fi rămas în urmă cu o treime și cavalerul ar fi
+PATINAT. `enemy.gd` nu leagă viteza animației de cea de mers (`set_animation_speed(d, frames_fps)`,
+o cifră fixă), deci se reglează de mână: 8 / (120 px pe ciclu ÷ 200) = **13,33 fps**.
+
+### 🧰 `tool_castel_op.gd/.tscn` (unealtă nouă)
+
+Rulează headless și face două lucruri:
+
+**A. Clasamentul** — tabelul de mai sus, calculat cu formulele din joc (`enemy.gd::_ready` pentru
+viață și viteză, `player._take_contact_damage` pentru damage, `enemy.gd::_drop_xp` pentru XP), și
+spune pe fiecare axă cine e al doilea și cu cât rămâne în urmă. Nu se uită la imagine.
+
+**B. Castelul rulat pe bune** — intră prin `prison.enter()` cu un build de minutul 8 (25 de iteme
+trase la sorți) și măsoară de două ori: **pe loc** (încolțit, cazul cel mai rău) și **fugind în
+cerc** (prin INPUT adevărat, ca `tool_profil.gd`), apoi încă o dată cu SIR JOHN dezlegat.
+
+⚠️ Trei capcane rezolvate în unealtă, toate valabile pentru orice unealtă viitoare care măsoară
+gameplay: **(1)** `seed()` se pune DUPĂ ce s-a instanțiat `main.tscn`, fiindcă `spawner.gd::_ready`
+cheamă `randomize()` — altfel build-ul iese altul la fiecare rulare și două configurații nu se pot
+compara; **(2)** `xp_to_next` se umflă la un miliard, fiindcă un level up PUNE JOCUL PE PAUZĂ și
+măsurătoarea stă cu el; **(3)** boss-ul se parchează cu funcția jocului (`_park_boss(true)`), altfel
+damage-ul lui SIR JOHN intră în cifra cavalerilor.
+
+### ✅ Verificat rulând
+
+Pe ACELAȘI build (sămânță fixă), înainte → după:
+
+| | înainte | acum |
+|---|---|---|
+| damage încasat, încolțit pe loc | 15/sec | **68–82/sec** |
+| damage încasat, fugind în cerc | 2/sec | **5–8/sec** |
+| cât trăiește un cavaler | 3,9 s | **4,8–5,0 s** |
+| cavaleri pe hartă deodată | 8,4 | **9,7–10** |
+| omorâri pe minut | 129 | 123 |
+
+Adică: încolțit, castelul e de ~4,5 ori mai periculos decât ieri — dar tot sub cei **109/sec** care
+l-au stricat pe 2026-08-17, fiindcă acolo problema era CÂȚI ajung pe tine, nu cât lovește unul.
+Fugind, se joacă în continuare. Cu SIR JOHN dezlegat, dimensiunea merge normal (15,3 cavaleri pe
+hartă, 156 omorâri pe minut).
+
+⚠️ **Efect lateral de știut: LIMBO.** Dacă mori în castel cu Undying Spirit, în Limbo vin tot
+cavaleri (`limbo.gd::_scena_inamic` întreabă spawner-ul) — 40 deodată, la intrare. Limbo NU trece
+prin `_ingroasa_pentru_puscarie`, deci sunt cei de bază, fără ×1.6: **4564 viață** în loc de 2608 și
+54 damage/sec în loc de 32. N-a cerut nimeni schimbarea asta, dar vine odată cu ea; dacă Limbo iese
+imposibil după castel, butonul e `BURST` din `limbo.gd`.
+
+**Fișiere noi:** `tool_castel_op.gd` + `.tscn`.
+**Atinse:** `enemy_cavaler.tscn` (cele cinci cifre), `prison.gd` (`ENEMY_POWER` + comentariul lung),
+`spawner.gd` (comentariul de la `ENEMY_CAVALER`).
+
+---
+
 ## Session log — 2026-09-01 (poarta castelului: ușă adevărată, nu fântână vopsită)
 
 **Cerut de Răzvan:** „Ti-am pus in folderul castle un fisier - Castle_Door_Portal - asta vreau sa
@@ -536,6 +644,8 @@ De-aia `tool_mirror_cavaler.gd` (unealtă nouă) începe cu o **autoverificare**
 ⚠️ **Arta se preîncarcă singură:** `preload_all.gd` scanează `res://harta` recursiv, iar folderul e înăuntru. N-a trebuit trecut nicăieri.
 
 ### Cine e cavalerul, în cifre (`enemy_cavaler.tscn`)
+
+⚠️ **Tabelul de mai jos e cel de pe 2026-08-29 și a fost DEPĂȘIT pe 2026-09-01** („cei mai OP din joc"): viață 160 → **280**, damage 1.4 → **2.4**, viteză 150 → **200**, XP 2.5 → **5.0**, fps 10 → **13.33**, plus `ENEMY_POWER` 1.25 → **1.6**. Raționamentul de mai jos rămâne valabil ca istorie — el explică de ce damage-ul fusese ținut jos — dar cifrele curente sunt în log-ul de sus.
 
 | | cavaler | de comparat |
 |---|---|---|
