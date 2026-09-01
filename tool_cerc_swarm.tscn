@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cerc0swarm0tool"]
+
+[ext_resource type="Script" path="res://tool_cerc_swarm.gd" id="1_tool"]
+
+[node name="ToolCercSwarm" type="Node2D"]
+script = ExtResource("1_tool")

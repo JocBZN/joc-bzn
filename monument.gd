@@ -16,6 +16,9 @@ extends StaticBody2D
 # Cât curge, jucătorul vede pe ecran (cerut de Răzvan pe 2026-08-14): bannerul „Swarm has started"
 # și, sub cronometrul rundei, „Swarm Timer: 0:10" care numără invers până se termină vărsatul.
 # Cronometrul e desenat de `hud.gd`, dar numărat AICI — vezi `_scoate_hoarda`.
+# Iar de pe 2026-09-01 („să se vadă mai bine că ești în swarm") se aprinde și un SIGILIU pe jos, în
+# jurul monumentului: un cerc roșu cu doi dinți contra-rotativi, care se golește ca un ceas pe
+# măsură ce se scurge hoarda. E `swarm_ring.gd`, tot de aici hrănit.
 # Toți primesc aceleași trei modificări, față de un inamic obișnuit DIN CLIPA INVOCĂRII:
 #   · ×`xp_mult` (2) XP la moarte,   · ×`speed_mult` (3) viteză,   · ×`damage_mult_h` (3) damage.
 #
@@ -31,6 +34,9 @@ extends StaticBody2D
 # picioarele afară, sub piedestal.
 
 const GARDA := preload("res://garda.tscn")
+# Cercul de pe jos, aprins cât curge hoarda (cerut pe 2026-09-01). Nu e o scenă, e un script pe
+# un Sprite2D făcut din cod — vezi `swarm_ring.gd` și `swarm_ring.gdshader`.
+const CERC_SWARM := preload("res://swarm_ring.gd")
 # Din ce e făcută hoarda. Ponderile sunt egale (câte 1) = „random din orice dimensiune", cum
 # s-a cerut. Vrei mai puțini enderi (sunt cei mai duri)? Le scazi ponderea lor de aici, nu
 # trebuie să umbli în altă parte.
@@ -57,6 +63,16 @@ const FELURI := [
 # În cât timp iese TOATĂ hoarda. Nu apare deodată, ci se scurge unul câte unul, în ritm egal,
 # pe atâtea secunde (103 creaturi în 10s = una la ~0,097s). Scazi cifra → năvală; o crești → asediu.
 @export var spawn_duration: float = 10.0
+
+# Raza SIGILIULUI de pe jos (`swarm_ring.gd`), în pixeli de lume. E fix `boss_dist`, și nu din
+# lene: cele 3 Gărzi ies din pământ CHIAR PE LINIA cercului, nu oriunde în jurul lui. Inamicii
+# obișnuiți vin de dincolo de el (`spawn_min_dist` = 620), deci cercul e pragul pe care îl trec
+# ca să ajungă la tine — nu un desen pus acolo ca să fie.
+# De ce nu 620, adică chiar pragul de spawn: la zoom-ul camerei (0.7) se văd 926 px pe verticală,
+# adică 463 în sus și 463 în jos. Un cerc de 620 ar avea vârful și fundul mereu în afara ecranului
+# și ai citi două arce verticale, nu un cerc. La 480 îl vezi ÎNTREG cât stai lângă monument — iar
+# „ești înăuntru" se citește doar dintr-o formă închisă, pe care o cuprinzi din ochi.
+@export var cerc_raza: float = 400.0
 
 # --- Cutremur + scufundare (aceleași cifre ca la statuie, să se simtă la fel) ---
 @export var shake_strength: float = 22.0
@@ -214,12 +230,23 @@ func _scoate_hoarda(lume: Node) -> void:
 	var hud := get_tree().get_first_node_in_group("hud")
 	if hud != null and not hud.has_method("swarm_timer"):
 		hud = null
+	# SIGILIUL de pe jos (`swarm_ring.gd`): cercul roșu care arată unde ești și cât mai ține.
+	# Îl punem în `World`, ca și creaturile — containerul de chunk al monumentului se șterge când
+	# te îndepărtezi, iar cercul ar dispărea cu el, în mijlocul hoardei. Îl hrănim cadru cu cadru,
+	# exact ca pe HUD; dacă tăcem (moarte, restart, ai intrat într-o dimensiune), se stinge singur.
+	var cerc: Node2D = CERC_SWARM.new()
+	cerc.raza = cerc_raza
+	lume.add_child(cerc)
+	cerc.global_position = centru
 	while scosi < total:
 		# Lumea poate dispărea sub noi cât așteptăm (moarte, restart, meniu).
 		if not is_instance_valid(lume) or not is_inside_tree():
 			return
 		if hud != null:
 			hud.swarm_timer(spawn_duration - trecut)
+		if is_instance_valid(cerc):
+			# aceeași fracție pe care o scrie și HUD-ul, ca inelul și cifra să nu se contrazică
+			cerc.alimenteaza((spawn_duration - trecut) / maxf(0.001, spawn_duration))
 		if not get_tree().paused:
 			trecut += get_process_delta_time()
 			var tinta := total if pas <= 0.0 else mini(total, int(floor(trecut / pas)) + 1)
@@ -235,6 +262,8 @@ func _scoate_hoarda(lume: Node) -> void:
 			await get_tree().process_frame
 	if hud != null:
 		hud.swarm_timer(0.0)   # ultima cifră e 0:00, nu 0:01; se stinge singur după SWARM_TTL
+	if is_instance_valid(cerc):
+		cerc.inchide()          # clipește o dată și se stinge — sigiliul s-a rupt
 
 # Un punct la întâmplare într-un inel în jurul monumentului: unghi uniform, rază între
 # `spawn_min_dist` și `spawn_max_dist`.

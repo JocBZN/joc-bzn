@@ -24,6 +24,44 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-01 (sigiliul hoardei: cercul de sub monument, care e și ceas)
+
+**Cerut de Răzvan:** „Vreau la monumentul de swarm să aibă un cerc în timpul swarmului, să arate profesionist și să se vadă mai bine că ești în swarm."
+
+**Ce era înainte:** swarm-ul se anunța DOAR pe HUD — bannerul „Swarm has started" (trece în 3 secunde) și rândul mic „Swarm Timer: 0:10" de sub cronometrul rundei. În lume, nimic: te trezeai cu 103 creaturi în cap, iar singurul semn că e ceva special era un text sus, unde nu te uiți când fugi.
+
+**Fișiere noi:** `swarm_ring.gdshader`, `swarm_ring.gd`, `tool_cerc_swarm.gd/.tscn`. **Atinse:** `monument.gd` (un `const`, un `@export`, 3 blocuri în `_scoate_hoarda`), `CLAUDE.md`, `README.md`.
+
+**Ce e:** UN singur `Sprite2D` peste o textură albă de 8×8 pe care shaderul n-o citește niciodată — inelul, haloul, cei doi dinți contra-rotativi și ceasul se calculează din UV. Un draw call, curat la orice rază, iar `fwidth(d)` ține antialiasing-ul la exact un pixel de ecran indiferent de zoom.
+
+**Trei decizii care nu se văd din cod, dar costă dacă le desface cineva:**
+
+- ⚠️ **`blend_mix`, NU `blend_add`** — aceeași lecție pe care a dat-o dimineață lumina albastră de la poarta castelului: pe nisipul deșertului canalele sunt aproape pline, deci orice adaos iese ALB, iar pe iarba închisă aceeași cifră abia se vede. Monumentul apare în **amândouă** biomurile. Soluția e cea de la barele de viață: bandă închisă sub linia luminoasă, deci contrastul vine cu inelul, nu de la sol.
+- ⚠️ **Ceasul vine din GDScript (`timp`), nu din `TIME`-ul shaderului.** `TIME` e ceasul plăcii video și curge și pe pauză — iar în 10 secunde de hoardă aproape sigur prinzi un Level Up. Prima rulare cap-coadă s-a terminat cu cercul încă aprins: **nu era bug, era dovada** că se oprește corect. A doua rulare, cu `xp_to_next` scos din raza vizuală, s-a închis curat.
+- ⚠️ **Se stinge singur dacă monumentul tace** (`TTL = 0.4`, fix tiparul din `hud.gd::SWARM_TTL`). Acoperă moartea, restartul și intratul într-o dimensiune — Nether/Ender/pușcăria golesc generatoarele de decor, iar monumentul e copilul unuia dintre ele, deci dispare fără să apuce să spună „gata".
+
+**Cercul e și cronometru:** se golește în sensul acelor de ceasornic pornind din vârf, cu un bulgăre alb care mănâncă inelul la capăt. Nu-și numără singur timpul — îl hrănește `monument.gd::_scoate_hoarda` cadru cu cadru, cu **aceeași fracție** pe care o dă și HUD-ului, deci cele două nu pot ajunge să arate altceva. Partea consumată se stinge la 0.30, nu la 0: treaba de căpătâi a inelului e „ești înăuntru", iar aia nu expiră la secunda 9.
+
+**Cifrele și de ce sunt alea:**
+
+| ce | cât | de ce |
+|---|---|---|
+| `cerc_raza` | **400 px** | La zoom 0.7 se văd 926 px pe verticală, adică 463 în sus și în jos. Prima variantă avea 480 (= `boss_dist`, ca Gărzile să iasă pe linie) și **se tăia sus și jos** — se citeau două arce verticale, nu un cerc. „Ești înăuntru" se citește doar dintr-o formă închisă. |
+| `RAZA_UV` | 0.70 | Restul până la 1.0 e locul haloului și al dinților din afară. Peste ~0.82 se taie muchia sprite-ului și se vede pătratul. |
+| `z_index` | **−4** | Peste iarbă și peste poteci (`pathways.gd` e la −5), sub umbre (−1) → creaturile trec PESTE sigiliu, cu umbră cu tot. |
+| dinți | 54 în afară / 30 înăuntru, roți inverse | Un cerc nemișcat citește ca decalcomanie; două care se contrează citesc ca un mecanism. |
+
+**Cum s-a verificat — cu poze, nu cu raționamente** (`tool_cerc_swarm.tscn`, rulat CU fereastră; headless randează negru):
+1. cercul pus cu mâna pe **iarbă** și pe **nisip**, la ceas plin / 62% / 18% / la închidere / după;
+2. apoi **apăsat monumentul de-adevăratelea** — steagul `celesto_invins` ridicat, monument propriu pus în lume, `invoca()`. Rezultat: banner, „SWARM TIMER: 0:09", inelul în jurul obeliscului, 95 de omoruri în 10 secunde, Gărzile ridicându-se chiar pe lângă linie, iar la final **0 cercuri rămase în scenă**.
+3. ⚠️ Player-ul e ținut nemuritor în unealtă (`hp = max_hp` în fiecare cadru) — altfel o unealtă care îl lasă să moară scrie în clasamentul REAL.
+
+**Prima formă a fost aruncată:** halou lat cu alfa mică + miez bej. Pe nisip mergea, dar pe iarbă ieșea **o potecă de pământ** — iar jocul ăsta chiar are poteci (`pathways.gd`). Reparat strângând haloul (`pow(g0, 2.0)` în loc de wash), ținându-l ROȘU aproape peste tot (albește doar ultima fâșie, `pow(g0, 6.0)`) și îngroșând banda închisă de dedesubt (0.28 → 0.38).
+
+**Neatins dinadins:** durata. Cercul ține fix cât ține `spawn_duration` (10 s), adică exact cât cronometrul din HUD — nu cât îți ia să omori cele 103 creaturi. Dacă Răzvan vrea să rămână aprins până se golește hoarda, e altă cerință, nu o cifră de reglat.
+
+---
+
 ## Session log — 2026-09-01 (cavalerii lui Sir John, cei mai OP din joc — măsurat, nu simțit)
 
 **Cerut de Răzvan:** „La Sir John inamicii de acolo vreau să fie cei mai OP din joc."
