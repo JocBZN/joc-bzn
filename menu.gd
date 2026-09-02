@@ -107,6 +107,24 @@ var WEAPONS := [
 		"bonus": "+1% CRIT PER LEVEL"},
 ]
 
+# --- CARACTERELE (2026-09-02) ---
+# Aceeași croială ca `WEAPONS`, fiindcă pagina e aceeași: listă la stânga, fișă la dreapta.
+#
+# 🔑 Aici stau DOAR numele și poza; bonusul NU e scris de mână nicăieri. Se face din cifra reală
+# din `player.gd::CARACTERE` (`_bonus_caracter`), tocmai fiindcă ⚠️-ul de la `WEAPONS` de mai sus
+# spune ce se întâmplă altfel: textele de bonus ale ARMELOR sunt scrise de mână și pot minți în
+# tăcere dacă cineva schimbă `BONUS_PE_NIVEL`. La caractere nu se mai poate întâmpla.
+#
+# `icon` e o POZĂ DIN ANIMAȚIA LUI, nu o iconiță desenată separat — ca la coasă și la cuțit,
+# unde iconița din meniu chiar e obiectul din joc. Se decupează la rulare pe silueta opacă
+# (`_portret`), deci nu există nicio copie pe disc care să rămână în urma artei.
+var CHARACTERS := [
+	{"id": "grasu",    "name": "THE G",
+		"icon": "res://grasu directii/rotations/south.png"},
+	{"id": "spellman", "name": "SPELLMAN",
+		"icon": "res://Characters/Wizard/frames/idle_south_0.png"},
+]
+
 const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
 const BG_FRAMES_DIR := "res://menu/bg_frames"       # cadrele de animație (1920x1080)
 const BG_FRAME_COUNT := 60
@@ -136,6 +154,14 @@ var _weapon_buttons := []
 var _weapon_detail := {}       # etichetele fișei din dreapta paginii CHOOSE WEAPON
 var _weapon_preview := ""      # arma peste care stă mouse-ul („" = arată-o pe cea aleasă)
 var _arme := {}                # `ARME` din player.gd (damage/cadență de pornire), citit o dată
+# Aceleași trei, pentru pagina CHOOSE CHARACTER. Ținute separat de cele ale armelor, deși
+# paginile sunt gemene: cele două ecrane există în același timp (`_panels` le ține pe amândouă,
+# doar le ascunde), deci o listă comună ar fi însemnat că butoanele uneia le suprascriu pe ale
+# celeilalte la construire.
+var _character_buttons := []
+var _character_detail := {}
+var _character_preview := ""
+var _caractere := {}           # `CARACTERE` din player.gd (bonusul real), citit o dată
 var _lb_list: VBoxContainer
 
 var _bg_rect: TextureRect       # fundalul (întâi cadrul clar, apoi cadrele animate)
@@ -728,23 +754,38 @@ func _build_weapon() -> void:
 	box.add_child(_spacer(18))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
 
-# Un rând din listă: [chenar cu iconița] [numele armei]. Butonul e doar zona de click
-# (transparentă); ce se vede sunt chenarul de raritate și iconița — aceeași construcție ca la
-# cartonașele din `levelup.gd`, ca alegerea armei să arate din același joc.
+# Un rând din listă: [chenar cu iconița] [numele]. Butonul e doar zona de click (transparentă);
+# ce se vede sunt chenarul de raritate și iconița — aceeași construcție ca la cartonașele din
+# `levelup.gd`, ca alegerea să arate din același joc.
+#
+# 🔑 E scris o singură dată fiindcă îl folosesc DOUĂ pagini gemene, CHOOSE WEAPON și CHOOSE
+# CHARACTER (2026-09-02). Copiat, a doua pagină ar fi rămas în urmă la prima reglare de chenar
+# sau de focus — iar diferența n-ar fi sărit în ochi, fiindcă cele două ecrane nu se văd
+# niciodată unul lângă altul.
 func _rand_arma(i: int) -> Button:
 	var w = WEAPONS[i]
-	var id := String(w["id"])
+	var tex: Texture2D = load(w["icon"]) if ResourceLoader.exists(w["icon"]) else null
+	return _rand_alegere(String(w["id"]), String(w["name"]), tex,
+		_on_weapon_chosen, _preview_arma, _weapon_buttons)
+
+func _rand_caracter(i: int) -> Button:
+	var c = CHARACTERS[i]
+	return _rand_alegere(String(c["id"]), String(c["name"]), _portret(String(c["icon"])),
+		_on_character_chosen, _preview_caracter, _character_buttons)
+
+func _rand_alegere(id: String, nume_text: String, tex: Texture2D,
+		ales: Callable, previzualizare: Callable, lista: Array) -> Button:
 	var b := Button.new()
 	b.custom_minimum_size = Vector2(320, CELULA_LISTA)
 	b.flat = true
 	for stare in ["normal", "hover", "pressed", "focus", "disabled"]:
 		b.add_theme_stylebox_override(stare, StyleBoxEmpty.new())
-	b.pressed.connect(_on_weapon_chosen.bind(id))
+	b.pressed.connect(ales.bind(id))
 	# și mouse, și tastatură/gamepad: fișa urmează și focusul, nu doar cursorul
-	b.mouse_entered.connect(_preview_arma.bind(id))
-	b.mouse_exited.connect(_preview_arma.bind(""))
-	b.focus_entered.connect(_preview_arma.bind(id))
-	b.focus_exited.connect(_preview_arma.bind(""))
+	b.mouse_entered.connect(previzualizare.bind(id))
+	b.mouse_exited.connect(previzualizare.bind(""))
+	b.focus_entered.connect(previzualizare.bind(id))
+	b.focus_exited.connect(previzualizare.bind(""))
 
 	var hb := HBoxContainer.new()
 	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -767,8 +808,7 @@ func _rand_arma(i: int) -> Button:
 	cell.add_child(chenar)
 
 	var poza := TextureRect.new()
-	if ResourceLoader.exists(w["icon"]):
-		poza.texture = load(w["icon"])
+	poza.texture = tex
 	# iconița stă ÎN interiorul chenarului, nu peste el. 9px la o celulă de 68 = cât ține rama
 	# pictată a chenarului de raritate (ICON_PAD e croit pentru celula mare, de 132).
 	poza.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -783,7 +823,7 @@ func _rand_arma(i: int) -> Button:
 	cell.add_child(poza)
 
 	var nume := Label.new()
-	nume.text = String(w["name"])
+	nume.text = nume_text
 	nume.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	nume.add_theme_font_size_override("font_size", 19)
 	nume.add_theme_color_override("font_color", OS_ALB)
@@ -794,14 +834,14 @@ func _rand_arma(i: int) -> Button:
 	nume.add_theme_constant_override("outline_size", 3)
 	hb.add_child(nume)
 
-	_weapon_buttons.append({"buton": b, "chenar": chenar, "nume": nume})
+	lista.append({"buton": b, "chenar": chenar, "nume": nume})
 	_viata(b)
 	return b
 
-# FIȘA din dreapta: iconiță mare + nume, apoi statusurile de pornire și bonusul de nivel.
-# Caseta e desenată (piatră închisă cu muchie de aramă), nu încă un chenar ornat: pagina are deja
-# o ramă în jur, iar două rame ornate una în alta se citesc ca una singură, groasă și murdară.
-func _fisa_arma() -> Control:
+# Caseta goală a unei fișe. E desenată (piatră închisă cu muchie de aramă), nu încă un chenar
+# ornat: pagina are deja o ramă în jur, iar două rame ornate una în alta se citesc ca una
+# singură, groasă și murdară. Copilul 0 e `VBoxContainer`-ul în care se pune conținutul.
+func _caseta_fisa() -> PanelContainer:
 	var caseta := PanelContainer.new()
 	caseta.custom_minimum_size = Vector2(FISA_W, 0)
 	caseta.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -816,13 +856,17 @@ func _fisa_arma() -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	caseta.add_child(box)
+	return caseta
 
+# Capul fișei: poza mare la stânga, numele la dreapta, apoi linia de despărțire. `latura` e cât
+# de mare e poza — arma încape în 84, personajul are nevoie de mai mult ca să nu fie o gămălie.
+func _fisa_cap(box: VBoxContainer, latura: int) -> Dictionary:
 	var cap := HBoxContainer.new()
 	cap.add_theme_constant_override("separation", 16)
 	box.add_child(cap)
 
 	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(84, 84)
+	icon.custom_minimum_size = Vector2(latura, latura)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -839,6 +883,15 @@ func _fisa_arma() -> Control:
 	cap.add_child(nume)
 
 	box.add_child(_linie(300.0, 12))
+	return {"icon": icon, "nume": nume}
+
+# FIȘA din dreapta: iconiță mare + nume, apoi statusurile de pornire și bonusul de nivel.
+func _fisa_arma() -> Control:
+	var caseta := _caseta_fisa()
+	var box: VBoxContainer = caseta.get_child(0)
+	var cap := _fisa_cap(box, 84)
+	var icon: TextureRect = cap["icon"]
+	var nume: Label = cap["nume"]
 
 	var cap_start := Label.new()
 	cap_start.text = "AT START"
@@ -932,12 +985,168 @@ func _arme_stats() -> Dictionary:
 			_arme = s.get_script_constant_map().get("ARME", {})
 	return _arme
 
-# ---------- CHOOSE CHARACTER (placeholder) ----------
+# ---------- CHOOSE CHARACTER ----------
+# Făcută pe 2026-09-02, cerută de Răzvan: „vreau sa fie un nou caracter pe care poate sa il joace
+# Playerul… vreau sa faci meniul ca cel de la weapons". Până atunci pagina exista, dar scria doar
+# „Only one character for now".
+#
+# E ACEEAȘI pagină ca CHOOSE WEAPON, nu una care seamănă cu ea: listă la stânga, fișă la dreapta,
+# chenar verde pe cel ales, fișa urmărește mouse-ul ȘI focusul de controller. Rândul de listă
+# (`_rand_alegere`) și caseta fișei (`_caseta_fisa` + `_fisa_cap`) sunt scrise o singură dată și
+# folosite de amândouă — vezi de ce, acolo.
+#
+# ⚠️ Ce se ALEGE aici e altceva decât ce se alege la arme: caracterul se și SALVEAZĂ
+# (`GameSettings.character`), arma nu. Vezi comentariul din `game_settings.gd`.
 func _build_character() -> void:
 	var box := _make_panel("character", "CHOOSE CHARACTER")
-	box.add_child(_center_label("Only one character for now: \"Grasu\".\nMore coming soon!", 20))
-	box.add_child(_spacer(24))
+	box.add_child(_spacer(6))
+
+	var doua := HBoxContainer.new()
+	doua.add_theme_constant_override("separation", 26)
+	doua.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(doua)
+
+	var lista := VBoxContainer.new()
+	lista.add_theme_constant_override("separation", 6)
+	lista.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	doua.add_child(lista)
+	_character_buttons.clear()
+	for i in CHARACTERS.size():
+		lista.add_child(_rand_caracter(i))
+
+	doua.add_child(_fisa_caracter())
+
+	_refresh_character_selection()
+	box.add_child(_spacer(18))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
+
+# Fișa personajului: portret mare + nume, apoi ce are el și n-au ceilalți.
+#
+# ⚠️ NU are secțiunea „AT START" a armelor, fiindcă ar fi fost aceleași cifre la amândoi:
+# damage-ul și cadența vin din ARMĂ, nu din caracter. Un tabel identic pe toate personajele ar
+# fi arătat a fișă completă și n-ar fi spus nimic.
+func _fisa_caracter() -> Control:
+	var caseta := _caseta_fisa()
+	var box: VBoxContainer = caseta.get_child(0)
+	# 120, nu 84 ca la arme: un pistol se citește și mic, un om desenat în 96px nu.
+	var cap := _fisa_cap(box, 120)
+
+	var cap_perk := Label.new()
+	cap_perk.text = "PERK"
+	cap_perk.add_theme_font_size_override("font_size", 13)
+	cap_perk.add_theme_color_override("font_color", ACCENT)
+	box.add_child(cap_perk)
+
+	var bonus := Label.new()
+	bonus.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bonus.add_theme_font_size_override("font_size", 17)
+	bonus.add_theme_color_override("font_color", Color(0.62, 0.86, 0.62))
+	bonus.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	bonus.add_theme_constant_override("outline_size", 3)
+	box.add_child(bonus)
+
+	_character_detail = {"icon": cap["icon"], "nume": cap["nume"], "bonus": bonus}
+	return caseta
+
+func _preview_caracter(id: String) -> void:
+	_character_preview = id
+	_refresh_character_detail()
+
+func _on_character_chosen(id: String) -> void:
+	GameSettings.character = id
+	GameSettings._save()   # caracterul se ține minte între porniri, spre deosebire de armă
+	_refresh_character_selection()
+
+func _refresh_character_selection() -> void:
+	for i in _character_buttons.size():
+		var sel: bool = CHARACTERS[i]["id"] == GameSettings.character
+		var chenar: TextureRect = _character_buttons[i]["chenar"]
+		chenar.texture = load(BORDER_SEL if sel else BORDER_NESEL)
+		var b: Button = _character_buttons[i]["buton"]
+		b.modulate = Color(1, 1, 1) if sel else Color(0.72, 0.72, 0.76)
+	_refresh_character_detail()
+
+func _refresh_character_detail() -> void:
+	if _character_detail.is_empty():
+		return
+	var id := _character_preview if _character_preview != "" else String(GameSettings.character)
+	var c = null
+	for x in CHARACTERS:
+		if String(x["id"]) == id:
+			c = x
+			break
+	if c == null:
+		c = CHARACTERS[0]
+		id = String(c["id"])
+	_character_detail["icon"].texture = _portret(String(c["icon"]))
+	_character_detail["nume"].text = String(c["name"])
+	_character_detail["bonus"].text = _bonus_caracter(id)
+
+# Bonusul, SCRIS DIN CIFRA REALĂ din `player.gd::CARACTERE`. Dacă Răzvan schimbă acolo 0.95 în
+# 0.90, textul devine singur „-10%". Ăsta e tot rostul: la arme, textele sunt scrise de mână și
+# pot minți (vezi ⚠️ de la `WEAPONS`).
+func _bonus_caracter(id: String) -> String:
+	var c: Dictionary = _caractere_stats().get(id, {})
+	var f := float(c.get("xp_pe_nivel", 1.0))
+	if is_equal_approx(f, 1.0):
+		return "NO BONUS STATS"
+	return tr("-%d%% XP NEEDED PER LEVEL") % int(round((1.0 - f) * 100.0))
+
+# `CARACTERE` din player.gd, citit o dată — exact ca `_arme_stats`.
+func _caractere_stats() -> Dictionary:
+	if _caractere.is_empty():
+		var s := load(PLAYER_GD)
+		if s != null:
+			_caractere = s.get_script_constant_map().get("CARACTERE", {})
+	return _caractere
+
+# Cât de mare e decupajul de portret, în pixeli DE SURSĂ. Fix pentru toate personajele, ca ele
+# să iasă pe ecran la aceeași scară: pânzele lor diferă (The G 124, Spellman 96), iar un decupaj
+# strâns pe fiecare siluetă l-ar fi făcut pe cel cu pânza mai mică să pară mai voinic.
+const PORTRET_LATURA := 76
+
+# Portretul din meniu: aceeași poză din joc, decupată LA RULARE pe silueta opacă, cu
+# `AtlasTexture` (o fereastră peste textura originală, fără nicio copie pe disc).
+#
+# 🔑 De ce nu un PNG tăiat și pus în `characters_icons/`: ar fi fost o copie care rămâne în urmă
+# în tăcere dacă Răzvan redesenează personajul — exact ce s-a întâmplat cu iconițele 59/60 din
+# codex. Aici nu există ce să rămână în urmă: portretul E cadrul din animație.
+func _portret(cale: String) -> Texture2D:
+	if not ResourceLoader.exists(cale):
+		return null
+	var tex: Texture2D = load(cale)
+	var img := tex.get_image()
+	if img == null:
+		return tex
+	var r := _contur_opac(img)
+	if r.size.x <= 0:
+		return tex
+	var l := mini(PORTRET_LATURA, mini(img.get_width(), img.get_height()))
+	var c := r.position + r.size / 2
+	var at := AtlasTexture.new()
+	at.atlas = tex
+	at.region = Rect2(
+		clampi(c.x - l / 2, 0, img.get_width() - l),
+		clampi(c.y - l / 2, 0, img.get_height() - l), l, l)
+	return at
+
+# Dreptunghiul pixelilor care se văd. Același calcul ca în `tool_aliniaza_talpi.gd`; aici nu-l
+# poate împrumuta nimeni, fiindcă acolo e o unealtă care nu intră în joc.
+func _contur_opac(img: Image) -> Rect2i:
+	var x0 := img.get_width()
+	var y0 := img.get_height()
+	var x1 := -1
+	var y1 := -1
+	for y in img.get_height():
+		for x in img.get_width():
+			if img.get_pixel(x, y).a > 0.5:
+				x0 = mini(x0, x)
+				y0 = mini(y0, y)
+				x1 = maxi(x1, x)
+				y1 = maxi(y1, y)
+	if x1 < 0:
+		return Rect2i()
+	return Rect2i(x0, y0, x1 - x0 + 1, y1 - y0 + 1)
 
 # ---------- LEADERBOARD ----------
 func _build_leaderboard() -> void:

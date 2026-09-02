@@ -44,6 +44,9 @@ const IGNORATE := [
 	# titlul meniului Alba-Neagra e scris cu spații între litere (efect de afiș), deci nu se
 	# potrivește cu „ALBA NEAGRA" — dar e tot nume propriu, nu se traduce
 	"⚙", "▲", "➜", "OP", "SARATALIN", "CELESTO", "ALBA NEAGRA", "A L B A   N E A G R A",
+	# numele celor două personaje (2026-09-02) — nume proprii, ca SARATALIN și CELESTO.
+	# Numele ARMELOR se traduc (sunt substantive comune: „pistol", „sabie"); al unui om, nu.
+	"THE G", "SPELLMAN",
 	"%d", "%s", "", " ", "MAX",
 	"%d + %d = %d",   # suma de pe masa de zaruri a dubiosului — cifre, n-are ce traduce
 	"keybinds", "graphics", "gamepad", "main", "settings", "language", "weapon", "character",

@@ -163,6 +163,45 @@ const ARME := {
 	"knife":        {"damage": 12, "interval": 0.55},
 }
 
+# --- CARACTERELE (cerute de Răzvan pe 2026-09-02) ---
+# Cine ești, nu cu ce tragi. Se alege din meniu, ca arma, și e lucru SEPARAT de ea: orice
+# caracter poate purta oricare din cele cinci arme.
+#
+#   the g      — arta de până acum, fără niciun bonus. Etalonul.
+#   spellman   — vrăjitorul: la fiecare nivel îi trebuie cu 5% mai puțin XP pentru următorul.
+#
+# `frames`: `SpriteFrames`-ul lui. TREBUIE să aibă toate cele 16 animații pe care le cere
+# `_update_anim` (cele 8 direcții + `idle_` × 8) — le numără `tool_caracter.tscn`.
+#
+# `xp_pe_nivel`: cu cât se ÎNMULȚEȘTE pragul de XP la fiecare level up, PESTE creșterea normală
+# de ×1.2 (vezi `_level_up`). 1.0 = nimic. La Spellman, 0.95 înseamnă că pragul crește cu
+# ×1.14 în loc de ×1.2, deci avansul lui se depărtează de al celorlalți cu fiecare nivel:
+#
+# Pragul cerut pentru nivelul următor (calculat, nu ghicit — `tool_caracter.tscn` îl re-măsoară
+# rulând `_level_up` de-adevăratelea, deci tabelul ăsta nu poate rămâne în urmă în tăcere):
+#
+#   nivel        1     5     10     15     20
+#   the g       20    39     94    230    571
+#   spellman    20    29     51     92    171     ← la nivelul 20, 30% din pragul lui The G
+#
+# ⚠️ Se compune (ca Tome of Knowledge și Grinder, care înmulțesc același `xp_to_next`), deci
+# efectele se adună cinstit; nu e o cifră care se aplică o dată și gata.
+#
+# ⚠️ ID-ul lui The G a rămas `"grasu"`, nu `"the_g"`: aia era deja valoarea implicită a lui
+# `GameSettings.character` și e numele folderului de artă (`grasu directii`). O redenumire ar fi
+# stricat salvările existente fără să câștige nimic — numele care se VEDE stă în `menu.gd`.
+const CARACTERE := {
+	"grasu":    {"frames": "res://player_frames.tres",   "xp_pe_nivel": 1.0},
+	"spellman": {"frames": "res://spellman_frames.tres", "xp_pe_nivel": 0.95},
+}
+
+# Caracterul cu care se joacă runda asta și bonusul lui, citite o dată în `_ready` din
+# `GameSettings.character`. Ținute pe player, nu întrebate la fiecare level up, ca schimbarea
+# alegerii din meniu în timpul unei runde (imposibilă azi, dar ieftin de apărat) să nu poată
+# schimba regulile din mers.
+var caracter := "grasu"
+var _xp_pe_nivel := 1.0
+
 # --- BONUSUL DE NIVEL AL FIECĂREI ARME (cerut de Răzvan pe 2026-08-05) ---
 # „La fiecare nivel fiecare armă are un bonus specific." Nu e un item și nu se poate pierde: e
 # felul în care arma pe care ai ales-o crește odată cu tine.
@@ -445,6 +484,7 @@ var _quake_strength: float = 0.0
 
 func _ready() -> void:
 	add_to_group("player")
+	_aplica_caracter()   # cine ești: arta și bonusul lui. ÎNAINTE de armă, ca `anim` să fie gata.
 	# arma aleasă din meniu (pistol / mage / sword / scythe)
 	weapon_type = GameSettings.weapon_type
 	arma_aleasa = weapon_type      # bonusul de nivel se leagă de ASTA, nu de ce trage acum
@@ -2033,6 +2073,28 @@ func gain_xp(amount: int) -> void:
 		xp -= xp_to_next
 		_level_up()
 
+# Caracterul ales din meniu: îi pune arta pe `AnimatedSprite2D` și îi reține bonusul.
+#
+# 🔑 Arta se schimbă înlocuind `sprite_frames`, nu nodul: toate cele 16 animații se cheamă la fel
+# la orice caracter (`_update_anim` cere `east`…`north_east` + `idle_`×8), deci restul jocului —
+# dâre, flash-ul alb de block, tăietura sabiei, umbra — nu are de unde afla că s-a schimbat ceva.
+#
+# ⚠️ Un caracter necunoscut (salvare mai veche, id scris greșit) cade înapoi pe The G în loc să
+# rămână fără artă. La fel dacă `SpriteFrames`-ul lipsește de pe disc: mai bine personajul
+# greșit decât un dreptunghi gol care nu spune nimănui ce s-a stricat — de-asta și `push_warning`.
+func _aplica_caracter() -> void:
+	caracter = String(GameSettings.character)
+	if not CARACTERE.has(caracter):
+		push_warning("caracter necunoscut `%s` — cad înapoi pe `grasu`" % caracter)
+		caracter = "grasu"
+	var c: Dictionary = CARACTERE[caracter]
+	_xp_pe_nivel = float(c["xp_pe_nivel"])
+	var cale := String(c["frames"])
+	if ResourceLoader.exists(cale):
+		anim.sprite_frames = load(cale)
+	else:
+		push_warning("lipsește `%s` — %s rămâne cu arta lui The G" % [cale, caracter])
+
 # Damage-ul și cadența de bază ale armei alese (vezi tabelul `ARME`). Se cheamă ÎNAINTE de
 # `_apply_meta()`, ca upgrade-urile permanente să se adune PESTE valorile armei, nu invers —
 # altfel arma ar șterge ce ai cumpărat din magazin.
@@ -2050,6 +2112,13 @@ func _level_up(cu_sunet: bool = true) -> void:
 	if cu_sunet:
 		Audio.play("levelup", -2.0)  # jingle de nivel nou
 	xp_to_next = int(xp_to_next * 1.2)  # pragul crește cu 20% la fiecare nivel
+	# BONUSUL CARACTERULUI (Spellman: −5% la fiecare nivel). Se aplică DUPĂ creșterea de ×1.2,
+	# deci pragul urcă efectiv cu ×1.14 în loc de ×1.2 și avantajul se adună nivel după nivel —
+	# exact ca Tome of Knowledge și Grinder, care înmulțesc același `xp_to_next`, doar că ăsta
+	# nu se ia de pe jos: îl ai fiindcă ești el. `max(5, …)`, ca la ele, ca pragul să nu poată
+	# fi tăiat până la zero de mai multe efecte adunate.
+	if _xp_pe_nivel != 1.0:
+		xp_to_next = max(5, int(xp_to_next * _xp_pe_nivel))
 	var menu := get_tree().get_first_node_in_group("levelup_menu")
 	if menu != null:
 		menu.open()

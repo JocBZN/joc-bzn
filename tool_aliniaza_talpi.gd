@@ -29,18 +29,29 @@ extends Node
 
 # ⚠️ SE RE-ȚINTEȘTE, nu se copiază: constantele de mai jos spun pe ce folder lucrează ACUM.
 # Ținte de până acum: `harta/nether/Nether Boss/frames` (Saratalin, 2026-08-27),
-# `harta/castle/castle enemies/frames` (cavalerul de castel, 2026-08-29 — ținta curentă).
-const FOLDER := "res://harta/castle/castle enemies/frames"
-const PREFIX := "run"
+# `harta/castle/castle enemies/frames` (cavalerul de castel, 2026-08-29),
+# `Characters/Wizard/frames` (Spellman, 2026-09-02 — ținta curentă).
+#
+# ⚠️ Spellman s-a aliniat în DOUĂ treceri, fiindcă are două seturi pe aceleași direcții:
+# `PREFIX = "run"` cu `CADRE = 8` (mersul) și `PREFIX = "idle"` cu `CADRE = 1` (cele 8 poze de
+# stat pe loc, tăiate din `Idle_rotations_8dir.gif`). Amândouă trecerile cu ACELEAȘI `PANZA` și
+# `TINTA_TALPA` — altfel personajul ar sări în sus când se oprește din mers.
+const FOLDER := "res://Characters/Wizard/frames"
+const PREFIX := "idle"
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
-const CADRE := 8
+const CADRE := 1
 
 # Pânza comună. Trebuie să încapă cea mai mare pânză de intrare PLUS deplasarea; unealta
 # verifică și refuză dacă ar tăia din desen.
 const PANZA := 96
-# Unde stă talpa în pânza nouă. 80 din 96 lasă 15 px sub tălpi (ca în GIF-urile originale) și
-# destul deasupra pentru cea mai înaltă siluetă (65 px).
-const TINTA_TALPA := 80
+# Unde stă talpa în pânza nouă.
+#
+# 🔑 Cifra asta NU e de gust: `AnimatedSprite2D` centrează textura, deci ce ajunge pe ecran e
+# distanța de la MIJLOCUL pânzei până la talpă. La The G (`grasu directii`, pânză 124) talpa stă
+# la 95, adică **+33 față de centru**. Ca Spellman să calce pe același pământ, îi trebuie
+# aceeași distanță: 96/2 + 33 = **81**. Cu alt număr, un personaj ar pluti și celălalt ar intra
+# în sol — și s-ar vedea abia în joc, comparând cu umbra.
+const TINTA_TALPA := 81
 # Pragul de alfa la măsurat: 0,5 e muchia pe care o vede ochiul. Cadrele venite din GIF au
 # alfa „da/nu", deci pragul nu le mișcă oricum.
 const PRAG_ALFA := 0.5

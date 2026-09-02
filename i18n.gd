@@ -185,6 +185,12 @@ const TRAD := {
 
 # capul de secțiune din fișa de armă (menu.gd, pagina CHOOSE WEAPON)
 "AT START": ["初始", "ZU BEGINN", "AL INICIO", "В НАЧАЛЕ", "AU DÉPART", "開始時", "NA START", "BAŞLANGIÇTA"],
+# fișa de personaj (menu.gd, pagina CHOOSE CHARACTER, 2026-09-02). „PERK" e capul de secțiune,
+# celelalte două sunt bonusul propriu-zis. Cel cu „-%d%%" se scrie cu `tr(...) %` în cod, fiindcă
+# are cifră în el — iar cifra vine din `player.gd::CARACTERE`, nu din text.
+"PERK": ["特长", "VORTEIL", "VENTAJA", "ОСОБЕННОСТЬ", "ATOUT", "特性", "ATUT", "ÖZELLİK"],
+"NO BONUS STATS": ["无属性加成", "KEINE BONUSWERTE", "SIN BONIFICACIONES", "БЕЗ БОНУСОВ", "AUCUN BONUS", "ボーナスなし", "BEZ BONUSÓW", "BONUS YOK"],
+"-%d%% XP NEEDED PER LEVEL": ["每级所需经验 -%d%%", "-%d%% BENÖTIGTE EP PRO STUFE", "-%d%% DE EXP NECESARIA POR NIVEL", "-%d%% ОПЫТА ЗА УРОВЕНЬ", "-%d%% D'XP REQUIS PAR NIVEAU", "レベルごとの必要経験値 -%d%%", "-%d%% WYMAGANEGO PD NA POZIOM", "SEVİYE BAŞINA -%d%% XP"],
 "Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],
 "STATS": ["属性", "WERTE", "ESTADÍSTICAS", "ХАРАКТЕРИСТИКИ", "STATS", "ステータス", "STATYSTYKI", "İSTATİSTİK"],
 "Common": ["普通", "Gewöhnlich", "Común", "Обычный", "Commun", "コモン", "Zwykły", "Sıradan"],

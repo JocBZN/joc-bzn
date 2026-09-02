@@ -3,6 +3,14 @@ extends Node
 # Setări globale + salvare pe device (leaderboard, monede, meta-progresie). Autoload "GameSettings".
 
 var weapon_type: String = "pistol"  # arma aleasă: "pistol" / "mage" / "sword" / "scythe"
+
+# Caracterul ales din meniu. Id-urile sunt cheile lui `player.gd::CARACTERE`: „grasu" (The G) și
+# „spellman". Variabila exista de mult, cu valoarea asta, dar nu o citea nimeni — de pe 2026-09-02
+# chiar alege cu cine joci (artă + bonus), iar pagina CHOOSE CHARACTER o scrie.
+#
+# ⚠️ Spre deosebire de `weapon_type`, asta SE SALVEAZĂ: arma o schimbi de la o rundă la alta, dar
+# caracterul e „cine sunt eu în jocul ăsta" — să-l alegi din nou la fiecare pornire ar fi fost o
+# corvoadă. Salvările vechi n-au cheia, deci `_load` cade pe implicitul de aici.
 var character: String = "grasu"
 
 const SAVE_PATH := "user://scores.save"
@@ -309,6 +317,7 @@ func _save() -> void:
 			"padbinds": padbinds,
 			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
 			"language": language, "op_start": op_start, "vibration": vibration,
+			"character": character,
 		})
 
 func _load() -> void:
@@ -335,5 +344,6 @@ func _load() -> void:
 		language = String(data.get("language", language))
 		op_start = bool(data.get("op_start", op_start))
 		vibration = bool(data.get("vibration", vibration))
+		character = String(data.get("character", character))
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil

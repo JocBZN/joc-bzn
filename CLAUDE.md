@@ -24,6 +24,76 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-02 (SPELLMAN: al doilea caracter, și pagina care îl alege)
+
+**Cerut de Răzvan:** „Ti-am pus un folder nou in joc-bzn se numeste - Characters - acolo o sa gasesti alt folder - Wizard - vreau sa fie un nou caracter pe care poate sa il joace Playerul. […] Vreau sa faci meniul ca cel de la weapons. Caracterul principal de e acu in joc il cheama - The G - no bonus stats - Spellman(caracterul de il adaugi acum) - 5% Less XP needed to level up per level (ca tome of knowledge doar ca se aplica la fiecare nivel si doar 5%)."
+
+**Fișiere noi:** `spellman_frames.tres`, `Characters/Wizard/frames/` (72 PNG), `tool_caracter.gd/.tscn`.
+**Atinse:** `player.gd` (`CARACTERE`, `_aplica_caracter`, `_level_up`), `menu.gd` (pagina + refactorul rândului de listă și al casetei de fișă), `game_settings.gd` (`character` se salvează), `i18n.gd` (3 chei × 8 limbi), `tool_check_i18n.gd`, `tool_aliniaza_talpi.gd` (re-țintit).
+
+### Arta: conducta exista deja, n-am inventat-o
+
+GIF-urile din `Characters/Wizard` sunt exact ce așteaptă conducta din repo, deci am mers pe ea:
+`tool_taie_gifuri.ps1` → **`tool_aliniaza_talpi.tscn` de DOUĂ ori** → `--headless --import`.
+
+De două ori fiindcă Spellman are două seturi pe aceleași 8 direcții: `run_*` (8 cadre, mersul, de pe pânze de 88 și 92) și `idle_*` (1 cadru, cele 8 poze de stat pe loc, tăiate din `Idle_rotations_8dir.gif`, pânză 64). **Amândouă trecerile cu aceiași `PANZA`/`TINTA_TALPA`** — altfel personajul ar fi săltat când se oprea din mers.
+
+⚠️ **`TINTA_TALPA = 81` nu e o cifră de gust.** `AnimatedSprite2D` centrează textura, deci ce ajunge pe ecran e distanța de la MIJLOCUL pânzei până la talpă. La The G aia e **+33** (pânză 124, talpa la 95). Ca Spellman să calce pe același pământ: 96/2 + 33 = 81. Măsurat după: amândoi la **33.0** pe `south`.
+
+Ordinea celor 8 cadre din `Idle_rotations_8dir.gif` **nu e scrisă nicăieri** — am aflat-o făcând o planșă de contact și uitându-mă: `0=south, 1=south_east, 2=east, 3=north_east, 4=north, 5=north_west, 6=west, 7=south_west` (rotație pornind de la sud). Numele GIF-urilor de mers le-am verificat la fel, nu le-am crezut pe cuvânt.
+
+### Cum se schimbă personajul: doar `sprite_frames`
+
+Toate cele 16 animații se cheamă la fel la orice caracter (`east`…`north_east` + `idle_`×8), deci `_aplica_caracter()` înlocuiește `anim.sprite_frames` și **restul jocului nu are de unde afla că s-a schimbat ceva** — fantoma de dash (`dashtrail.gd::copiaza` citește `sprite_frames` de pe nodul viu și face `clampi` pe cadru), flash-ul alb de block, tăietura sabiei, umbra. Spellman are 8 cadre de mers, The G are 4: merge fără nicio linie în plus.
+
+### Bonusul: −5% XP pe nivel, compus
+
+O linie în `_level_up`, DUPĂ creșterea normală de ×1.2 — deci pragul urcă efectiv cu **×1.14**, iar avantajul se adună nivel după nivel (exact ca Tome of Knowledge și Grinder, care înmulțesc același `xp_to_next`). Măsurat rulând `_level_up` de-adevăratelea:
+
+| nivel | The G | Spellman |
+|---|---|---|
+| 1 | 20 | 20 |
+| 5 | 39 | 29 |
+| 10 | 94 | 51 |
+| 15 | 230 | 92 |
+| 20 | 571 | **171** (30%) |
+
+La nivelul 1 pornesc de la același prag: bonusul se **adună pe parcurs**, nu e cadou din start.
+
+### Meniul: aceeași pagină, nu una care seamănă
+
+`_rand_alegere` (rândul de listă) și `_caseta_fisa` + `_fisa_cap` (caseta fișei) sunt acum **scrise o singură dată** și folosite de amândouă paginile. Copiate, a doua ar fi rămas în urmă la prima reglare de chenar sau de focus — și n-ar fi sărit nimănui în ochi, fiindcă cele două ecrane nu se văd niciodată unul lângă altul.
+
+🔑 **Textul bonusului se GENEREAZĂ din cifra din `player.gd::CARACTERE`**, nu e scris de mână. Chiar ⚠️-ul de la `WEAPONS` spune de ce: acolo textele SUNT scrise de mână și pot minți în tăcere dacă cineva schimbă `BONUS_PE_NIVEL`. Schimbi 0.95 în 0.90 și fișa scrie singură „-10%".
+
+🔑 **Portretele nu sunt fișiere noi.** Sunt `AtlasTexture` peste cadrul din animație, decupat LA RULARE pe silueta opacă (`_portret`), cu o fereastră de **76px fixă pentru toți** — pânzele lor diferă (124 vs 96), iar un decupaj strâns pe fiecare l-ar fi făcut pe cel cu pânza mică să pară mai voinic. Un PNG tăiat în `characters_icons/` ar fi fost o copie care rămâne în urmă dacă Răzvan redesenează personajul — exact ce s-a întâmplat cu iconițele 59/60 din codex.
+
+### ⚠️ Caracterul SE SALVEAZĂ, arma nu
+
+`GameSettings.character` intră în `_save`/`_load` (variabila exista de mult, cu valoarea „grasu", dar **n-o citea nimeni**). `weapon_type` a rămas cum era, nesalvat. Motivul: arma o schimbi de la o rundă la alta, caracterul e „cine sunt eu în jocul ăsta". Salvările vechi n-au cheia → cad pe implicit.
+
+ID-ul lui The G a rămas **`"grasu"`**, nu `"the_g"`: era deja implicitul și e numele folderului de artă. Numele care se VEDE stă în `menu.gd`. O redenumire ar fi stricat salvările fără să câștige nimic.
+
+### ✅ Verificat rulând
+
+`tool_caracter.tscn` *(nou)*, **TOTUL E BINE**: cele 16 animații la amândoi · toate direcțiile de mers cu același număr de cadre (4 / 8) · Spellman nu saltă deloc la întoarcere (33.0..33.0) · amândoi calcă la aceeași înălțime pe `south` (33.0) · pragurile de XP exact cele din tabel · pagina are câte un rând de personaj, portretele chiar sunt decupate (76×76), textul bonusului iese din cifra din cod, iar clicul chiar scrie în `GameSettings`. Unealta **își pune la loc** caracterul salvat și tipărește ce-a rămas în `scores.save` (capcana din regulile de sus: un test care atinge `GameSettings` poate ajunge în salvarea reală).
+
+`tool_check_i18n.tscn`: **TOTUL E TRADUS** (3 chei noi × 8 limbi; „THE G" și „SPELLMAN" au intrat în `IGNORATE`, ca SARATALIN și CELESTO — numele ARMELOR se traduc, al unui om nu).
+
+`tool_intro_real.tscn` + pagina CHOOSE WEAPON fotografiată: **nicio regresie** din refactorul meniului.
+
+Și cu poze (scenă de unică folosință, ștearsă după): pagina CHOOSE CHARACTER, pagina CHOOSE WEAPON, și **Spellman în joc pe toate cele 8 direcții**, pus lângă The G — aceeași scară, aceleași tălpi pe pământ.
+
+### 🪤 Proba care „dovedea" că arta e strâmbă
+
+Prima variantă a uneltei măsura talpa pe **cadrul 0** al fiecărei animații și raporta că Spellman saltă (31..33). Nu arta era greșită, ci proba: în interiorul unei direcții cadrele au tălpi diferite fiindcă **ăla e legănatul mersului**, adică intenția desenatorului. `tool_aliniaza_talpi.gd` aliniază pe cea mai de jos linie din TOATE cadrele unei direcții — proba trebuie să măsoare exact același lucru. După corectare: Spellman 0.0.
+
+### 🔎 Datorie veche, scrisă pe față (NU am atins-o)
+
+The G **saltă 5px de sprite (≈10px pe ecran) când se oprește din fugit**: pozele lui de stat pe loc (`grasu directii/rotations/*.png`) sunt desenate cu talpa mai sus decât cadrele de mers. E de dinainte de sesiunea asta. Se repară cu o singură rulare a uneltei de aliniere, dar aia mută personajul vechi sub picioarele lui Răzvan și nimeni n-a cerut-o — deci stă scrisă în `tool_caracter.gd::SALT_MAXIM`, unde implicitul pentru orice caracter NOU e **0**.
+
+---
+
 ## Session log — 2026-09-02 (cinematica de intrare se deschidea pe ecran negru: camera, nu cercul)
 
 **Cerut de Răzvan:** „Animatia pe care ai facut-o pentru Start-ul jocului nu mai arata ca atunci, cred ca s-a bugat ceva, rezolva."
