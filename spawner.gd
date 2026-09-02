@@ -233,14 +233,31 @@ func _muta_player_aleator() -> void:
 	# ⚠️ OBLIGATORIU după teleportare. Camera player-ului are `position_smoothing_enabled`,
 	# adică urmărește ținta lin, cu întârziere. Ea pornește din (0,0) — unde stătea player-ul
 	# în scenă înainte să-l mutăm — iar noi tocmai l-am aruncat la zeci de mii de pixeli.
-	# Fără resetare, primele ~2 secunde de rundă arată lumea zburând pe lângă tine până
-	# prinde camera din urmă (măsurat: 89.500px decalaj în primul cadru, încă 36px la
-	# cadrul 120). `reset_smoothing()` lipește camera instant pe țintă.
-	# `force_update_scroll()` întâi, ca ținta să fie deja cea nouă când o „lipim".
+	# Fără lipire, primele ~2 secunde de rundă arată lumea zburând pe lângă tine până
+	# prinde camera din urmă (măsurat: 89.500px decalaj în primul cadru).
+	#
+	# 🔑 SINGURA cale care CHIAR lipește camera pe țintă e stinsul netezirii peste
+	# `force_update_scroll()`. `reset_smoothing()` NU face asta, deși numele o promite: el doar
+	# pune la egalitate cele două variabile interne ale netezirii, iar amândouă sunt în urmă.
+	# Măsurat pe 2026-09-02, la un spawn la (40064, 65386): înainte camera era la (1, 0), după
+	# `force_update_scroll()` ajungea la (29317, 47847) — 73% din drum, adică exact un pas de
+	# netezire — iar după `reset_smoothing()` la (37181, 60681), adică 92,8%. Rămâneau ~4.700px.
+	#
+	# Ani de zile n-a supărat pe nimeni fiindcă primul cadru al rundei e lung (se instanțiază
+	# lumea), iar un pas de netezire cu delta mare acoperă aproape tot drumul — rămâneau ~36px
+	# la cadrul 120, invizibili. De pe 2026-08-31 însă, cinematica de intrare (`intro.gd`) ține
+	# jocul PE PAUZĂ două secunde, iar netezirea camerei stă odată cu el: restul de drum nu se
+	# mai face niciodată cât ține ea. Diafragma se deschidea atunci pe un colț de lume gol, la
+	# mii de pixeli de player — adică pe ecran NEGRU. Vezi `tool_intro_real.gd`.
+	#
+	# Același tipar e deja folosit de `ender.gd`, `prison.gd` și `saratalin.gd` când mută camera
+	# în cinematici; aici lipsea.
 	var cam := player.get_node_or_null("Camera2D") as Camera2D
 	if cam != null:
-		cam.force_update_scroll()
-		cam.reset_smoothing()
+		var neted_vechi := cam.position_smoothing_enabled
+		cam.position_smoothing_enabled = false
+		cam.force_update_scroll()   # cu netezirea stinsă, asta pune camera FIX pe player
+		cam.position_smoothing_enabled = neted_vechi
 
 func _exit_tree() -> void:
 	Audio.stop_music()  # ieșim din joc (meniu/restart) → oprim muzica

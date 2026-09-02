@@ -24,6 +24,51 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-02 (cinematica de intrare se deschidea pe ecran negru: camera, nu cercul)
+
+**Cerut de Răzvan:** „Animatia pe care ai facut-o pentru Start-ul jocului nu mai arata ca atunci, cred ca s-a bugat ceva, rezolva."
+
+**Ce se vedea:** dai START, ecranul rămâne **negru** aproape două secunde, apoi lumea apare dintr-odată și camera alunecă la locul ei. Diafragma (`intro.gd`) rula corect tot timpul — doar că se deschidea pe un colț de lume gol, la mii de pixeli de player.
+
+**Fișiere atinse:** `spawner.gd` (`_muta_player_aleator`). **Noi:** `tool_intro_real.gd/.tscn`, `tool_intro_real_obs.gd`.
+
+### Cauza: `reset_smoothing()` nu face ce spune numele
+
+Camera stă pe player cu `position_smoothing_enabled`, iar player-ul e aruncat la spawn la zeci de mii de pixeli de origine. `_muta_player_aleator` chema de mult `force_update_scroll()` + `reset_smoothing()`, cu un comentariu care zicea că asta „lipește camera instant pe țintă". **Nu o lipește.** Măsurat pe drumul real, la un spawn la `(40064, 65386)`:
+
+| pas | centrul ecranului | cât din drum |
+|---|---|---|
+| înainte | `(1, 0)` | 0% |
+| după `force_update_scroll()` | `(29317, 47847)` | 73% — adică exact **un pas de netezire** |
+| după `reset_smoothing()` | `(37181, 60681)` | **92,8%** |
+
+Rămâneau ~4.700 px. `reset_smoothing()` doar pune la egalitate cele două variabile interne ale netezirii — și **amândouă sunt în urmă**. Lipirea adevărată se face **stingând netezirea peste `force_update_scroll()`**, exact tiparul pe care `ender.gd`, `prison.gd` și `saratalin.gd` îl folosesc deja în cinematicile lor. Aici lipsea.
+
+### De ce a apărut ABIA acum, deși linia era veche
+
+Fiindcă până pe 2026-08-31 restul de drum se făcea singur: **primul cadru al rundei e lung** (se instanțiază lumea), iar un pas de netezire cu delta uriașă acoperă aproape tot. Rămâneau ~36 px la cadrul 120 — invizibili. Cinematica de intrare a schimbat regula: ține jocul **pe pauză** două secunde, iar netezirea camerei stă odată cu el, deci decalajul **îngheață** exact acolo unde l-a prins pauza.
+
+`iris.gd::aseaza_pe_player` face atunci fix ce i se cere: pune cercul pe player, care e în afara ecranului, îl prinde la marginea de `±0.25` și calculează o rază de acoperire de **2.57** în loc de 1.04. Cercul mic se deschide dincolo de marginea ecranului → nu se vede nimic.
+
+### ⚠️ De ce n-a prins-o `tool_intro.gd`, deși are 21 de probe
+
+Fiindcă el **instanțiază `main.tscn` direct**, ca pe un copil al lui. Acolo arta se citește de pe disc, primul cadru ține peste o secundă, iar un singur pas de netezire cu delta aia acoperă tot drumul: camera iese fix pe player și toate cele 21 de probe trec. Pe drumul REAL (`loading.tscn` → `PreloadAll` → meniu → START) totul e deja în memorie, cadrul e scurt, netezirea rămâne la 92% — și bug-ul apare doar acolo.
+
+**Regula, bună pentru orice unealtă de aici:** o scenă instanțiată de mână NU e drumul jucătorului. **Orice depinde de cât de repede vine primul cadru se vede numai pe drumul întreg.** De aia `tool_intro_real.tscn` pornește de la `loading.tscn` și chiar apasă START din meniu, cu un observator ținut pe `root` ca să supraviețuiască lui `change_scene_to_file`.
+
+### ✅ Verificat rulând
+
+- `tool_intro_real.tscn` (fereastră): **0 probleme** — cercul se deschide din `(0.500, 0.500)`, adică fix de pe player, `raza_start` înapoi la **1.040**, **camera lipită la 0,0 px** de player din primul cadru. Poze: `user://real_*.png`.
+- Înainte de reparație, aceeași unealtă: centru `(1.250, 1.250)`, player la `(3.428, 2.636)` — în afara ecranului —, `raza_start` **2.570**, iar poza de la „deschidere" **complet neagră**.
+- `tool_intro.tscn`: toate cele 21 de probe, tot „TOTUL E BINE" (nicio regresie pe drumul direct).
+- `tool_moarte.tscn`: cinematica de moarte neatinsă — toate probele trec, inclusiv netezimea și mixul.
+
+### 🔎 Găsit pe drum, NEATINS (e decizia lui Răzvan)
+
+`player.tscn` are, necommitat, **`speed = 250.0`** — o suprascriere de scenă peste `player.gd`, unde implicitul e **215.0**. Adică jocul merge acum cu 16% mai repede decât zice codul, iar tabelul „Statusuri de start" din codex se citește din `player.gd`, deci ar minți. Dacă e reglaj vrut, cifra ar trebui mutată în `player.gd`; dacă nu, ștearsă din scenă. (Tot acolo a dispărut `collision_mask = 1`, dar aia e fără efect: 1 e chiar valoarea implicită, Godot 4.7 doar n-o mai scrie.)
+
+---
+
 ## Session log — 2026-09-01 (sigiliul hoardei: cercul de sub monument, care e și ceas)
 
 **Cerut de Răzvan:** „Vreau la monumentul de swarm să aibă un cerc în timpul swarmului, să arate profesionist și să se vadă mai bine că ești în swarm."
