@@ -199,13 +199,18 @@ const ARME := {
 #
 # `sansa_cheie`: ÎNLOCUIEȘTE de-a dreptul rata de cădere a cheilor din `enemy.gd::KEY_CHANCE`
 # (0.005 = 0,5%). Nu se înmulțește și nu crește cu nivelul — cerut așa: „schimba direct sansa de
-# drop la keys". La 0.05, Jordan scoate chei de 10× mai des: 1 la 20 de morți în loc de 1 la 200.
+# drop la keys". La 0.02, Jordan scoate chei de 4× mai des: 1 la 50 de morți în loc de 1 la 200.
+# (A fost 0.05 vreo oră, pe 2026-09-02; coborâtă la 0.02 tot atunci, la cererea lui Răzvan.)
 # Rămâne o rată FIXĂ, deci proprietatea pentru care a fost aleasă cifra de bază (poți socoti
 # câte cufere deschizi după câți inamici omori) se păstrează, doar că socoteala e alta.
+#
+# ⚠️ Cifra asta e SINGURUL loc unde se reglează: textul din fișa de meniu („2% CHANCE OF KEY
+# DROPS") se face din ea, iar `tool_caracter.tscn` o cere unui inamic adevărat. Nu e scrisă
+# nicăieri de mână, deci nu are cum să rămână în urmă.
 const CARACTERE := {
 	"grasu":    {"frames": "res://player_frames.tres"},
 	"spellman": {"frames": "res://spellman_frames.tres", "xp_pe_nivel": 0.95},
-	"jordan":   {"frames": "res://jordan_frames.tres",   "sansa_cheie": 0.05},
+	"jordan":   {"frames": "res://jordan_frames.tres",   "sansa_cheie": 0.02},
 }
 
 # Caracterul cu care se joacă runda asta și bonusurile lui, citite o dată în `_ready` din

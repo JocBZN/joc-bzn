@@ -49,7 +49,9 @@ Rata implicită a cheilor rămâne **numai** în `enemy.gd::KEY_CHANCE`. Player-
 
 `enemy.gd::_sansa_cheie()` se cheamă **o dată, la moarte**, nu în fiecare cadru, și folosește `_player`-ul deja ținut minte de la urmărire — cu o cădere pe grup, fiindcă un inamic fermecat de Horse Mask aleargă după altcineva și poate să n-aibă `_player`.
 
-⚠️ Rămâne o rată **FIXĂ**: nu se înmulțește cu norocul și nu crește cu nivelul, exact cum s-a cerut („schimba direct sansa de drop la keys"). Se păstrează astfel proprietatea pentru care a fost aleasă cifra de bază — poți socoti câte cufere deschizi după câți inamici omori. Doar că socoteala e alta: **1 la 20 de morți în loc de 1 la 200**.
+⚠️ Rămâne o rată **FIXĂ**: nu se înmulțește cu norocul și nu crește cu nivelul, exact cum s-a cerut („schimba direct sansa de drop la keys"). Se păstrează astfel proprietatea pentru care a fost aleasă cifra de bază — poți socoti câte cufere deschizi după câți inamici omori. Doar că socoteala e alta: **1 la 50 de morți în loc de 1 la 200**.
+
+⚠️ **A pornit de la 5% și a coborât la 2%** în aceeași zi, la cererea lui Răzvan. Reglajul a fost **o singură cifră** în `CARACTERE`: textul din fișă („2% CHANCE OF KEY DROPS") se face din ea, iar proba o cere unui inamic adevărat — deci nu era nimic de ținut în pas de mână. Asta e răsplata pentru că nicio cifră nu e scrisă de două ori.
 
 ### Arta: aceeași conductă, alte cifre
 
@@ -65,7 +67,7 @@ Ordinea celor 8 cadre din GIF-ul de rotații e aceeași ca la Wizard (0=sud, apo
 - arta: 16 animații la toți trei, cadre de mers egale în interiorul fiecăruia (4 / 8 / 6), Jordan fără niciun salt la întoarcere (33.0..33.0);
 - tălpile: toți trei la **33.0** pe `south`;
 - XP: Jordan iese **cifră cu cifră ca The G** (n-are bonus de XP) — rândul din tabel nu e o dublare inutilă, prinde un `xp_pe_nivel` pus din greșeală pe el;
-- **cheile: cerute unui INAMIC ADEVĂRAT**, prin `enemy.gd::_sansa_cheie()` — 0.0050 la The G și Spellman, **0.0500 la Jordan (de 10×)**, iar fără niciun player în scenă inamicul rămâne pe `KEY_CHANCE`. O probă care ar fi comparat `CARACTERE` cu ea însăși ar fi trecut și cu firul rupt între player și inamic.
+- **cheile: cerute unui INAMIC ADEVĂRAT**, prin `enemy.gd::_sansa_cheie()` — 0.0050 la The G și Spellman, **0.0200 la Jordan (de 4×)**, iar fără niciun player în scenă inamicul rămâne pe `KEY_CHANCE`. O probă care ar fi comparat `CARACTERE` cu ea însăși ar fi trecut și cu firul rupt între player și inamic.
 
 `tool_check_i18n`: **TOTUL E TRADUS** (342 chei).
 
