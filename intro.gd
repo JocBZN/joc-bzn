@@ -14,8 +14,9 @@ extends CanvasLayer
 # una lângă alta (una e la început, cealaltă la sfârșit) s-ar despărți în tăcere la prima reglare.
 #
 #   t=0.00  tăcerea    — ecran NEGRU și nimic. La moarte e ultima bucată, aici e prima.
-#                        (`T_TACERE`) Ține și de treabă, nu doar de dramă: sub ea se așază lumea
-#                        care tocmai s-a încărcat, deci hopul de la primele cadre nu se vede.
+#                        (`T_TACERE`) Ține și de treabă, nu doar de dramă: negrul acoperă și
+#                        cadrele în care lumea se așază pe player (vezi `CADRE_DE_ASEZARE`), deci
+#                        hopul de la primele cadre nu se vede.
 #   t=0.45  deschiderea— cercul se smucește de la zero (`T_INCHIDERE`, CUBIC/EASE_OUT — exact
 #                        prăbușirea morții, întoarsă). Aici se vede numai capul player-ului.
 #   t=0.54  respirația — se lărgește încet în jurul tău (`T_STRANGERE`, SINE). Vezi unde ai căzut,
@@ -44,6 +45,10 @@ const MOARTE := preload("res://gameover.gd")   # de aici vin TOȚI timpii și TO
 # barei de încărcare (`loading.gd::CYAN`), adică exact culoarea ecranului de dinaintea rundei.
 const CULOARE_INEL := Color(0.20, 0.90, 1.00)
 
+# Câte cadre lasă cinematica lumea să meargă înainte s-o înghețe. Rostul lor (și de ce fără ele
+# runda începe cu două secunde de gri gol) e scris pe larg deasupra lui `_cinematica`.
+const CADRE_DE_ASEZARE := 2
+
 var _iris: ColorRect
 var _pornit := false   # ca un `_ready` chemat de două ori să nu pornească două cinematici
 
@@ -60,17 +65,46 @@ func _ready() -> void:
 func _porneste() -> void:
 	if _pornit:
 		return
-	_pornit = true
 	# ⚠️ Negru din PRIMUL cadru, înainte de orice altceva: dacă am aștepta măcar un cadru ca să
 	# aflăm unde e player-ul, s-ar vedea o clipire cu lumea întreagă exact înainte s-o acoperim.
 	# Cât e raza 0, centrul nu contează — ecranul e negru oricum —, deci așezarea cercului se poate
 	# face liniștit la pasul următor.
+	#
+	# Tot de-aici se ține și că lumea mai merge câteva cadre înainte să fie oprită (vezi
+	# `_cinematica`): ele se petrec sub negrul ăsta, deci nimeni nu le vede.
 	_iris.seteaza_raza(0.0)
 	visible = true
-	get_tree().paused = true
 	_cinematica.call_deferred()
 
-# Partea întâi: tăcerea pe negru. Atât.
+# Partea întâi: tăcerea pe negru. Atât — plus singura treabă adevărată a cinematicii.
+#
+# 🔑 DE CE NU ÎNGHEȚĂM LUMEA DIN PRIMA (prins pe 2026-09-02, raportat ca „se vede o secundă
+# gri"): jumătate din lume se AȘAZĂ în `_process`, nu în `_ready`. Podeaua (`ground.gd`) e o
+# pânză care se mută pe player abia la primul cadru; copacii, pietrele, tufele, potecile,
+# lăzile, monumentele — toate își construiesc pătratele din jurul player-ului tot atunci
+# (`props.gd`, `rocks.gd`, `bushes.gd`, `pathways.gd`, ...); până și HUD-ul își scrie cifrele
+# în `_process`. Iar player-ul tocmai a fost aruncat la zeci de mii de pixeli de origine
+# (`spawner.gd::_muta_player_aleator`), deci NIMIC din toate astea nu e încă acolo unde se uită
+# camera.
+#
+# Puneam pauza în `_ready`, adică înainte de primul cadru: pătratele nu se mai construiau
+# niciodată cât ținea cinematica. Diafragma se deschidea corect, pe player, dar în jurul lui nu
+# era iarbă, ci fundalul gol al ferestrei — două secunde de gri mort, cu omul plutind în el, iar
+# la `_gata()` năvălea pădurea toată deodată. Exact aceeași rădăcină ca bug-ul camerei de mai
+# devreme (vezi `spawner.gd`): tot ce se pune la punct ÎN `_process` rămâne pe loc dacă pauza
+# vine înaintea primului cadru.
+#
+# Deci lăsăm lumea să meargă `CADRE_DE_ASEZARE` cadre și abia apoi o oprim. Nu se vede nimic din
+# ele — ecranul e negru din `_ready` —, iar în timpul lor lumea nu apucă să facă nimic: la 60 fps
+# sunt vreo 33 ms, adică sub o zecime din tăcerea de 0,45 s care urmează. E cel mai ieftin preț:
+# alternativa era ca cinematica să cunoască pe nume paisprezece noduri și să le ceară ea, unul
+# câte unul, să-și construiască pătratele — iar al cincisprezecelea, adăugat peste o lună, ar fi
+# lipsit din nou din poză, în tăcere.
+#
+# ⚠️ De ce DOUĂ cadre și nu unul: în primul, generatoarele își fac nodurile (`add_child`); al
+# doilea le prinde așezate și lasă și restul (HUD, atmosferă) să-și ia poziția. Unul singur mergea
+# și el în probe, dar n-are cine să ne apere dacă un generator ajunge vreodată să aibă nevoie de
+# două treceri — iar cadrele astea nu costă nimic.
 #
 # ⚠️ Amânată cu `call_deferred` fiindcă abia atunci s-au trezit TOATE nodurile scenei — inclusiv
 # spawner-ul, al cărui `_ready` cheamă `Audio.play_music()`, iar ăla deschide filtrul instant
@@ -79,6 +113,9 @@ func _porneste() -> void:
 func _cinematica() -> void:
 	Audio.intro_inchide()
 	_iris.seteaza_raza(0.0)
+	for i in CADRE_DE_ASEZARE:
+		await get_tree().process_frame
+	get_tree().paused = true
 	var tw := create_tween()
 	tw.tween_interval(MOARTE.T_TACERE)
 	tw.tween_callback(_deschide)

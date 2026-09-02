@@ -24,6 +24,51 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-02 (cinematica de intrare se deschidea peste o lume care nu era încă acolo)
+
+**Cerut de Răzvan:** „animatia de la inceput se vede o secunda dubios. e asa gri imaginea, rezolva."
+
+**Fișier atins:** `intro.gd`. **Unelte actualizate:** `tool_intro.gd`, `tool_intro_real_obs.gd`.
+
+**Ce se vedea:** cercul se deschidea corect, pe player, dar în jurul lui nu era iarbă — era un **gri mort**, cu omul plutind în el. La capătul cinematicii năvălea pădurea toată deodată. Nu era efectul de culoare scursă din shader (ăla e intenționat, e leșinul morții pe invers): era chiar **lumea, nedesenată**.
+
+### Rădăcina: al doilea bug al aceleiași pauze
+
+Jumătate din lume se așază în `_process`, nu în `_ready`:
+
+- podeaua (`ground.gd`) e o pânză care se **mută pe player** la primul cadru;
+- copacii, pietrele, tufele, potecile, lăzile, monumentele își **construiesc pătratele** din jurul player-ului tot atunci (`props.gd`, `rocks.gd`, `bushes.gd`, `pathways.gd`, …);
+- până și HUD-ul își scrie cifrele în `_process`.
+
+Iar `spawner.gd::_muta_player_aleator` tocmai l-a aruncat pe player la **zeci de mii de pixeli** de origine. `intro.gd` punea `get_tree().paused = true` în `_ready` — adică **înaintea primului cadru** —, deci nimic din toate astea nu se mai întâmpla cât ținea cinematica. Camera se uita la un petic de lume care nu fusese încă construit: fundalul gol al ferestrei.
+
+🔑 **E exact rădăcina bug-ului de acum câteva ore** (camera care rămânea la 4.700px în urmă, log-ul de mai jos). Regula care iese din amândouă, scrisă o dată: **tot ce se pune la punct ÎN `_process` rămâne pe loc dacă pauza vine înaintea primului cadru.** O cinematică de intrare care îngheață jocul trebuie să înghețe o lume DEJA desenată.
+
+### Leacul: două cadre sub negru
+
+`intro.gd::CADRE_DE_ASEZARE := 2`. Ecranul e negru din `_ready` (raza 0), lumea mai merge două cadre, **apoi** se pune pauza și începe coregrafia. Nu se vede niciunul din ele.
+
+De ce nu am cerut eu, din cinematică, fiecărui generator să-și construiască pătratele: ar fi însemnat ca `intro.gd` să cunoască pe nume **paisprezece noduri** — iar al cincisprezecelea, adăugat peste o lună, ar fi lipsit din nou din poză, în tăcere. Două cadre le prind pe toate, inclusiv pe cele care nu existau când am scris asta.
+
+⚠️ **Cadrele astea sunt cele mai scumpe ale rundei** (~0,27 s măsurat): în ele se construiesc toate pătratele. Costul nu e nou — se plătea și înainte, doar că în **primul cadru de DUPĂ** cinematică, ca o smucitură în prima secundă de joc. Acum se plătește sub negru, unde nu-l vede nimeni. Ceasul rundei îl mănâncă la fel în ambele variante.
+
+### 🪤 Două unelte care picau pe nimic
+
+Amândouă își porneau ceasul coregrafiei din clipa în care **apărea** cinematica. Între aia și clipa în care lumea chiar îngheață stau acum cadrele de așezare, deci tot restul probei ieșea cu un sfert de secundă în urmă și „pica" fără vină. Reparat în două feluri, amândouă mai bune decât înainte:
+
+- ceasul pornește **când se vede pauza pusă**, iar cât a durat așezarea e el însuși o probă (`< 1.0 s`);
+- ultima verificare („când ecranul e întreg, lumea încă stă") merge acum pe **eveniment**, nu pe ceas: aștept raza să ajungă la `raza_start` și probez chiar acolo. Nu mai depinde de nicio aliniere de cadre.
+- `tool_intro.gd` compară ceasul rundei cu **exact cât a ținut așezarea**, nu cu un prag rotund de 0,30 s scris de mână — și îl citește în ultima clipă în care lumea încă stă, nu după ce a pornit.
+
+### ✅ Verificat rulând
+
+- `tool_intro_real.tscn` (drumul real: `loading` → meniu → START): **TOTUL E BINE**. Probe noi — podeaua e sub player la **0 px** de el, iar `World/Props`, `World/Rocks` și `World/Bushes` au fiecare **49 de pătrate** construite în clipa în care se deschide cercul. Lumea îngheață după **0,25 s** de așezare.
+- `tool_intro.tscn` (drumul direct): toate probele ✔, inclusiv ceasul rundei (0,14 s, sub cele 0,27 s de așezare).
+- Poze (`user://real_*.png`): cercul se deschide peste **iarbă, tufe și un portal**, culoarea se întoarce pe măsură ce se lărgește, iar la capăt ecranul e întreg, colorat, cu HUD-ul scris. Înainte: gri gol în toate.
+- `scores.save` neatinsă (`character = grasu`, 212146 monede, 10 scoruri) — uneltele astea instanțiază `main.tscn`, deci am verificat, nu am presupus.
+
+---
+
 ## Session log — 2026-09-02 (JORDAN BLACKFORD: al treilea caracter, și bonusuri de mai multe feluri)
 
 **Cerut de Răzvan:** „ti am facut alt folder in Characters - Business - vreau sa fie alt caracter nou - Jordan Blackford - 5% chance of key drops (nu creste per nivel - schimba direct sansa de drop la keys)."
