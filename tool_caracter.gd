@@ -4,7 +4,7 @@ extends Node
 #
 #   godot --headless --path <proj> res://tool_caracter.tscn
 #
-# Verifica trei lucruri, fiindca fiecare se strica IN TACERE:
+# Verifica patru lucruri, fiindca fiecare se strica IN TACERE:
 #
 #   1. ARTA. Fiecare caracter are toate cele 16 animatii pe care le cere `player.gd::_update_anim`
 #      (8 directii + `idle_` x 8). Daca lipseste una, jocul nu crapa: `AnimatedSprite2D.play()`
@@ -18,11 +18,16 @@ extends Node
 #      `player.gd`. Se masoara RULAND `_level_up` de-adevaratelea, nu recalculand formula aici —
 #      o formula copiata ar fi trecut testul si cu jocul stricat.
 #
+#   4. CHEILE. Sansa lui Jordan chiar ajunge la inamici: se CERE unui inamic adevarat, prin
+#      `enemy.gd::_sansa_cheie()`. Firul player -> inamic e singurul loc unde bonusul asta poate
+#      sa se rupa, si s-ar rupe mut: nu crapa nimic, doar cad chei ca la toata lumea.
+#
 # ⚠️ NU moare nimeni si nu se scrie nimic in `user://scores.save`: `GameSettings.character` se
 # schimba doar in RAM si se pune la loc la sfarsit. Tipareste si ce-a ramas in fisier, ca sa se
 # vada. (Capcana din CLAUDE.md: un test care atinge GameSettings poate ajunge in salvarea reala.)
 
 const PLAYER := preload("res://player.gd")
+const ENEMY := preload("res://enemy.gd")
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 
 # Cat salt vertical e voie fiecarui caracter, in pixeli DE SPRITE (player-ul e la `scale = 2` in
@@ -39,6 +44,7 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 const SALT_MAXIM := {
 	"grasu": 5.0,
 	"spellman": 0.0,
+	"jordan": 0.0,
 }
 const SALT_IMPLICIT := 0.0
 
@@ -81,7 +87,10 @@ func _ready() -> void:
 	print("\n--- [3] pragul de XP, masurat ruland `_level_up` ---")
 	await _verifica_xp()
 
-	print("\n--- [4] pagina CHOOSE CHARACTER ---")
+	print("\n--- [4] sansa de chei, ceruta de un inamic adevarat ---")
+	await _verifica_chei()
+
+	print("\n--- [5] pagina CHOOSE CHARACTER ---")
 	await _verifica_meniul()
 
 	GameSettings.character = _caracter_initial
@@ -183,6 +192,10 @@ func _centru_talpa(img: Image) -> float:
 const ASTEPTAT := {
 	"grasu":    {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
 	"spellman": {1: 20, 5: 29, 10: 51, 15: 92,  20: 171},
+	# Jordan n-are bonus de XP, deci trebuie sa iasa CIFRA CU CIFRA ca The G. Nu e o dublare
+	# inutila a randului de sus: daca cineva pune din greseala un `xp_pe_nivel` si pe el, aici se
+	# vede imediat.
+	"jordan":   {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
 }
 
 func _verifica_xp() -> void:
@@ -260,9 +273,15 @@ func _verifica_meniul() -> void:
 	_cer(s.contains("5") and s.to_upper().contains("XP"),
 		"Spellman isi scrie bonusul din cifra din cod (`%s`)" % s)
 
-	# alegerea chiar ajunge in GameSettings
+	# Alegerea chiar ajunge in GameSettings. ⚠️ `_on_character_chosen` SALVEAZA pe disc, deci
+	# punem la loc IMEDIAT, nu abia in `_gata`: daca unealta se opreste intre timp (o eroare, un
+	# Ctrl+C), altfel ii ramane lui Razvan alt personaj ales in salvarea REALA. M-a prins pe
+	# 2026-09-02 — o rulare cazuta la mijloc lasase `spellman` in fisier.
 	m._on_character_chosen("spellman")
-	_cer(GameSettings.character == "spellman", "clic pe un personaj il si alege")
+	var s_ales := GameSettings.character
+	GameSettings.character = _caracter_initial
+	GameSettings._save()
+	_cer(s_ales == "spellman", "clic pe un personaj il si alege")
 	m.queue_free()
 	await get_tree().process_frame
 
@@ -294,3 +313,36 @@ func _gata() -> void:
 	else:
 		print("\n%d PROBLEME" % _erori)
 	get_tree().quit()
+
+
+# Sansa de cheie NU se citeste din tabel si nu se recalculeaza aici: se CERE unui inamic
+# adevarat, prin `enemy.gd::_sansa_cheie()`, adica exact functia care hotaraste la fiecare
+# moarte. O verificare care ar fi comparat `CARACTERE` cu ea insasi ar fi trecut si cu firul
+# rupt intre player si inamic.
+func _verifica_chei() -> void:
+	for id in PLAYER.CARACTERE:
+		GameSettings.character = id
+		var p: Node = load("res://player.tscn").instantiate()
+		add_child(p)
+		var e: Node = load("res://enemy.tscn").instantiate()
+		add_child(e)
+		await get_tree().process_frame
+		var acum := float(e._sansa_cheie())
+		var asteptat := float(PLAYER.CARACTERE[id].get("sansa_cheie", ENEMY.KEY_CHANCE))
+		_cer(is_equal_approx(acum, asteptat),
+			"%s: inamicul foloseste %.4f (%.2f%%), asteptat %.4f" % [id, acum, acum * 100.0, asteptat])
+		if id == "jordan":
+			_cer(acum > ENEMY.KEY_CHANCE,
+				"jordan chiar scoate mai multe chei decat implicitul (%.4f > %.4f, de %.0fx)"
+				% [acum, ENEMY.KEY_CHANCE, acum / ENEMY.KEY_CHANCE])
+		e.queue_free()
+		p.queue_free()
+		await get_tree().process_frame
+	# si invers: fara niciun player in scena, inamicul cade pe rata lui, nu pe zero
+	var e2: Node = load("res://enemy.tscn").instantiate()
+	add_child(e2)
+	await get_tree().process_frame
+	_cer(is_equal_approx(float(e2._sansa_cheie()), ENEMY.KEY_CHANCE),
+		"fara player in scena, inamicul ramane pe KEY_CHANCE (%.4f)" % float(e2._sansa_cheie()))
+	e2.queue_free()
+	await get_tree().process_frame

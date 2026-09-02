@@ -24,6 +24,59 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-02 (JORDAN BLACKFORD: al treilea caracter, și bonusuri de mai multe feluri)
+
+**Cerut de Răzvan:** „ti am facut alt folder in Characters - Business - vreau sa fie alt caracter nou - Jordan Blackford - 5% chance of key drops (nu creste per nivel - schimba direct sansa de drop la keys)."
+
+**Fișiere noi:** `jordan_frames.tres`, `Characters/Business/frames/` (56 PNG).
+**Atinse:** `player.gd` (`CARACTERE` + `sansa_cheie`), `enemy.gd` (`_sansa_cheie()`), `menu.gd`, `i18n.gd`, `tool_check_i18n.gd`, `tool_caracter.gd`, `tool_aliniaza_talpi.gd` (re-țintit).
+
+### Bonusurile au devenit CÂMPURI, nu un câmp
+
+Spellman schimbă ceva care se compune la fiecare level up; Jordan **înlocuiește o rată fixă**. Nu sunt același fel de lucru, deci nu intră într-un câmp comun „bonus". În `CARACTERE` fiecare bonus e un **câmp opțional**, iar cine n-are câmpul primește implicitul:
+
+```
+"grasu":    {"frames": …}                          → n-are niciunul
+"spellman": {"frames": …, "xp_pe_nivel": 0.95}
+"jordan":   {"frames": …, "sansa_cheie": 0.05}
+```
+
+Un caracter nou cu un bonus nou = un câmp aici, un `if` în `menu.gd::_bonus_caracter` și locul unde chiar se aplică. Fișa din meniu se scrie singură, iar un caracter cu DOUĂ bonusuri iese cu două rânduri fără nicio altă schimbare (de-asta `_bonus_caracter` adună într-o listă în loc să se întoarcă din primul `if`).
+
+### Unde trăiește 0.005, și de ce nu în două locuri
+
+Rata implicită a cheilor rămâne **numai** în `enemy.gd::KEY_CHANCE`. Player-ul spune doar dacă o **înlocuiește**: `sansa_cheie` **negativ = n-o atinge**. Dacă aș fi scris 0.005 și pe player ca implicit, ar fi fost a doua copie a aceleiași cifre, iar la prima reglare s-ar fi despărțit în tăcere.
+
+`enemy.gd::_sansa_cheie()` se cheamă **o dată, la moarte**, nu în fiecare cadru, și folosește `_player`-ul deja ținut minte de la urmărire — cu o cădere pe grup, fiindcă un inamic fermecat de Horse Mask aleargă după altcineva și poate să n-aibă `_player`.
+
+⚠️ Rămâne o rată **FIXĂ**: nu se înmulțește cu norocul și nu crește cu nivelul, exact cum s-a cerut („schimba direct sansa de drop la keys"). Se păstrează astfel proprietatea pentru care a fost aleasă cifra de bază — poți socoti câte cufere deschizi după câți inamici omori. Doar că socoteala e alta: **1 la 20 de morți în loc de 1 la 200**.
+
+### Arta: aceeași conductă, alte cifre
+
+`Idle_rotations_8dir (1).gif` — l-am **redenumit** în `Idle_rotations_8dir.gif`: „(1)"-ul e din descărcare, iar `tool_taie_gifuri.ps1` ia direcția din coada numelui, deci ar fi scos fișiere numite `run_8dir (1)_0.png`.
+
+Jordan are **6 cadre** de mers (The G are 4, Spellman 8), pe pânze de 64 — în afară de `south`, care a venit pe 88. Aceleași două treceri de aliniere, cu aceiași `PANZA = 96` / `TINTA_TALPA = 81`. Rezultat: **toate cele trei personaje la centru→talpă 33.0**, verificat cap la cap pe animația `south`.
+
+Ordinea celor 8 cadre din GIF-ul de rotații e aceeași ca la Wizard (0=sud, apoi în cerc) — am verificat-o iar cu o planșă de contact, n-am presupus-o.
+
+### ✅ Verificat rulând
+
+`tool_caracter.tscn`, acum cu **patru** secțiuni — **TOTUL E BINE**:
+- arta: 16 animații la toți trei, cadre de mers egale în interiorul fiecăruia (4 / 8 / 6), Jordan fără niciun salt la întoarcere (33.0..33.0);
+- tălpile: toți trei la **33.0** pe `south`;
+- XP: Jordan iese **cifră cu cifră ca The G** (n-are bonus de XP) — rândul din tabel nu e o dublare inutilă, prinde un `xp_pe_nivel` pus din greșeală pe el;
+- **cheile: cerute unui INAMIC ADEVĂRAT**, prin `enemy.gd::_sansa_cheie()` — 0.0050 la The G și Spellman, **0.0500 la Jordan (de 10×)**, iar fără niciun player în scenă inamicul rămâne pe `KEY_CHANCE`. O probă care ar fi comparat `CARACTERE` cu ea însăși ar fi trecut și cu firul rupt între player și inamic.
+
+`tool_check_i18n`: **TOTUL E TRADUS** (342 chei).
+
+Poze (scenă de unică folosință, ștearsă după): pagina cu toate trei personajele, fișa lui Jordan cu „5% CHANCE OF KEY DROPS", și Jordan în joc pe toate cele 8 direcții.
+
+### 🪤 Unealta îmi scria în salvarea REALĂ
+
+`tool_caracter` verifică și că un clic pe personaj chiar îl alege — iar `_on_character_chosen` **salvează pe disc**. Punea la loc abia în `_gata()`, deci o rulare căzută la mijloc (una din iterațiile de ieri) i-a lăsat lui Răzvan `spellman` ales în `scores.save`. **Prins fiindcă unealta tipărește ce-a rămas în fișier** — de-asta tipărește. Acum pune la loc **imediat** după probă, nu la sfârșit; salvarea a fost readusă pe `grasu` (monede și scoruri intacte: 212.146 / 10).
+
+---
+
 ## Session log — 2026-09-02 (SPELLMAN: al doilea caracter, și pagina care îl alege)
 
 **Cerut de Răzvan:** „Ti-am pus un folder nou in joc-bzn se numeste - Characters - acolo o sa gasesti alt folder - Wizard - vreau sa fie un nou caracter pe care poate sa il joace Playerul. […] Vreau sa faci meniul ca cel de la weapons. Caracterul principal de e acu in joc il cheama - The G - no bonus stats - Spellman(caracterul de il adaugi acum) - 5% Less XP needed to level up per level (ca tome of knowledge doar ca se aplica la fiecare nivel si doar 5%)."

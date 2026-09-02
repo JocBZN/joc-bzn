@@ -169,6 +169,12 @@ const ARME := {
 #
 #   the g      — arta de până acum, fără niciun bonus. Etalonul.
 #   spellman   — vrăjitorul: la fiecare nivel îi trebuie cu 5% mai puțin XP pentru următorul.
+#   jordan     — omul de afaceri: cheile de cufăr cad de 10× mai des.
+#
+# 🔑 Bonusurile sunt CÂMPURI OPȚIONALE, nu un câmp „bonus" care le-ar amesteca: fiecare are alt
+# fel de a lucra (unul se compune la level up, altul înlocuiește o rată fixă), iar cine n-are
+# câmpul primește implicitul. Un caracter nou cu un bonus nou = un câmp în plus aici, un `if` în
+# `menu.gd::_bonus_caracter` și locul unde chiar se aplică. Fișa din meniu se scrie singură.
 #
 # `frames`: `SpriteFrames`-ul lui. TREBUIE să aibă toate cele 16 animații pe care le cere
 # `_update_anim` (cele 8 direcții + `idle_` × 8) — le numără `tool_caracter.tscn`.
@@ -190,17 +196,28 @@ const ARME := {
 # ⚠️ ID-ul lui The G a rămas `"grasu"`, nu `"the_g"`: aia era deja valoarea implicită a lui
 # `GameSettings.character` și e numele folderului de artă (`grasu directii`). O redenumire ar fi
 # stricat salvările existente fără să câștige nimic — numele care se VEDE stă în `menu.gd`.
+#
+# `sansa_cheie`: ÎNLOCUIEȘTE de-a dreptul rata de cădere a cheilor din `enemy.gd::KEY_CHANCE`
+# (0.005 = 0,5%). Nu se înmulțește și nu crește cu nivelul — cerut așa: „schimba direct sansa de
+# drop la keys". La 0.05, Jordan scoate chei de 10× mai des: 1 la 20 de morți în loc de 1 la 200.
+# Rămâne o rată FIXĂ, deci proprietatea pentru care a fost aleasă cifra de bază (poți socoti
+# câte cufere deschizi după câți inamici omori) se păstrează, doar că socoteala e alta.
 const CARACTERE := {
-	"grasu":    {"frames": "res://player_frames.tres",   "xp_pe_nivel": 1.0},
+	"grasu":    {"frames": "res://player_frames.tres"},
 	"spellman": {"frames": "res://spellman_frames.tres", "xp_pe_nivel": 0.95},
+	"jordan":   {"frames": "res://jordan_frames.tres",   "sansa_cheie": 0.05},
 }
 
-# Caracterul cu care se joacă runda asta și bonusul lui, citite o dată în `_ready` din
-# `GameSettings.character`. Ținute pe player, nu întrebate la fiecare level up, ca schimbarea
-# alegerii din meniu în timpul unei runde (imposibilă azi, dar ieftin de apărat) să nu poată
-# schimba regulile din mers.
+# Caracterul cu care se joacă runda asta și bonusurile lui, citite o dată în `_ready` din
+# `GameSettings.character`. Ținute pe player, nu întrebate la fiecare level up sau la fiecare
+# moarte de inamic, ca schimbarea alegerii din meniu în timpul unei runde (imposibilă azi, dar
+# ieftin de apărat) să nu poată schimba regulile din mers.
 var caracter := "grasu"
 var _xp_pe_nivel := 1.0
+# ⚠️ NEGATIV = „nu schimb nimic", adică rămâne rata din `enemy.gd`. Nu 0.005 scris aici: player-ul
+# n-are de ce să știe rata implicită a inamicilor, iar dacă ar ști-o, ar fi a doua copie a ei și
+# s-ar despărți de original la prima reglare.
+var sansa_cheie := -1.0
 
 # --- BONUSUL DE NIVEL AL FIECĂREI ARME (cerut de Răzvan pe 2026-08-05) ---
 # „La fiecare nivel fiecare armă are un bonus specific." Nu e un item și nu se poate pierde: e
@@ -2088,7 +2105,10 @@ func _aplica_caracter() -> void:
 		push_warning("caracter necunoscut `%s` — cad înapoi pe `grasu`" % caracter)
 		caracter = "grasu"
 	var c: Dictionary = CARACTERE[caracter]
-	_xp_pe_nivel = float(c["xp_pe_nivel"])
+	# `get` cu implicit, nu `[]`: bonusurile sunt câmpuri OPȚIONALE (vezi `CARACTERE`), deci un
+	# caracter fără bonus n-are de ce să scrie „fără bonus" în tabel ca să nu crape aici.
+	_xp_pe_nivel = float(c.get("xp_pe_nivel", 1.0))
+	sansa_cheie = float(c.get("sansa_cheie", -1.0))
 	var cale := String(c["frames"])
 	if ResourceLoader.exists(cale):
 		anim.sprite_frames = load(cale)

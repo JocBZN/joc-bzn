@@ -572,9 +572,10 @@ func _drop_xp() -> void:
 		rare.value = int(round(int(round(rare.value * Difficulty.xp_mult())) * _xp_bonus * xp_drop_mult))
 		parent.add_child(rare)
 		rare.global_position = global_position + Vector2(20, 0)
-	# CHEIE de cufăr: 0.5%, independent de restul dropului (poți primi și XP rar, și cheie).
+	# CHEIE de cufăr: 0.5% — sau cât zice CARACTERUL ales (vezi `_sansa_cheie`) —, independent de
+	# restul dropului (poți primi și XP rar, și cheie).
 	# Cade puțin în lateral, ca să nu stea fix peste geme și să n-o vezi.
-	if _key != null and randf() < KEY_CHANCE:
+	if _key != null and randf() < _sansa_cheie():
 		var cheie := _key.instantiate()
 		parent.add_child(cheie)
 		cheie.global_position = global_position + Vector2(-22, -6)
@@ -584,3 +585,20 @@ func _drop_xp() -> void:
 		var magnet := _magnet.instantiate()
 		parent.add_child(magnet)
 		magnet.global_position = global_position + Vector2(22, -6)
+
+# Șansa de cheie care se aplică ACUM: a caracterului ales, dacă el o schimbă, altfel `KEY_CHANCE`.
+#
+# 🔑 Rata implicită stă AICI și numai aici (`KEY_CHANCE`), iar player-ul spune doar dacă o
+# înlocuiește (`sansa_cheie` negativ = n-o atinge, vezi `player.gd`). Așa nu există a doua copie
+# a lui 0.005 care să se despartă de original la prima reglare.
+#
+# ⚠️ `_player` e ținut minte de la urmărire, dar poate fi `null` la un inamic care n-a apucat să
+# urmărească pe nimeni (sau care e fermecat de Horse Mask și aleargă după altcineva) — de-asta
+# are și varianta prin grup. Se cheamă o dată, la moarte, nu în fiecare cadru.
+func _sansa_cheie() -> float:
+	var pl: Node = _player
+	if pl == null or not is_instance_valid(pl):
+		pl = get_tree().get_first_node_in_group("player")
+	if pl != null and pl.get("sansa_cheie") != null and float(pl.sansa_cheie) >= 0.0:
+		return float(pl.sansa_cheie)
+	return KEY_CHANCE

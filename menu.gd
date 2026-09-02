@@ -123,6 +123,8 @@ var CHARACTERS := [
 		"icon": "res://grasu directii/rotations/south.png"},
 	{"id": "spellman", "name": "SPELLMAN",
 		"icon": "res://Characters/Wizard/frames/idle_south_0.png"},
+	{"id": "jordan",   "name": "JORDAN BLACKFORD",
+		"icon": "res://Characters/Business/frames/idle_south_0.png"},
 ]
 
 const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
@@ -1082,15 +1084,29 @@ func _refresh_character_detail() -> void:
 	_character_detail["nume"].text = String(c["name"])
 	_character_detail["bonus"].text = _bonus_caracter(id)
 
-# Bonusul, SCRIS DIN CIFRA REALĂ din `player.gd::CARACTERE`. Dacă Răzvan schimbă acolo 0.95 în
-# 0.90, textul devine singur „-10%". Ăsta e tot rostul: la arme, textele sunt scrise de mână și
-# pot minți (vezi ⚠️ de la `WEAPONS`).
+# Bonusurile, SCRISE DIN CIFRELE REALE din `player.gd::CARACTERE`. Dacă Răzvan schimbă acolo
+# 0.95 în 0.90, fișa scrie singură „-10%". Ăsta e tot rostul: la arme, textele sunt scrise de
+# mână și pot minți (vezi ⚠️ de la `WEAPONS`).
+#
+# Câte un `if` pentru fiecare fel de bonus, iar cine n-are niciunul primește „NO BONUS STATS".
+# Un caracter cu DOUĂ bonusuri iese cu două rânduri, fără nicio altă schimbare — de-asta se
+# adună într-o listă în loc să se întoarcă din primul `if`.
 func _bonus_caracter(id: String) -> String:
 	var c: Dictionary = _caractere_stats().get(id, {})
-	var f := float(c.get("xp_pe_nivel", 1.0))
-	if is_equal_approx(f, 1.0):
+	var linii: Array[String] = []
+
+	var xp := float(c.get("xp_pe_nivel", 1.0))
+	if not is_equal_approx(xp, 1.0):
+		linii.append(tr("-%d%% XP NEEDED PER LEVEL") % int(round((1.0 - xp) * 100.0)))
+
+	# Negativ = nu schimbă rata inamicilor (vezi `player.gd::sansa_cheie`), deci nu e un bonus.
+	var chei := float(c.get("sansa_cheie", -1.0))
+	if chei >= 0.0:
+		linii.append(tr("%d%% CHANCE OF KEY DROPS") % int(round(chei * 100.0)))
+
+	if linii.is_empty():
 		return "NO BONUS STATS"
-	return tr("-%d%% XP NEEDED PER LEVEL") % int(round((1.0 - f) * 100.0))
+	return "\n".join(linii)
 
 # `CARACTERE` din player.gd, citit o dată — exact ca `_arme_stats`.
 func _caractere_stats() -> Dictionary:

@@ -30,13 +30,17 @@ extends Node
 # ⚠️ SE RE-ȚINTEȘTE, nu se copiază: constantele de mai jos spun pe ce folder lucrează ACUM.
 # Ținte de până acum: `harta/nether/Nether Boss/frames` (Saratalin, 2026-08-27),
 # `harta/castle/castle enemies/frames` (cavalerul de castel, 2026-08-29),
-# `Characters/Wizard/frames` (Spellman, 2026-09-02 — ținta curentă).
+# `Characters/Wizard/frames` (Spellman, 2026-09-02),
+# `Characters/Business/frames` (Jordan Blackford, 2026-09-02 — ținta curentă).
 #
-# ⚠️ Spellman s-a aliniat în DOUĂ treceri, fiindcă are două seturi pe aceleași direcții:
-# `PREFIX = "run"` cu `CADRE = 8` (mersul) și `PREFIX = "idle"` cu `CADRE = 1` (cele 8 poze de
-# stat pe loc, tăiate din `Idle_rotations_8dir.gif`). Amândouă trecerile cu ACELEAȘI `PANZA` și
+# ⚠️ Un CARACTER se aliniază în DOUĂ treceri, fiindcă are două seturi pe aceleași direcții:
+# `PREFIX = "run"` (mersul) și `PREFIX = "idle"` cu `CADRE = 1` (cele 8 poze de stat pe loc,
+# tăiate din `Idle_rotations_8dir.gif`). Amândouă trecerile cu ACELEAȘI `PANZA` și
 # `TINTA_TALPA` — altfel personajul ar sări în sus când se oprește din mers.
-const FOLDER := "res://Characters/Wizard/frames"
+#
+# ⚠️ `CADRE` diferă de la un caracter la altul (The G 4, Spellman 8, Jordan 6) — se ia din
+# numele GIF-ului, nu se presupune.
+const FOLDER := "res://Characters/Business/frames"
 const PREFIX := "idle"
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 const CADRE := 1

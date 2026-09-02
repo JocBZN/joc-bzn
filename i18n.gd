@@ -191,6 +191,7 @@ const TRAD := {
 "PERK": ["特长", "VORTEIL", "VENTAJA", "ОСОБЕННОСТЬ", "ATOUT", "特性", "ATUT", "ÖZELLİK"],
 "NO BONUS STATS": ["无属性加成", "KEINE BONUSWERTE", "SIN BONIFICACIONES", "БЕЗ БОНУСОВ", "AUCUN BONUS", "ボーナスなし", "BEZ BONUSÓW", "BONUS YOK"],
 "-%d%% XP NEEDED PER LEVEL": ["每级所需经验 -%d%%", "-%d%% BENÖTIGTE EP PRO STUFE", "-%d%% DE EXP NECESARIA POR NIVEL", "-%d%% ОПЫТА ЗА УРОВЕНЬ", "-%d%% D'XP REQUIS PAR NIVEAU", "レベルごとの必要経験値 -%d%%", "-%d%% WYMAGANEGO PD NA POZIOM", "SEVİYE BAŞINA -%d%% XP"],
+"%d%% CHANCE OF KEY DROPS": ["钥匙掉落几率 %d%%", "%d%% CHANCE AUF SCHLÜSSEL", "%d%% DE PROBABILIDAD DE LLAVES", "%d%% ШАНС ВЫПАДЕНИЯ КЛЮЧЕЙ", "%d%% DE CHANCE DE CLÉS", "鍵のドロップ率 %d%%", "%d%% SZANSY NA KLUCZE", "%d%% ANAHTAR DÜŞME ŞANSI"],
 "Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],
 "STATS": ["属性", "WERTE", "ESTADÍSTICAS", "ХАРАКТЕРИСТИКИ", "STATS", "ステータス", "STATYSTYKI", "İSTATİSTİK"],
 "Common": ["普通", "Gewöhnlich", "Común", "Обычный", "Commun", "コモン", "Zwykły", "Sıradan"],

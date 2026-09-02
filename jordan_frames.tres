@@ -1,0 +1,382 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_east_0.png" id="r_east_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_east_1.png" id="r_east_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_east_2.png" id="r_east_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_east_3.png" id="r_east_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_east_4.png" id="r_east_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_east_5.png" id="r_east_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_east_0.png" id="r_south_east_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_east_1.png" id="r_south_east_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_east_2.png" id="r_south_east_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_east_3.png" id="r_south_east_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_east_4.png" id="r_south_east_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_east_5.png" id="r_south_east_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_0.png" id="r_south_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_1.png" id="r_south_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_2.png" id="r_south_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_3.png" id="r_south_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_4.png" id="r_south_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_5.png" id="r_south_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_west_0.png" id="r_south_west_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_west_1.png" id="r_south_west_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_west_2.png" id="r_south_west_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_west_3.png" id="r_south_west_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_west_4.png" id="r_south_west_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_south_west_5.png" id="r_south_west_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_west_0.png" id="r_west_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_west_1.png" id="r_west_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_west_2.png" id="r_west_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_west_3.png" id="r_west_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_west_4.png" id="r_west_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_west_5.png" id="r_west_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_west_0.png" id="r_north_west_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_west_1.png" id="r_north_west_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_west_2.png" id="r_north_west_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_west_3.png" id="r_north_west_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_west_4.png" id="r_north_west_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_west_5.png" id="r_north_west_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_0.png" id="r_north_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_1.png" id="r_north_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_2.png" id="r_north_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_3.png" id="r_north_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_4.png" id="r_north_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_5.png" id="r_north_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_east_0.png" id="r_north_east_0"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_east_1.png" id="r_north_east_1"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_east_2.png" id="r_north_east_2"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_east_3.png" id="r_north_east_3"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_east_4.png" id="r_north_east_4"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/run_north_east_5.png" id="r_north_east_5"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_east_0.png" id="i_east"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_south_east_0.png" id="i_south_east"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_south_0.png" id="i_south"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_south_west_0.png" id="i_south_west"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_west_0.png" id="i_west"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_north_west_0.png" id="i_north_west"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_north_0.png" id="i_north"]
+[ext_resource type="Texture2D" path="res://Characters/Business/frames/idle_north_east_0.png" id="i_north_east"]
+
+[resource]
+animations = [
+{
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_east_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_east_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_east_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_east_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_east_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_east_5")
+}
+],
+"loop": true,
+"name": &"east",
+"speed": 12.0
+}
+, {
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_south_east_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_east_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_east_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_east_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_east_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_east_5")
+}
+],
+"loop": true,
+"name": &"south_east",
+"speed": 12.0
+}
+, {
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_south_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_5")
+}
+],
+"loop": true,
+"name": &"south",
+"speed": 12.0
+}
+, {
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_south_west_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_west_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_west_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_west_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_west_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_south_west_5")
+}
+],
+"loop": true,
+"name": &"south_west",
+"speed": 12.0
+}
+, {
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_west_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_west_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_west_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_west_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_west_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_west_5")
+}
+],
+"loop": true,
+"name": &"west",
+"speed": 12.0
+}
+, {
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_north_west_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_west_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_west_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_west_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_west_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_west_5")
+}
+],
+"loop": true,
+"name": &"north_west",
+"speed": 12.0
+}
+, {
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_north_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_5")
+}
+],
+"loop": true,
+"name": &"north",
+"speed": 12.0
+}
+, {
+"frames": [
+{
+"duration": 1.0,
+"texture": ExtResource("r_north_east_0")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_east_1")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_east_2")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_east_3")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_east_4")
+}
+, {
+"duration": 1.0,
+"texture": ExtResource("r_north_east_5")
+}
+],
+"loop": true,
+"name": &"north_east",
+"speed": 12.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_east")
+}],
+"loop": false,
+"name": &"idle_east",
+"speed": 5.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_south_east")
+}],
+"loop": false,
+"name": &"idle_south_east",
+"speed": 5.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_south")
+}],
+"loop": false,
+"name": &"idle_south",
+"speed": 5.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_south_west")
+}],
+"loop": false,
+"name": &"idle_south_west",
+"speed": 5.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_west")
+}],
+"loop": false,
+"name": &"idle_west",
+"speed": 5.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_north_west")
+}],
+"loop": false,
+"name": &"idle_north_west",
+"speed": 5.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_north")
+}],
+"loop": false,
+"name": &"idle_north",
+"speed": 5.0
+}
+, {
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("i_north_east")
+}],
+"loop": false,
+"name": &"idle_north_east",
+"speed": 5.0
+}
+]
