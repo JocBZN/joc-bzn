@@ -37,9 +37,16 @@ const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_w
 @export var bullet_spacing: float = 26.0   # distanța dintre gloanțele paralele
 # Broken Watch: la fiecare salvă, ȘANSĂ (fixă) să tragi proiectile bonus în ALȚI inamici la
 # întâmplare (ca Gunslinger, dar pe șansă). Șansa NU crește cu luările — crește CÂTE proiectile
-# bonus dai când se declanșează (+1 pe luare). Doar la gloanțe (pistol/mage).
+# bonus dai când se declanșează (+1 pe luare). ⚠️ Nu e doar la gloanțe, cum scria aici până pe
+# 2026-09-04: bursturile de sabie/coasă trec prin aceeași socoteală (`_extra_attacks`), unde un
+# proiectil bonus devine un atac în plus.
 @export var broken_watch_chance: float = 0.5  # șansa să se declanșeze bonusul
 var broken_watch_stacks: int = 0              # câte proiectile bonus tragi când se declanșează
+# Broken Glasses: ACEEAȘI mecanică, dar cu șansa ei — 25%, și ea fixă. E o aruncare de zar
+# SEPARATĂ de a ceasului: le poți avea pe amândouă, iar amândouă se pot declanșa în aceeași
+# salvă. Le ține la un loc `proiectile_bonus_pe_sansa()`, ca să nu se despartă niciodată.
+@export var broken_glasses_chance: float = 0.25
+var broken_glasses_stacks: int = 0
 # Gunslinger (+1 pe luare) și Twin Comets (+2 pe luare): proiectile GARANTATE trase în ALȚI
 # inamici la întâmplare — pleacă în direcții diferite deodată. Doar la gloanțe (pistol/mage).
 var stacked_armory_stacks: int = 0            # câte proiectile bonus în alți inamici
@@ -89,18 +96,24 @@ var aimbot_stacks: int = 0
 func aimbot_turn() -> float:
 	return aimbot_stacks * AIMBOT_TURN_PER
 
-# Bloody Situation: fiecare lovitură CRITICĂ te vindecă. +2 HP pe luare.
+# VINDECAREA LA CRITIC — două iteme, același rezervor.
+#
+# Bloody Situation (Common) dă +2 HP pe lovitură critică, Submission (Rare) dă +6. Nu sunt două
+# mecanici, ci ACEEAȘI: fiecare item adaugă câți HP vindecă un critic, în `bloody_heal_hp`. Deci
+# se adună între ele (Bloody Situation + Submission = 8 HP pe critic) și fiecare se stivuiește
+# cu el însuși. Până pe 2026-09-04 aici era un contor de LUĂRI înmulțit cu 2; nu mai merge de
+# când al doilea item vindecă altceva decât primul.
+#
 # Regula: o vindecare per lovitură critică, nu per inamic atins. Contează la sabie și la coasă,
 # care lovesc zeci de inamici cu ACELAȘI critic (unul singur rostogolit pe tăietură/tur): dacă ar
 # vindeca de fiecare inamic, o tăietură critică în mijlocul gloatei te-ar umple instant de viață.
-const BLOODY_HEAL_PER := 2
-var bloody_stacks: int = 0
+var bloody_heal_hp: int = 0
 
 # Chemată de glonț / puls de aură / tăietură de sabie când lovitura CRITICĂ a atins un inamic.
 func bloody_heal() -> void:
-	if bloody_stacks <= 0 or hp >= max_hp:
+	if bloody_heal_hp <= 0 or hp >= max_hp:
 		return
-	hp = min(max_hp, hp + bloody_stacks * BLOODY_HEAL_PER)
+	hp = min(max_hp, hp + bloody_heal_hp)
 
 # Borat's Mankini: la fiecare 5 secunde, șansă să-ți cadă geme de XP mici lângă tine, din senin.
 # Ca la Broken Watch, repetarea NU crește ȘANSA, ci CÂTE geme cad (2 pe luare).
@@ -1124,14 +1137,27 @@ func _raza_ecran() -> float:
 		zoom = _cam.zoom
 	return (vp / zoom).length() * 0.5 + 64.0
 
+# Câte proiectile bonus dau, ÎN SALVA ASTA, itemele care merg pe ȘANSĂ (Broken Watch 50%,
+# Broken Glasses 25%). Un singur loc, chemat și de gloanțe (`_fire`), și de bursturile de
+# sabie/coasă (`_extra_attacks`) — altfel un item nou trebuia adăugat în două locuri și, mai
+# devreme sau mai târziu, ar fi rămas doar într-unul.
+#
+# Fiecare item are aruncarea LUI de zar: le poți avea pe amândouă și se pot declanșa amândouă în
+# aceeași salvă (50% × 25% = 12,5% din salve). Norocul (`luck_bonus`) intră în amândouă șansele.
+# Repetarea unui item nu-i crește ȘANSA, ci CÂTE proiectile dă când se declanșează.
+func proiectile_bonus_pe_sansa() -> int:
+	var bonus := 0
+	if broken_watch_stacks > 0 and randf() < broken_watch_chance + luck_bonus():
+		bonus += broken_watch_stacks
+	if broken_glasses_stacks > 0 and randf() < broken_glasses_chance + luck_bonus():
+		bonus += broken_glasses_stacks
+	return bonus
+
 # Câte atacuri EXTRA (peste primul) primește un burst de sabie/coasă, din upgrade-urile de
 # proiectile. Aceeași socoteală ca la gloanțe (`_fire_bullets`): Gunslinger/Twin Comets garantate
-# (`stacked_armory_stacks`) + Broken Watch pe șansă.
+# (`stacked_armory_stacks`) + cele pe șansă (Broken Watch / Broken Glasses).
 func _extra_attacks() -> int:
-	var extra := stacked_armory_stacks
-	if broken_watch_stacks > 0 and randf() < broken_watch_chance + luck_bonus():
-		extra += broken_watch_stacks
-	return extra
+	return stacked_armory_stacks + proiectile_bonus_pe_sansa()
 
 # Pornește burst-ul: `extra` atacuri rapide după primul. Pauza dintre ele scade cu numărul de
 # proiectile (mai multe = mai repede), limitată la BURST_MIN.
@@ -1215,10 +1241,9 @@ func _fire_bullets() -> void:
 	# nu paralele între ele, dar FIECARE e o salvă completă:
 	#  · Gunslinger (+1 pe luare) și Twin Comets (+2 pe luare): garantate,
 	#    `stacked_armory_stacks` bucăți
-	#  · Broken Watch: 50% șansă (broken_watch_chance) să tragă `broken_watch_stacks` bucăți
-	var bonus := stacked_armory_stacks
-	if broken_watch_stacks > 0 and randf() < broken_watch_chance + luck_bonus():
-		bonus += broken_watch_stacks
+	#  · Broken Watch (50%) și Broken Glasses (25%): pe șansă, fiecare cu zarul lui —
+	#    vezi `proiectile_bonus_pe_sansa()`
+	var bonus := stacked_armory_stacks + proiectile_bonus_pe_sansa()
 	if bonus > 0:
 		for tnode in _armory_targets(target, bonus):
 			var enemy2 := tnode as Node2D

@@ -414,6 +414,10 @@ const TRAD := {
 "Lightning Step": ["闪电步", "Blitzschritt", "Paso Relámpago", "Молниеносный шаг", "Pas Éclair", "雷光ステップ", "Błyskawiczny Krok", "Şimşek Adımı"],
 "Helping Hand": ["援手", "Helfende Hand", "Mano Amiga", "Рука помощи", "Coup de Main", "助けの手", "Pomocna Dłoń", "Yardım Eli"],
 "Equilibrium": ["平衡", "Gleichgewicht", "Equilibrio", "Равновесие", "Équilibre", "均衡", "Równowaga", "Denge"],
+"Medkit": ["医疗包", "Verbandskasten", "Botiquín", "Аптечка", "Trousse de Secours", "救急キット", "Apteczka", "İlk Yardım Çantası"],
+"Broken Glasses": ["破碎的眼镜", "Kaputte Brille", "Gafas Rotas", "Разбитые Очки", "Lunettes Cassées", "壊れたメガネ", "Rozbite Okulary", "Kırık Gözlük"],
+"Poisoned Water": ["毒水", "Vergiftetes Wasser", "Agua Envenenada", "Отравленная Вода", "Eau Empoisonnée", "毒入りの水", "Zatruta Woda", "Zehirli Su"],
+"Submission": ["降服", "Aufgabe", "Sumisión", "Сдача", "Soumission", "サブミッション", "Poddanie", "Teslimiyet"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -476,6 +480,10 @@ const TRAD := {
 "Dash once every 10 seconds": ["每 10 秒可冲刺一次", "Alle 10 Sekunden ein Sprint", "Un impulso cada 10 segundos", "Рывок раз в 10 секунд", "Une ruée toutes les 10 secondes", "10秒ごとにダッシュ", "Doskok co 10 sekund", "10 saniyede bir atılma"],
 "Add one random weapon": ["随机获得一把武器", "Eine zufällige Waffe dazu", "Añade un arma al azar", "Добавляет случайное оружие", "Ajoute une arme au hasard", "ランダムな武器を1つ追加", "Dodaje losową broń", "Rastgele bir silah ekler"],
 "+10% to all stats": ["所有属性 +10%", "+10% auf alle Werte", "+10% a todas las estadísticas", "+10% ко всем характеристикам", "+10% à toutes les statistiques", "全ステータス +10%", "+10% do wszystkich statystyk", "Tüm istatistiklere +10%"],
+"+10 HP/sec, +10 Max HP": ["+10 生命/秒, +10 最大生命", "+10 HP/Sek., +10 Max. HP", "+10 HP/seg, +10 HP máx.", "+10 HP/сек, +10 макс. HP", "+10 PV/sec, +10 PV max", "+10 HP/秒、+10 最大HP", "+10 HP/sek, +10 Maks. HP", "+10 CAN/sn, +10 Maks. CAN"],
+"25% chance to fire +1 projectile": ["25% 几率多射 1 发", "25% Chance auf +1 Geschoss", "25% de prob. de disparar +1 proyectil", "25% шанс выстрелить +1 снарядом", "25% de chance de tirer +1 projectile", "25%の確率で弾を+1発", "25% szans na +1 pocisk", "%25 ihtimalle +1 mermi"],
+"+5% Difficulty, +5% Attack Speed": ["+5% 难度, +5% 攻速", "+5% Schwierigkeit, +5% Angriffstempo", "+5% Dificultad, +5% Vel. de ataque", "+5% сложности, +5% скорострельность", "+5% Difficulté, +5% Cadence", "+5% 難易度、+5% 攻撃速度", "+5% Trudności, +5% Szybkostrzelność", "+5% Zorluk, +5% Saldırı hızı"],
+"Crits heal you 6 HP": ["暴击回复 6 生命", "Krits heilen dich um 6 HP", "Los críticos te curan 6 HP", "Криты лечат на 6 HP", "Les critiques te soignent 6 PV", "クリティカルで6HP回復", "Kryty leczą 6 HP", "Kritikler 6 CAN iyileştirir"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 

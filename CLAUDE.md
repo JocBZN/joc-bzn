@@ -24,6 +24,63 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-04 (patru iteme noi: Medkit, Broken Glasses, Poisoned Water, Submission)
+
+**Cerut de Răzvan:** „vreau sa bag niste upgrade-uri noi in joc: upgrade_69 - Medkit (Legendary) +10 HP Per Second (recovery nu in plus fata de max hp), +10 Max HP; upgrade_68 - Broken Glasses (Common) - 25% Chance to shoot +1 projectile; upgrade_70 - Poisoned Water (Uncommon) +5 Difficulty, +5% Attack Speed; upgrade_71 - Submission (Rare) - Crits heal up 6 hp."
+
+**Fișiere noi:** `tool_iteme_noi.gd` + `.tscn`, iconițele `Upgrades/upgrade_68..71.png` (+ `.import`).
+**Atinse:** `levelup.gd` (4 rânduri în `UPGRADES` + 4 cazuri în `_apply`), `player.gd`, `i18n.gd` (8 chei × 8 limbi), `codex.html`, README. **Pool: 60 → 64 de iteme.**
+
+### Trei din patru se lipesc de mecanici care existau deja
+
+Niciunul nu e o mecanică nouă — și așa și trebuie, altfel patru iteme însemnau patru sisteme de întreținut:
+
+| Item | Se sprijină pe | Ce s-a schimbat în cod |
+|---|---|---|
+| **Medkit** (Legendary) | `hp_regen` + `upgrade_max_hp` | nimic, doar `_apply` |
+| **Broken Glasses** (Common) | Broken Watch | `proiectile_bonus_pe_sansa()`, un singur loc pentru toate itemele pe șansă |
+| **Poisoned Water** (Uncommon) | `Difficulty.trade_penalty` + `upgrade_fire_rate` | nimic, doar `_apply` |
+| **Submission** (Rare) | Bloody Situation | `bloody_stacks` → `bloody_heal_hp` |
+
+### `bloody_stacks` a devenit `bloody_heal_hp`
+
+Bloody Situation ținea un contor de LUĂRI și înmulțea cu `BLOODY_HEAL_PER = 2`. Nu mai merge de când al doilea item vindecă 6, nu 2. Acum e un singur rezervor de HP în care scriu amândouă: Bloody Situation adaugă 2, Submission adaugă 6, deci se adună între ele (8 pe critic) și fiecare se stivuiește cu el însuși. Cele trei locuri care cheamă `bloody_heal()` (glonț, tăietură de sabie, tur de coasă) n-au fost atinse.
+
+### Un singur loc pentru proiectilele pe șansă
+
+Broken Watch se rostogolea **în două locuri** copiate unul după altul: în `_fire` (gloanțe) și în `_extra_attacks` (bursturile de sabie/coasă). Al doilea item pe șansă ar fi trebuit adăugat în amândouă și, mai devreme sau mai târziu, ar fi rămas doar într-unul. Acum e `player.proiectile_bonus_pe_sansa()`, chemat din amândouă.
+
+Fiecare item are aruncarea LUI de zar, nu una comună: cu ceasul (50%) și ochelarii (25%) în build, în 12,5% din salve se declanșează amândouă. Măsurat pe 40.000 de salve: 12,50%.
+
+### 🪤 „+5 Difficulty" — am citit-o ca +5%
+
+Dificultatea din joc e un ÎNMULȚITOR (`Difficulty.trade_penalty`), nu un număr pe care să-l vezi undeva pe ecran; nu există „5 dificultate" ca unitate. Am făcut-o **+5%**, pe același canal ca Tome of Witchcraft (+10%), deci se compun: apă + carte = ×1,155. Dacă Răzvan voia altceva, e o singură cifră în `_apply`.
+
+### 🪤 Două note vechi care nu mai erau adevărate
+
+`player.gd` scria despre Broken Watch „Doar la gloanțe (pistol/mage)", iar codexul avea `warn: "Doar la gloanțe"`. Fals: `_extra_attacks` îl folosește și la sabie/coasă, unde un proiectil bonus devine un atac în plus în burst. Ambele reparate. N-a prins-o nicio verificare — a ieșit la iveală fiindcă noul item trecea prin exact același cod.
+
+### Verificat rulând — `tool_iteme_noi.tscn`
+
+Rulat în FEREASTRĂ (partea cu pozele are nevoie de GPU). Șase feluri de probe, toate verzi:
+
+1. **lista** — cele 4 iteme au id/iconiță/raritate/text exact ce s-a cerut, iconițele chiar se încarcă, 64 de id-uri fără repetiție;
+2. **efectele**, aplicate pe un **player adevărat** prin `levelup._apply` (nu scrise de mână în variabile): Medkit 0→10/s regen și 100→110 max HP (te și vindecă pe loc cu 10); Poisoned Water ×1,05 dificultate și 0,75→0,7125 pauză între trageri; Submission 6 HP pe critic, 8 cu Bloody Situation, 14 la a doua luare;
+3. **regula cerută „recovery nu în plus față de max HP"** — pusă la 3 HP sub plin, două ticuri de `_regen()` o lasă exact la plin, nu peste. Același lucru pentru vindecarea la critic;
+4. **statistica** — 40.000 de salve: ochelarii singuri 25,00%; cu ceasul, 12,50% le declanșează pe amândouă, 62,48% măcar unul, 0,750 proiectile bonus pe salvă în medie;
+5. **regresie** — Bloody Situation SINGUR vindecă tot 2 HP (și 4 la a doua luare), ca înainte de rescriere;
+6. **textul încape pe cartonaș în toate cele 9 limbi** — numele are `clip_text` (se TAIE, nu se vede că lipsește) și descrierea `max_lines_visible = 2` (rândul al treilea dispare), deci amândouă se strică ÎN TĂCERE. Proba desenează ecranul adevărat de level up în fiecare limbă și măsoară lățimea numelui tradus și numărul de rânduri al descrierii.
+
+Plus două poze cu ecranul adevărat de level up (`user://iteme_noi_1.png`, `_2.png`), unde se văd toate patru cu chenarul rarității lor.
+
+`tool_check_i18n`: **350 de chei × 8 limbi**, tot tradus. `scores.save` neatins (md5 identic înainte și după).
+
+### Codexul
+
+`codex.html` are cele 4 carduri noi (cu base64-ul iconițelor), plus notele despre rezervorul comun la Bloody Situation și despre zarurile separate la Broken Watch. Verificat: `id|iconiță|raritate|text-din-joc` din `levelup.gd` vs `codex.html` — **zero diferențe, 64 de iteme**; fiecare din cele 64 de iconițe are base64 **egal octet cu octet** cu fișierul din `Upgrades/`; și randat în Chrome headless înainte de publicare.
+
+---
+
 ## Session log — 2026-09-04 (proiectilele se colorează după CÂTE sunt)
 
 **Cerut de Răzvan:** „vreau sa se schimbe culoarea la proiectile (un overlay de culoare) atunci cand ai 1 projectile e normal. - cand ai 5 projectiles se fac 25% din ele Albastre. Cand ajungi la 10 projectiles se fac inca 25% Mov. - Cand ajungi la 20 projectiles vreau sa se faca 25% Verzi. - Vreau schimbarea asta sa se aplice la toate itemele."

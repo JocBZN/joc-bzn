@@ -94,6 +94,13 @@ var UPGRADES := [
 	{"id": "lightning_step", "nume": "Lightning Step", "icon": "upgrade_65.png", "rar": "legendary", "desc": "Dash once every 10 seconds", "unic": true},
 	{"id": "helping_hand", "nume": "Helping Hand", "icon": "upgrade_66.png", "rar": "mythic", "desc": "Add one random weapon"},
 	{"id": "equilibrium", "nume": "Equilibrium", "icon": "upgrade_67.png", "rar": "mythic", "desc": "+10% to all stats"},
+	# 2026-09-04 — patru iteme noi, cerute de Răzvan. Trei se lipesc de mecanici care există deja
+	# (Broken Watch, Bloody Situation, Tome of Witchcraft), unul e cel mai mare plus de
+	# regenerare din joc. Efectele, ca întotdeauna, în `_apply`.
+	{"id": "medkit", "nume": "Medkit", "icon": "upgrade_69.png", "rar": "legendary", "desc": "+10 HP/sec, +10 Max HP"},
+	{"id": "broken_glasses", "nume": "Broken Glasses", "icon": "upgrade_68.png", "rar": "common", "desc": "25% chance to fire +1 projectile"},
+	{"id": "poisoned_water", "nume": "Poisoned Water", "icon": "upgrade_70.png", "rar": "uncommon", "desc": "+5% Difficulty, +5% Attack Speed"},
+	{"id": "submission", "nume": "Submission", "icon": "upgrade_71.png", "rar": "rare", "desc": "Crits heal you 6 HP"},
 ]
 
 const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
@@ -1059,7 +1066,8 @@ func _apply(id: String, p) -> void:
 			# situație sângeroasă: fiecare lovitură CRITICĂ te vindecă 2 HP, +2 pe fiecare luare.
 			# Vindecarea se face la IMPACT, nu la tragere (un glonț critic care ratează nu dă nimic),
 			# și o singură dată per lovitură — vezi player.bloody_heal().
-			p.bloody_stacks += 1
+			# Scrie în ACELAȘI rezervor ca Submission (`bloody_heal_hp`), deci cele două se adună.
+			p.bloody_heal_hp += 2
 		"plugged_in":
 			# băgat în priză: ȘANSĂ să facă exact ce face Thunder God la impact. +10% pe luare
 			# (prima = 10%), plafonat la 100%. Folosește același lanț (thunder_burst).
@@ -1186,3 +1194,54 @@ func _apply(id: String, p) -> void:
 			# Toată socoteala e în `player.gd::upgrade_toate_statusurile`, lângă statusuri.
 			if p.has_method("upgrade_toate_statusurile"):
 				p.upgrade_toate_statusurile(1.1)
+		"medkit":
+			# LEGENDARY. Trusa de prim-ajutor: cea mai mare regenerare dintr-o singură luare —
+			# +10 HP pe secundă, de peste trei ori cât Wine. Se ADUNĂ la fiecare luare, ca la
+			# Wine și Water and electrolytes (`hp_regen` e întreg, nu-l face procent).
+			#
+			# ⚠️ Regenerarea NU te duce peste maximul de viață, cerut explicit („recovery nu în
+			# plus față de max HP"): ceasul de regenerare din `player.gd` scrie
+			# `hp = min(max_hp, hp + hp_regen)`, deci se oprește singur la plin. Cele +10 Max HP
+			# de dedesubt îi ridică plafonul cu care se poate umple.
+			#
+			# `upgrade_max_hp` te și VINDECĂ cu cele 10 pe loc (ca la Beer / Bulletproof Vest),
+			# deci luată la limită îți dă o gură de aer imediat, nu abia peste o secundă.
+			p.hp_regen += 10
+			p.upgrade_max_hp(10)
+		"broken_glasses":
+			# ochelarii sparți: fratele mic al lui Broken Watch — aceeași mecanică, jumătate de
+			# șansă (25%, fixă), dar e Common, deci îl vezi mult mai des. Proiectilul bonus pleacă
+			# într-un ALT inamic la întâmplare, nu paralel cu salva.
+			#
+			# Are zarul LUI, separat de al ceasului (vezi `player.proiectile_bonus_pe_sansa`):
+			# cu amândouă în build, în 12,5% din salve se declanșează amândouă.
+			# Ca la ceas, repetarea NU crește ȘANSA, ci CÂTE proiectile dă când pică: +1, +2, +3 ...
+			# Merge și la sabie/coasă, unde proiectilele bonus devin atacuri în plus în burst.
+			p.broken_glasses_stacks += 1
+		"poisoned_water":
+			# apa otrăvită: bei ca să tragi mai repede, dar te otrăvești — inamicii se fac cu 5%
+			# mai tari, pe loc și până la capătul rundei.
+			#
+			# E ACELAȘI canal ca Tome of Witchcraft și ca prețul plătit la statuia din Ender, la
+			# trade-up, la Alba-Neagra, la Dubiosu și la cazinou (`Difficulty.trade_penalty`),
+			# deci se ÎNMULȚEȘTE cu ele, nu se adună: apă + carte = ×1,155, nu +15%.
+			# Ce urcă: viața, damage-ul de contact, viteza (până la `SPEED_CAP`) și CÂȚI inamici
+			# apar. Ce NU urcă: XP-ul lor, ceasul de pe ecran și scorul.
+			#
+			# Spre deosebire de carte, aici plata vine cu ceva în schimb: +5% cadență, procent pe
+			# valoarea CURENTĂ (ca Rolling Papers), deci se compune la fiecare luare și merge la
+			# toate armele, nu doar la gloanțe.
+			Difficulty.add_trade_penalty(0.05)
+			p.upgrade_fire_rate(0.95)
+		"submission":
+			# cedarea: fiecare lovitură CRITICĂ te vindecă 6 HP, +6 pe fiecare luare. Aceeași
+			# mecanică cu Bloody Situation (de trei ori cât el, de-aia e Rare, nu Common) și
+			# ACELAȘI rezervor — cu amândouă în build, un critic îți dă 8 HP.
+			#
+			# Vindecarea se face la IMPACT, nu la tragere, și o singură dată per lovitură, nu per
+			# inamic atins — altfel o tăietură critică de sabie în mijlocul gloatei te-ar umple
+			# instant. Vezi `player.bloody_heal()`.
+			#
+			# ⚠️ Fără șansă de critic nu face NIMIC. Nu e o scăpare: e itemul care transformă un
+			# build pe critic într-unul care se ține singur în viață.
+			p.bloody_heal_hp += 6
