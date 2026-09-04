@@ -557,6 +557,7 @@ func _ready() -> void:
 	_flash_mat.shader = load("res://white_flash.gdshader")
 	_flash_mat.set_shader_parameter("flash", 0.0)
 	anim.material = _flash_mat
+	_fa_tentele()   # materialele de tentă ale proiectilelor (vezi „CULOAREA PROIECTILELOR")
 	fire_timer = Timer.new()
 	fire_timer.wait_time = fire_interval_now()   # cu bonusul de nivel al pistolului inclus
 	fire_timer.timeout.connect(_fire)
@@ -1013,6 +1014,79 @@ func stat_lines() -> Array:
 func projectiles_total() -> int:
 	return bullet_count + stacked_armory_stacks
 
+# ---------- CULOAREA PROIECTILELOR (după CÂTE proiectile tragi) ----------
+#
+# Cerut de Răzvan pe 2026-09-04: cu un singur proiectil totul rămâne ca înainte; de la 5 proiectile
+# un sfert din ele zboară ALBASTRE, de la 10 încă un sfert MOV, de la 20 încă un sfert VERZI.
+#
+# Tiparul e un CICLU DE PATRU, nu o rostogolire de zar: proiectilele se numără 0,1,2,3,0,1,2,3…
+# iar locul 0 rămâne mereu culoarea de bază. Locul 1 se face albastru când ai 5 proiectile, locul 2
+# mov la 10, locul 3 verde la 20. O ȘANSĂ de 25% ar fi dat și salve întregi de aceeași culoare, și
+# proporția cerută s-ar fi văzut abia după câteva minute de joc; ciclul o arată din prima salvă.
+#
+# ⚠️ Numărătoarea NU se pune la zero la fiecare tragere — curge mai departe dintr-o salvă în alta.
+# Asta e ce face să iasă chiar UN SFERT: cu 5 proiectile pe salvă, o numărătoare care ar reporni de
+# la 0 ar colora veșnic un singur proiectil din cinci, adică 20%, nu 25%. Așa, culoarea cade pe alt
+# proiectil la fiecare salvă, iar media e exact 1,25 din 5. Prețul e că o salvă anume poate avea 1
+# sau 2 albastre — niciodată mai multe, și niciodată toate.
+#
+# Se aplică la TOATE armele și la toate itemele care dau proiectile: gloanțele pistolului,
+# izbucnirea mage-ului, cuțitul aruncat, dar și tăieturile de sabie / tururile de coasă — la ele
+# „proiectilele" extra sunt atacuri în plus (vezi `_start_burst`), deci se colorează la fel.
+#
+# Cifra care deblochează culorile e `projectiles_total()`, exact rândul „Projectiles" din panou:
+# Gunslinger (+1 pe luare) și Twin Comets (+2). Broken Watch nu intră în ea (e pe șansă), dar
+# proiectilele lui bonus primesc și ele culoare din tipar atunci când chiar pleacă.
+const TENTA_SHADER := "res://proiectil_tenta.gdshader"
+const TENTE := [
+	{"prag": 5,  "col": Color(0.20, 0.60, 1.00)},   # albastru
+	{"prag": 10, "col": Color(0.72, 0.32, 1.00)},   # mov
+	{"prag": 20, "col": Color(0.30, 1.00, 0.40)},   # verde
+]
+var _tenta_mats: Array[ShaderMaterial] = []   # un material gata făcut pentru fiecare culoare
+var _proj_idx: int = 0                        # pe ce loc din ciclul de patru e urmatorul proiectil
+
+# Materialele se fac O SINGURĂ DATĂ, la pornire, și le împart toate proiectilele. Cu sute de
+# gloanțe vii în Final Swarm, un ShaderMaterial nou la fiecare glonț ar însemna sute de alocări pe
+# secundă și tot atâtea rupturi de batch la desenare.
+func _fa_tentele() -> void:
+	var sh := load(TENTA_SHADER) as Shader
+	if sh == null:
+		return
+	for t in TENTE:
+		var m := ShaderMaterial.new()
+		m.shader = sh
+		m.set_shader_parameter("tenta", t["col"])
+		_tenta_mats.append(m)
+
+# Ce culoare are proiectilul cu numărul `idx` din salvă. -1 = culoarea de bază, neatinsă.
+func _tenta_slot(idx: int) -> int:
+	if _tenta_mats.size() < TENTE.size():
+		return -1                            # shaderul lipsește → totul rămâne exact ca înainte
+	var loc := idx % (TENTE.size() + 1)      # 0 = neatins, 1..3 = cele trei culori
+	if loc == 0:
+		return -1
+	if projectiles_total() >= int(TENTE[loc - 1]["prag"]):
+		return loc - 1
+	return -1                                # culoarea asta nu e încă deblocată
+
+# Materialul următorului proiectil (null = fără tentă) și mută numărătoarea mai departe.
+func _tenta_urmatoare() -> ShaderMaterial:
+	var slot := _tenta_slot(_proj_idx)
+	_proj_idx = (_proj_idx + 1) % (TENTE.size() + 1)
+	return _tenta_mats[slot] if slot >= 0 else null
+
+# Pune materialul pe tot ce se DESENEAZĂ din nodul dat. Un glonț e un Area2D care nu desenează
+# nimic el însuși — desenul stă în copii (Sprite2D-ul glonțului, izbucnirea mage-ului adăugată
+# peste el), iar materialul NU se moștenește de la părinte. De asta coborâm prin copii.
+func _aplica_tenta(nod: Node, mat: ShaderMaterial) -> void:
+	if nod == null or mat == null:
+		return
+	if nod is CanvasItem:
+		(nod as CanvasItem).material = mat
+	for c in nod.get_children():
+		_aplica_tenta(c, mat)
+
 func _stat_row(label: String, cur: float, base: float, lower_better: bool, disp: String) -> Dictionary:
 	var state := "same"
 	if not is_equal_approx(cur, base):
@@ -1195,6 +1269,13 @@ func _spawn_one_bullet(pos: Vector2, dir: Vector2, dmg_base: int, ex_radius: flo
 		_make_knife(bullet)                          # proiectil = cuțitul, învârtindu-se în zbor
 	# scalează sprite-ul ȘI hitbox-ul (CollisionShape2D e copil al glonțului), plus proiectilul mage
 	bullet.scale *= bullet_size_scale()   # cu plafonul armei: pistol 100%, mage 250%
+	# Tenta de culoare a proiectilului (vezi „CULOAREA PROIECTILELOR"). Se pune ACUM, la sfârșit:
+	# sprite-ul mage / cuțitul tocmai au fost puse mai sus, iar materialul trebuie să ajungă pe ele.
+	# `tenta_mat` merge mai departe la glonț, ca explozia lui de la impact să fie în aceeași culoare.
+	var tenta := _tenta_urmatoare()
+	if tenta != null:
+		_aplica_tenta(bullet, tenta)
+		bullet.tenta_mat = tenta
 	bullet.set_direction(dir)
 	return is_crit
 
@@ -1331,6 +1412,9 @@ func _sword_swing() -> void:
 		dmg = int(round(dmg * cr["mult"]))
 	Audio.play("sword", -4.0)  # tăietura săbiei
 	var nod := _spawn_sword_slash(_sword_dir())
+	# Tenta de culoare: la sabie, „proiectilele" extra sunt tăieturi în plus (vezi `_start_burst`),
+	# deci fiecare tăietură ia culoarea următoare din tipar, ca gloanțele dintr-o salvă.
+	_aplica_tenta(nod, _tenta_urmatoare())
 	if nod == null:
 		return
 	# Tăietura rămâne VIE cât ține animația (_update_slashes o rotește și o lasă să lovească).
@@ -1414,6 +1498,9 @@ func _scythe_swing() -> void:
 		"unghi0": unghi0, "parcurs": 0.0, "shake": false, "bloody": false,
 	}
 	_sweeps.append(t)
+	# Tenta de culoare: la coasă, „proiectilele" extra sunt tururi de lamă în plus (vezi
+	# `_start_burst`), deci fiecare tur ia culoarea următoare din tipar, ca gloanțele dintr-o salvă.
+	_aplica_tenta(t["nod"], _tenta_urmatoare())
 
 # Măsoară o dată, la pornire, TOT ce trebuie știut despre desenul lamei: câmpul de distanțe (din
 # el iese hitbox-ul) și axa ei (din ea iese cum se așază pe cerc). Arta e sursa unică pentru desen

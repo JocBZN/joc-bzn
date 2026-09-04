@@ -24,6 +24,51 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-04 (proiectilele se colorează după CÂTE sunt)
+
+**Cerut de Răzvan:** „vreau sa se schimbe culoarea la proiectile (un overlay de culoare) atunci cand ai 1 projectile e normal. - cand ai 5 projectiles se fac 25% din ele Albastre. Cand ajungi la 10 projectiles se fac inca 25% Mov. - Cand ajungi la 20 projectiles vreau sa se faca 25% Verzi. - Vreau schimbarea asta sa se aplice la toate itemele."
+
+**Fișiere noi:** `proiectil_tenta.gdshader`, `tool_tenta.gd` + `.tscn`.
+**Atinse:** `player.gd` (secțiunea nouă „CULOAREA PROIECTILELOR" + trei locuri de tragere), `bullet.gd` (`tenta_mat`).
+
+### Un CICLU DE PATRU, nu o rostogolire de zar
+
+Proiectilele se numără 0,1,2,3,0,1,2,3…; locul 0 rămâne mereu culoarea de bază, locul 1 se face albastru la 5 proiectile, locul 2 mov la 10, locul 3 verde la 20. Cifra care deblochează e `projectiles_total()` — exact rândul „Projectiles" din panou (Gunslinger +1, Twin Comets +2).
+
+O ȘANSĂ de 25% ar fi dat și salve întregi de aceeași culoare: proporția cerută s-ar fi văzut abia după câteva minute de joc. Ciclul o arată din prima salvă.
+
+⚠️ **Numărătoarea NU se pune la zero la fiecare tragere.** Asta e ce face să iasă chiar UN SFERT: cu 5 proiectile pe salvă, o numărătoare care ar reporni de la 0 ar colora veșnic un singur proiectil din cinci — 20%, nu 25%. Așa culoarea cade pe alt proiectil la fiecare salvă și media e exact 1,25 din 5.
+
+### De ce shader și nu `modulate`
+
+`modulate` ÎNMULȚEȘTE, iar glonțul e **alămiu** (roșu/verde mult, albastru aproape deloc): un `modulate` albastru l-ar fi făcut aproape negru, nu albastru. La fel cuțitul (metal cenușiu). `proiectil_tenta.gdshader` ia LUMINANȚA pixelului și o recolorează, deci umbrele rămân umbre și lucirile luciri — merge pe orice artă. Materialele sunt **trei, făcute o dată** la pornire și împărțite de toate proiectilele: cu sute de gloanțe vii în Final Swarm, un `ShaderMaterial` per glonț ar fi însemnat sute de alocări pe secundă.
+
+⚠️ **Materialul NU se moștenește de la părinte în Godot.** Glonțul e un `Area2D` care nu desenează nimic — desenul stă în copii (sprite-ul, izbucnirea mage-ului adăugată peste el), deci `_aplica_tenta` coboară prin copii. Se pune la SFÂRȘITUL lui `_spawn_one_bullet`, după ce cuțitul/izbucnirea au fost puse. Glonțul duce materialul mai departe (`bullet.tenta_mat`) și la explozia de la impact — altfel un glonț albastru izbucnea galben.
+
+**Se aplică la toate armele:** pistol, mage, cuțit, dar și sabie și coasă — la ele „proiectilele" extra sunt atacuri în plus (`_start_burst`), deci fiecare tăietură / tur de lamă ia culoarea următoare din tipar.
+
+### 🪤 Bug tăcut prins de proba de pixeli, nu de cele 12 probe de dinaintea ei
+
+Prima versiune a shaderului avea `const float PODEA := 0.30;` — `:=` e din GDScript, în GLSL e eroare. Shaderul **nu compila**, deci pe ecran nu se schimba absolut nimic, iar toate probele care se uitau la *materialul pus pe sprite* ieșeau verzi. Lecția, scrisă în unealtă: un test care verifică *ce ai cerut* nu verifică și *ce s-a desenat*. Proba [6] citește acum culorile **din pixelii randați** și ar fi prins-o singură.
+
+Aceeași unealtă a mai prins două lucruri care ar fi ieșit greșit în poză: coordonatele de probă socotite de mână (`576 + x`) cad **alături** de proiectil, fiindcă **camera are zoom 0.7** — se cer din `get_viewport().get_canvas_transform()`; și `_update_slashes` pune tăieturile înapoi lângă player la fiecare cadru, deci pentru o poză trebuie golit întâi `_slashes`.
+
+### ✅ Verificat rulând
+
+`tool_tenta.tscn` (fereastră, face și poza) — **TOTUL E BINE**, 6 secțiuni:
+- **tiparul**, cerut chiar funcției din player, pe 1000 de proiectile: 1/2/4 → totul de bază; 5 și 9 → 25% albastru; 10 și 19 → 25% + 25% mov; 20 și 25 → 25/25/25, restul de bază;
+- **gloanțe trase de-adevăratelea** cu `_fire()`, 5 salve × 20 de proiectile, la pistol, mage și cuțit: 25 de bucăți din fiecare culoare, materialul citit de pe SPRITE-ul fiecărui glonț;
+- **sabie și coasă**: opt atacuri la rând → `[bază, albastru, mov, verde]` × 2;
+- **culorile citite din pixelii randați**: la toate patru armele albastrul e albastru, movul e mov, verdele e verde, iar proiectilul neatins se deosebește de ele (pistol 0.69, mage 1.36, cuțit 0.44, sabie 0.51).
+
+Poza (`user://tenta.png`) are și un rând **la mărimea din joc**, nu doar mărit de 3×: culorile se citesc și pe un glonț de 27px.
+
+⚠️ **Rămâne un lucru de decis, nu un bug: tăietura de sabie e DEJA verde** (`#328a47`) — deci sfertul „verde" de la 20 de proiectile se deosebește greu de tăietura obișnuită. La pistol/mage/cuțit nu e nicio problemă. Dacă vrea, se schimbă o singură cifră: culoarea din `TENTE` (`player.gd`).
+
+`scores.save` neatinsă (md5 identic înainte și după) — unealta instanțiază player-ul adevărat, deci am verificat, n-am presupus.
+
+---
+
 ## Session log — 2026-09-02 (cinematica de intrare se deschidea peste o lume care nu era încă acolo)
 
 **Cerut de Răzvan:** „animatia de la inceput se vede o secunda dubios. e asa gri imaginea, rezolva."

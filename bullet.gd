@@ -15,6 +15,10 @@ var explosion_damage: int = 0      # cât damage face explozia asupra inamicilor
 var explosion_frames: SpriteFrames = null  # animație de explozie (mage = galben, ca proiectilul); null → Fx.explosion
 var instakill_chance: float = 0.0  # șansa (0..1) să ucidă instant inamicul (Hacksaw)
 var thunder: bool = false          # Thunder God: la impact, curent electric spre inamicii din jur
+# Tenta de culoare a proiectilului, pusă de player după CÂTE proiectile tragi (vezi
+# „CULOAREA PROIECTILELOR" din `player.gd`). null = culoarea de bază, ca înainte. O ținem aici ca
+# s-o poarte și explozia de la impact — altfel un glonț albastru ar izbucni galben.
+var tenta_mat: ShaderMaterial = null
 
 # Cât se ÎNVÂRTE desenul în zbor, în radiani pe secundă. 0 = stă drept, ca glonțul obișnuit, care
 # e desenat cu vârful înainte și trebuie să rămână așa. Îl folosește THROWING KNIFE: un cuțit
@@ -220,6 +224,7 @@ func _play_boom() -> void:
 	a.sprite_frames = explosion_frames
 	a.animation = "fx"
 	a.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	a.material = tenta_mat   # explozia poartă culoarea proiectilului (null = culorile din artă)
 	a.z_index = 60
 	var fw := explosion_frames.get_frame_texture("fx", 0).get_width()
 	a.scale = Vector2.ONE * (explosion_radius * 2.0 * BOOM_VISUAL_SCALE) / float(max(fw, 1))
