@@ -24,6 +24,68 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-04 (Duridama arăta altfel de la o armă la alta)
+
+**Cerut de Răzvan:** „vreau sa mearga duridama pe toate armele."
+
+**Fișiere noi:** `tool_duridama.gd` + `.tscn`.
+**Atinse:** `enemy.gd` (patru rânduri), `codex.html`, README.
+
+### Ce se întâmpla de fapt (măsurat, nu presupus)
+
+Duridama trecea deja prin `enemy.take_damage()`, pe care îl cheamă TOATE armele — gloanțele
+(`bullet.gd`) și corpul la corp (`player._lovitura_melee`). Deci mecanic mergea peste tot. Numai
+că itemul e în **doi timpi**: lovitura care aurește nu face damage, iar URMĂTOAREA ucide instant
+și lasă 2× XP. Iar al doilea timp se consuma singur la unele arme:
+
+**Mage Staff-ul lovește de DOUĂ ori dintr-o singură tragere** — glonțul, apoi explozia LUI de la
+impact (`bullet.gd::_explode`, rază 110, pusă de `weapon_type == "mage"`). Prima aurea inamicul,
+a doua îl termina, în același tic de fizică. Cu toiagul **nu vedeai niciodată un inamic auriu**:
+Duridama se prăbușea într-un „1% instakill cu 2× XP". Același lucru făcea **Jean's Bomb** pe orice
+armă, și două gloanțe ajunse deodată în același inamic.
+
+Măsurat cu unealta: un inel de 40 de inamici, o singură tragere, șansa pusă la 100% —
+pistol 5 auriți / 0 morți, cuțit 5/0, sabie 25/0, coasă 40/0, **mage 0 auriți / 40 morți**.
+
+### Reparația: patru rânduri în `enemy.gd`
+
+`_make_golden()` scrie ticul în care s-a aurit (`_golden_frame`), iar `take_damage` omoară auritul
+doar dacă lovitura vine dintr-un tic DIFERIT. Loviturile din aceeași clipă se scurg fără efect —
+sunt tot lovitura care l-a aurit. După reparație: **mage 40 auriți / 0 morți**, ca restul.
+
+`Engine.get_physics_frames()`, nu `get_process_frames()`: gloanțele lovesc din `body_entered`
+(fizică), iar acolo se întâmplă și dubla lovitură. Corpul la corp lovește din `_process`, dar el
+n-a avut niciodată problema asta — `loviti` din `_update_sweeps` / `_update_slashes` ține fiecare
+inamic la o singură lovitură per tăietură.
+
+### 🪤 Unealta a MINȚIT prima dată, cu toate probele verzi
+
+Prima variantă se uita la inamic **după** ce se termina totul și raporta „mage și coasa aurește ȘI
+ucide din aceeași tragere". Fals la coasă: ce-l aurea era o **tăietură de sabie rămasă vie din
+proba dinainte** (`_slashes` mai dă treceri de damage cât ține animația), iar coasa doar îl
+termina. Adică unealta găsea un bug care nu exista, la arma greșită.
+
+Două lucruri au reparat-o, amândouă necesare:
+1. `_curata_atacurile()` între arme — golește `_slashes`, `_sweeps` și gloanțele încă pe drum;
+2. urmărire **cadru cu cadru** (`_urmareste`), nu o singură citire la sfârșit: ține minte dacă
+   inamicul a fost aurit VREODATĂ și cu ce bonus de XP a murit. Fără asta, un inamic aurit-și-ucis
+   în aceeași clipă arată identic cu unul pur și simplu omorât de damage.
+
+### 🪤 Și player-ul murea în timpul probei
+
+Inamicii stau lipiți de el toată proba → damage de contact → `die()` → gameover → **scena se
+reîncarcă**, deci unealta o lua de la capăt la nesfârșit (și trecea prin drumul care scrie în
+leaderboard-ul adevărat). Reparat cu `max_hp` uriaș. `scores.save` verificat: md5 neschimbat.
+
+### 🪤 Codexul a ieșit ALB, exact cum scrie mai sus în fișier
+
+Am scris un ghilimel ASCII `"` în interiorul unui string JS (`„Următoarea"`), care a închis
+stringul devreme → SyntaxError → pagină complet goală. Randarea a prins-o: **530 KB de PNG în loc
+de 1035 KB**. Verificarea adăugată acum, care o prinde fără randare: fiecare linie de card
+(`id:` / `game:` / `eff:` / `warn:`) trebuie să aibă exact 2 ghilimele ASCII (8 pe linia de `id`).
+
+---
+
 ## Session log — 2026-09-04 (patru iteme noi: Medkit, Broken Glasses, Poisoned Water, Submission)
 
 **Cerut de Răzvan:** „vreau sa bag niste upgrade-uri noi in joc: upgrade_69 - Medkit (Legendary) +10 HP Per Second (recovery nu in plus fata de max hp), +10 Max HP; upgrade_68 - Broken Glasses (Common) - 25% Chance to shoot +1 projectile; upgrade_70 - Poisoned Water (Uncommon) +5 Difficulty, +5% Attack Speed; upgrade_71 - Submission (Rare) - Crits heal up 6 hp."

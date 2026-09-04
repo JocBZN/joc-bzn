@@ -151,6 +151,16 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-04, Duridama behaved differently depending on the weapon)
+
+Duridama already ran on every weapon — the roll lives in `enemy.take_damage()`, which bullets and melee both call. What differed was the **second half** of the item. It is a two-stage mechanic: the hit that gilds an enemy deals no damage, and the *next* hit kills it instantly for double XP. With the **Mage Staff** that second stage was consumed by the same shot: the bullet hits (gilding the enemy), then its own AOE explosion hits again in the same physics tick and kills it. The result was that the staff never showed a golden enemy at all — the item silently degraded into "1% instakill with 2× XP". **Jean's Bomb did the same thing on any weapon**, as did two bullets landing on one enemy at once.
+
+Measured with a ring of 40 enemies, one attack, chance forced to 100%: pistol 5 gilded / 0 dead, knife 5/0, sword 25/0, scythe 40/0, **mage 0 gilded / 40 dead**. After the fix, mage reads 40/0 like the rest.
+
+The fix is four lines in `enemy.gd`: `_make_golden()` records the physics tick it happened on, and a gilded enemy is only finished off by a hit from a *later* tick. Hits from the same instant drain away — they are still the hit that gilded it.
+
+**Three traps, all worth writing down.** The first version of the tool *lied while every check was green*: it looked at the enemy only after everything had settled and reported that the scythe gilded and killed in one swing. It didn't — a **sword slash left alive from the previous test case** was doing the gilding (slashes keep dealing damage passes while their animation runs) and the scythe was only finishing the job. So the tool had found a bug that did not exist, on the wrong weapon. It needed both a cleanup between weapons *and* frame-by-frame tracking, because an enemy gilded-and-killed in one instant looks exactly like one simply killed by damage. Second: the player stood in a crowd for the whole test, died of contact damage, and the game-over screen **reloaded the scene**, so the tool restarted forever — and went down the path that writes to the real leaderboard. Third: updating the codex entry blanked the page, because a Romanian sentence picked up a plain ASCII `"` inside a JS string. The render caught it (530 KB of PNG instead of 1035 KB); there is now a cheaper structural check for it too.
+
 ## Current state (2026-09-04, four new items)
 
 **Medkit** *(Legendary, +10 HP/sec, +10 Max HP)*, **Broken Glasses** *(Common, 25% chance to fire +1 projectile)*, **Poisoned Water** *(Uncommon, +5% Difficulty, +5% Attack Speed)* and **Submission** *(Rare, crits heal you 6 HP)*. The pool is now **64 items**.

@@ -116,6 +116,16 @@ var _liber := 0.0             # de câte secunde merge nestingherit (vezi OCOL_U
 # scade viața — doar îl îngheață. URMĂTOAREA lovitură îl ucide instant și lasă 2× XP.
 const GOLD_TINT := Color(2.2, 1.6, 0.25)   # filtru auriu (modulate multiplică, deci valori supraunitare)
 var golden := false
+# ⚠️ În ce tic de fizică s-a aurit. Duridama e o mecanică în DOI timpi: lovitura care aurește NU
+# face damage, iar URMĂTOAREA ucide instant. Fără cifra asta, o armă care dă două lovituri în
+# ACEEAȘI clipă peste același inamic sare peste primul timp și-l omoară pe loc — adică itemul
+# arată altfel de la o armă la alta:
+#   · Mage Staff: glonțul lovește (aurește), apoi explozia LUI de la impact (`bullet.gd::_explode`)
+#     lovește iar, în același tic, și-l ucide. Cu toiagul NU vedeai niciodată un inamic auriu.
+#   · La fel Jean's Bomb, pe ORICE armă, și două gloanțe care ajung deodată în același inamic.
+# Măsurat pe 2026-09-04 cu `tool_duridama.tscn`: pistol/cuțit/sabie/coasă se aureau și așteptau
+# lovitura următoare, mage-ul murea în cadrul aurit, cu 2× XP, fără să apuce să se vadă.
+var _golden_frame := -1
 var _xp_bonus := 1.0          # cât XP lasă la moarte (2.0 la moartea aurită)
 
 # --- Horse Mask: inamic „fermecat" (upgrade_52) ---
@@ -409,8 +419,13 @@ func apply_knockback(v: Vector2) -> void:
 func take_damage(amount: int, from_charm: bool = false) -> void:
 	if _dying:
 		return
-	# Duridama: dacă e deja aurit, ORICE lovitură îl ucide instant și lasă 2× XP.
+	# Duridama: dacă e deja aurit, URMĂTOAREA lovitură îl ucide instant și lasă 2× XP.
+	# „Următoarea", nu „oricare": loviturile din ACELAȘI tic de fizică sunt tot lovitura care
+	# l-a aurit (glonț + explozia lui, două gloanțe ajunse deodată) și se scurg fără efect.
+	# Vezi `_golden_frame`, sus — fără paza asta, Duridama arăta altfel la fiecare armă.
 	if golden:
+		if Engine.get_physics_frames() == _golden_frame:
+			return
 		_die(2.0)
 		return
 	# altfel, șansa de a-l auri (îngheață în cadrul ăsta, fără să-i scadă viața)
@@ -440,6 +455,7 @@ func _try_golden() -> bool:
 	return true
 
 func _make_golden() -> void:
+	_golden_frame = Engine.get_physics_frames()   # ca lovitura care l-a aurit să nu-l și ucidă
 	golden = true
 	_knockback = Vector2.ZERO       # nu mai alunecă din împinsul glonțului
 	_flash_time = 0.0               # oprim orice sclipire în curs, ca aurul să rămână curat
