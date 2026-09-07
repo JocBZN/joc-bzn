@@ -24,6 +24,75 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-07b (OP deschide tot · pagina SAVE din Settings)
+
+**Cerut de Răzvan:** „la butonul de op nu vreau proiectilele sa fie toate din fata, vreau cum sunt
+si itemele de proiectile in joc. - Butonul de OP vreau sa si deblocheze toate caracterele si armele.
+- Vreau sa adaugi la setari un buton de Unlock All si sub el Delete Save File".
+
+**Atinse:** `player.gd`, `unlocks.gd`, `game_settings.gd`, `settings_ui.gd`, `menu.gd`, `i18n.gd`,
+`tool_check_i18n.gd`. **Unealtă nouă:** `tool_op_save.gd/.tscn`.
+
+### 1. Proiectilele OP: `bullet_count` → `stacked_armory_stacks`
+
+Cheat-ul scria 10 în `bullet_count` — gloanțe **paralele**, spre aceeași țintă. Niciun item nu mai
+dă asta din 2026-07-21; toate (Gunslinger, Twin Comets, Broken Watch, Broken Glasses) și ruleta
+cazinoului dau **salve întregi trase în ALȚI inamici**. Acum `bullet_count = 1` și restul în
+`stacked_armory_stacks`, socotit pe **total** (`projectiles_total()`), exact cifra scrisă în panou.
+⚠️ Aceeași greșeală fusese făcută și la cazinou și reparată pe 2026-07-30 (`casino.gd::_aplica`,
+la `"proj"`) — a doua oară, deci merită ținut minte: **„proiectile" în jocul ăsta înseamnă
+`stacked_armory_stacks`, nu `bullet_count`.**
+
+### 2. OP deblochează tot — fără să scrie nimic
+
+`unlocks.gd` s-a rupt în două întrebări:
+
+| funcție | răspunde la | cine o cheamă |
+|---|---|---|
+| `e_deblocat(id)` | ce arată MENIUL | meniul, `player.gd` |
+| `e_castigat(id)` | ce s-a câștigat CU ADEVĂRAT | `deblocheaza`, `verifica_statusuri` |
+
+`e_deblocat` = `op_start or e_castigat`. Tot ce SCRIE întreabă `e_castigat` — altfel, cu cheat-ul
+pornit, cerințele s-ar fi oprit din numărat și, la stins, ai fi rămas cu exact ce aveai. Așa,
+OP-ul doar **acoperă** lacătele: nu salvează nimic, nu pierde nimic, iar stinsul le pune la loc
+(meniul recitește la fiecare `_show`, iar alegerea încuiată cade înapoi pe pistol/grasu).
+Panoul OP START are un al patrulea rând, `Unlocks — ALL`, fiindcă lacătele cad pe **altă pagină**
+decât butonul care le ridică.
+
+### 3. Pagina SAVE (al patrulea tab din Settings)
+
+`UNLOCK ALL` (definitiv, scrie în salvare; se stinge singur când nu mai are ce debloca) și sub el
+`DELETE SAVE FILE`. Trei lucruri de reținut:
+
+- ⚠️ **`sterge_salvarea()` golește și MEMORIA, nu doar fișierul** — asta e jumătatea care contează.
+  `_save()` scrie TOT ce e în RAM, deci ștergând doar fișierul, prima monedă strânsă l-ar fi scris
+  la loc cu monedele și deblocările vechi. Se golesc și setările (butonul zice „fișierul", iar
+  fișierul le ține pe toate); **fullscreen-ul e excepția**, rămâne cum e fereastra. Limba se pune
+  DIRECT în `TranslationServer`: `I18n.schimba_limba()` ar fi chemat `set_language()` → `_save()`
+  → fișierul șters se năștea la loc.
+- **Confirmare din două apăsări**, cu avertismentul pe **nota de dedesubt**, nu pe buton: paginile
+  au mărimea încremenită de `_egalizeaza_paginile`, deci un text lung pe buton ar fi lățit rama
+  ornată din meniu. Aceeași capcană (și același leac) ca la „press a button…" de pe pagina GAMEPAD.
+- **Pagina există DOAR în meniul principal** (`SettingsUI.arata_salvarea`, pus între `new()` și
+  `add_child()`, fiindcă `_ready` construiește paginile). În pauză n-are sens: nu ștergi salvarea
+  în mijlocul rundei care scrie în ea. După ștergere blocul emite `salvare_stearsa` și `menu.gd`
+  **reîncarcă `menu.tscn`** — monedele, upgrade-urile, lacătele, limba și butonul OP se citiseră
+  toate la CONSTRUIRE.
+
+### Probat, nu presupus
+
+`tool_op_save.tscn` (fereastră normală, 15 verificări, toate ✔): un player adevărat cu OP pornit
+trage **10 gloanțe în 3 direcții diferite** (înainte: 1 direcție); cu OP stins coasa e încuiată, cu
+OP pornit coasa și Jordan se pot ALEGE iar `unlocked` rămâne **gol**; stins la loc, alegerea cade
+înapoi; UNLOCK ALL se stinge singur; prima apăsare pe DELETE doar armează; iar după `sterge_salvarea()`
+fișierul chiar s-a dus, memoria e goală **și primul `_save()` de după nu învie nimic**.
+
+⚠️ Unealta atinge salvarea ADEVĂRATĂ dinadins (aia se probează): își face o copie în
+`user://scores.save.tool` și o pune la loc. Am comparat oricum md5-ul cu o copie făcută înainte de
+tot — singura diferență era cheia `unlocked` apărută goală într-o salvare mai veche decât ea, deci
+am pus înapoi copia bit cu bit. **212146 monede și scorurile intacte.**
+
+---
 ## Session log — 2026-09-07 (deblocări: pornești doar cu Pistol și The G)
 
 **Cerut de Răzvan:** „vreau toate caracterele si armele sa fie deblocate in timp (Primesti la

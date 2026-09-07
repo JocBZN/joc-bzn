@@ -52,6 +52,9 @@ const TRAD := {
 "LANGUAGE": ["语言", "SPRACHE", "IDIOMA", "ЯЗЫК", "LANGUE", "言語", "JĘZYK", "DİL"],
 # comutatorul de testare din colț; „OP" (overpowered) rămâne OP peste tot, e jargon de jucători
 "OP START": ["强化开局", "OP-START", "INICIO OP", "ОП-СТАРТ", "DÉPART OP", "OPスタート", "START OP", "OP BAŞLANGIÇ"],
+# rândul „Unlocks   ALL" din panoul OP START (2026-09-07): cheat-ul deschide și armele, și caracterele
+"Unlocks": ["解锁", "Freischaltungen", "Desbloqueos", "Разблокировки", "Déblocages", "解放", "Odblokowania", "Kilit açma"],
+"ALL": ["全部", "ALLE", "TODO", "ВСЁ", "TOUT", "すべて", "WSZYSTKO", "TÜMÜ"],
 # ecranul de încărcare de la pornire (loading.gd)
 "LOADING %d%%": ["加载中 %d%%", "LADEN %d%%", "CARGANDO %d%%", "ЗАГРУЗКА %d%%", "CHARGEMENT %d%%", "読み込み中 %d%%", "ŁADOWANIE %d%%", "YÜKLENİYOR %%%d"],
 "PISTOL": ["手枪", "PISTOLE", "PISTOLA", "ПИСТОЛЕТ", "PISTOLET", "ピストル", "PISTOLET", "TABANCA"],
@@ -103,6 +106,16 @@ const TRAD := {
 "RESET": ["重置", "ZURÜCKSETZEN", "RESTABLECER", "СБРОС", "RÉINIT.", "リセット", "RESETUJ", "SIFIRLA"],
 "ON": ["开", "AN", "SÍ", "ВКЛ", "OUI", "オン", "WŁ", "AÇIK"],
 "OFF": ["关", "AUS", "NO", "ВЫКЛ", "NON", "オフ", "WYŁ", "KAPALI"],
+# pagina SAVE din Settings (2026-09-07): deblochează tot / șterge fișierul de salvare
+"SAVE": ["存档", "SPIELSTAND", "PARTIDA", "СОХРАНЕНИЕ", "SAUVEGARDE", "セーブ", "ZAPIS", "KAYIT"],
+"PROGRESS": ["进度", "FORTSCHRITT", "PROGRESO", "ПРОГРЕСС", "PROGRESSION", "進行状況", "POSTĘP", "İLERLEME"],
+"UNLOCK ALL": ["全部解锁", "ALLES FREISCHALTEN", "DESBLOQUEAR TODO", "ОТКРЫТЬ ВСЁ", "TOUT DÉBLOQUER", "すべて解放", "ODBLOKUJ WSZYSTKO", "TÜMÜNÜ AÇ"],
+"ALL UNLOCKED": ["已全部解锁", "ALLES FREIGESCHALTET", "TODO DESBLOQUEADO", "ВСЁ ОТКРЫТО", "TOUT EST DÉBLOQUÉ", "すべて解放済み", "WSZYSTKO ODBLOKOWANE", "TÜMÜ AÇILDI"],
+"every character and weapon": ["所有角色和武器", "alle Charaktere und Waffen", "todos los personajes y armas", "все персонажи и оружие", "tous les personnages et armes", "すべてのキャラと武器", "wszystkie postacie i bronie", "tüm karakterler ve silahlar"],
+"DELETE SAVE FILE": ["删除存档", "SPIELSTAND LÖSCHEN", "BORRAR PARTIDA", "УДАЛИТЬ СОХРАНЕНИЕ", "SUPPRIMER LA SAUVEGARDE", "セーブデータを削除", "USUŃ ZAPIS", "KAYDI SİL"],
+"CONFIRM": ["确认", "BESTÄTIGEN", "CONFIRMAR", "ПОДТВЕРДИТЬ", "CONFIRMER", "確認", "POTWIERDŹ", "ONAYLA"],
+"coins, upgrades, records and unlocks": ["金币、升级、记录和解锁", "Münzen, Upgrades, Rekorde, Freischaltungen", "monedas, mejoras, récords y desbloqueos", "монеты, улучшения, рекорды и разблокировки", "pièces, améliorations, records et déblocages", "コイン・強化・記録・解放", "monety, ulepszenia, rekordy i odblokowania", "paralar, yükseltmeler, rekorlar ve kilit açmalar"],
+"this cannot be undone": ["无法撤销", "kann nicht rückgängig gemacht werden", "no se puede deshacer", "это нельзя отменить", "action irréversible", "元に戻せません", "tego nie da się cofnąć", "bu geri alınamaz"],
 "press a key…": ["按一个键…", "Taste drücken…", "pulsa una tecla…", "нажми клавишу…", "appuie sur une touche…", "キーを押して…", "naciśnij klawisz…", "bir tuşa bas…"],
 "Up": ["上", "Hoch", "Arriba", "Вверх", "Haut", "上", "Góra", "Yukarı"],
 "Down": ["下", "Runter", "Abajo", "Вниз", "Bas", "下", "Dół", "Aşağı"],

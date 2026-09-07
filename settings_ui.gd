@@ -34,6 +34,17 @@ var _pad_timp := 0.0        # cât mai am de ascultat
 var _pad_eliberat := false  # a fost controllerul lăsat liber de când am început să ascult?
 var _pad_dupa := false      # tocmai am legat un buton: mai înghit ce vine până se lasă pad-ul
 
+# Pagina SAVE (UNLOCK ALL + DELETE SAVE FILE) se arată DOAR unde are rost: în meniul principal.
+# Se pune din afară, între `SettingsUI.new()` și `add_child()` — `_ready` o citește la construire.
+# În meniul de PAUZĂ lipsește dinadins: nu poți șterge salvarea în mijlocul rundei care tocmai
+# scrie în ea, iar deblocările nu schimbă nimic într-o rundă deja pornită (arma și caracterul
+# s-au ales la START).
+var arata_salvarea := false
+# Salvarea a fost ștearsă: cine ne-a pus în pagină reconstruiește ecranul (monede, upgrade-uri,
+# deblocări — toate se citeau din ea). Blocul ăsta nu știe ce ecran îl încadrează, deci nu el
+# hotărăște CUM se reconstruiește.
+signal salvare_stearsa
+
 var _pagini := {}           # nume pagină -> VBoxContainer
 var _taburi := {}           # nume pagină -> butonul din bara de sus
 
@@ -49,6 +60,8 @@ func _ready() -> void:
 	_pagini["keybinds"] = _pagina_keybinds()
 	_pagini["graphics"] = _pagina_graphics()
 	_pagini["gamepad"] = _pagina_gamepad()
+	if arata_salvarea:
+		_pagini["save"] = _pagina_save()
 	for nume in _pagini:
 		add_child(_pagini[nume])
 	_egalizeaza_paginile()
@@ -279,9 +292,12 @@ func _bara_taburi() -> HBoxContainer:
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	# ⚠️ Taburile s-au subțiat de la 200 la 150 când a intrat al treilea (GAMEPAD, 2026-08-20):
 	# 3 × 200 + separații ar fi lățit tot blocul de Settings cu ~220px, iar blocul e încadrat de
-	# rama ornată din meniul principal — deci s-ar fi lățit și ea, pe un ecran de 1152.
-	for nume in ["keybinds", "graphics", "gamepad"]:
-		var b := _buton(nume.to_upper(), 20, Vector2(150, 40))
+	# rama ornată din meniul principal — deci s-ar fi lățit și ea, pe un ecran de 1152. Cu al
+	# patrulea (SAVE, 2026-09-07) se strâng la 118 — dar numai ATÂT e minimul: un buton crește
+	# oricum până încape textul lui, deci nici într-o limbă cu cuvinte lungi nu se taie nimic.
+	var lat := 150.0 if _ordine_pagini().size() <= 3 else 118.0
+	for nume in _ordine_pagini():
+		var b := _buton(nume.to_upper(), 20, Vector2(lat, 40))
 		b.pressed.connect(arata_pagina.bind(nume))
 		_taburi[nume] = b
 		row.add_child(b)
@@ -495,3 +511,103 @@ func _spacer(h: int) -> Control:
 	var c := Control.new()
 	c.custom_minimum_size = Vector2(0, h)
 	return c
+
+# ---------- pagina SAVE ----------
+# Două butoane care ating salvarea, cerute pe 2026-09-07: unul o umple, altul o șterge. Stau
+# ÎMPREUNĂ dinadins — sunt singurele două locuri din joc unde progresul se schimbă altfel decât
+# jucând, deci merită văzute unul lângă altul, nu ascunse prin pagini diferite.
+var _unlock_btn: Button
+var _delete_btn: Button
+var _delete_nota: Label
+var _sterg_sigur := false   # DELETE a fost apăsat o dată: următoarea apăsare chiar șterge
+
+# Ordinea taburilor ȘI a paginilor, într-un singur loc: bara de sus se construiește ÎNAINTE de
+# pagini, deci n-avea de unde s-o afle din `_pagini`.
+func _ordine_pagini() -> Array:
+	return ["keybinds", "graphics", "gamepad", "save"] if arata_salvarea \
+		else ["keybinds", "graphics", "gamepad"]
+
+func _pagina_save() -> VBoxContainer:
+	var v := _pagina_goala()
+	v.add_child(_center_label("PROGRESS", 26))
+	v.add_child(_spacer(2))
+	_unlock_btn = _buton("UNLOCK ALL", 20, Vector2(300, 34))
+	_unlock_btn.pressed.connect(_on_unlock_all)
+	v.add_child(_rand_centrat(_unlock_btn))
+	v.add_child(_nota("every character and weapon"))
+	v.add_child(_spacer(12))
+	_delete_btn = _buton("DELETE SAVE FILE", 20, Vector2(300, 34))
+	_delete_btn.pressed.connect(_on_delete_save)
+	v.add_child(_rand_centrat(_delete_btn))
+	_delete_nota = _nota("coins, upgrades, records and unlocks")
+	v.add_child(_delete_nota)
+	_refresh_unlock_btn()
+	return v
+
+# Un buton singur, centrat pe rândul lui (paginile astea sunt VBox-uri de rânduri centrate).
+func _rand_centrat(c: Control) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(c)
+	return row
+
+# Rândul mărunt de sub un buton: ce anume atinge. Ca să nu fie nevoie să-l apeși ca să afli.
+func _nota(text: String) -> Label:
+	var l := _center_label(text, 16)
+	l.modulate = Color(1, 1, 1, 0.55)
+	return l
+
+# UNLOCK ALL scrie în salvare, deci e definitiv — după el butonul se stinge și scrie ce s-a
+# întâmplat. La fel arată și dacă intri pe pagină cu tot câștigat deja: un buton care se poate
+# apăsa fără să facă nimic e cea mai bună cale de a-l pune pe om să-l apese de trei ori.
+func _refresh_unlock_btn() -> void:
+	if _unlock_btn == null:
+		return
+	var gata: bool = Unlocks.tot_deblocat()
+	_unlock_btn.text = "ALL UNLOCKED" if gata else "UNLOCK ALL"
+	_unlock_btn.disabled = gata
+	_unlock_btn.modulate = Color(1, 1, 1, 0.5) if gata else Color(1, 1, 1, 1)
+
+func _on_unlock_all() -> void:
+	Audio.play("button", -3.0, 0.0)
+	Unlocks.deblocheaza_tot()
+	_refresh_unlock_btn()
+
+# ȘTERGEREA CERE DOUĂ APĂSĂRI. Nu are „undo" (fișierul chiar se duce), iar butonul stă la o palmă
+# de UNLOCK ALL — deci prima apăsare doar ARMEAZĂ și se dezarmează singură după câteva secunde.
+#
+# ⚠️ Avertismentul se scrie pe NOTA de dedesubt, nu pe buton — aceeași capcană ca la ascultarea
+# butoanelor de pad: un text lung pe buton l-ar lăți, iar paginile au mărimea încremenită de
+# `_egalizeaza_paginile`, deci s-ar fi lățit odată cu el și rama ornată din meniu. Pe buton
+# rămâne un cuvânt scurt, mai scurt decât cel dinainte.
+const ROSU_STERG := Color8(206, 84, 70)
+const CONFIRM_SEC := 4.0
+
+func _on_delete_save() -> void:
+	Audio.play("button", -3.0, 0.0)
+	if not _sterg_sigur:
+		_sterg_sigur = true
+		_delete_btn.text = "CONFIRM"
+		_delete_btn.add_theme_color_override("font_color", ROSU_STERG)
+		_delete_nota.text = "this cannot be undone"
+		_delete_nota.add_theme_color_override("font_color", ROSU_STERG)
+		_delete_nota.modulate = Color(1, 1, 1, 1)
+		get_tree().create_timer(CONFIRM_SEC).timeout.connect(_dezarmeaza_stergerea)
+		return
+	_dezarmeaza_stergerea()
+	GameSettings.sterge_salvarea()
+	_refresh_unlock_btn()
+	salvare_stearsa.emit()
+
+# Pune butonul la loc. Se cheamă din DOUĂ locuri — ceasul de 4 secunde și apăsarea care chiar
+# șterge — de aia iese pe loc dacă nu e nimic armat: după ștergere, ceasul tot vine.
+func _dezarmeaza_stergerea() -> void:
+	if not _sterg_sigur:
+		return
+	_sterg_sigur = false
+	if _delete_btn != null and is_instance_valid(_delete_btn):
+		_delete_btn.text = "DELETE SAVE FILE"
+		_delete_btn.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+		_delete_nota.text = "coins, upgrades, records and unlocks"
+		_delete_nota.remove_theme_color_override("font_color")
+		_delete_nota.modulate = Color(1, 1, 1, 0.55)

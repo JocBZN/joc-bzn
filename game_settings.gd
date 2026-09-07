@@ -360,3 +360,56 @@ func _load() -> void:
 		unlocked = data.get("unlocked", {})
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil
+
+# --- ștergerea salvării ---
+# Butonul DELETE SAVE FILE din Settings → pagina SAVE (cerut pe 2026-09-07). Șterge fișierul ȘI
+# golește memoria, în ordinea asta — iar partea a doua e cea care contează cu adevărat:
+#
+# ⚠️ `_save()` scrie TOT ce e în RAM, nu doar ce s-a schimbat. Șters doar fișierul, prima monedă
+# strânsă (sau prima setare atinsă) l-ar fi scris la loc cu monedele, upgrade-urile și deblocările
+# vechi, intacte — adică ștergerea ar fi ținut până la următorul `_save()`, care vine singur.
+# Aceeași capcană e scrisă și în CLAUDE.md, la testele care ating `GameSettings`.
+#
+# Se golesc și SETĂRILE (volum, taste, butoane de pad, grafică, limbă), nu doar progresul: butonul
+# spune „șterge fișierul", iar fișierul le ține pe toate. FULLSCREEN-ul face excepție dinadins —
+# rămâne cum e fereastra ACUM: a o smuci din fullscreen în timp ce omul se uită la meniu e cea mai
+# urâtă cale de a-i confirma că a apăsat butonul.
+#
+# ⚠️ Cifrele de mai jos sunt implicitele scrise SUS, la declarații. Sunt scrise a doua oară
+# fiindcă GDScript n-are cum să întrebe o variabilă „cu ce valoare te-ai născut" — dacă schimbi
+# una acolo, schimb-o și aici, că nu te avertizează nimeni.
+func sterge_salvarea() -> void:
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(SAVE_PATH)
+	# progresul
+	scores = []
+	coins = 0
+	upgrades = {}
+	unlocked = {}
+	character = "grasu"
+	weapon_type = "pistol"
+	reset_run()
+	# setările
+	op_start = false
+	music_volume = 0.7
+	sfx_volume = 1.0
+	vsync = true
+	vignette = true
+	glow = true
+	vibration = true
+	keybinds = {}
+	padbinds = {}
+	language = "en"
+	# Ce s-a golit trebuie și APLICAT, altfel vechiul rămâne în picioare până la repornire: tastele
+	# stau în InputMap, butoanele de pad pe „ui_accept"/„ui_cancel", limba în TranslationServer,
+	# v-sync-ul în fereastră. Volumele n-au nevoie de nimic — `audio.gd` le citește de aici la
+	# fiecare sunet.
+	#
+	# ⚠️ Limba se pune DIRECT în TranslationServer, nu prin `I18n.schimba_limba()`: aia iese pe loc
+	# dacă i se cere limba pe care o crede deja pusă (și tocmai am scris „en" mai sus), iar pe drum
+	# ar chema `set_language()` → `_save()` → fișierul șters se năștea la loc pe loc.
+	_setup_actions()
+	Gamepad.aplica_butoane()
+	aplica_grafica()
+	TranslationServer.set_locale(language)
+	_refresh_atmosfera()

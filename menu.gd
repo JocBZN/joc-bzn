@@ -1440,6 +1440,11 @@ func _build_opstart() -> void:
 	box.add_child(_op_rand("Damage", str(GameSettings.OP_DAMAGE)))
 	box.add_child(_op_rand("Attack Speed", "%.2f/s" % GameSettings.OP_ATTACK_SPEED))
 	box.add_child(_op_rand("Projectiles", str(GameSettings.OP_PROJECTILES)))
+	# Al patrulea rând nu e un status, e o consecință (2026-09-07): cât e OP START pornit, toate
+	# armele și toate caracterele se pot alege, ca și cum ar fi câștigate. Scris aici fiindcă
+	# altfel n-ar afla nimeni: lacătele cad pe ALTĂ pagină decât butonul care le ridică.
+	# Nu se șterge nimic — vezi `unlocks.gd::e_deblocat`.
+	box.add_child(_op_rand("Unlocks", "ALL"))
 	box.add_child(_spacer(18))
 	_op_toggle = _menu_button("ON" if GameSettings.op_start else "OFF", _on_op_toggle)
 	box.add_child(_op_toggle)
@@ -1519,8 +1524,21 @@ func _sb_stramt(bg: Color, border: Color) -> StyleBoxFlat:
 func _build_settings() -> void:
 	var box := _make_panel("settings", "SETTINGS")
 	_settings_ui = SettingsUI.new()
+	# Pagina SAVE (UNLOCK ALL + DELETE SAVE FILE) există DOAR aici, nu și în meniul de pauză din
+	# joc — motivul e scris la `arata_salvarea` în `settings_ui.gd`. Se pune ÎNAINTE de `add_child`:
+	# paginile se construiesc în `_ready`, adică în clipa intrării în arbore.
+	_settings_ui.arata_salvarea = true
+	_settings_ui.salvare_stearsa.connect(_on_salvare_stearsa)
 	box.add_child(_settings_ui)
 	box.add_child(_menu_button("BACK", _on_settings_back))
+
+# Salvarea tocmai a fost ștearsă: meniul se reface de la zero. Monedele din colț, nivelurile din
+# UPGRADES, lacătele de pe arme și caractere, limba, butonul OP — toate s-au citit din salvare la
+# CONSTRUIRE, iar paginile se construiesc o singură dată (`_ready`). Le-aș fi putut împrospăta pe
+# rând, dar aia e o listă pe care viitorul o uită: încă un ecran adăugat mâine și rămâne unul cu
+# cifre moarte. Reîncărcarea meniului e drumul pe care merg deja `gameover.gd` și `pause.gd`.
+func _on_salvare_stearsa() -> void:
+	get_tree().change_scene_to_file("res://menu.tscn")
 
 func _on_settings_back() -> void:
 	_settings_ui.cancel_remap()

@@ -45,7 +45,20 @@ var _nume := {}   # id -> numele de pe ecran, citit o singură dată din `menu.g
 
 # --- întrebările pe care le pune meniul ---
 
+# Ce arată MENIUL. Două căi duc la „deblocat": ori l-ai câștigat, ori e pornit OP START.
+#
+# Cheat-ul din colț deschide TOT (cerut pe 2026-09-07), ca să se poată proba orice armă și orice
+# caracter fără să le câștigi întâi — asta e chiar rostul lui: să ajungi repede la ce ai de
+# probat. E un COMUTATOR, deci stinsul lui pune totul înapoi cum era; nu șterge nimic, fiindcă
+# nici nu scrie nimic. Pentru deblocări DEFINITIVE există butonul UNLOCK ALL din Settings.
 func e_deblocat(id: String) -> bool:
+	return GameSettings.op_start or e_castigat(id)
+
+# Ce s-a câștigat CU ADEVĂRAT, jucând — și SINGURA întrebare pe care și-o pune tot ce ține minte
+# (`deblocheaza`, `verifica_statusuri`). Cu OP START pornit, `e_deblocat` e mereu `true`, deci
+# dacă s-ar fi întrebat pe ea, cerințele s-ar fi oprit din numărat și ai fi rămas, la stins, cu
+# exact ce aveai înainte. Așa, cheat-ul doar ACOPERĂ lacătele; jocul de sub el merge înainte.
+func e_castigat(id: String) -> bool:
 	return not CERINTE.has(id) or bool(GameSettings.unlocked.get(id, false))
 
 func cerinta(id: String) -> String:
@@ -54,11 +67,30 @@ func cerinta(id: String) -> String:
 # Deblochează și ANUNȚĂ. Se poate chema oricât de des: dacă e deja deblocat, iese pe loc — de aia
 # `verifica_statusuri` poate să bată la ușă de două ori pe secundă fără să salveze de fiecare dată.
 func deblocheaza(id: String) -> void:
-	if e_deblocat(id):
+	if e_castigat(id):
 		return
 	GameSettings.unlocked[id] = true
 	GameSettings._save()
 	_anunta(id)
+
+# UNLOCK ALL — butonul din Settings → pagina SAVE (2026-09-07). Spre deosebire de OP START, care
+# doar acoperă lacătele cât e pornit, ăsta SCRIE în salvare: e definitiv și rămâne și după ce
+# închizi jocul.
+#
+# Nu anunță nimic pe ecran: pancarta „UNLOCKED" e răsplata pentru o cerință împlinită, nu pentru
+# un buton apăsat — și oricum se apasă din meniu, unde nu există HUD care s-o arate.
+func deblocheaza_tot() -> void:
+	for id in CERINTE:
+		GameSettings.unlocked[id] = true
+	GameSettings._save()
+
+# Mai e ceva de câștigat? Butonul de sus se stinge când nu mai e — altfel ar fi rămas un buton
+# care se poate apăsa la nesfârșit fără să se întâmple nimic.
+func tot_deblocat() -> bool:
+	for id in CERINTE:
+		if not e_castigat(id):
+			return false
+	return true
 
 # --- ce declanșează deblocările ---
 
@@ -85,11 +117,11 @@ func celesto_invins() -> void:
 func verifica_statusuri(p) -> void:
 	if p == null:
 		return
-	if not e_deblocat("mage") and p.luck_total() >= LUCK_MAGE:
+	if not e_castigat("mage") and p.luck_total() >= LUCK_MAGE:
 		deblocheaza("mage")
-	if not e_deblocat("sword") and int(round(p.bullet_damage * p.damage_mult())) >= DAMAGE_SWORD:
+	if not e_castigat("sword") and int(round(p.bullet_damage * p.damage_mult())) >= DAMAGE_SWORD:
 		deblocheaza("sword")
-	if not e_deblocat("knife") and p.crit_chance_now() >= CRIT_KNIFE:
+	if not e_castigat("knife") and p.crit_chance_now() >= CRIT_KNIFE:
 		deblocheaza("knife")
 
 # --- anunțul de pe ecran ---

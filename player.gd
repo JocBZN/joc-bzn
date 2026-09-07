@@ -2403,7 +2403,16 @@ func _aplica_op_start() -> void:
 	# Butonul e scris în ATACURI PE SECUNDĂ (cum arată și panoul de statusuri), dar player-ul
 	# lucrează cu pauza dintre atacuri. 2.5 atacuri/s = 0.4s pauză.
 	fire_interval = 1.0 / GameSettings.OP_ATTACK_SPEED
-	bullet_count = GameSettings.OP_PROJECTILES
+	# Proiectilele: DE ACELAȘI FEL cu cele date de iteme (Gunslinger, Twin Comets) și de ruleta
+	# cazinoului — salve întregi trase în ALȚI inamici, care pleacă în direcții diferite deodată,
+	# nu un evantai de gloanțe paralele spre aceeași țintă. Până pe 2026-09-07 se scria în
+	# `bullet_count`, adică gloanțe PARALELE — o mecanică pe care NICIUN item n-o mai dă din
+	# 2026-07-21 (vezi comentariul de la `bullet_count`): butonul dădea altceva decât jocul.
+	#
+	# Socoteala e pe TOTAL (`projectiles_total()` = paralele + bonus), exact cifra scrisă în
+	# panoul OP START și în panoul de statusuri. `casino.gd::_aplica` face la fel, la „proj".
+	bullet_count = 1
+	stacked_armory_stacks = maxi(0, GameSettings.OP_PROJECTILES - bullet_count)
 
 # Aplică upgrade-urile permanente (meta-progresie) la începutul rundei.
 func _apply_meta() -> void:

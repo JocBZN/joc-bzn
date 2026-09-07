@@ -51,7 +51,7 @@ const IGNORATE := [
 	"%d + %d = %d",   # suma de pe masa de zaruri a dubiosului — cifre, n-are ce traduce
 	"keybinds", "graphics", "gamepad", "main", "settings", "language", "weapon", "character",
 	"interact",   # `Gamepad.nume_buton("interact")` — nume de ACȚIUNE, nu text de pe ecran
-	"leaderboard", "opstart", "same", "up", "down",
+	"leaderboard", "opstart", "save", "same", "up", "down",
 ]
 
 var _erori := 0
