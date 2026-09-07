@@ -111,7 +111,7 @@ All scenes (`.tscn`) and scripts (`.gd`) live in the project root.
 - **Boss art** lives in `boss/` (walk GIFs split into `walk_<dir>_<i>.png` frames + the lightning-burst frames); the alert symbol in `Upgrades/symbol_alert_002_large_red/`. **Saratalin's** is the same shape, in `harta/nether/Nether Boss/frames/` *(since 2026-08-27 — before that he was one 15-frame sheet)*. New GIFs are split to PNG with `tool_taie_gifuri.ps1` (PowerShell + `System.Drawing`), then **aligned with `tool_aliniaza_talpi.tscn`** — they arrive on different canvases with their soles at different heights, which makes the character hop as he turns — and finally imported: **open the project in Godot once, or run `--headless --import`**, before they render (art is loaded at runtime with `load()`).
 
 ## Weapons
-**Four to pick from**, in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_ready`): Pistol, Mage Staff, Cursed Sword, Celesto's Scythe. `weapon_type` decides both the starting numbers (the `ARME` table) and the *behaviour*, the latter in a handful of places in `player.gd`:
+**Five to pick from** (only the Pistol is available at the start — see the 2026-09-07 section on unlocks), in the main menu (`GameSettings.weapon_type`, read by `player.gd` on `_ready`): Pistol, Mage Staff, Cursed Sword, Celesto's Scythe. `weapon_type` decides both the starting numbers (the `ARME` table) and the *behaviour*, the latter in a handful of places in `player.gd`:
 
 **The player walks at `speed = 215`** *(2026-07-27)* — it was 300, halved to 150 on request, then raised twice in the same session. Where that lands: the police start at 120 and gain 3.5%/min, so they only pass you at **~12:36** (deep in Final Swarm) and cap at 264, **1.15×** your speed; the Nether creatures start at 190 and pass you at **~6:06** of run time, capping at 418, **1.82×**. In short: **in the world you can outrun them, in the Nether you cannot.** (Measured with the game's own math on a save with Speed level 1, i.e. 230.)
 
@@ -150,6 +150,29 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 | **Celesto's Scythe** | No bullets — the boss's own blade sweeps a **full circle around you** every `fire_interval`, for `scythe_base_damage + bullet_damage`. Short fixed reach (130 px to the tip) but it cuts on **every** side, and it hits each enemy **as the blade reaches them**, not all at once — the turn starts behind you so the blade crosses your facing first. The hitbox **is the drawing**: a distance field measured from the art at startup, grown by `scythe_marja` (5 px). The blade's axis is measured from the art too (principal axis of its pixels), so it lies along the radius instead of pointing off-angle. `scythe_debug` draws a ring on whoever is under it right now. |
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
+
+## Current state (2026-09-07, everything but the Pistol and The G is now earned)
+
+**The game starts with one character and one weapon.** The other six are locked behind a single thing each, and the menu shows them as **black silhouettes** with the requirement written on the card next to them — you can see the *shape* of what you're missing, and exactly what to do about it:
+
+| Locked | Requirement |
+|---|---|
+| **Spellman** | Take Tome of Knowledge in one run |
+| **Jordan Blackford** | Open 3 chests in one run |
+| **Mage Staff** | Get 20 Luck in one run |
+| **Cursed Sword** | Have 100 Damage in one run |
+| **Celesto's Scythe** | Defeat Celesto |
+| **Throwing Knife** | Have 100 Crit in one run |
+
+**All of it lives in one new autoload, `unlocks.gd` ("Unlocks").** The thresholds, the requirement strings and the check functions are in that one file; nothing else in the game knows a number. The places that can *cause* an unlock call one function and know nothing else — `levelup.gd::_apply` → `item_luat(id)` (so the Tome counts from a level-up, a chest **and** the Ender statue, because every item in the game goes through that one function), `chest.gd::invoca` → `cufar_deschis()`, `celesto.gd::_die` → `celesto_invins()`, and `player.gd::_process` → `verifica_statusuri(p)`.
+
+**The three stat requirements are checked on a clock, twice a second, not on an event.** Damage and crit change *while you walk* — Diesel Power and Megane's Katana both scale with speed — so there is no moment to hook. The number compared is the same one the level-up panel prints (`bullet_damage * damage_mult()`), so the card cannot ask for a different 100 than the one you can see.
+
+**What is unlocked is saved** in `GameSettings.unlocked` (so, in `user://scores.save`). A save from before this has no such key, which reads as "nothing unlocked yet" — that is right for a new player, and it does mean **an existing save has to earn them again**. Two safety nets catch a stale choice: the menu drops a locked pick back to Pistol / The G, and `player.gd` does the same when the round starts, so a weapon or character that never appears in the menu can't be smuggled in through the save file either.
+
+**The unlock announces itself** on the same big banner the boss phases use (`hud.announce`), but **gold instead of red** — that banner's red means "something is coming at you". The name on it is read out of `menu.gd::WEAPONS`/`CHARACTERS` (which are `const` now) rather than copied, the same trick `menu.gd::_arme_stats` already used in the other direction.
+
+**Tools:** `tool_deblocari.tscn` photographs both menu pages locked and unlocked (and a locked card in close-up); `tool_deblocari_joc.tscn` pushes a real player past each threshold and checks that the unlock actually fires. ⚠️ Both touch `GameSettings`, and unlocking writes to the **real** save — they put it back and the md5 was checked after every run.
 
 ## Current state (2026-09-04, Duridama behaved differently depending on the weapon)
 

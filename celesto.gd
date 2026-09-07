@@ -473,6 +473,7 @@ func _die() -> void:
 		ender.boss_invins()
 	_drop_xp.call_deferred()   # un Area2D nou nu se poate adăuga în timpul fizicii (vezi enemy.gd)
 	_premiu_niveluri()
+	Unlocks.celesto_invins()   # coasa lui se poate alege din meniu de-acum (vezi `unlocks.gd`)
 	_zguduie_camera(0.5)
 	var t := create_tween()
 	t.set_parallel(true)

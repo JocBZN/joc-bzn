@@ -85,6 +85,9 @@ func invoca() -> void:
 	if not GameSettings.foloseste_cheie():
 		return
 	_deschis = true
+	# Al treilea cufăr dintr-o rundă îl deblochează pe Jordan Blackford (vezi `unlocks.gd`).
+	# Aici, nu la capătul animației: recompensa se dă tot acum, din același motiv.
+	Unlocks.cufar_deschis()
 	# `chests.gd` ține minte locul, ca lada să NU se întoarcă închisă când chunk-ul se descarcă și
 	# se regenerează — se întâmplă și dacă te îndepărtezi și revii, și la fiecare intrare/ieșire
 	# din Nether, Ender sau Limbo (ele golesc toate generatoarele). Fără asta, o singură ladă

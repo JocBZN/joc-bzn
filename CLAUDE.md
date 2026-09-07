@@ -24,6 +24,78 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-07 (deblocări: pornești doar cu Pistol și The G)
+
+**Cerut de Răzvan:** „vreau toate caracterele si armele sa fie deblocate in timp (Primesti la
+inceput doar Pistol si The G) - le faci un shading asa negru sa para locked si sa scrii la fiecare
+ce trebuie sa faca ca sa le dea unlock." Cu cerințele date de el, pe litere.
+
+**Fișier nou:** `unlocks.gd` (autoload **„Unlocks"**, al patrulea în `project.godot`, după
+`GameSettings` — de el depinde). Unelte noi: `tool_deblocari.gd/.tscn`, `tool_deblocari_joc.gd/.tscn`.
+**Atinse:** `game_settings.gd`, `menu.gd`, `player.gd`, `hud.gd`, `chest.gd`, `levelup.gd`,
+`celesto.gd`, `i18n.gd`, `project.godot`, README.
+
+### Unde stă ce
+
+Toate pragurile și toate textele de cerință sunt în `unlocks.gd`. Restul jocului cheamă **o
+singură funcție** și nu știe nimic altceva:
+
+| Deblocare | Cerință | Cine o cheamă |
+|---|---|---|
+| Spellman | Tome of Knowledge într-o rundă | `levelup.gd::_apply` → `item_luat(id)` |
+| Jordan Blackford | 3 cufere într-o rundă | `chest.gd::invoca` → `cufar_deschis()` |
+| Mage Staff | 20 noroc într-o rundă | `player.gd::_process` → `verifica_statusuri(p)` |
+| Cursed Sword | 100 damage într-o rundă | idem |
+| Throwing Knife | 100 crit într-o rundă | idem |
+| Celesto's Scythe | Îl bați pe Celesto | `celesto.gd::_die` → `celesto_invins()` |
+
+Cârligul din `levelup.gd` stă în `_apply` **fiindcă pe acolo trec TOATE itemele**, din orice sursă
+— level up, cufăr, statuia din Ender. Pus pe ecranul de level up, Tome of Knowledge luat dintr-un
+cufăr n-ar fi deblocat nimic, și n-ar fi sărit în ochi.
+
+### De ce cele trei statusuri se întreabă pe CEAS, nu pe eveniment
+
+Damage-ul și criticul se schimbă **și în mers** (Diesel Power și Megane's Katana cresc cu viteza),
+deci nu există o clipă pe care să te prinzi. `player.gd::_process` întreabă de două ori pe secundă.
+Cifra comparată e **exact** cea pe care o scrie panoul de level up (`bullet_damage * damage_mult()`)
+— altfel cardul ar fi cerut alt „100" decât cel pe care îl vede jucătorul.
+
+### Cum arată încuiat
+
+Silueta rămâne, culorile pleacă: iconița se face **neagră** (`modulate`, nu o poză nouă), numele se
+stinge, chenarul la fel. În fișa din dreapta, bonusul verde („ce-ți dă") face loc cerinței aurii
+(„ce ai de făcut") — nu se văd niciodată amândouă. La ARME, statusurile „AT START" rămân la vedere
+și încuiate, dinadins: alea sunt momeala. Pancarta de „UNLOCKED" e cea de la fazele de boss
+(`hud.announce`), dar **aurie** — roșul ăla înseamnă „vine ceva peste tine".
+
+### Două plase, nu una
+
+Ce s-a deblocat se salvează în `GameSettings.unlocked`. O salvare veche n-are cheia → totul încuiat,
+adică **și salvarea lui Răzvan trebuie să le câștige din nou** (juca cu Jordan). Alegerea veche
+rămâne însă în salvare, așa că e prinsă în **două** locuri: meniul o dă înapoi pe Pistol/The G
+(`_refresh_*_selection`), și tot așa face `player.gd` la începutul rundei (`_aplica_caracter` și
+`_ready`). Doar meniul n-ar fi ajuns: dacă nu deschizi pagina, runda pornea cu caracterul încuiat.
+
+### Numele de pe pancartă nu e copiat
+
+`unlocks.gd` citește numele din `menu.gd::WEAPONS`/`CHARACTERS` cu `get_script_constant_map()` (de-aia
+au devenit `const`) — același truc pe care `menu.gd::_arme_stats` îl face în sens invers cu `player.gd`.
+O copie a numelor ar fi strigat vechiul nume după prima redenumire.
+
+### Probat, nu presupus
+
+`tool_deblocari.tscn` face pozele ambelor pagini, încuiate și deblocate, plus fișa unui lucru încuiat
+în prim-plan, și probează că un click pe ceva încuiat nu alege nimic (rămâne pistol/grasu).
+`tool_deblocari_joc.tscn` pune un player și un HUD adevărat, împinge statusurile peste praguri și
+măsoară: mage la 0,34s, sword la 0,37s, knife la 0,50s; Jordan la al TREILEA cufăr, nu la al doilea;
+`reset_run()` chiar șterge contorul.
+
+⚠️ **Amândouă ating `GameSettings`, iar o deblocare cheamă `_save()` — adică scrie în salvarea
+ADEVĂRATĂ.** Uneltele își pun `unlocked` deoparte și îl aduc înapoi, dar tot am verificat md5-ul
+`scores.save` după fiecare rulare și l-am pus la loc din copie. Monede (212146) și scoruri intacte.
+
+---
+
 ## Session log — 2026-09-04 (Duridama arăta altfel de la o armă la alta)
 
 **Cerut de Răzvan:** „vreau sa mearga duridama pe toate armele."

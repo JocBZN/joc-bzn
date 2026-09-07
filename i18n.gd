@@ -192,6 +192,19 @@ const TRAD := {
 "NO BONUS STATS": ["无属性加成", "KEINE BONUSWERTE", "SIN BONIFICACIONES", "БЕЗ БОНУСОВ", "AUCUN BONUS", "ボーナスなし", "BEZ BONUSÓW", "BONUS YOK"],
 "-%d%% XP NEEDED PER LEVEL": ["每级所需经验 -%d%%", "-%d%% BENÖTIGTE EP PRO STUFE", "-%d%% DE EXP NECESARIA POR NIVEL", "-%d%% ОПЫТА ЗА УРОВЕНЬ", "-%d%% D'XP REQUIS PAR NIVEAU", "レベルごとの必要経験値 -%d%%", "-%d%% WYMAGANEGO PD NA POZIOM", "SEVİYE BAŞINA -%d%% XP"],
 "%d%% CHANCE OF KEY DROPS": ["钥匙掉落几率 %d%%", "%d%% CHANCE AUF SCHLÜSSEL", "%d%% DE PROBABILIDAD DE LLAVES", "%d%% ШАНС ВЫПАДЕНИЯ КЛЮЧЕЙ", "%d%% DE CHANCE DE CLÉS", "鍵のドロップ率 %d%%", "%d%% SZANSY NA KLUCZE", "%d%% ANAHTAR DÜŞME ŞANSI"],
+# --- DEBLOCĂRI (2026-09-07, `unlocks.gd`) ---
+# „LOCKED" e capul de secțiune din fișă (stă în locul lui „PERK"/al bonusului), „UNLOCKED" e
+# pancarta mare, aurie, care sare în joc când tocmai ai câștigat ceva. Restul sunt CERINȚELE,
+# câte una pentru fiecare armă/caracter. Numele de arme din ele (Tome of Knowledge) se traduc
+# la fel ca itemul cu același nume, mai jos în tabel.
+"LOCKED": ["未解锁", "GESPERRT", "BLOQUEADO", "ЗАБЛОКИРОВАНО", "VERROUILLÉ", "ロック中", "ZABLOKOWANE", "KİLİTLİ"],
+"UNLOCKED": ["已解锁！", "FREIGESCHALTET", "¡DESBLOQUEADO!", "ОТКРЫТО!", "DÉBLOQUÉ !", "アンロック！", "ODBLOKOWANE!", "KİLİT AÇILDI!"],
+"Take Tome of Knowledge in one run": ["在一局中拾取知识之书", "Nimm das Buch des Wissens in einem Lauf", "Consigue el Tomo del Saber en una partida", "Возьми Том Знаний за один забег", "Prends le Tome du Savoir en une partie", "1回のランで知識の書を取る", "Zdobądź Księgę Wiedzy w jednym podejściu", "Tek turda Bilgi Kitabı'nı al"],
+"Open 3 chests in one run": ["在一局中开启 3 个宝箱", "Öffne 3 Truhen in einem Lauf", "Abre 3 cofres en una partida", "Открой 3 сундука за один забег", "Ouvre 3 coffres en une partie", "1回のランで宝箱を3つ開ける", "Otwórz 3 skrzynie w jednym podejściu", "Tek turda 3 sandık aç"],
+"Get 20 Luck in one run": ["在一局中获得 20 点幸运", "Erreiche 20 Glück in einem Lauf", "Consigue 20 de Suerte en una partida", "Набери 20 удачи за один забег", "Atteins 20 de Chance en une partie", "1回のランで幸運20を得る", "Zdobądź 20 Szczęścia w jednym podejściu", "Tek turda 20 Şans topla"],
+"Have 100 Damage in one run": ["在一局中达到 100 伤害", "Erreiche 100 Schaden in einem Lauf", "Alcanza 100 de Daño en una partida", "Достигни 100 урона за один забег", "Atteins 100 de Dégâts en une partie", "1回のランでダメージ100に到達", "Osiągnij 100 Obrażeń w jednym podejściu", "Tek turda 100 Hasara ulaş"],
+"Defeat Celesto": ["击败塞莱斯托", "Besiege Celesto", "Derrota a Celesto", "Победи Целесто", "Bats Celesto", "セレストを倒す", "Pokonaj Celesta", "Celesto'yu yen"],
+"Have 100 Crit in one run": ["在一局中达到 100% 暴击", "Erreiche 100 Krit in einem Lauf", "Alcanza 100 de Crítico en una partida", "Достигни 100 крита за один забег", "Atteins 100 de Critique en une partie", "1回のランでクリティカル100に到達", "Osiągnij 100 Kryta w jednym podejściu", "Tek turda 100 Kritik'e ulaş"],
 "Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],
 "STATS": ["属性", "WERTE", "ESTADÍSTICAS", "ХАРАКТЕРИСТИКИ", "STATS", "ステータス", "STATYSTYKI", "İSTATİSTİK"],
 "Common": ["普通", "Gewöhnlich", "Común", "Обычный", "Commun", "コモン", "Zwykły", "Sıradan"],

@@ -13,6 +13,10 @@ var weapon_type: String = "pistol"  # arma aleasă: "pistol" / "mage" / "sword" 
 # corvoadă. Salvările vechi n-au cheia, deci `_load` cade pe implicitul de aici.
 var character: String = "grasu"
 
+# Ce s-a deblocat până acum: id de armă/caracter -> true. Cerințele și logica stau în `unlocks.gd`;
+# aici e doar sertarul, fiindcă `_save()`/`_load()` sunt aici. Cheia lipsă = încă încuiat.
+var unlocked: Dictionary = {}
+
 const SAVE_PATH := "user://scores.save"
 
 var scores: Array = []          # {"time": float, "level": int, "kills": int}, cele mai bune primele
@@ -24,6 +28,10 @@ var run_kills: int = 0          # inamici uciși în runda curentă
 # consumă câte una la fiecare cufăr deschis (`chest.gd`). NU se păstrează între runde: sunt
 # resursă de rundă, ca monedele necunoscute încă, nu meta-progresie.
 var run_keys: int = 0
+# Câte cufere ai deschis în runda asta. Tot stat de rundă, ca cele de mai sus: cerința lui Jordan
+# Blackford e „3 cufere ÎNTR-O rundă" (vezi `unlocks.gd`), deci trebuie să se șteargă la fiecare
+# început de joc — altfel s-ar aduna trei cufere din trei runde diferite.
+var run_chests: int = 0
 var run_spawn: Vector2 = Vector2.ZERO  # unde a început runda (lumea e infinită, startul e aleator)
 
 # --- sunet (reglat din meniul Settings) --- 0.0 = mut, 1.0 = volum normal.
@@ -274,6 +282,7 @@ func reset_run() -> void:
 	run_coins = 0
 	run_kills = 0
 	run_keys = 0
+	run_chests = 0
 
 func add_run_coins(n: int) -> void:
 	run_coins += n
@@ -318,6 +327,7 @@ func _save() -> void:
 			"fullscreen": fullscreen, "vsync": vsync, "vignette": vignette, "glow": glow,
 			"language": language, "op_start": op_start, "vibration": vibration,
 			"character": character,
+			"unlocked": unlocked,
 		})
 
 func _load() -> void:
@@ -345,5 +355,8 @@ func _load() -> void:
 		op_start = bool(data.get("op_start", op_start))
 		vibration = bool(data.get("vibration", vibration))
 		character = String(data.get("character", character))
+		# salvare de dinainte de deblocări (2026-09-07) → tot ce are cerință rămâne încuiat, adică
+		# jucătorul vechi le redeschide jucând, ca oricare altul. Vezi `unlocks.gd`.
+		unlocked = data.get("unlocked", {})
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil

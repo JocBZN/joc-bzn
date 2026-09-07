@@ -818,6 +818,9 @@ func _on_choice(index: int) -> void:
 func _apply(id: String, p) -> void:
 	if p != null and "run_items" in p:
 		p.run_items.append(id)
+	# Tome of Knowledge îl deblochează pe Spellman. Cârligul stă AICI fiindcă pe aici trec toate
+	# itemele, din orice sursă (level up, cufăr, statuia din Ender) — vezi comentariul de sus.
+	Unlocks.item_luat(id)
 	match id:
 		"cocaina":
 			# stimulent puternic: viteză + cadență. Glonțul rămâne normal;

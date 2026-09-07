@@ -311,7 +311,7 @@ func _build_banner() -> void:
 	banner = Label.new()
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	banner.add_theme_font_size_override("font_size", 52)
-	banner.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	banner.add_theme_color_override("font_color", BANNER_ROSU)
 	banner.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	banner.add_theme_constant_override("outline_size", 8)
 	_banner_box.add_child(banner)
@@ -325,9 +325,15 @@ func _build_banner() -> void:
 	_banner_box.add_child(banner_sub)
 
 # Afișează un text mare care apare, ține câteva secunde, apoi se stinge.
-func announce(text: String, sub: String = "") -> void:
+#
+# `culoare` e a textului mare. Implicit ROȘU, fiindcă de-acolo vine pancarta: fazele de boss, adică
+# „vine ceva peste tine". Deblocările (`unlocks.gd`) o cer AURIE — e o veste bună, nu o amenințare.
+const BANNER_ROSU := Color(1.0, 0.3, 0.3)
+
+func announce(text: String, sub: String = "", culoare: Color = BANNER_ROSU) -> void:
 	banner.text = text
 	banner_sub.text = sub
+	banner.add_theme_color_override("font_color", culoare)
 	if _banner_tween != null and _banner_tween.is_valid():
 		_banner_tween.kill()
 	_banner_box.modulate.a = 0.0

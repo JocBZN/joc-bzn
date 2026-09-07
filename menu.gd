@@ -91,7 +91,11 @@ const ICON_PAD := 16     # cât intră iconița în interiorul chenarului, ca s�
 # ca să se și VADĂ când alegi: altfel e o mecanică pe care jucătorul n-are de unde s-o afle.
 # ⚠️ Textele astea trebuie să rămână la fel ca cifrele din `player.gd` — dacă schimbi acolo
 # `BONUS_PE_NIVEL` sau `LUCK_PE_NIVEL`, meniul minte în tăcere.
-var WEAPONS := [
+#
+# 🔑 `const`, nu `var`, de pe 2026-09-07: `unlocks.gd` citește NUMELE de aici (prin
+# `get_script_constant_map`), ca pancarta de „UNLOCKED" din joc să nu strige un nume copiat care
+# poate rămâne în urmă. Același truc ca `_arme_stats`, doar în sens invers.
+const WEAPONS := [
 	{"id": "pistol",       "name": "PISTOL",       "icon": "res://weapons_icons/pistol.png",
 		"bonus": "+1% ATTACK SPEED PER LEVEL"},
 	{"id": "mage",         "name": "MAGE STAFF",   "icon": "res://weapons_icons/mage_staff.png",
@@ -118,7 +122,7 @@ var WEAPONS := [
 # `icon` e o POZĂ DIN ANIMAȚIA LUI, nu o iconiță desenată separat — ca la coasă și la cuțit,
 # unde iconița din meniu chiar e obiectul din joc. Se decupează la rulare pe silueta opacă
 # (`_portret`), deci nu există nicio copie pe disc care să rămână în urma artei.
-var CHARACTERS := [
+const CHARACTERS := [
 	{"id": "grasu",    "name": "THE G",
 		"icon": "res://grasu directii/rotations/south.png"},
 	{"id": "spellman", "name": "SPELLMAN",
@@ -233,6 +237,12 @@ func _click_sfx() -> void:
 func _show(which: String) -> void:
 	for key in _panels:
 		_panels[key].visible = (key == which)
+	# Ce e deblocat se schimbă ÎN JOC, iar paginile astea două se construiesc o singură dată
+	# (`_ready`). Recitim starea de fiecare dată când se deschide pagina, nu doar la construire.
+	if which == "weapon":
+		_refresh_weapon_selection()
+	elif which == "character":
+		_refresh_character_selection()
 
 # ---------- FUNDAL ANIMAT ----------
 # Fundalul e primul copil, deci stă sub tot restul meniului.
@@ -836,7 +846,8 @@ func _rand_alegere(id: String, nume_text: String, tex: Texture2D,
 	nume.add_theme_constant_override("outline_size", 3)
 	hb.add_child(nume)
 
-	lista.append({"buton": b, "chenar": chenar, "nume": nume})
+	# „poza" e ținută minte ca s-o poată înnegri `_rand_blocat` când e încuiat rândul.
+	lista.append({"buton": b, "chenar": chenar, "nume": nume, "poza": poza})
 	_viata(b)
 	return b
 
@@ -916,7 +927,10 @@ func _fisa_arma() -> Control:
 	bonus.add_theme_constant_override("outline_size", 3)
 	box.add_child(bonus)
 
-	_weapon_detail = {"icon": icon, "nume": nume, "damage": dmg, "atk": atk, "bonus": bonus}
+	# Vezi `_fisa_lacat`: ia locul bonusului când arma e încuiată.
+	var lacat := _fisa_lacat(box)
+	_weapon_detail = {"icon": icon, "nume": nume, "damage": dmg, "atk": atk, "bonus": bonus,
+		"cap_bonus": null, "cap_lacat": lacat["cap"], "cerinta": lacat["text"]}
 	return caseta
 
 # Un rând de status din fișă: eticheta la stânga, valoarea la dreapta. Întoarce eticheta valorii,
@@ -942,18 +956,27 @@ func _preview_arma(id: String) -> void:
 	_refresh_weapon_detail()
 
 func _on_weapon_chosen(id: String) -> void:
+	if not Unlocks.e_deblocat(id):
+		return   # încuiată: fișa din dreapta scrie deja ce ai de făcut
 	GameSettings.weapon_type = id
 	_refresh_weapon_selection()
 
 # Arma aleasă primește chenarul verde (Rare), restul pe cel albastru-gri (Common), plus o
-# ușoară întunecare — se vede dintr-o privire care e alegerea curentă.
+# ușoară întunecare — se vede dintr-o privire care e alegerea curentă. Cele ÎNCUIATE au pe
+# deasupra felul lor de a arăta (`_rand_blocat`): siluetă neagră, nume stins.
 func _refresh_weapon_selection() -> void:
+	# Arma nu se salvează, dar rămâne aleasă cât ține meniul; dacă a rămas una încuiată în
+	# variabilă, o dăm pe Pistol, care e deblocat mereu. Aceeași plasă ca la caractere.
+	if not Unlocks.e_deblocat(String(GameSettings.weapon_type)):
+		GameSettings.weapon_type = "pistol"
 	for i in _weapon_buttons.size():
-		var sel: bool = WEAPONS[i]["id"] == GameSettings.weapon_type
+		var id := String(WEAPONS[i]["id"])
+		var sel: bool = id == GameSettings.weapon_type
 		var chenar: TextureRect = _weapon_buttons[i]["chenar"]
 		chenar.texture = load(BORDER_SEL if sel else BORDER_NESEL)
 		var b: Button = _weapon_buttons[i]["buton"]
 		b.modulate = Color(1, 1, 1) if sel else Color(0.72, 0.72, 0.76)
+		_rand_blocat(_weapon_buttons[i], not Unlocks.e_deblocat(id))
 	_refresh_weapon_detail()
 
 # Umple fișa cu arma peste care stai — sau, dacă nu stai pe niciuna, cu cea ALEASĂ.
@@ -976,6 +999,7 @@ func _refresh_weapon_detail() -> void:
 	_weapon_detail["damage"].text = str(int(st.get("damage", 0)))
 	var interval: float = float(st.get("interval", 1.0))
 	_weapon_detail["atk"].text = "%.2f/s" % (1.0 / maxf(interval, 0.01))
+	_fisa_blocata(_weapon_detail, id)
 
 # Statusurile de pornire ale armelor, citite DIN `player.gd` (constanta `ARME`) — nu copiate aici.
 # O copie ar fi rămas în urmă în tăcere la prima reglare de damage, exact ca textele de bonus
@@ -986,6 +1010,63 @@ func _arme_stats() -> Dictionary:
 		if s != null:
 			_arme = s.get_script_constant_map().get("ARME", {})
 	return _arme
+
+# ---------- CE E ÎNCUIAT (2026-09-07) ----------
+# Cerut de Răzvan: „vreau toate caracterele si armele sa fie deblocate in timp… le faci un shading
+# asa negru sa para locked si sa scrii la fiecare ce trebuie sa faca ca sa le dea unlock".
+#
+# Meniul nu ȘTIE nimic despre cerințe: întreabă `Unlocks.e_deblocat(id)` și `Unlocks.cerinta(id)`.
+# Toate pragurile (20 noroc, 3 cufere, Celesto...) stau într-un singur loc, în `unlocks.gd`.
+#
+# 🔑 Silueta rămâne, culorile pleacă: iconița se face NEAGRĂ, nu ștearsă și nu înlocuită cu un semn
+# de întrebare. Vezi FORMA armei sau a omului — deci știi că acolo e ceva de câștigat — dar nu vezi
+# ce e. Chenarul se stinge și el, ca rândul încuiat să nu tragă ochiul mai tare decât cele pe care
+# chiar le poți alege acum.
+const NEGRU_BLOCAT := Color(0.0, 0.0, 0.0, 0.9)
+const NUME_BLOCAT := Color(0.46, 0.44, 0.48)
+const CHENAR_BLOCAT := Color(0.5, 0.5, 0.55)
+const AUR_CERINTA := Color(0.96, 0.79, 0.36)   # aurul lui „ai ceva de făcut" (nu verdele bonusului)
+
+# Un RÂND din listă, pus pe încuiat sau pe liber. Se cheamă din amândouă paginile, la fiecare
+# reîmprospătare — deci și când tocmai s-a deblocat ceva și te-ai întors în meniu.
+func _rand_blocat(rand: Dictionary, blocat: bool) -> void:
+	rand["poza"].modulate = NEGRU_BLOCAT if blocat else Color(1, 1, 1)
+	rand["chenar"].modulate = CHENAR_BLOCAT if blocat else Color(1, 1, 1)
+	rand["nume"].add_theme_color_override("font_color", NUME_BLOCAT if blocat else OS_ALB)
+
+# Rândul de „încuiat" din FIȘĂ: capul mic arămiu (ca „AT START" și „PERK", deci se citește ca o
+# secțiune de-a casei) și, sub el, ce ai de făcut. Scris o singură dată și folosit de amândouă
+# fișele, din același motiv ca `_rand_alegere` și `_caseta_fisa`.
+func _fisa_lacat(box: VBoxContainer) -> Dictionary:
+	var cap := Label.new()
+	cap.text = "LOCKED"
+	cap.add_theme_font_size_override("font_size", 13)
+	cap.add_theme_color_override("font_color", ACCENT)
+	box.add_child(cap)
+
+	var text := Label.new()
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.add_theme_font_size_override("font_size", 17)
+	text.add_theme_color_override("font_color", AUR_CERINTA)
+	text.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	text.add_theme_constant_override("outline_size", 3)
+	box.add_child(text)
+	return {"cap": cap, "text": text}
+
+# Fișa din dreapta, pusă pe „încuiat" sau pe „al tău": portretul se înnegrește, iar bonusul verde
+# („ce-ți dă") face loc cerinței aurii („ce ai de făcut"). Nu se văd niciodată amândouă.
+#
+# ⚠️ Statusurile de pornire ale ARMELOR rămân la vedere și încuiate, dinadins: alea sunt momeala,
+# de-aia te uiți la o armă pe care n-o ai încă. Bonusul de nivel, nu — ăla e răsplata.
+func _fisa_blocata(d: Dictionary, id: String) -> void:
+	var blocat := not Unlocks.e_deblocat(id)
+	d["icon"].modulate = NEGRU_BLOCAT if blocat else Color(1, 1, 1)
+	d["bonus"].visible = not blocat
+	if d.get("cap_bonus") != null:
+		d["cap_bonus"].visible = not blocat
+	d["cap_lacat"].visible = blocat
+	d["cerinta"].visible = blocat
+	d["cerinta"].text = Unlocks.cerinta(id)
 
 # ---------- CHOOSE CHARACTER ----------
 # Făcută pe 2026-09-02, cerută de Răzvan: „vreau sa fie un nou caracter pe care poate sa il joace
@@ -1047,7 +1128,11 @@ func _fisa_caracter() -> Control:
 	bonus.add_theme_constant_override("outline_size", 3)
 	box.add_child(bonus)
 
-	_character_detail = {"icon": cap["icon"], "nume": cap["nume"], "bonus": bonus}
+	# Rândul de „încuiat" stă exact unde stă perk-ul, fiindcă îi ia locul: `_fisa_blocata` aprinde
+	# unul și stinge celălalt. Fișa nu spune niciodată în același timp ce-ți dă și că n-ai voie.
+	var lacat := _fisa_lacat(box)
+	_character_detail = {"icon": cap["icon"], "nume": cap["nume"], "bonus": bonus,
+		"cap_bonus": cap_perk, "cap_lacat": lacat["cap"], "cerinta": lacat["text"]}
 	return caseta
 
 func _preview_caracter(id: String) -> void:
@@ -1055,17 +1140,26 @@ func _preview_caracter(id: String) -> void:
 	_refresh_character_detail()
 
 func _on_character_chosen(id: String) -> void:
+	if not Unlocks.e_deblocat(id):
+		return   # încuiat: fișa din dreapta scrie deja ce ai de făcut, apăsatul n-ar mai zice nimic
 	GameSettings.character = id
 	GameSettings._save()   # caracterul se ține minte între porniri, spre deosebire de armă
 	_refresh_character_selection()
 
 func _refresh_character_selection() -> void:
+	# Un caracter încuiat nu poate rămâne cel ALES (salvare adusă de pe alt device, id scris greșit):
+	# cade înapoi pe The G, care e deblocat mereu. Altfel ai fi pornit runda cu cineva pe care
+	# meniul tocmai ți-l arată ca siluetă neagră.
+	if not Unlocks.e_deblocat(String(GameSettings.character)):
+		GameSettings.character = "grasu"
 	for i in _character_buttons.size():
-		var sel: bool = CHARACTERS[i]["id"] == GameSettings.character
+		var id := String(CHARACTERS[i]["id"])
+		var sel: bool = id == GameSettings.character
 		var chenar: TextureRect = _character_buttons[i]["chenar"]
 		chenar.texture = load(BORDER_SEL if sel else BORDER_NESEL)
 		var b: Button = _character_buttons[i]["buton"]
 		b.modulate = Color(1, 1, 1) if sel else Color(0.72, 0.72, 0.76)
+		_rand_blocat(_character_buttons[i], not Unlocks.e_deblocat(id))
 	_refresh_character_detail()
 
 func _refresh_character_detail() -> void:
@@ -1083,6 +1177,7 @@ func _refresh_character_detail() -> void:
 	_character_detail["icon"].texture = _portret(String(c["icon"]))
 	_character_detail["nume"].text = String(c["name"])
 	_character_detail["bonus"].text = _bonus_caracter(id)
+	_fisa_blocata(_character_detail, id)
 
 # Bonusurile, SCRISE DIN CIFRELE REALE din `player.gd::CARACTERE`. Dacă Răzvan schimbă acolo
 # 0.95 în 0.90, fișa scrie singură „-10%". Ăsta e tot rostul: la arme, textele sunt scrise de

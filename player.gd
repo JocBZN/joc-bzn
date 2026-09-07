@@ -522,6 +522,10 @@ func _ready() -> void:
 	_aplica_caracter()   # cine ești: arta și bonusul lui. ÎNAINTE de armă, ca `anim` să fie gata.
 	# arma aleasă din meniu (pistol / mage / sword / scythe)
 	weapon_type = GameSettings.weapon_type
+	# O armă încuiată nu poate ajunge în rundă (meniul o oprește, dar `weapon_type` e o variabilă
+	# ca oricare alta) — vezi `unlocks.gd`.
+	if not Unlocks.e_deblocat(weapon_type):
+		weapon_type = "pistol"
 	arma_aleasa = weapon_type      # bonusul de nivel se leagă de ASTA, nu de ce trage acum
 	_aplica_arma()  # damage-ul și cadența de bază ale armei alese — ÎNAINTE de meta
 	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
@@ -685,7 +689,19 @@ func _deseneaza_banda_coasei() -> void:
 				draw_arc(spre / ps, (_raza_corp(enemy) + 4.0) / ps, 0.0, TAU, 20,
 					Color(1, 0.25, 0.25, 0.95), 2.0 / ps)
 
+# Cât de des se întreabă `unlocks.gd` dacă s-a împlinit vreo cerință de STATUS (20 noroc, 100
+# damage, 100% crit). Nu în fiecare cadru: cerințele astea nu au un eveniment pe care să se prindă
+# (damage-ul și criticul se schimbă și în mers, cu Diesel Power / Megane's Katana), dar nici nu se
+# schimbă atât de repede încât o jumătate de secundă să se simtă. Deblocarea în sine se face o
+# singură dată — a doua oară `Unlocks.deblocheaza` iese pe loc, fără să scrie în salvare.
+const DEBLOCARI_LA := 0.5
+var _t_deblocari := 0.0
+
 func _process(delta: float) -> void:
+	_t_deblocari += delta
+	if _t_deblocari >= DEBLOCARI_LA:
+		_t_deblocari = 0.0
+		Unlocks.verifica_statusuri(self)
 	_update_slashes()  # tăieturile în curs se întorc după privire și lovesc pe unde mătură
 	_update_sweeps(delta)  # coasa: lama se rotește în jurul tău și lovește pe cine ajunge
 	if scythe_debug and weapon_type == "scythe":
@@ -2220,6 +2236,10 @@ func _aplica_caracter() -> void:
 	caracter = String(GameSettings.character)
 	if not CARACTERE.has(caracter):
 		push_warning("caracter necunoscut `%s` — cad înapoi pe `grasu`" % caracter)
+		caracter = "grasu"
+	# ...și nici unul ÎNCUIAT. Meniul nu te lasă să-l alegi, dar alegerea veche stă în salvare: cine
+	# juca cu Jordan înainte de deblocări (2026-09-07) l-ar fi pornit fără să-l fi câștigat.
+	if not Unlocks.e_deblocat(caracter):
 		caracter = "grasu"
 	var c: Dictionary = CARACTERE[caracter]
 	# `get` cu implicit, nu `[]`: bonusurile sunt câmpuri OPȚIONALE (vezi `CARACTERE`), deci un
