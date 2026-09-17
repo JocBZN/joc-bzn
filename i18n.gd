@@ -192,10 +192,6 @@ const TRAD := {
 "PLAY": ["开始", "SPIELEN", "JUGAR", "ИГРАТЬ", "JOUER", "プレイ", "GRAJ", "OYNA"],
 "CONTINUE": ["继续", "WEITER", "SEGUIR", "ПРОДОЛЖИТЬ", "CONTINUER", "続ける", "DALEJ", "DEVAM"],
 
-# avertismentul de la intrarea prea devreme în Nether (nether.gd, INTRARE_MIN)
-"YOU CAME TOO EARLY": ["你来得太早了", "DU KAMST ZU FRÜH", "HAS VENIDO DEMASIADO PRONTO", "ТЫ ПРИШЁЛ СЛИШКОМ РАНО", "TU ES VENU TROP TÔT", "早すぎる", "PRZYSZEDŁEŚ ZA WCZEŚNIE", "ÇOK ERKEN GELDİN"],
-"The Nether is packed until %s": ["下界在 %s 之前挤满了敌人", "Der Nether ist bis %s überfüllt", "El Nether está atestado hasta %s", "Незер переполнен до %s", "Le Nether est bondé jusqu'à %s", "ネザーは %s まで敵だらけ", "Nether jest zapchany do %s", "Nether %s'e kadar tıka basa dolu"],
-
 # capul de secțiune din fișa de armă (menu.gd, pagina CHOOSE WEAPON)
 "AT START": ["初始", "ZU BEGINN", "AL INICIO", "В НАЧАЛЕ", "AU DÉPART", "開始時", "NA START", "BAŞLANGIÇTA"],
 # fișa de personaj (menu.gd, pagina CHOOSE CHARACTER, 2026-09-02). „PERK" e capul de secțiune,
@@ -248,15 +244,15 @@ const TRAD := {
 "Survive 1:00 and you go back": ["撑过 1:00 就能回去", "Überlebe 1:00 und du kommst zurück", "Sobrevive 1:00 y volverás", "Продержись 1:00 и вернёшься", "Survis 1:00 et tu reviens", "1:00 生き延びれば戻れる", "Przetrwaj 1:00, a wrócisz", "1:00 hayatta kal ve geri dön"],
 "YOU MADE IT": ["你成功了", "GESCHAFFT", "LO LOGRASTE", "ПОЛУЧИЛОСЬ", "TU AS RÉUSSI", "やり遂げた", "UDAŁO SIĘ", "BAŞARDIN"],
 "The spirit sends you back": ["灵魂送你回去", "Der Geist schickt dich zurück", "El espíritu te devuelve", "Дух отправляет тебя назад", "L’esprit te renvoie", "精霊が君を送り返す", "Duch odsyła cię z powrotem", "Ruh seni geri gönderiyor"],
-"THE NETHER": ["下界", "DER NETHER", "EL NETHER", "НИЖНИЙ МИР", "LE NETHER", "ネザー", "NETHER", "NETHER"],
+"THE BELOW": ["下界", "DIE UNTERWELT", "EL INFRAMUNDO", "НИЖНИЙ МИР", "L’EN-DESSOUS", "下界", "PODZIEMIE", "ALT DÜNYA"],
 "Kill Saratalin to leave": ["杀死 Saratalin 才能离开", "Töte Saratalin, um zu gehen", "Mata a Saratalin para salir", "Убей Saratalin, чтобы уйти", "Tue Saratalin pour sortir", "サラタリンを倒して脱出", "Zabij Saratalina, by wyjść", "Çıkmak için Saratalin’i öldür"],
 "SARATALIN LIVES": ["Saratalin 还活着", "SARATALIN LEBT", "SARATALIN SIGUE VIVO", "SARATALIN ЖИВ", "SARATALIN EST VIVANT", "サラタリンは生きている", "SARATALIN ŻYJE", "SARATALIN YAŞIYOR"],
 "SARATALIN THE FALLEN": ["堕落者 Saratalin", "SARATALIN DER GEFALLENE", "SARATALIN EL CAÍDO", "SARATALIN ПАДШИЙ", "SARATALIN LE DÉCHU", "堕ちたるサラタリン", "SARATALIN UPADŁY", "DÜŞMÜŞ SARATALIN"],
 "The portal will not open until he falls": ["他不倒下，传送门就不会开", "Das Portal öffnet sich erst, wenn er fällt", "El portal no se abrirá hasta que caiga", "Портал не откроется, пока он не падёт", "Le portail ne s’ouvrira pas avant sa chute", "彼が倒れるまでポータルは開かない", "Portal nie otworzy się, póki nie padnie", "O düşmeden portal açılmaz"],
 "SOMETHING FOLLOWED YOU": ["有东西跟着你回来了", "ETWAS IST DIR GEFOLGT", "ALGO TE SIGUIÓ", "ЧТО-ТО ПОШЛО ЗА ТОБОЙ", "QUELQUE CHOSE T'A SUIVI", "何かがついてきた", "COŚ POSZŁO ZA TOBĄ", "BİR ŞEY SENİ TAKİP ETTİ"],
-"Nether creatures now roam the world": ["下界的生物开始在世界游荡", "Nether-Kreaturen streifen jetzt durch die Welt", "Las criaturas del Nether ahora vagan por el mundo", "Твари Нижнего мира теперь бродят по свету", "Les créatures du Nether rôdent maintenant dans le monde", "ネザーの生き物が世界を徘徊する", "Stwory Netheru krążą teraz po świecie", "Nether yaratıkları artık dünyada dolaşıyor"],
+"Creatures of The Below now roam the world": ["下界的生物开始在世界游荡", "Kreaturen der Unterwelt streifen jetzt durch die Welt", "Las criaturas del Inframundo ahora vagan por el mundo", "Твари Нижнего мира теперь бродят по свету", "Les créatures de l’En-dessous rôdent maintenant dans le monde", "下界の生き物が世界を徘徊する", "Stwory Podziemia krążą teraz po świecie", "Alt Dünya yaratıkları artık dünyada dolaşıyor"],
 "The portals are closing": ["传送门正在关闭", "Die Portale schließen sich", "Los portales se cierran", "Порталы закрываются", "Les portails se ferment", "ポータルが閉じていく", "Portale się zamykają", "Portallar kapanıyor"],
-"NETHER SWARM": ["下界虫潮", "NETHER-SCHWARM", "ENJAMBRE DEL NETHER", "РОЙ НИЖНЕГО МИРА", "NUÉE DU NETHER", "ネザースウォーム", "RÓJ NETHERU", "NETHER AKINI"],
+"BELOW SWARM": ["下界虫潮", "UNTERWELT-SCHWARM", "ENJAMBRE DEL INFRAMUNDO", "РОЙ НИЖНЕГО МИРА", "NUÉE DE L’EN-DESSOUS", "下界スウォーム", "RÓJ PODZIEMIA", "ALT DÜNYA AKINI"],
 "The portal still works. For now.": ["传送门还能用。暂时。", "Das Portal geht noch. Vorerst.", "El portal aún funciona. Por ahora.", "Портал ещё работает. Пока что.", "Le portail marche encore. Pour l’instant.", "ポータルはまだ使える。今は。", "Portal wciąż działa. Na razie.", "Portal hâlâ çalışıyor. Şimdilik."],
 "THE WAY IS OPEN": ["出路已开", "DER WEG IST OFFEN", "EL CAMINO ESTÁ ABIERTO", "ПУТЬ ОТКРЫТ", "LA VOIE EST OUVERTE", "道が開いた", "DROGA OTWARTA", "YOL AÇIK"],
 "Press E at the portal to go back": ["在传送门按 E 返回", "Am Portal E drücken, um zurückzukehren", "Pulsa E en el portal para volver", "Нажми E у портала, чтобы вернуться", "Appuie sur E au portail pour revenir", "ポータルで E を押して戻る", "Naciśnij E przy portalu, by wrócić", "Geri dönmek için portalda E’ye bas"],
@@ -266,7 +262,7 @@ const TRAD := {
 "It comes down from above": ["它从天而降", "Es kommt von oben herab", "Baja desde arriba", "Он спускается сверху", "Il descend d’en haut", "上から降りてくる", "Nadchodzi z góry", "Yukarıdan iniyor"],
 
 # ---------- dimensiunea Ender (ender.gd, celesto.gd, fântâna din nether.gd) ----------
-# „Ender" rămâne nume propriu acolo unde limba nu are un echivalent firesc, exact ca „Nether".
+# „Ender" rămâne nume propriu acolo unde limba nu are un echivalent firesc.
 # „Celesto" e nume propriu peste tot: nu se traduce în nicio limbă (vezi `IGNORATE` din
 # `tool_check_i18n.gd`, unde stă lângă „SARATALIN").
 "THE ENDER": ["末地", "DER ENDER", "EL ENDER", "ЭНДЕР", "L’ENDER", "エンダー", "ENDER", "ENDER"],

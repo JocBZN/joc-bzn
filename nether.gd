@@ -219,26 +219,13 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	_flash_screen()
 
 	# ⚠️ Și valul de la intrare crește cu pedeapsa: la 0:00 nu te întâmpină 25 de creaturi, ci 100.
-	# E singurul lucru care îți spune ÎN CLIPA aia că ai venit prea devreme — un multiplicator pe
-	# rata de spawn se simte abia peste zece secunde, când e deja târziu să te întorci.
+	# De pe 2026-09-17 e SINGURUL lucru care îți spune ÎN CLIPA aia că ai venit prea devreme:
+	# bannerul „YOU CAME TOO EARLY" a fost scos. Un multiplicator pe rata de spawn se simte abia
+	# peste zece secunde, când e deja târziu să te întorci.
 	for i in int(round(BURST * spawn_mult())):
 		_spawn_one()
 
-	_announce("THE NETHER", "Kill Saratalin to leave")
-	# Dacă ai venit prea devreme, ți-o și scrie — dar DUPĂ ce se stinge bannerul de sus:
-	# `hud.announce` îl înlocuiește pe cel dinainte, deci două anunțuri odată ar însemna unul.
-	if spawn_mult() > 1.05:
-		var t := create_tween()
-		t.tween_interval(2.6)
-		t.tween_callback(_avertisment_devreme)
-
-# „Ai venit prea devreme" — vezi INTRARE_MIN. Ora se scrie din constantă, nu de mână: dacă Răzvan
-# schimbă pragul, textul îl urmează.
-func _avertisment_devreme() -> void:
-	if not active:
-		return
-	_announce("YOU CAME TOO EARLY", tr("The Nether is packed until %s") % _mmss(INTRARE_MIN))
-	Audio.play("levelup", -6.0)
+	_announce("THE BELOW", "Kill Saratalin to leave")
 
 # ---------- IEȘIRE ----------
 # `anunt = true`  → ieșire VOLUNTARĂ, apăsând E pe portalul de întoarcere.
@@ -297,7 +284,7 @@ func _anunta_scapatii() -> void:
 func _scapatii_acum() -> void:
 	if active:
 		return   # ai apucat să reintri în Nether între timp — anunțul n-ar mai avea sens
-	_announce("SOMETHING FOLLOWED YOU", "Nether creatures now roam the world")
+	_announce("SOMETHING FOLLOWED YOU", "Creatures of The Below now roam the world")
 
 func _process(delta: float) -> void:
 	if not active or _suspendat:
@@ -313,7 +300,7 @@ func _process(delta: float) -> void:
 	_update_compass()
 	if not _swarm_announced and _elapsed >= NETHER_TIME:
 		_swarm_announced = true
-		_announce("NETHER SWARM", "The portal still works. For now.")
+		_announce("BELOW SWARM", "The portal still works. For now.")
 		Audio.play("levelup", -2.0)
 
 # ---------- PAUZĂ CÂT EȘTI ÎN LIMBO ----------

@@ -24,6 +24,51 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-17 (Nether-ul se cheamă „The Below" pe ecran · fără „YOU CAME TOO EARLY")
+
+**Cerut de Răzvan:** „The Nether vreau sa aiba numele de acum incolo The Below - scoate textul
+you came too early cu tot cu nether is packed."
+
+**Atinse:** `nether.gd`, `i18n.gd`, `codex.html`.
+
+### 1. Numele de pe ecran
+
+Trei bannere purtau numele vechi: `THE NETHER` → **`THE BELOW`**, `NETHER SWARM` → **`BELOW SWARM`**,
+iar subtitlul de la ieșire „Nether creatures now roam the world" → **„Creatures of The Below now roam
+the world"**. Cheile din `i18n.gd` s-au redenumit odată cu ele, cu traducerile refăcute în toate cele
+8 limbi. Numele nu mai rămâne netradus (ca „Nether", care era lăsat nume propriu în germană, poloneză
+și turcă), ci se traduce ca „lumea de dedesubt": `DIE UNTERWELT`, `EL INFRAMUNDO`, `L’EN-DESSOUS`,
+`PODZIEMIE`, `ALT DÜNYA` — iar chineza și japoneza aveau deja 下界, care exact asta înseamnă.
+
+**În cod numele rămâne `nether`**: fișier, scenă, grup, sunete, shadere, `enemy_nether.tscn`. E fix
+situația Castelului (`prison.gd`, „the Castle" pe ecran) — redenumirea fișierelor, a UID-urilor și a
+nodurilor de scenă e o schimbare mare și riscantă pe care n-a cerut-o nimeni.
+
+### 2. „YOU CAME TOO EARLY" a dispărut
+
+Bannerul de avertisment de la intrarea prea devreme — funcția `_avertisment_devreme` plus tween-ul de
+2,6 s care o chema — e scos, împreună cu ambele chei din `i18n.gd` („YOU CAME TOO EARLY" și „The
+Nether is packed until %s").
+
+**Pedeapsa a rămas neatinsă:** `INTRARE_MIN` (2:00) și `spawn_mult()` lucrează mai departe, deci
+intrarea devreme costă exact cât costa. Singurul lucru care ți-o mai spune pe loc e valul de la
+intrare, care crește cu ea (la 0:00 te întâmpină ~100 de creaturi, nu 25) — comentariul de acolo
+scria deja asta, doar că acum chiar e singurul.
+
+### Verificat rulând
+
+`tool_check_i18n.tscn`: **367 chei × 8 limbi, „TOTUL E TRADUS"** — deci nicio cheie orfană și niciun
+`tr(...)` rămas fără traducere. Apoi cele trei bannere randate în joc peste `main.tscn` și citite din
+captură: „THE BELOW", „BELOW SWARM" și „SOMETHING FOLLOWED YOU / CREATURES OF THE BELOW NOW ROAM THE
+WORLD" — toate roșii, iar subtitlul cel lung încape lejer (ocupă ~47% din lățimea ecranului).
+
+### Codex
+
+`codex.html` avea trei mențiuni „Nether" în text (Undying Spirit, tabelul de viteze, nota despre
+Limbo) — schimbate în „The Below". **Nu l-am republicat**: artifactul se rescrie doar când cere
+Răzvan, și oricum pagina live are o versiune pinuită pentru vizitatori.
+
+---
 ## Session log — 2026-09-07b (OP deschide tot · pagina SAVE din Settings)
 
 **Cerut de Răzvan:** „la butonul de op nu vreau proiectilele sa fie toate din fata, vreau cum sunt
