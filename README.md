@@ -151,6 +151,24 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-17b, the Limbo transition is a cinematic, and the work behind it is spread over frames)
+
+Asked for directly: *"Vreau sa optimizezi tranzitia de la limbo la lumea normala si de la lumea normala la limbo. Lagheaza pentru ca e prea rapida tranzitia... doar sa o faci sa fie smooth si profesionala."*
+
+**1. It was measured first.** The new tool `tool_limbo_tranzitie.tscn` runs the real `main.tscn`, calls `enter()` / `_exit_limbo()` at known moments and prints the long frames (with `PreloadAll` done first, or you pay for disk reads and blame the transition). Before: **71 ms** on the way in, **76 ms + 33 ms** on the way out — four or five lost frames, exactly when the picture changes. The cause was never "too fast": entering clears every enemy and empties 13 scenery generators, leaving is worse still, because each generator rebuilds its 49 chunks **in the frame it is switched back on**. The only "transition" over all that was a 0.6 s black-and-white fade, which hid nothing: you watched the world empty and refill under it.
+
+**2. Both ways now go through the iris** — `iris.gd`, the same circle that closes on you at Game Over and opens on you when a run starts. It fits: Limbo *is* a death, just one you come back from. The ring is spirit blue instead of death red, and the circle closes in 0.34 + 0.12 s against the real death's 1.39, so it reads as "the run continues", not "the run is over". The choreography, both directions: **the circle closes** (the world freezes, music goes behind the door via `enter_menu_muffle`) → **black**, where all the work happens → **the circle opens** on the new world, together with the banner.
+- ⚠️ The iris lives in **its own CanvasLayer (6)**, not next to the black-and-white overlay (5). Both shaders read `hint_screen_texture`, and in the same layer they read the *same* screen copy — so the circle painted the pre-filter image and cancelled the filter: Limbo was revealed in colour and only turned grey once the circle finished. Caught in a screenshot, not in the code.
+- ⚠️ The pause is **not** lifted blindly. `get_tree().paused` is one global that Level Up, the pause menu and the casino all fight over, and you can leave Limbo with the Level Up screen open (its clock ticks under pause). `_pauza_noastra` remembers whether the pause was ours to lift.
+
+**3. The heavy work is sliced.** Everything expensive went into a queue of `Callable`s, one executed **per frame while the screen is black**: clearing enemies (60 at a time, re-queuing itself while more remain), the 13 generators (**one per frame** — this is the step that killed the exit hitch), and the 40-enemy entry burst (8 per frame). The black is not a fixed duration: it lasts until the queue drains (min 0.20 s, max 1.40 s), so a slower machine gets a longer black instead of a stutter.
+
+**Result, measured:** entering **12–20 ms** (was 71), leaving **30–43 ms** (was 76 + 33) — and that remaining frame is always the same one, `Props` (trees with shadows and leaves) rebuilding its 49 chunks about 0.5 s in, i.e. in the middle of the black, where nobody can see it. Cutting that one further would mean a per-frame budget inside `props.gd`, which the whole game uses; not worth it for an invisible frame.
+
+**Verified by running.** Screenshots of both directions: the circle closing over the player, full black at 0.50 s, the circle opening on a **black-and-white** Limbo and later on the **colour** world with its scenery already back. The risky path was tested too — **Nether → die → Limbo → back into the Nether**: `nether.active` restored, the player **0 px** from where he died, zero objects in the overworld generators (`Props=0, Rocks=0, Bushes=0, Chests=0, Portals=0`), brick floor and the Nether clock resumed where they were. Dying *inside* Limbo still works: the transition is torn down and the Game Over cinematic, which owns its own iris, takes over.
+
+*(Noted while measuring, not touched: the **first frame of the Game Over screen costs 90–115 ms** — it builds the whole screen and muffles the music. It predates this work and happens under an already frozen screen.)*
+
 ## Current state (2026-09-17, the Nether is "The Below" on screen)
 
 Asked for directly: *"The Nether vreau sa aiba numele de acum incolo The Below - scoate textul you came too early cu tot cu nether is packed."*

@@ -24,6 +24,90 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-17b (tranziția Limbo: cinematică cu diafragmă + munca tăiată pe cadre)
+
+**Cerut de Răzvan:** „Vreau sa optimizezi tranzitia de la limbo la lumea normala si de la lumea
+normala la limbo. Lagheaza pentru ca e prea rapida tranzitia poti sa folosesti ce asset-uri vrei
+doar sa o faci sa fie smooth si profesionala."
+
+**Atinse:** `limbo.gd` (rescrisă intrarea/ieșirea), `iris.gd` (doar comentariul din cap),
+`nether.gd` / `ender.gd` / `prison.gd` (o referință în comentarii). **Unealtă nouă:**
+`tool_limbo_tranzitie.gd/.tscn`.
+
+### 1. Întâi am măsurat: nu era „prea rapidă", era tot într-un cadru
+
+`tool_limbo_tranzitie.tscn` rulează jocul adevărat și cheamă `enter()` / `_exit_limbo()` la momente
+știute, cu `PreloadAll` făcut înainte (altfel plătești citirea de pe disc și dai vina pe tranziție).
+Cifrele de dinainte:
+
+| | cel mai lung cadru |
+|---|---|
+| intrare în Limbo | **71 ms** |
+| ieșire | **76 ms**, plus 33 ms în cadrul următor |
+
+Adică 4-5 cadre pierdute, exact în clipa în care se schimba imaginea. De unde veneau: la intrare se
+șterg toți inamicii și se golesc 13 generatoare de decor; la ieșire se aprind toate la loc și
+fiecare își reconstruiește cele 49 de pătrate **în cadrul în care a fost pornit**. Peste asta,
+singura „tranziție" era un fade alb-negru de 0,6 s care nu acoperea nimic — se vedea lumea golindu-se
+și umplându-se la loc sub el.
+
+### 2. Cinematica: aceeași diafragmă ca la moarte
+
+Am refolosit `iris.gd` — cercul care se strânge la Game Over și se deschide la începutul rundei. E
+și potrivit tematic: Limbo ESTE o moarte, doar că una din care te întorci. Inelul e albastru de
+spirit (`CULOARE_SPIRIT`), nu roșul morții; timpii sunt mai scurți decât ai morții adevărate (0,34
++ 0,12 s până la negru, față de 1,39), ca să se simtă că runda continuă.
+
+Coregrafia, în ambele sensuri: **cercul se închide peste tine** (lumea îngheață, muzica trece în
+spatele ușii cu `enter_menu_muffle`) → **negru**, și acolo se face toată munca → **cercul se
+deschide** în lumea nouă, odată cu bannerul.
+
+⚠️ Două lucruri care m-au prins:
+- **Diafragma stă în CanvasLayer-ul ei (6), nu lângă overlay-ul alb-negru (5).** Amândouă citesc
+  `hint_screen_texture`; în același strat citesc aceeași copie de ecran, deci cercul desena imaginea
+  de DINAINTE de filtru și-l anula: Limbo se deschidea în culori și se făcea gri abia după ce se
+  termina cercul. Prins din captură, nu din cod.
+- **Pauza nu se ridică orbește.** `get_tree().paused` e o variabilă pe care se bat Level Up-ul,
+  meniul de pauză și cazinoul. Poți ieși din Limbo fix cu Level Up-ul deschis (cronometrul de acolo
+  merge și sub pauză), iar un `paused = false` al nostru ar fi pornit jocul pe sub meniu. Acum ținem
+  minte dacă noi am pus-o (`_pauza_noastra`).
+
+### 3. Munca, tăiată în bucăți
+
+Tot ce e greu a intrat într-o coadă de `Callable`-uri din care se execută **una pe cadru cât
+ecranul e negru**: ștersul inamicilor (60 odată, se re-pune singur în coadă cât mai are), cele 13
+generatoare (**unul pe cadru** — ăsta e pasul care a omorât smucitura de la ieșire), valul de
+intrare (8 din 40 pe cadru). Negrul nu are durată fixă: ține până se golește coada (minimum 0,20 s,
+maximum 1,40 s pe o mașină slabă), deci pe un calculator mai lent se lungește în loc să smucească.
+
+### Rezultatul, măsurat
+
+| | înainte | acum |
+|---|---|---|
+| intrare | 71 ms | **12-20 ms** |
+| ieșire | 76 + 33 ms | **30-43 ms, și alea sub negru** |
+
+Cadrul de ~35 ms de la ieșire e mereu în același loc: primul generator greu (`Props` — copaci cu
+umbre și frunze) își reconstruiește cele 49 de pătrate. Cade la ~0,5 s după start, adică în plin
+negru, deci nu se vede. Ca să scadă și el ar trebui buget pe cadru **în `props.gd`**, care e folosit
+peste tot în joc — n-am umblat la el pentru o smucitură pe care n-o vede nimeni.
+
+### Verificat rulând
+
+- Capturi din ambele drumuri: cercul strângându-se peste player, negru complet la 0,50 s, cercul
+  deschizându-se pe Limbo **alb-negru**, apoi pe lumea normală **în culori**, cu decorul deja pus.
+- Drumul prin dimensiune (cel mai riscant): **Nether → mori → Limbo → înapoi în Nether**. Rezultat:
+  `nether.active` la loc, player-ul la **0 px** de unde a murit, zero obiecte în generatoarele lumii
+  normale (`Props=0, Rocks=0, Bushes=0, Chests=0, Portals=0`), podeaua de cărămidă și ceasul de
+  Nether pornite de unde rămăseseră.
+- Moartea ÎN Limbo (`_abort`) merge mai departe: tranziția se rupe, cercul nostru dispare și rămâne
+  cinematica de Game Over, care are diafragma ei.
+
+**De notat pentru altă dată:** primul cadru al ecranului de Game Over costă **90-115 ms** (se
+construiește tot ecranul + se înfundă muzica). E dinainte și se întâmplă sub un ecran oricum
+înghețat, deci n-am atins-o — dar acolo e, dacă vrei să fie curat de tot.
+
+---
 ## Session log — 2026-09-17 (Nether-ul se cheamă „The Below" pe ecran · fără „YOU CAME TOO EARLY")
 
 **Cerut de Răzvan:** „The Nether vreau sa aiba numele de acum incolo The Below - scoate textul

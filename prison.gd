@@ -378,7 +378,7 @@ func _arata_obiect(n, on: bool) -> void:
 	n.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
 
 # Boss-ul, cât ești în Limbo. Îl scoatem din grupul „enemy" fiindcă exact ăla e grupul pe care îl
-# mătură `limbo.gd::_clear_enemies()` — fără asta, un Warden adus la jumătate de viață ar dispărea
+# mătură `limbo.gd::_pas_sterge_inamici()` — fără asta, un Warden adus la jumătate de viață ar dispărea
 # și poarta n-ar mai avea cum să se deschidă vreodată.
 func _park_boss(parcat: bool) -> void:
 	if _boss == null or not is_instance_valid(_boss):

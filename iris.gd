@@ -3,9 +3,12 @@ extends ColorRect
 # DIAFRAGMA — cercul care se strânge sau se deschide peste player, desenat de
 # `moarte_iris.gdshader`. Un `ColorRect` cât tot ecranul: ce arată depinde numai de rază.
 #
-# O folosesc DOUĂ cinematici, care sunt aceeași animație rulată în sensuri opuse:
+# O folosesc TREI cinematici, toate aceeași animație rulată în sensuri opuse:
 #   • `gameover.gd` — se ÎNCHIDE peste tine când mori (inel roșu, ca „YOU DIED");
-#   • `intro.gd`    — se DESCHIDE de pe tine când începe runda (inel cyan, ca bara de încărcare).
+#   • `intro.gd`    — se DESCHIDE de pe tine când începe runda (inel cyan, ca bara de încărcare);
+#   • `limbo.gd`    — se închide ȘI se deschide, la fiecare intrare/ieșire din Limbo (inel albastru
+#     de spirit, de pe 2026-09-17). Acolo cercul are și o treabă: cât e negru, Limbo își schimbă
+#     lumea bucată cu bucată, în loc s-o schimbe toată într-un cadru.
 #
 # 🔑 De ce stă într-un fișier separat, deși până pe 2026-08-31 era scrisă direct în `gameover.gd`:
 # fiindcă cele două trebuie să rămână oglinda una alteia. Geometria (unde cade centrul, cât de mare

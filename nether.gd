@@ -363,7 +363,7 @@ func _arata_obiect(n: Node2D, on: bool) -> void:
 	n.process_mode = Node.PROCESS_MODE_INHERIT if on else Node.PROCESS_MODE_DISABLED
 
 # Saratalin, cât ești în Limbo. Îl scoatem din grupul „enemy" fiindcă exact ăla e grupul pe care
-# îl mătură `limbo.gd::_clear_enemies()` la intrare și la ieșire — fără linia asta, boss-ul pe
+# îl mătură `limbo.gd::_pas_sterge_inamici()` la intrare și la ieșire — fără linia asta, boss-ul pe
 # care îl aveai la jumătate de viață ar dispărea pur și simplu, iar portalul n-ar mai avea cum
 # să se deschidă vreodată.
 func _park_boss(parcat: bool) -> void:
