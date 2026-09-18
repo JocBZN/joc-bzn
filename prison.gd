@@ -36,8 +36,14 @@ extends CanvasLayer
 # statuie, ca pe Saratalin în Nether; statuia (`prison_statue.gd` + `.tscn`) nu mai există, iar
 # SIR JOHN intră cu cinematică din clipa în care treci poarta, exact ca Celesto în Ender.
 # Cât trăiește, poarta nu se deschide.
+#
+# 🏰 DE PE 2026-09-18 CASTELUL E O HARTĂ FĂCUTĂ DE MÂNĂ (`castel_harta.gd`), singura din joc:
+# curte pătrată de 4992 px cu ziduri, turnuri, piață, alei și grădini, centrată pe poartă. Până
+# atunci era un disc de 3000 px de lespezi goale. O construim la intrare, o ascundem în Limbo și o
+# ștergem la ieșire; marginea e acum dreptunghiul ei (`ground.gd::set_margine_dreptunghi`).
 
 const BOSS := preload("res://final_boss.tscn")
+const CASTEL_HARTA := preload("res://castel_harta.gd")
 
 # --- reglaje ---
 const PRISON_TIME := 300.0      # 5:00 — mai scurt decât Ender-ul (6:00): e ultima, deci mai apăsată
@@ -136,6 +142,7 @@ var _arrow: Label
 var _dist: Label
 var _player: Node2D = null
 var _poarta: Node2D = null      # poarta prin care ai intrat; tot ea e ieșirea
+var _harta: Node2D = null       # curtea castelului (`castel_harta.gd`), cât ești înăuntru
 var _banda_sus: ColorRect
 var _banda_jos: ColorRect
 var _vinieta: TextureRect
@@ -243,6 +250,7 @@ func enter(player: Node2D, poarta: Node2D) -> void:
 	_clear_enemies()
 	_set_world_enabled(false)
 	_set_ground_prison(true)
+	_construieste_harta(world)
 	_margine(true)
 	_set_atmosphere("prison")
 
@@ -284,6 +292,7 @@ func exit_prison(anunt: bool = true) -> void:
 	_set_world_enabled(true)
 	_set_ground_prison(false)
 	_margine(false)
+	_free_harta()
 	_set_atmosphere("")
 	Difficulty.frozen = false
 	Difficulty.mult_time_override = -1.0
@@ -346,6 +355,7 @@ func suspenda() -> void:
 	_arrow.visible = false
 	_dist.visible = false
 	_arata_obiect(_poarta, false)
+	_arata_obiect(_harta, false)    # dezactivată = și zidurile/statuile ies din fizică
 
 	_park_boss(true)
 	_bara_boss(false)
@@ -363,6 +373,7 @@ func reia() -> void:
 	_clock.visible = true
 	_update_clock()
 	_arata_obiect(_poarta, true)
+	_arata_obiect(_harta, true)
 
 	_park_boss(false)
 	_bara_boss(true)
@@ -879,10 +890,30 @@ func _margine(on: bool) -> void:
 	if ground == null or not ground.has_method("set_margine"):
 		return
 	var centru := portal_pos()
-	if on and centru != Vector2.INF:
+	if on and _harta != null and is_instance_valid(_harta) and ground.has_method("set_margine_dreptunghi"):
+		ground.set_margine_dreptunghi(_harta.rect_joc())
+	elif on and centru != Vector2.INF:
 		ground.set_margine(centru)
 	else:
 		ground.opreste_margine()
+
+# Curtea castelului, centrată pe poartă. Pusă în `World` (sortat pe Y), ca turnurile, statuile și
+# copacii să treacă în fața/în spatele personajelor ca orice copac din lume.
+func _construieste_harta(world: Node) -> void:
+	_free_harta()
+	if world == null or _poarta == null:
+		return
+	_harta = Node2D.new()
+	_harta.name = "CastelHarta"
+	_harta.set_script(CASTEL_HARTA)
+	world.add_child(_harta)
+	_harta.global_position = _poarta.global_position
+	_harta.construieste()
+
+func _free_harta() -> void:
+	if _harta != null and is_instance_valid(_harta):
+		_harta.queue_free()
+	_harta = null
 
 func _set_atmosphere(kind: String) -> void:
 	var atm := get_tree().get_first_node_in_group("atmosphere")

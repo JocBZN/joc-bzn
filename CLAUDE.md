@@ -24,6 +24,92 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-18 (castelul lui Sir John e o hartă făcută de mână)
+
+**Cerut de Răzvan:** „ti-am pus un folder nou in castle - se numeste - Castel Textura - ia tot ce
+iti trebuie de acolo sa faci dimensiunea lui Sir John predeterminata (o sa fie singura din joc) -
+vreau sa arate ca un castel - ca si marime poti sa o faci putin mai mica decat e acum, tot asa open
+space doar sa aibe esteticul de castel. Poti sa folosesti ce assets vrei."
+
+**Fișiere noi:** `castel_harta.gd` (harta), `castel_intuneric.gd` (negrul din jur),
+`tool_castel_harta.gd/.tscn` (unealta de verificat), `harta/castle/Castel Textura/` (arta lui Răzvan,
+importată). **Atinse:** `prison.gd`, `ground.gd`.
+
+### Ce era și ce e
+
+Înainte, castelul era un **disc cu raza de 3000 px** de lespezi `castle_bg.png` care se stingeau spre
+negru. Nimic altceva. Acum e o **curte pătrată de 78×78 dale (4992 px)**, adică cu ~12% mai mică
+(24,9 M px² față de 28,3 M). E centrată pe poartă și e aceeași la fiecare intrare:
+
+- **zidul de nord** își arată fața de cărămidă (272 px înălțime), cu ferestre, două arcade cu uși de
+  lemn și o scară în mijloc păzită de două statui; **est/vest/sud** se văd doar ca o buză de piatră.
+  E convenția setului Cainos: curtea e o **groapă** privită de sus, din față;
+- **6 turnuri**: 4 în colțuri, 2 la mijlocul zidurilor laterale (capătul aleilor). Turnurile se
+  sortează pe Y, deci treci PE DUPĂ cele din sud;
+- **piața** din mijloc (24×24 dale, lespezi cu nituri) cu poarta în centru și 4 statui de cavaleri;
+- **4 alei** de 6 dale spre ziduri, mărginite de coloane (una din patru e surpată);
+- **4 grădini**: NV fântâna cu bănci, NE cimitirul cavalerilor (morminte, sarcofag, statuie),
+  SV livada, SE curtea de depozit (lăzi, butoaie, cufere, piatra de exercițiu);
+- dincolo de ziduri, drumul de strajă (6 dale), apoi un **negru pătrat** care se stinge treptat.
+
+Tot „open space": aleile și piața sunt goale. Solide sunt doar turnurile, statuile, coloanele,
+copacii, mormintele și grămezile de lăzi, fiecare cu o cutie mică la bază, ca trunchiul copacilor
+din `props.gd`. Pietricelele, smocurile și florile sunt lipite de pământ și nu opresc pe nimeni.
+„Predeterminată" înseamnă și că cele câteva lucruri trase la sorți (ce mormânt, ce copac, unde cad
+pietricelele) folosesc o **sămânță fixă** (`SEMINTA = 0x5143`), deci ies identic de fiecare dată.
+
+### Cum e construită
+
+- **Scara 2** (32 px de textură → 64 px în lume). Omulețul din set are 48 px și iese ~96, adică cât
+  personajele noastre (polițistul are 87). `TEXTURE_FILTER_NEAREST` pe tot.
+- Suprafețele (pavaj, iarbă, fața zidului, buzele, parapetul turnurilor) sunt **`NinePatchRect`-uri
+  cu `TILE`** pe bucăți din atlas. Un singur nod acoperă o alee întreagă, iar marginile nine-patch
+  țin crenelurile și soclul zidului întregi, cu rândurile de cărămidă repetate la mijloc.
+- ⚠️ **Fața zidului are perioada de 18 px, nu 32.** Rândurile de cărămidă au 9 px, iar rosturile
+  verticale alternează din rând în rând. Deci marginile nine-patch sunt `sus 27 / jos 19`, iar
+  mijlocul rămas are exact 18 px și se repetă curat. Cu altă cifră s-ar vedea cusătura la fiecare
+  repetare.
+- ⚠️ **Toate dreptunghiurile de pavaj pornesc din multipli de 3 dale** (o lespede mare are 3×3). Un
+  NinePatchRect își repetă desenul din colțul LUI, deci unul decalat nu-și mai potrivește rosturile
+  cu vecinul. De aia latura e 78, nu 76.
+- ⚠️ **Fața turnurilor NU e fața din atlas a blocului-turn.** Aceea are ramă proprie și, repetată,
+  lăsa o dungă verticală la fiecare 152 px (se vedea în prima captură). Acum e cărămida zidului
+  de nord, fără creneluri (`ZID_FARA_CAP`), tivită cu buzele laterale.
+- ⚠️ **Poteca verticală din grădini are iarbă pe margini** și acoperea pietrele celei orizontale la
+  încrucișare. Peste ele se pune un pătrat 2×2 numai cu pietre (`DRUM_CRUCE`).
+- Recuzita și plantele vin din variantele **„with Shadow"** din `Extra/`, cu umbra deja desenată.
+  Regiunile din atlas au fost măsurate cu un flood-fill pe canalul alfa (componente conexe), nu
+  ghicite.
+
+### Legătura cu restul jocului
+
+- `prison.gd::enter()` construiește harta în `World` (sortat pe Y), centrată pe poartă, **după**
+  ce golește generatoarele (altfel golirea ar lua și harta). `exit_prison()` o șterge,
+  `suspenda()` / `reia()` doar o ascund/arată. `PROCESS_MODE_DISABLED` scoate și corpurile din fizică,
+  deci în Limbo nu te lovești de un turn invizibil.
+- `ground.gd` are o **a doua formă de margine**: `set_margine_dreptunghi(rect)`. `in_margine` (player)
+  și `loc_in_margine` (spawner) întreabă de acum `_in_lume(p)`, care știe și de disc, și de
+  dreptunghi. Nether/Ender folosesc în continuare discul, neatinși. Groapa rotundă din shader e
+  stinsă în castel, fiindcă întunericul îl desenează `castel_intuneric.gd`.
+- Podeaua-shader tot trece pe `castle_bg.png` (`set_prison`). Nu se mai vede, fiindcă e sub hartă,
+  dar am lăsat-o: e plasa de siguranță dacă harta n-ar apuca să se construiască.
+
+### Verificat rulând — `tool_castel_harta.tscn` (în fereastră, face poze)
+
+Intră pe drumul adevărat (`prison.enter` cu o `poarta_castel.tscn` adevărată), așteaptă cinematica
+lui Sir John, apoi:
+- **poze**: de sus, cu toată curtea, și la mărime de joc la poartă, zidul de nord, turnul NV,
+  cele 4 grădini, colțul SV și turnul de est;
+- **marginea**: player-ul pus la 4000 px dincolo de fiecare zid ajunge la `(0, −2482)`,
+  `(0, 2486)`, `(±2476, …)`, adică înăuntru, pe buză;
+- **ieșirea**: harta dispare (`is_instance_valid = false`), `prison.active = false`;
+- **costul**: harta singură se construiește în **~6 ms**. `enter()` întreg costă ~76 ms, dar aia e
+  golirea lumii, care exista și înainte, și se face sub fulgerul de intrare + cinematica înghețată.
+
+Unealta ține inamicii șterși și pe Sir John pe loc, ca să nu moară player-ul (ar scrie în clasament).
+
+---
+
 ## Session log — 2026-09-17b (tranziția Limbo: cinematică cu diafragmă + munca tăiată pe cadre)
 
 **Cerut de Răzvan:** „Vreau sa optimizezi tranzitia de la limbo la lumea normala si de la lumea
