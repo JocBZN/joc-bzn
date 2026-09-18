@@ -7,7 +7,7 @@ extends Node
 # HARTA CASTELULUI LUI SIR JOHN (`castel_harta.gd`, 2026-09-18). Intră în castel pe drumul
 # adevărat (`prison.enter` cu o poartă adevărată), așteaptă cinematica, apoi:
 #   1. o poză de SUS cu toată curtea (camera depărtată);
-#   2. poze la mărime de joc în locurile care contează: poarta, zidul de nord, turnurile, grădinile;
+#   2. poze la mărime de joc în locurile care contează: poarta, zidul de nord, turnurile, cele patru sferturi ale curții;
 #   3. marginea: player-ul pus dincolo de fiecare zid trebuie să rămână ÎNĂUNTRU;
 #   4. ieșirea: harta trebuie să dispară.
 # Pozele: `user://castel_*.png` (AppData\Roaming\Godot\app_userdata\JOC-BZN-Mobile\).
@@ -55,10 +55,10 @@ func _ready() -> void:
 		"castel_poarta": Vector2(0, 150),
 		"castel_nord": Vector2(0, -36 * 64),
 		"castel_turn_nv": Vector2(-29 * 64, -35 * 64),
-		"castel_fantana": Vector2(-22 * 64, -21 * 64),
-		"castel_cimitir": Vector2(22 * 64, -21 * 64),
-		"castel_livada": Vector2(-22 * 64, 22 * 64),
-		"castel_depozit": Vector2(22 * 64, 22 * 64),
+		"castel_curte_nv": Vector2(-22 * 64, -21 * 64),
+		"castel_curte_ne": Vector2(22 * 64, -21 * 64),
+		"castel_curte_sv": Vector2(-22 * 64, 22 * 64),
+		"castel_curte_se": Vector2(22 * 64, 22 * 64),
 		"castel_sud_vest": Vector2(-31 * 64, 34 * 64),
 		"castel_est": Vector2(34 * 64, 2 * 64),
 	}

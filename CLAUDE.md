@@ -108,6 +108,25 @@ lui Sir John, apoi:
 
 Unealta ține inamicii șterși și pe Sir John pe loc, ca să nu moară player-ul (ar scrie în clasament).
 
+### 🔁 Revizuit în aceeași zi: podeaua veche, numai lăzi și butoaie
+
+**Cerut de Răzvan după prima variantă:** „Vreau podeaua să fie aia de dinainte, nu să folosești de
+la Textura, vreau să nu fie deloc statui, doar Barrels și Crates băgate."
+
+- **Podeaua** e iar `castle_bg.png`, desenată de shaderul din `ground.gd::set_prison`, cum era înainte
+  de azi. Harta nu mai pune nimic peste ea: am scos pavajul, iarba, potecile, florile, pietricelele
+  și drumul de strajă de lespezi. Dincolo de ziduri se vede tot podeaua veche, care se stinge spre
+  negru (`castel_intuneric.gd`, neschimbat).
+- **Decorul** e numai lăzi (`LADA`) și butoaie (`BUTOI`), în pâlcuri de 2-5, prin
+  `_lazi_si_butoaie()`: de-a lungul celor patru ziduri, patru depozite mari în sferturile curții și
+  câteva pâlcuri mici. Ce e fiecare (ladă sau butoi) iese din sămânța fixă. Mijlocul (~12 dale în
+  jurul porții) e gol. Au dispărut statuile (inclusiv cele de lângă scară), coloanele, mormintele,
+  fântâna, băncile, copacii, tufele, vazele și indicatoarele, împreună cu constantele lor.
+- **Au rămas** zidurile, cele 6 turnuri, scara și arcadele cu uși: ele fac forma de castel.
+  Acoperișul turnurilor are tot lespezile cu nituri din Textura. E acoperiș, nu podea, dar dacă
+  Răzvan îl vrea altfel, e `LESPEDE_NIT` din `_turn()`.
+- Verificat cu aceeași unealtă: margine, ieșire, poze (de sus, la zid, într-un depozit, în colț).
+
 ---
 
 ## Session log — 2026-09-17b (tranziția Limbo: cinematică cu diafragmă + munca tăiată pe cadre)
