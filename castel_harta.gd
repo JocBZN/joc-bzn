@@ -60,6 +60,15 @@ const USA := Rect2(29, 103, 37, 50)             # din atlasul FĂRĂ umbră (st�
 const LADA := Rect2(160, 18, 39, 46)
 const BUTOI := Rect2(162, 153, 31, 36)
 
+# 🎯 HITBOX-URILE — aici se reglează de mână (px de LUME; lada desenată are ~78×92, butoiul ~62×72).
+# `_MARIME` = lățime × înălțime a cutiei de pe jos.
+# `_MUTARE` = cât se mută cutia față de baza obiectului: x pozitiv = dreapta, y NEGATIV = mai sus.
+# Cu mutarea (0, 0) cutia stă cu marginea de JOS pe baza desenului și crește în sus.
+const HITBOX_LADA_MARIME := Vector2(44, 20)
+const HITBOX_LADA_MUTARE := Vector2(0, 0)
+const HITBOX_BUTOI_MARIME := Vector2(44, 20)
+const HITBOX_BUTOI_MUTARE := Vector2(0, 0)
+
 var _tx_piatra: Texture2D
 var _tx_zid: Texture2D
 var _tx_struct: Texture2D
@@ -207,8 +216,11 @@ func _lazi_si_butoaie() -> void:
 func _gramada(c: Vector2, cate: int) -> void:
 	var loc := [Vector2(0, 0), Vector2(1.1, 0.2), Vector2(-0.9, 0.6), Vector2(0.4, 1.2), Vector2(-0.3, -0.9)]
 	for i in mini(cate, loc.size()):
-		var ce := LADA if _rng.randf() < 0.5 else BUTOI
-		_prop(_tx_props, ce, c + loc[i] * 1.1, 44, 20)
+		var e_lada := _rng.randf() < 0.5
+		var ce := LADA if e_lada else BUTOI
+		var marime := HITBOX_LADA_MARIME if e_lada else HITBOX_BUTOI_MARIME
+		var mutare := HITBOX_LADA_MUTARE if e_lada else HITBOX_BUTOI_MUTARE
+		_prop(_tx_props, ce, c + loc[i] * 1.1, marime.x, marime.y, false, mutare)
 
 # ---------- unelte ----------
 # O suprafață repetată dintr-o bucată de atlas. `m` = marginile nine-patch [st, sus, dr, jos]
@@ -244,7 +256,7 @@ func _bucata(parinte: Node, tex: Texture2D, reg: Rect2, poz: Vector2, centrat: b
 
 # Un obiect în picioare, sortat pe Y după baza lui. `p` în dale. Dacă primește `lat` > 0, e și
 # SOLID: o cutie de lat × adanc px pe jos, la bază (ca trunchiul copacilor din `props.gd`).
-func _prop(tex: Texture2D, reg: Rect2, p: Vector2, lat: float = 0.0, adanc: float = 0.0, oglinda: bool = false) -> Node2D:
+func _prop(tex: Texture2D, reg: Rect2, p: Vector2, lat: float = 0.0, adanc: float = 0.0, oglinda: bool = false, mutare: Vector2 = Vector2.ZERO) -> Node2D:
 	var n: Node2D
 	if lat > 0.0:
 		var body := StaticBody2D.new()
@@ -252,7 +264,7 @@ func _prop(tex: Texture2D, reg: Rect2, p: Vector2, lat: float = 0.0, adanc: floa
 		var sh := RectangleShape2D.new()
 		sh.size = Vector2(lat, adanc)
 		col.shape = sh
-		col.position = Vector2(0, -adanc * 0.5)
+		col.position = Vector2(0, -adanc * 0.5) + mutare
 		body.add_child(col)
 		n = body
 	else:

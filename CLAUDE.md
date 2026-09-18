@@ -126,6 +126,7 @@ la Textura, vreau să nu fie deloc statui, doar Barrels și Crates băgate."
   Acoperișul turnurilor are tot lespezile cu nituri din Textura. E acoperiș, nu podea, dar dacă
   Răzvan îl vrea altfel, e `LESPEDE_NIT` din `_turn()`.
 - Verificat cu aceeași unealtă: margine, ieșire, poze (de sus, la zid, într-un depozit, în colț).
+- **Hitbox-urile lăzii și butoiului se reglează de mână** (cerut apoi): `HITBOX_LADA_MARIME` / `HITBOX_LADA_MUTARE` și `HITBOX_BUTOI_MARIME` / `HITBOX_BUTOI_MUTARE`, sus în `castel_harta.gd`. Pornesc amândouă de la 44×20 px, lipite de baza desenului. `_prop()` a primit parametrul `mutare`.
 
 ---
 
