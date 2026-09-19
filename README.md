@@ -151,6 +151,11 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-19, Saratalin is summoned without a banner)
+
+- 🔇 **No text on screen when Saratalin is summoned** *("Scoate textul ala din joc cu saratalin comes from above")*. The whole announcement is gone — the big **SARATALIN** title and the **"It comes down from above"** line under it. `summoning_portal.gd` lost the `_announce` call in `invoca()` and the `_announce` helper with it (nothing else called it), and the sentence was dropped from `i18n.gd` with all 8 translations, since no code refers to it any more. What still announces the boss: the **alert symbol** over the structure, the **earthquake** and its boom, the structure sinking, and **his theme** starting as he lands.
+- ↔️ **Not to be confused with the other Saratalin banner.** "SARATALIN LIVES / The portal will not open until he falls" comes from `nether.gd`, when you try a portal while he is still alive — that one is untouched.
+
 ## Current state (2026-09-18, Sir John's castle is a hand-made map)
 
 - 🏰 **The Castle is the only hand-built map in the game** *("sa faci dimensiunea lui Sir John predeterminata (o sa fie singura din joc) - vreau sa arate ca un castel - ... putin mai mica decat e acum, tot asa open space")*. Until today it was a 3000 px disc of bare paving fading to black. Now it is **`castel_harta.gd`**: a square walled courtyard of 78×78 tiles (**4992 px**, ~12% less area), centred on the gate, the same every time. It has a brick **north wall** (272 px, windows, two arched wooden doors, a central staircase), stone lips on the other three sides and **six towers** (four corners, two mid-wall). Beyond the walls the floor fades to black in a square (`castel_intuneric.gd`).

@@ -259,7 +259,6 @@ const TRAD := {
 "SURVIVE 10:00": ["撑过 10:00", "ÜBERLEBE 10:00", "SOBREVIVE 10:00", "ПРОДЕРЖИСЬ 10:00", "SURVIS 10:00", "10:00 生き延びろ", "PRZETRWAJ 10:00", "10:00 HAYATTA KAL"],
 "FINAL SWARM": ["最终虫潮", "FINALER SCHWARM", "ENJAMBRE FINAL", "ФИНАЛЬНАЯ ВОЛНА", "NUÉE FINALE", "ファイナルスウォーム", "FINAŁOWY RÓJ", "SON AKIN"],
 "They just keep coming. Survive as long as you can.": ["它们源源不断。尽力活下去。", "Sie hören nicht auf. Überlebe so lange du kannst.", "No dejan de venir. Sobrevive lo máximo posible.", "Они всё идут. Держись сколько сможешь.", "Ils continuent d’arriver. Survis le plus longtemps possible.", "敵は止まらない。できるだけ長く生き延びろ。", "Nie przestają nadchodzić. Przetrwaj jak najdłużej.", "Gelmeye devam ediyorlar. Elinden geldiğince dayan."],
-"It comes down from above": ["它从天而降", "Es kommt von oben herab", "Baja desde arriba", "Он спускается сверху", "Il descend d’en haut", "上から降りてくる", "Nadchodzi z góry", "Yukarıdan iniyor"],
 
 # ---------- dimensiunea Ender (ender.gd, celesto.gd, fântâna din nether.gd) ----------
 # „Ender" rămâne nume propriu acolo unde limba nu are un echivalent firesc.

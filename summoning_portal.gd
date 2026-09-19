@@ -66,7 +66,9 @@ func invoca() -> void:
 
 	# 1) simbolul de alertă, deasupra structurii
 	_spawn_alert(global_position + Vector2(0, _varf_y()))
-	_announce("SARATALIN", "It comes down from above")
+	# Bannerul „SARATALIN / It comes down from above" a fost SCOS pe 2026-09-19, la cererea lui
+	# Răzvan. Boss-ul se anunță singur: simbolul de alertă de mai sus, cutremurul și tema lui.
+	# (Anunțul „SARATALIN LIVES" de la portalul care nu se deschide, din `nether.gd`, a rămas.)
 	Audio.play("levelup", -2.0)
 
 	# 2a) cutremur pe ecran + bubuitura lui
@@ -158,8 +160,3 @@ func _spawn_alert(at_pos: Vector2) -> void:
 	alert.global_position = at_pos
 	alert.play("default")
 	alert.animation_finished.connect(alert.queue_free)
-
-func _announce(text: String, sub: String = "") -> void:
-	var hud := get_tree().get_first_node_in_group("hud")
-	if hud != null and hud.has_method("announce"):
-		hud.announce(text, sub)

@@ -24,6 +24,28 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-19 (fără bannerul lui Saratalin la invocare)
+
+**Cerut de Răzvan:** „Scoate textul ala din joc cu saratalin comes from above". Întrebat dacă scot
+doar subtitlul sau tot anunțul, a ales **tot anunțul**.
+
+**Atinse:** `summoning_portal.gd` (scos apelul `_announce` din `invoca()` și funcția `_announce`,
+care rămăsese fără niciun chemător), `i18n.gd` (scos rândul „It comes down from above" — nu-l mai
+folosea nimeni; cele 8 traduceri au plecat cu el).
+
+Ce a rămas la invocare: **simbolul de alertă** deasupra structurii, **cutremurul** de ecran cu
+bubuitura lui, scufundarea structurii și **tema lui Saratalin**. Bannerul „SARATALIN LIVES /
+The portal will not open until he falls" (portalul care nu se deschide, din `nether.gd`) **nu** e
+același lucru și a rămas neatins. „SARATALIN" rămâne și în `IGNORATE` din `tool_check_i18n.gd`:
+e nume propriu, iar lista aia nu deranjează pe nimeni dacă are un rând în plus.
+
+**Verificat rulând** (scenă de test aruncată după): `hud.banner.text` și `hud.banner_sub.text` sunt
+goale și după `invoca()`, iar `_banner_box.modulate.a = 0.00` (deci nici măcar nu pornește
+animația de apariție); captură din joc în clipa invocării — ecran curat, structura se scufundă.
+`tool_check_i18n.tscn` → **✔ TOTUL E TRADUS**, cod de ieșire 0.
+
+---
+
 ## Session log — 2026-09-18 (castelul lui Sir John e o hartă făcută de mână)
 
 **Cerut de Răzvan:** „ti-am pus un folder nou in castle - se numeste - Castel Textura - ia tot ce
