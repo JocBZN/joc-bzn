@@ -56,23 +56,20 @@ const SCARA := Rect2(32, 32, 64, 96)            # Struct
 const ARCADA := Rect2(408, 27, 80, 64)
 const USA := Rect2(29, 103, 37, 50)             # din atlasul FĂRĂ umbră (stă într-o arcadă)
 
-# Singurul decor: lăzi și butoaie (varianta „with Shadow" — umbra e deja desenată)
-const LADA := Rect2(160, 18, 39, 46)
-const BUTOI := Rect2(162, 153, 31, 36)
-
-# 🎯 HITBOX-URILE — aici se reglează de mână (px de LUME; lada desenată are ~78×92, butoiul ~62×72).
-# `_MARIME` = lățime × înălțime a cutiei de pe jos.
-# `_MUTARE` = cât se mută cutia față de baza obiectului: x pozitiv = dreapta, y NEGATIV = mai sus.
-# Cu mutarea (0, 0) cutia stă cu marginea de JOS pe baza desenului și crește în sus.
-const HITBOX_LADA_MARIME := Vector2(44, 20)
-const HITBOX_LADA_MUTARE := Vector2(0, 0)
-const HITBOX_BUTOI_MARIME := Vector2(44, 20)
-const HITBOX_BUTOI_MUTARE := Vector2(0, 0)
+# Singurul decor: lăzi și butoaie — fiecare e o SCENĂ, nu cod (varianta „with Shadow", cu umbra
+# deja desenată). Sunt scene tocmai ca să poți regla HITBOX-ul DE MÂNĂ, în editor, exact ca la
+# monument, tufă, EGT sau albă: deschizi `castel_lada.tscn` / `castel_butoi.tscn`, apuci
+# `CollisionShape2D` cu mouse-ul în viewport și-l tragi peste desen până stă bine. Ce vezi acolo e
+# fix ce blochează în joc — nu mai există nicio cifră de hitbox în fișierul ăsta.
+# Din scene vine și bucata de atlas desenată (`region_rect`), și scara ×2, deci și arta se schimbă
+# de acolo. Desenul, ca reper: lada ~78×92 px de lume, butoiul ~62×72; cutiile pornesc de la 44×20,
+# așezate cu marginea de jos pe baza desenului.
+const LADA_SCENA := preload("res://castel_lada.tscn")
+const BUTOI_SCENA := preload("res://castel_butoi.tscn")
 
 var _tx_piatra: Texture2D
 var _tx_zid: Texture2D
 var _tx_struct: Texture2D
-var _tx_props: Texture2D
 var _tx_props_curat: Texture2D
 
 var _plat: Node2D              # tot ce e lipit de pământ (ziduri, buze, întuneric), sub personaje
@@ -92,7 +89,6 @@ func construieste() -> void:
 	_tx_piatra = load(DIR + "TX Tileset Stone Ground.png")
 	_tx_zid = load(DIR + "TX Tileset Wall.png")
 	_tx_struct = load(DIR + "TX Struct.png")
-	_tx_props = load(DIR + "Extra/TX Props with Shadow.png")
 	_tx_props_curat = load(DIR + "TX Props.png")
 
 	_plat = Node2D.new()
@@ -217,10 +213,9 @@ func _gramada(c: Vector2, cate: int) -> void:
 	var loc := [Vector2(0, 0), Vector2(1.1, 0.2), Vector2(-0.9, 0.6), Vector2(0.4, 1.2), Vector2(-0.3, -0.9)]
 	for i in mini(cate, loc.size()):
 		var e_lada := _rng.randf() < 0.5
-		var ce := LADA if e_lada else BUTOI
-		var marime := HITBOX_LADA_MARIME if e_lada else HITBOX_BUTOI_MARIME
-		var mutare := HITBOX_LADA_MUTARE if e_lada else HITBOX_BUTOI_MUTARE
-		_prop(_tx_props, ce, c + loc[i] * 1.1, marime.x, marime.y, false, mutare)
+		var n := (LADA_SCENA if e_lada else BUTOI_SCENA).instantiate()
+		n.position = (c + loc[i] * 1.1) * T
+		add_child(n)
 
 # ---------- unelte ----------
 # O suprafață repetată dintr-o bucată de atlas. `m` = marginile nine-patch [st, sus, dr, jos]
@@ -253,35 +248,6 @@ func _bucata(parinte: Node, tex: Texture2D, reg: Rect2, poz: Vector2, centrat: b
 	s.scale = Vector2(S, S)
 	parinte.add_child(s)
 	return s
-
-# Un obiect în picioare, sortat pe Y după baza lui. `p` în dale. Dacă primește `lat` > 0, e și
-# SOLID: o cutie de lat × adanc px pe jos, la bază (ca trunchiul copacilor din `props.gd`).
-func _prop(tex: Texture2D, reg: Rect2, p: Vector2, lat: float = 0.0, adanc: float = 0.0, oglinda: bool = false, mutare: Vector2 = Vector2.ZERO) -> Node2D:
-	var n: Node2D
-	if lat > 0.0:
-		var body := StaticBody2D.new()
-		var col := CollisionShape2D.new()
-		var sh := RectangleShape2D.new()
-		sh.size = Vector2(lat, adanc)
-		col.shape = sh
-		col.position = Vector2(0, -adanc * 0.5) + mutare
-		body.add_child(col)
-		n = body
-	else:
-		n = Node2D.new()
-	n.position = p * T
-	var s := Sprite2D.new()
-	s.texture = tex
-	s.region_enabled = true
-	s.region_rect = reg
-	s.centered = false
-	s.flip_h = oglinda
-	# umbra desenată cade spre dreapta-jos, deci baza obiectului e cu ~3 px deasupra marginii de jos
-	s.offset = Vector2(-reg.size.x * 0.5, -reg.size.y + 3.0)
-	s.scale = Vector2(S, S)
-	n.add_child(s)
-	add_child(n)
-	return n
 
 # Un bloc solid fără desen (turnurile își au desenul separat). `r` în px de lume.
 func _solid(r: Rect2) -> void:

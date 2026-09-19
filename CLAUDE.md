@@ -126,7 +126,7 @@ la Textura, vreau să nu fie deloc statui, doar Barrels și Crates băgate."
   Acoperișul turnurilor are tot lespezile cu nituri din Textura. E acoperiș, nu podea, dar dacă
   Răzvan îl vrea altfel, e `LESPEDE_NIT` din `_turn()`.
 - Verificat cu aceeași unealtă: margine, ieșire, poze (de sus, la zid, într-un depozit, în colț).
-- **Hitbox-urile lăzii și butoiului se reglează de mână** (cerut apoi): `HITBOX_LADA_MARIME` / `HITBOX_LADA_MUTARE` și `HITBOX_BUTOI_MARIME` / `HITBOX_BUTOI_MUTARE`, sus în `castel_harta.gd`. Pornesc amândouă de la 44×20 px, lipite de baza desenului. `_prop()` a primit parametrul `mutare`.
+- **Hitbox-urile lăzii și butoiului se reglează de mână, ÎN EDITOR** (cerut pe 2026-09-19: „vreau să ajustez manual cum am făcut și la monument, bush, egt, alba"). Lada și butoiul sunt acum **scene** — `castel_lada.tscn` și `castel_butoi.tscn` — instanțiate de `_gramada()`: tragi de `CollisionShape2D` în viewport, ca la orice alt prop. Constantele `HITBOX_*` și funcția `_prop()` au dispărut din `castel_harta.gd`; din scene vin și `region_rect`-ul din atlas, și scara ×2 (deci și arta se schimbă de acolo). Cutiile pornesc de la 44×20 px, la (0, −10). Verificat rulând: 118 props, **poziții și bucăți de atlas identice** cu varianta veche din cod (aceeași sămânță, același număr de `randf()`), plus `tool_castel_harta.tscn` întreg.
 
 ---
 
