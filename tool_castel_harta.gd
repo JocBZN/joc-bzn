@@ -7,7 +7,9 @@ extends Node
 # HARTA CASTELULUI LUI SIR JOHN (`castel_harta.gd`, 2026-09-18). Intră în castel pe drumul
 # adevărat (`prison.enter` cu o poartă adevărată), așteaptă cinematica, apoi:
 #   1. o poză de SUS cu toată curtea (camera depărtată);
-#   2. poze la mărime de joc în locurile care contează: poarta, zidul de nord, turnurile, cele patru sferturi ale curții;
+#   2. poze la mărime de joc în locurile care contează: poarta, mijlocul zidului de nord (unde era
+#      scara), un colț (unde erau turnurile scoase pe 2026-09-20), turnul de vest, zidul de jos
+#      lipit de player (acolo se vede dacă tălpile trec prin piatră) și cele patru sferturi;
 #   3. marginea: player-ul pus dincolo de fiecare zid trebuie să rămână ÎNĂUNTRU;
 #   4. ieșirea: harta trebuie să dispară.
 # Pozele: `user://castel_*.png` (AppData\Roaming\Godot\app_userdata\JOC-BZN-Mobile\).
@@ -54,7 +56,9 @@ func _ready() -> void:
 	var locuri := {
 		"castel_poarta": Vector2(0, 150),
 		"castel_nord": Vector2(0, -36 * 64),
-		"castel_turn_nv": Vector2(-29 * 64, -35 * 64),
+		"castel_colt_nv": Vector2(-33 * 64, -33 * 64),
+		"castel_turn_vest": Vector2(-33 * 64, 3 * 64),
+		"castel_sud_mijloc": Vector2(0, 40 * 64),
 		"castel_curte_nv": Vector2(-22 * 64, -21 * 64),
 		"castel_curte_ne": Vector2(22 * 64, -21 * 64),
 		"castel_curte_sv": Vector2(-22 * 64, 22 * 64),
@@ -73,6 +77,25 @@ func _ready() -> void:
 			await get_tree().physics_frame
 		var p := _player.global_position
 		print("margine %s -> %s  inauntru=%s" % [dir, p - c, r.grow(1.0).has_point(p)])
+
+	# LĂZILE ȘI BUTOAIELE chiar opresc? Pe 2026-09-20 hitbox-urile lor fuseseră trase în sus peste
+	# desen, la 25-45 px DEASUPRA podelei, adică unde nu calcă nimeni — și player-ul trecea prin
+	# ele ca prin aer. Proba: îl punem la 160 px sub o cutie și îl împingem în ea cu
+	# `move_and_collide`. Dacă întoarce `null`, hitbox-ul e iar plecat de pe podea.
+	for scena in ["res://castel_lada.tscn", "res://castel_butoi.tscn"]:
+		var cutie: Node2D = null
+		for n in harta.get_children():
+			if n is StaticBody2D and n.scene_file_path == scena:
+				cutie = n
+				break
+		if cutie == null:
+			print("%s: nu e niciuna in harta" % scena.get_file())
+			continue
+		_player.global_position = cutie.global_position + Vector2(0, 160)
+		await get_tree().physics_frame
+		var izb: KinematicCollision2D = _player.move_and_collide(Vector2(0, -200))
+		print("%s: oprit=%s  la %+.0f px de cutie" % [scena.get_file(), izb != null,
+			_player.global_position.y - cutie.global_position.y])
 	_player.global_position = c + Vector2(0, 150)
 
 	_prison._boss_invins = true

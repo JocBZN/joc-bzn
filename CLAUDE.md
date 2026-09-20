@@ -24,6 +24,79 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-20 (castel: hitbox-urile cutiilor înapoi pe podea, zidul de jos, colțuri goale, zid întreg)
+
+**Cerut de Răzvan:** „am ajustat manual hitboxurile de la butoi si lada si acum trece sprite-ul de
+la player prin ele, repara. Si la Castel la perete de jos nu e bine pus hitboxul ca trece playerul
+prin el. Si sterge cladirile din colturi ca nu imi place cum arata. In partea de mijloc sus la
+perete scoate treptele alea si pune tot perete."
+
+**Atinse:** `castel_lada.tscn`, `castel_butoi.tscn`, `castel_harta.gd`, `tool_castel_harta.gd`.
+
+### 🔑 De ce trecea player-ul prin lăzi: hitbox-urile plecaseră de pe PODEA
+
+Cifrele găsite în scene: cutia lăzii era **80×20 la (−7, −35)**, a butoiului **63×20 la (−3,5, −22)**
+— adică la **25…45 px DEASUPRA** originii. Desenele lor țin de la y = −86 (ladă) / −66 (butoi) până
+la **y = +6**, deci hitbox-urile erau urcate frumos peste mijlocul desenului. Exact ce-ți spune
+ochiul în editor — și exact ce nu trebuie.
+
+Motivul e că **harta e văzută de sus**: toate hitbox-urile din joc (tufă la y ≈ −1, monument la
+y = +16, lada veche la y = −10) stau în **planul PODELEI**, iar player-ul se lovește de ele cu un
+cerc de rază 10 lipit de originea LUI (`player.tscn`, ×2 din `main.tscn` → rază 20 în lume). Un
+dreptunghi ridicat la −35 e într-un plan pe care nu-l atinge nimeni, deci player-ul intra prin ladă
+ca prin aer — **nu era „prea mic", era prea SUS**.
+
+Reparat păstrând lățimile pe care le pusese Răzvan (sunt bune, cât desenul de lat) și coborându-le
+la baza desenului, centrate: **lada 80×20 la (0, −4)**, **butoiul 63×20 la (0, −4)** — adică
+y = −14…+6, călare pe podea. Regula e scrisă acum lângă `LADA_SCENA` în `castel_harta.gd`:
+**hitbox-ul se trage pe LĂȚIME, nu pe înălțime.**
+
+### 🔑 Zidul de jos: marginea oprea ORIGINEA, dar tălpile sunt cu 66 px mai jos
+
+`ground.gd::in_margine` oprește `global_position` al player-ului. Numai că originea lui nu e la
+picioare: pânza lui The G („grasu directii") e 124 px cu talpa la 95, adică **+33 față de centru**
+(aceeași cifră pe care o țintește `tool_aliniaza_talpi.gd::TINTA_TALPA` la toate personajele), iar
+player-ul e la `scale = 2`. Deci **tălpile cad 66 px sub punctul care se oprește**.
+
+`rect_joc()` lăsa jos doar 10 px de buză, deci originea ajungea pe buză și **tălpile treceau 56 px
+dincolo de zid** — se vedea limpede cum calcă prin piatră. Acum marginea de jos e
+`N * T − TALPA + 6`, cu `TALPA = 66.0` constantă nouă și explicată: se oprește cu tălpile pe buză,
+intrate 6 px în piatră, ca orice personaj lipit de un zid. Măsurat după reparație: **(0, 2436)** în
+loc de (0, 2486).
+
+Celelalte trei laturi rămân cum erau, **și e corect**: la nord zidul e o FAȚĂ înaltă în SPATELE
+player-ului (e normal ca el s-o acopere), iar la est/vest silueta e lată de ~34 px, cam cât buza,
+deci cei 20 de acolo ajung.
+
+### Colțurile goale și zidul de nord întreg
+
+- **Cele 4 turnuri din colțuri au dispărut** („șterge clădirile din colțuri că nu îmi place cum
+  arată"). Au rămas numai cele **două de la mijlocul zidurilor de vest și est**, cu tot cu blocul
+  lor solid. Colțurile sunt acum curte deschisă, mărginită doar de buza de piatră — se vede în
+  `castel_colt_nv.png`. Nimic altceva n-a trebuit mutat: lăzile erau oricum așezate pe lângă
+  turnuri, nu sub ele.
+- **Scara din mijlocul zidului de nord a dispărut** („scoate treptele alea și pune tot perete").
+  N-a rămas nicio gaură de umplut: fața zidului (`ZID_FATA`) era deja desenată pe toată lățimea, iar
+  scara stătea DEASUPRA ei. În plus, ferestrele nu mai ocolesc mijlocul (ocoleau scara) — acum merg
+  din 4 în 4 dale de la un capăt la altul, deci zidul arată la fel peste tot. Constanta `SCARA` a
+  plecat din fișier; `_tx_struct` rămâne, îl folosesc arcadele.
+
+### Verificat rulând — `tool_castel_harta.tscn`
+
+Unealta are acum **două poze noi** în locul celei cu turnul NV: `castel_colt_nv` (colțul gol),
+`castel_turn_vest` (turnul rămas) și `castel_sud_mijloc` (player-ul lipit de zidul de jos, ca să se
+vadă tălpile). Și o **probă nouă, pentru fix bug-ul de azi**: pune player-ul la 160 px sub o ladă și
+sub un butoi și împinge cu `move_and_collide` — dacă întoarce `null`, hitbox-ul e iar plecat de pe
+podea. ⚠️ `var izb := move_and_collide(...)` nu compilează (tipul poate fi `null`); trebuie
+`var izb: KinematicCollision2D = ...`.
+
+Rezultate: `castel_lada.tscn: oprit=true la +26 px`, `castel_butoi.tscn: oprit=true la +26 px`
+(exact unde trebuie: raza 20 + jumătatea cutiei), marginile `(0, −2482)` / **`(0, 2436)`** /
+`(±2476, …)` toate înăuntru, harta se șterge la ieșire. Pozele confirmă: colțuri goale, zid de nord
+numai cărămidă, player-ul stă CU TĂLPILE pe buza de jos.
+
+---
+
 ## Session log — 2026-09-19 (fără bannerul lui Saratalin la invocare)
 
 **Cerut de Răzvan:** „Scoate textul ala din joc cu saratalin comes from above". Întrebat dacă scot
@@ -149,6 +222,8 @@ la Textura, vreau să nu fie deloc statui, doar Barrels și Crates băgate."
   Răzvan îl vrea altfel, e `LESPEDE_NIT` din `_turn()`.
 - Verificat cu aceeași unealtă: margine, ieșire, poze (de sus, la zid, într-un depozit, în colț).
 - **Hitbox-urile lăzii și butoiului se reglează de mână, ÎN EDITOR** (cerut pe 2026-09-19: „vreau să ajustez manual cum am făcut și la monument, bush, egt, alba"). Lada și butoiul sunt acum **scene** — `castel_lada.tscn` și `castel_butoi.tscn` — instanțiate de `_gramada()`: tragi de `CollisionShape2D` în viewport, ca la orice alt prop. Constantele `HITBOX_*` și funcția `_prop()` au dispărut din `castel_harta.gd`; din scene vin și `region_rect`-ul din atlas, și scara ×2 (deci și arta se schimbă de acolo). Cutiile pornesc de la 44×20 px, la (0, −10). Verificat rulând: 118 props, **poziții și bucăți de atlas identice** cu varianta veche din cod (aceeași sămânță, același număr de `randf()`), plus `tool_castel_harta.tscn` întreg.
+- ⚠️ **Depășit pe 2026-09-20:** au rămas numai 2 turnuri (cele de la mijlocul zidurilor laterale),
+  iar scara din zidul de nord a dispărut. Vezi log-ul de pe 2026-09-20.
 
 ---
 

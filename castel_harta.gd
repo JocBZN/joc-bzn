@@ -10,7 +10,7 @@ extends Node2D
 #   • PODEAUA e cea veche, `castle_bg.png`, desenată de shaderul din `ground.gd::set_prison` — harta
 #     nu mai pune pavaj, iarbă sau poteci peste ea;
 #   • DECORUL e numai butoaie și lăzi. Fără statui, coloane, morminte, fântână, copaci, bănci.
-#   • Zidurile, turnurile, scara și arcadele cu uși au rămas: ele fac din curte un castel.
+#   • Zidurile, turnurile și arcadele cu uși au rămas: ele fac din curte un castel.
 #
 # O construiește `prison.gd::enter()` în `World`, centrată pe POARTA prin care ai intrat (deci
 # poarta e mereu în mijlocul curții), și o șterge la ieșire. Cât ești în Limbo e doar ascunsă.
@@ -24,7 +24,12 @@ extends Node2D
 # subțire de piatră. Dincolo de ziduri podeaua se stinge spre negru (`castel_intuneric.gd`).
 #
 # Curtea: pătrat de 78×78 dale de 64 px (4992 px); discul vechi avea raza 3000, deci ~12% mai
-# mică. Șase turnuri (4 în colțuri, 2 la mijlocul zidurilor laterale), scara în zidul de nord.
+# mică. Două turnuri, la mijlocul zidurilor de vest și est.
+#
+# ⚠️ A DOUA REVIZIE, 2026-09-20, tot de la Răzvan: „șterge clădirile din colțuri că nu îmi place
+# cum arată" și „în partea de mijloc sus la perete scoate treptele alea și pune tot perete". Deci
+# au dispărut cele patru turnuri din colțuri (au rămas numai cele două de la mijloc) și scara din
+# zidul de nord (acolo e acum cărămidă întreagă, cu ferestre ca pe tot zidul).
 #
 # Marginea (unde se oprește player-ul) o dă `rect_joc()`, citit de `prison.gd` și dat lui
 # `ground.gd::set_margine_dreptunghi`. Tot acolo se uită și spawner-ul, deci inamicii nu se nasc
@@ -37,6 +42,11 @@ const FATA_ZID := 136.0         # înălțimea feței zidului de nord, px de tex
 const STRAJA := 6               # câte dale de podea se mai văd dincolo de ziduri
 const STINGERE := 5             # pe câte dale se stinge podeaua de acolo spre negru
 const SEMINTA := 0x5143         # „SJ" — aceeași sămânță = aceleași lăzi și butoaie la fiecare intrare
+# Cât coboară TALPA player-ului sub originea lui: pânza lui The G („grasu directii") e 124 px și
+# talpa stă la 95, adică +33 față de centru — aceeași cifră pe care o țintește
+# `tool_aliniaza_talpi.gd::TINTA_TALPA` pentru toate personajele — iar player-ul e la `scale = 2`
+# în `main.tscn`. Deci ce vezi jos pe ecran e cu 66 px sub punctul pe care îl oprește marginea.
+const TALPA := 66.0
 
 const DIR := "res://harta/castle/Castel Textura/"
 
@@ -52,18 +62,25 @@ const TURN_SUS := Rect2(32, 32, 96, 64)         # parapetul turnului (gol la mij
 const TURN_CAP := Rect2(32, 96, 96, 18)
 const ZID_FARA_CAP := Rect2(32, 210, 128, 46)   # fața zidului fără creneluri (sub capacul turnului)
 
-const SCARA := Rect2(32, 32, 64, 96)            # Struct
 const ARCADA := Rect2(408, 27, 80, 64)
 const USA := Rect2(29, 103, 37, 50)             # din atlasul FĂRĂ umbră (stă într-o arcadă)
 
 # Singurul decor: lăzi și butoaie — fiecare e o SCENĂ, nu cod (varianta „with Shadow", cu umbra
 # deja desenată). Sunt scene tocmai ca să poți regla HITBOX-ul DE MÂNĂ, în editor, exact ca la
-# monument, tufă, EGT sau albă: deschizi `castel_lada.tscn` / `castel_butoi.tscn`, apuci
-# `CollisionShape2D` cu mouse-ul în viewport și-l tragi peste desen până stă bine. Ce vezi acolo e
-# fix ce blochează în joc — nu mai există nicio cifră de hitbox în fișierul ăsta.
+# monument, tufă, EGT sau albă: deschizi `castel_lada.tscn` / `castel_butoi.tscn` și tragi
+# `CollisionShape2D` cu mouse-ul. Ce vezi acolo e fix ce blochează în joc — nu mai există nicio
+# cifră de hitbox în fișierul ăsta.
+#
+# ⚠️ O SINGURĂ REGULĂ, și e singura care contează: hitbox-ul se trage pe LĂȚIME, nu pe înălțime —
+# el trebuie să rămână jos, călare pe originea scenei (y de la ~−14 la ~+6, adică pe TALPA
+# desenului), NU urcat peste desen. Motivul: harta e văzută de sus, deci toate hitbox-urile din
+# joc stau în planul PODELEI, iar player-ul se lovește de ele cu un cerc mic (rază 10 × scale 2)
+# lipit de originea LUI. Un hitbox tras în sus peste ladă ajunge la 25-45 px deasupra podelei,
+# adică unde nu trece nimeni — și atunci player-ul intră liniștit prin ladă, ca și cum n-ar fi.
+# Exact asta s-a întâmplat pe 2026-09-20 și de-asta au fost coborâte la loc.
 # Din scene vine și bucata de atlas desenată (`region_rect`), și scara ×2, deci și arta se schimbă
-# de acolo. Desenul, ca reper: lada ~78×92 px de lume, butoiul ~62×72; cutiile pornesc de la 44×20,
-# așezate cu marginea de jos pe baza desenului.
+# de acolo. Desenul, ca reper: lada ~78×92 px de lume, butoiul ~62×72, amândouă cu baza la y = +6;
+# cutiile sunt 80×20 și 63×20, cât desenul de lat, așezate cu marginea de jos pe baza lui.
 const LADA_SCENA := preload("res://castel_lada.tscn")
 const BUTOI_SCENA := preload("res://castel_butoi.tscn")
 
@@ -77,9 +94,17 @@ var _rng := RandomNumberGenerator.new()
 
 # Unde are voie player-ul, în coordonate de LUME. Zidul de nord oprește la baza feței, celelalte
 # la buză; câțiva pixeli de joc ca picioarele să nu intre în piatră.
+#
+# ⚠️ Marginea de JOS ține cont de TALPA, și de-asta e singura care nu e „câțiva pixeli".
+# `ground.gd::in_margine` oprește ORIGINEA player-ului, iar originea lui nu e la picioare, e la
+# brâu (vezi TALPA). Cu 10 px de buză, originea ajungea pe buză și tălpile treceau 56 px DINCOLO
+# de ea: se vedea cum calcă prin zidul de jos (reclamat pe 2026-09-20). Acum se oprește cu tălpile
+# pe buză, intrate câțiva pixeli în piatră, ca orice personaj lipit de un zid.
+# La nord n-are ce repara: acolo zidul e o FAȚĂ înaltă ÎN SPATELE player-ului, deci e normal ca el
+# s-o acopere. La est/vest silueta e lată de ~34 px, cam cât buza, deci cei 20 de acolo ajung.
 func rect_joc() -> Rect2:
 	var a := global_position + Vector2(-N * T + 20.0, -N * T + 14.0)
-	var b := global_position + Vector2(N * T - 20.0, N * T - 10.0)
+	var b := global_position + Vector2(N * T - 20.0, N * T - TALPA + 6.0)
 	return Rect2(a, b - a)
 
 func construieste() -> void:
@@ -121,9 +146,9 @@ func _ziduri() -> void:
 	_np(_plat, _tx_zid, ZID_FATA, Rect2(-N * T, sus, 2 * N * T, fata), [0, 27, 0, 19])
 	# Buza de sus a zidului (spre drumul de strajă).
 	_np(_plat, _tx_zid, BUZA_O, Rect2(-N * T, sus - 8 * S, 2 * N * T, 8 * S))
-	# Ferestre de-a lungul zidului, din 4 în 4 dale, ocolind scara, arcadele și turnurile.
+	# Ferestre de-a lungul zidului, din 4 în 4 dale, ocolind numai arcadele (scara nu mai e).
 	for i in range(-30, 31, 4):
-		if absi(i) <= 3 or absi(absi(i) - 13) <= 2:
+		if absi(absi(i) - 13) <= 2:
 			continue
 		_bucata(_plat, _tx_zid, FEREASTRA, Vector2(i * T - 12 * S, sus + (FATA_ZID * 0.5 - 8) * S), false)
 	# Buzele laterale și cea de jos: groapa curții văzută de sus.
@@ -131,9 +156,10 @@ func _ziduri() -> void:
 	_np(_plat, _tx_zid, BUZA_V_DR, Rect2(N * T, sus - 8 * S, 8 * S, 2 * N * T + fata + 8 * S))
 	_np(_plat, _tx_zid, BUZA_O, Rect2(-N * T - 10 * S, N * T, 2 * N * T + 18 * S, 8 * S))
 
-	# Scara din mijlocul zidului de nord: urcă pe drumul de strajă (decor — nu se urcă). Treptele
-	# din mijloc se repetă, ca scara să ajungă exact până sus, oricât de înalt ar fi zidul.
-	_np(_plat, _tx_struct, SCARA, Rect2(-SCARA.size.x * S * 0.5, sus, SCARA.size.x * S, fata), [0, 12, 0, 12])
+	# ⚠️ SCARA din mijlocul zidului de nord a fost SCOASĂ pe 2026-09-20 („scoate treptele alea și
+	# pune tot perete"). Acolo e acum aceeași cărămidă ca pe restul zidului — fața lui o desenează
+	# `ZID_FATA` de mai sus pe toată lățimea, deci n-a mai rămas nicio gaură de umplut, iar
+	# ferestrele merg și ele prin mijloc, ca zidul să arate la fel de la un capăt la altul.
 	# Două arcade cu uși de lemn, simetrice.
 	for x in [-13.0, 13.0]:
 		var p := Vector2(x * T - ARCADA.size.x * S * 0.5, -N * T - ARCADA.size.y * S)
@@ -149,12 +175,9 @@ func _ziduri() -> void:
 
 # ---------- turnurile ----------
 func _turnuri() -> void:
-	# Colțurile de nord: turnuri mari care ies 6 dale în curte.
-	_turn(Vector2(-N + 3.5, -N + 6), 7, 6, 154.0, Rect2(-N * T, -N * T, 7 * T, 6 * T))
-	_turn(Vector2(N - 3.5, -N + 6), 7, 6, 154.0, Rect2((N - 7) * T, -N * T, 7 * T, 6 * T))
-	# Colțurile de sud: stau pe drumul de strajă și intră în curte cu vârful — treci PE DUPĂ ele.
-	_turn(Vector2(-N + 3.5, N + 3.5), 7, 5, 100.0, Rect2(-N * T, (N - 2) * T, 7 * T, 2 * T))
-	_turn(Vector2(N - 3.5, N + 3.5), 7, 5, 100.0, Rect2((N - 7) * T, (N - 2) * T, 7 * T, 2 * T))
+	# ⚠️ Turnurile din COLȚURI au fost SCOASE pe 2026-09-20 („șterge clădirile din colțuri, nu îmi
+	# place cum arată"). Curtea are acum numai turnurile de la mijlocul zidurilor de vest și est;
+	# colțurile rămân zid drept, ca o curte deschisă.
 	# Mijlocul zidurilor de vest și est: capătul aleilor laterale.
 	_turn(Vector2(-N + 2.5, 4), 5, 4, 90.0, Rect2(-N * T, 0, 5 * T, 4 * T))
 	_turn(Vector2(N - 2.5, 4), 5, 4, 90.0, Rect2((N - 5) * T, 0, 5 * T, 4 * T))
