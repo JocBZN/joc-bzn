@@ -47,7 +47,6 @@ const MARGINE_FADE := 700.0     # pe câți pixeli se stinge podeaua spre negru,
 
 var margine_raza := 0.0         # 0 = fără margine (lumea normală și Limbo sunt tot infinite)
 var margine_centru := Vector2.ZERO
-var margine_rect := Rect2()      # dacă are arie, marginea e ACEST dreptunghi (castelul), nu discul
 
 var _mat: ShaderMaterial
 var _grass: Texture2D
@@ -159,20 +158,10 @@ func _set_warp(on: bool, amount: float, scale: float, speed: float) -> void:
 func set_margine(centru: Vector2, raza: float = MARGINE_RAZA) -> void:
 	margine_centru = centru
 	margine_raza = raza
-	margine_rect = Rect2()
-	_scrie_margine()
-
-# A doua formă de margine (din 2026-09-18): un DREPTUNGHI, pentru castelul lui Sir John, care are
-# ziduri drepte (`castel_harta.gd::rect_joc`). Groapa rotundă din shader rămâne stinsă — zidurile
-# și întunericul le desenează harta castelului; de aici vine doar oprirea.
-func set_margine_dreptunghi(r: Rect2) -> void:
-	margine_rect = r
-	margine_raza = 0.0
 	_scrie_margine()
 
 func opreste_margine() -> void:
 	margine_raza = 0.0
-	margine_rect = Rect2()
 	_scrie_margine()
 
 func _scrie_margine() -> void:
@@ -183,15 +172,11 @@ func _scrie_margine() -> void:
 	_mat.set_shader_parameter("void_fade", MARGINE_FADE)
 
 func _in_lume(p: Vector2) -> bool:
-	if margine_rect.has_area():
-		return margine_rect.has_point(p)
 	return margine_raza <= 0.0 or margine_centru.distance_to(p) <= margine_raza
 
 # Punctul adus înapoi în lume. Player-ul se OPREȘTE pe buză (nu e împins înapoi și nu cade):
 # `player.gd` o cheamă după `move_and_slide`.
 func in_margine(p: Vector2) -> Vector2:
-	if margine_rect.has_area():
-		return p.clamp(margine_rect.position, margine_rect.end)
 	if margine_raza <= 0.0:
 		return p
 	var d := p - margine_centru

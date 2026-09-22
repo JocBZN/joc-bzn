@@ -24,6 +24,57 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-22 (castelul e iar un disc gol: harta făcută de mână, ștearsă)
+
+**Cerut de Răzvan:** „scoate pereti si structurile din dimensiunea castel, vreau sa fie ca inainte".
+Întrebat dacă lăzile și butoaiele rămân, a zis **să iasă și ele** — deci „ca înainte" e literal:
+cum arăta castelul până pe 2026-09-18.
+
+**Atinse:** `prison.gd`, `ground.gd`, `README.md`. **Șterse:** `castel_harta.gd`,
+`castel_intuneric.gd`, `castel_lada.tscn`, `castel_butoi.tscn`, `tool_castel_harta.gd/.tscn`,
+`harta/castle/Castel Textura/`. **Nou:** `tool_castel_gol.gd/.tscn`.
+
+### Ce a rămas din castel
+
+Discul vechi: **rază 3000** de lespezi (`castle_bg.png`, desenate tot de `ground.gd::set_prison`,
+care n-a fost atins), stins spre negru la margine, cu poarta în mijloc, Sir John, cavalerii și
+nimic altceva. Fără ziduri, turnuri, arcade, buze de piatră, întuneric pătrat, lăzi sau butoaie.
+
+### 🔑 De ce a plecat și folderul de artă, nu doar codul
+
+`preload_all.gd` scanează **recursiv tot `res://harta`** (`FOLDERE`), și ține resursele în
+`_tinute` cât ține runda. Un set de texturi pe care nu-l mai desenează nimeni ar fi fost încărcat
+la fiecare pornire și ținut în memorie degeaba — invizibil, fiindcă nimic nu se plânge de artă
+nefolosită. De-aia a plecat `harta/castle/Castel Textura/` odată cu `castel_harta.gd`. Tot ce s-a
+șters e în git, la commit-ul `66ae1b5d`, dacă se vor zidurile înapoi.
+
+### 🔑 A doua formă de margine a plecat și ea
+
+Pe 2026-09-18 `ground.gd` primise, pe lângă discul lui dintotdeauna, un **dreptunghi**
+(`set_margine_dreptunghi`, `margine_rect`, plus ramuri în `in_margine` și `loc_in_margine`), fiindcă
+o curte cu ziduri drepte nu se oprește pe cerc. Singurul care îl chema era `prison.gd::_margine`.
+Odată harta ștearsă, l-am scos: un al doilea fel de margine pe care nu-l mai folosește nimeni e
+exact genul de cod care rămâne în urmă în tăcere și minte la următoarea schimbare. `_in_lume()` a
+rămas (îl folosește `loc_in_margine`), dar iar întreabă doar de rază.
+
+`prison.gd` a pierdut `CASTEL_HARTA`, câmpul `_harta`, `_construieste_harta()`, `_free_harta()` și
+cele două `_arata_obiect(_harta, …)` din `suspenda()` / `reia()`; `_margine()` e cuvânt cu cuvânt
+cel de dinainte de 09-18.
+
+### ✅ Verificat rulând — `tool_castel_gol.tscn` (nouă, în fereastră)
+
+Intră în castel pe drumul adevărat (`prison.enter` cu o `poarta_castel.tscn` reală), așteaptă
+cinematica lui Sir John, apoi măsoară:
+- noduri de hartă în `World`: **doar `PoartaCastel`**; `prison` nu mai are câmpul `_harta`;
+- `ground` nu mai are `set_margine_dreptunghi`; `margine_raza = 3000`, centrul **exact** pe poartă;
+- player-ul azvârlit 5000 px în cele patru zări se oprește la **3000** de poartă, pe cerc;
+- la ieșire: `prison.active = false`, `margine_raza = 0`;
+- poze (`user://gol_sus`, `gol_poarta`, `gol_nord`): lespezi goale, poarta, și stingerea veche
+  spre negru la marginea discului.
+
+Unealta ține inamicii curățați și boss-ul parcat, ca player-ul să nu moară și să nu scrie în
+clasamentul real — `scores.save` a rămas cu data de 09-19, verificat după rulare.
+
 ## Session log — 2026-09-20 (castel: hitbox-urile cutiilor înapoi pe podea, zidul de jos, colțuri goale, zid întreg)
 
 **Cerut de Răzvan:** „am ajustat manual hitboxurile de la butoi si lada si acum trece sprite-ul de
