@@ -201,6 +201,7 @@ const TRAD := {
 "NO BONUS STATS": ["无属性加成", "KEINE BONUSWERTE", "SIN BONIFICACIONES", "БЕЗ БОНУСОВ", "AUCUN BONUS", "ボーナスなし", "BEZ BONUSÓW", "BONUS YOK"],
 "-%d%% XP NEEDED PER LEVEL": ["每级所需经验 -%d%%", "-%d%% BENÖTIGTE EP PRO STUFE", "-%d%% DE EXP NECESARIA POR NIVEL", "-%d%% ОПЫТА ЗА УРОВЕНЬ", "-%d%% D'XP REQUIS PAR NIVEAU", "レベルごとの必要経験値 -%d%%", "-%d%% WYMAGANEGO PD NA POZIOM", "SEVİYE BAŞINA -%d%% XP"],
 "%d%% CHANCE OF KEY DROPS": ["钥匙掉落几率 %d%%", "%d%% CHANCE AUF SCHLÜSSEL", "%d%% DE PROBABILIDAD DE LLAVES", "%d%% ШАНС ВЫПАДЕНИЯ КЛЮЧЕЙ", "%d%% DE CHANCE DE CLÉS", "鍵のドロップ率 %d%%", "%d%% SZANSY NA KLUCZE", "%d%% ANAHTAR DÜŞME ŞANSI"],
+"+%d%% DAMAGE PER LEVEL": ["每级 +%d%% 伤害", "+%d%% SCHADEN PRO LEVEL", "+%d%% DAÑO POR NIVEL", "+%d%% УРОНА ЗА УРОВЕНЬ", "+%d%% DÉGÂTS PAR NIVEAU", "レベルごとにダメージ+%d%%", "+%d%% OBRAŻEŃ NA POZIOM", "SEVİYE BAŞINA +%d%% HASAR"],
 # --- DEBLOCĂRI (2026-09-07, `unlocks.gd`) ---
 # „LOCKED" e capul de secțiune din fișă (stă în locul lui „PERK"/al bonusului), „UNLOCKED" e
 # pancarta mare, aurie, care sare în joc când tocmai ai câștigat ceva. Restul sunt CERINȚELE,

@@ -26,6 +26,7 @@ const CERINTE := {
 	# --- CARACTERE ---
 	"spellman": {"tip": "character", "cerinta": "Take Tome of Knowledge in one run"},
 	"jordan":   {"tip": "character", "cerinta": "Open 3 chests in one run"},
+	"liu":      {"tip": "character", "cerinta": "Have 100 Damage in one run"},
 	# --- ARME ---
 	"mage":     {"tip": "weapon",    "cerinta": "Get 20 Luck in one run"},
 	"sword":    {"tip": "weapon",    "cerinta": "Have 100 Damage in one run"},
@@ -40,6 +41,13 @@ const CUFERE_JORDAN := 3
 const LUCK_MAGE := 20.0
 const DAMAGE_SWORD := 100
 const CRIT_KNIFE := 1.0                   # 1.0 = 100% șansă de critic
+# ⚠️ Liu Xiang cere ACELAȘI prag ca Cursed Sword, fiindcă așa a fost cerut („100 damage in one
+# run"). Deci amândouă se deblochează în ACELAȘI cadru, la aceeași lovitură — de-asta anunțul
+# de mai jos are coadă: `hud.announce` scrie peste pancarta de dinainte, iar fără coadă jucătorul
+# ar fi văzut doar una din două deblocări. Cifra e ținută separat de a sabiei, nu împărțită cu ea:
+# sunt două recompense diferite care azi se întâmplă să coste la fel, iar dacă Răzvan reglează
+# una, cealaltă n-are de ce să se miște odată cu ea.
+const DAMAGE_LIU := 100
 
 var _nume := {}   # id -> numele de pe ecran, citit o singură dată din `menu.gd`
 
@@ -121,6 +129,11 @@ func verifica_statusuri(p) -> void:
 		deblocheaza("mage")
 	if not e_castigat("sword") and int(round(p.bullet_damage * p.damage_mult())) >= DAMAGE_SWORD:
 		deblocheaza("sword")
+	# Liu Xiang — aceeași măsură ca sabia, adică chiar cifra „Damage" din panoul de level up.
+	# Scris ca rând separat, nu lipit de al sabiei cu un `and`: pragurile sunt două constante
+	# diferite (vezi `DAMAGE_LIU`), iar dacă una se mișcă, rândul celeilalte rămâne întreg.
+	if not e_castigat("liu") and int(round(p.bullet_damage * p.damage_mult())) >= DAMAGE_LIU:
+		deblocheaza("liu")
 	if not e_castigat("knife") and p.crit_chance_now() >= CRIT_KNIFE:
 		deblocheaza("knife")
 
@@ -131,10 +144,39 @@ func verifica_statusuri(p) -> void:
 # nimic — și nici n-are cine să deblocheze ceva de acolo.
 const AUR := Color(1.0, 0.82, 0.35)
 
+# Cât stă o pancartă pe ecran, cap la cap: 0,2 apariție + 1,6 ținut + 0,6 stingere din
+# `hud.gd::announce`. Scrisă aici ca să nu se anunțe două deblocări una peste alta; dacă
+# tween-ul de acolo se schimbă, cifra asta trebuie să-l urmeze.
+const PANCARTA := 2.4
+
+var _coada: Array[String] = []
+var _anunta_acum := false
+
+# Anunță pe RÂND, nu deodată. `hud.announce` omoară tween-ul pancartei dinainte și scrie peste ea,
+# deci două deblocări în același cadru (Liu Xiang și Cursed Sword cer amândouă 100 damage) ar fi
+# arătat una singură. Coada e în autoload, nu în HUD: ea trebuie să supraviețuiască și dacă nu
+# există HUD în clipa deblocării (meniu, între runde) — atunci pur și simplu se golește fără să
+# deseneze nimic, exact ca înainte.
 func _anunta(id: String) -> void:
+	_coada.append(id)
+	if not _anunta_acum:
+		_scoate_din_coada()
+
+func _scoate_din_coada() -> void:
+	if _coada.is_empty():
+		_anunta_acum = false
+		return
+	var id: String = _coada.pop_front()
 	var hud := get_tree().get_first_node_in_group("hud")
-	if hud != null and hud.has_method("announce"):
-		hud.announce("UNLOCKED", nume(id), AUR)
+	if hud == null or not hud.has_method("announce"):
+		# Fără HUD n-are cine să arate nimic — golim coada pe loc, fără să așteptăm degeaba.
+		_coada.clear()
+		_anunta_acum = false
+		return
+	hud.announce("UNLOCKED", nume(id), AUR)
+	_anunta_acum = true
+	await get_tree().create_timer(PANCARTA).timeout
+	_scoate_din_coada()
 
 # Numele de pe ecran, citit DIN `menu.gd` (`WEAPONS` + `CHARACTERS`), nu copiat aici — exact ca
 # `menu.gd::_arme_stats`, care citește statusurile din `player.gd`. O copie ar fi rămas în urmă în

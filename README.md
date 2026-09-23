@@ -151,6 +151,16 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-23, Liu Xiang — a fourth character, and unlock banners that queue)
+
+- ⚔️ **LIU XIANG**, the warrior from `Characters/Warrior`. His perk: **+1% damage per level**, added inside `damage_mult()` right beside the Cursed Sword's level bonus — which is deliberate, because they are the same kind of thing arriving from two different places (one from the weapon, one from who you are) and they **stack honestly**: Liu Xiang with a Cursed Sword climbs 2%/level (measured: +0.38 vs +0.19 by level 20). Like every other level bonus in the game it is **computed on use**, not written into a stat, so there is never an old bonus to subtract at level-up.
+- 🧩 **A third kind of character perk.** `CARACTERE` keeps perks as *optional fields* because each works differently: `xp_pe_nivel` multiplies the XP threshold, `sansa_cheie` *replaces* a fixed rate in `enemy.gd`, and now `dmg_pe_nivel` *adds* into a multiplier. ⚠️ Its neutral value is **0, not 1.0** — a 1.0 left there by habit would have meant +100% damage per level. The menu card writes itself from the number, as before.
+- 🔓 **Unlocked by "100 Damage in one run" — word for word the Cursed Sword's requirement**, as asked. That means both unlock in the *same frame*, and `hud.announce` kills the previous banner's tween and writes over it: the player would have seen one of the two. So `unlocks.gd::_anunta` now holds a **queue** and releases banners one at a time, `PANCARTA = 2.4s` apart (0.2 + 1.6 + 0.6, the length of the tween in `hud.gd`). The queue lives in the autoload, not the HUD, so it survives an unlock with no HUD on screen — in which case it empties at once instead of waiting for nothing.
+- 🖼️ **Same art pipeline, third time.** `tool_taie_gifuri.ps1` → `tool_aliniaza_talpi.tscn` **twice** (`run` with 8 frames, `idle` with 1) → `--headless --import`, with the same `PANZA = 96` / `TINTA_TALPA = 81` as Spellman and Jordan. All four characters now measure **33.0** from canvas centre to sole. The frame order inside `Idle_rotations_8dir.gif` was re-checked with a contact sheet rather than assumed from Spellman's — it matches, but that is something you *look at*: frames 2 and 6 are mirrored profiles and the beard says which is which.
+- 🪤 **The check that would have measured The G and passed anyway.** `_aplica_caracter()` falls back to The G for a character you have not earned — and Liu Xiang is locked in an ordinary save, so every measurement in `tool_caracter.tscn` would have been taken on The G. The tool now switches `op_start` on **in RAM** for the duration and back off **before any write to disk**.
+- ✅ **Verified by running:** `tool_caracter.tscn` (two new sections), **all seven sections green** — 16 animations on all four, zero vertical jump, equal ground height; XP thresholds **identical to The G's** (which is what catches an `xp_pe_nivel` set on him by mistake); the damage bonus asked of **`damage_mult()` itself**; and the unlock asked of **`Unlocks.verifica_statusuri(p)`**, the same function `player.gd::_process` calls — below the threshold he stays locked, at 101 damage *both* he and the sword open, and a cardboard HUD in the `hud` group confirms **both banners reach the screen**, in order. The real save came out **byte-identical** to a copy taken beforehand. `tool_check_i18n`: everything translated (1 new key × 8 languages; "LIU XIANG" joined `IGNORATE` — a person's name is not translated). `main.tscn`: zero errors. Plus pictures: all 8 directions at game scale on the same ground line as The G, and the CHOOSE CHARACTER page both locked and unlocked.
+- 🔎 **Left untouched:** `Characters/Nerd/`, a fifth character folder that appeared on disk after Warrior and was not part of the request — no name, no perk, no unlock condition. ⚠️ Its files are named `… (1).gif`, and the slicer takes the direction from the tail of the filename, so they need renaming first.
+
 ## Current state (2026-09-23, seven new items and a compass in the overworld)
 
 **Sunglasses** *(Rare, reflect 25% of damage taken)*, **Third Eye** *(Epic, reveal the closest portal)*, **Studio Mic** *(Rare, −10% difficulty)*, **Diamond Watch** *(Legendary, 75% less XP to level up)*, **Sunscreen** *(Common, +10 Max HP, +1 HP/sec)*, **Museum Piece** *(Rare, −10% move speed, +25% crit chance)* and **Skateboard** *(Rare, +30 movement speed)*. The pool is now **71 items**.
@@ -243,12 +253,13 @@ Three things asked for in one go, all around *getting at* the game rather than p
 
 ## Current state (2026-09-07, everything but the Pistol and The G is now earned)
 
-**The game starts with one character and one weapon.** The other six are locked behind a single thing each, and the menu shows them as **black silhouettes** with the requirement written on the card next to them — you can see the *shape* of what you're missing, and exactly what to do about it:
+**The game starts with one character and one weapon.** The other seven are locked behind a single thing each, and the menu shows them as **black silhouettes** with the requirement written on the card next to them — you can see the *shape* of what you're missing, and exactly what to do about it:
 
 | Locked | Requirement |
 |---|---|
 | **Spellman** | Take Tome of Knowledge in one run |
 | **Jordan Blackford** | Open 3 chests in one run |
+| **Liu Xiang** | Have 100 Damage in one run *(added 2026-09-23 — the same requirement as the Cursed Sword, so both unlock at once)* |
 | **Mage Staff** | Get 20 Luck in one run |
 | **Cursed Sword** | Have 100 Damage in one run |
 | **Celesto's Scythe** | Defeat Celesto |

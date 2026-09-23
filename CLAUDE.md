@@ -24,6 +24,70 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-23 (Liu Xiang, al patrulea caracter)
+
+**Cerut de Răzvan:** „Ti-am bagat un nou folder in Characters - se numeste Warrior - o sa fie un nou caracter pe care poti sa il deblochezi - Liu Xiang - +1% damage per level - ca sa il deblochezi iti trebuie 100 damage in one run to unlock."
+
+**Fișiere noi:** `liu_frames.tres`, `Characters/Warrior/frames/` (72 PNG).
+**Atinse:** `player.gd` (`CARACTERE`, `dmg_pe_nivel`, `_aplica_caracter`, `damage_mult`), `menu.gd` (`CHARACTERS` + `_bonus_caracter`), `unlocks.gd` (cerința, pragul, coada de pancarte), `i18n.gd` (1 cheie × 8 limbi), `tool_check_i18n.gd`, `tool_aliniaza_talpi.gd` (re-țintit), `tool_caracter.gd` (două probe noi).
+
+### Arta: aceeași conductă, a treia oară
+
+`tool_taie_gifuri.ps1` → **`tool_aliniaza_talpi.tscn` de DOUĂ ori** (`run` cu 8 cadre, `idle` cu 1) → `--headless --import`. Aceiași `PANZA = 96` / `TINTA_TALPA = 81` ca la Spellman și Jordan, deci Liu Xiang calcă pe **același pământ**: centru→talpă **33.0**, ca toți ceilalți trei. Mersul a venit pe pânze de 92, pozele de stat pe loc pe 64.
+
+**Ordinea celor 8 cadre din `Idle_rotations_8dir.gif` am verificat-o iar cu o planșă de contact** — n-am presupus-o fiindcă seamănă cu a lui Spellman. Iese la fel (`0=south`, apoi în cerc), dar asta se **vede**, nu se deduce: cadrul 2 și cadrul 6 sunt profile în oglindă, iar barba spune care e care.
+
+### Bonusul: al treilea fel de bonus de caracter
+
+`CARACTERE` ține bonusurile ca **câmpuri opționale**, fiindcă fiecare lucrează altfel. Acum sunt trei feluri:
+
+```gdscript
+"spellman": {… "xp_pe_nivel": 0.95}    # înmulțește pragul de XP, la fiecare level up
+"jordan":   {… "sansa_cheie": 0.02}    # ÎNLOCUIEȘTE o rată fixă din enemy.gd
+"liu":      {… "dmg_pe_nivel": 0.01}   # se ADUNĂ în damage_mult(), citit la fiecare lovitură
+```
+
+⚠️ **Neutrul lui e 0, nu 1.0.** `_xp_pe_nivel` înmulțește, deci „nimic" acolo e 1.0; `dmg_pe_nivel` se adună într-un înmulțitor, deci „nimic" e 0 — un 1.0 pus din greșeală ar fi însemnat +100% damage pe nivel. Scris pe față lângă declarație.
+
+Se **calculează la folosire**, nu se scrie în stat: o linie în `damage_mult()`, exact lângă bonusul sabiei. De-asta se și **adună cinstit** cu el — amândouă sunt „+1% damage / nivel", doar că unul vine din armă și celălalt din cine ești: **Liu Xiang cu Cursed Sword urcă cu 2%/nivel** (măsurat: +0,38 față de +0,19 până la nivelul 20).
+
+### ⚠️ Deblocarea lui cere ACELAȘI lucru ca sabia — și asta a stricat pancarta
+
+„100 damage in one run" e, cuvânt cu cuvânt, cerința care exista deja pentru **Cursed Sword**. Deci amândouă se deblochează în **același cadru, la aceeași lovitură**.
+
+`hud.announce` omoară tween-ul pancartei dinainte și scrie peste ea. Fără nicio altă schimbare, jucătorul ar fi văzut **o singură** pancartă din două, iar deblocarea cealaltă ar fi părut că nu s-a întâmplat. De-asta `unlocks.gd::_anunta` are acum o **coadă**: pancartele ies pe rând, la `PANCARTA = 2.4` secunde una de alta (0,2 + 1,6 + 0,6, cât ține tween-ul din `hud.gd`). Coada stă în autoload, nu în HUD — trebuie să supraviețuiască și dacă nu există HUD în clipa deblocării (meniu, între runde), caz în care se golește pe loc, fără să aștepte degeaba.
+
+Pragul e ținut într-o constantă a lui (`DAMAGE_LIU`), nu împărțit cu `DAMAGE_SWORD`: sunt două recompense care azi se întâmplă să coste la fel, și dacă Răzvan reglează una, cealaltă n-are de ce să se miște odată cu ea.
+
+### 🪤 Proba care l-ar fi măsurat pe The G și ar fi trecut senină
+
+`_aplica_caracter()` cade înapoi pe The G pentru un caracter **necâștigat** (plasa pusă pe 2026-09-07, ca o salvare veche să nu te lase să joci cu ceva ce n-ai deblocat). Liu Xiang e încuiat într-o salvare obișnuită — deci `tool_caracter.tscn`, care instanțiază un player adevărat pentru fiecare caracter, **l-ar fi măsurat pe The G** și ar fi raportat „ok" la tot: 0% damage pe nivel, pragurile lui The G, arta lui The G.
+
+Nu s-a întâmplat doar fiindcă unealta **cere** ca player-ul să fi pornit chiar ca el (`p.caracter == id`, rând care exista deja din 2026-09-02) — dar ăla ar fi picat, nu ar fi trecut. Reparat cum trebuie: unealta aprinde `op_start` **în RAM** cât țin măsurătorile și îl stinge **înainte de orice scriere pe disc**.
+
+### ✅ Verificat rulând
+
+`tool_caracter.tscn` (două probe noi, [5] și [6]), **TOTUL E BINE** — 7 secțiuni, toate verzi:
+
+- arta: cele 16 animații la toți patru, 8 cadre de mers pe toate direcțiile, **Liu Xiang nu saltă deloc** la întoarcere (33.0..33.0), și toți patru calcă la aceeași înălțime pe `south` (33.0);
+- XP: iese **cifră cu cifră ca The G** (n-are bonus de XP) — rândul prinde un `xp_pe_nivel` pus din greșeală pe el;
+- chei: inamicul adevărat îi dă 0,0050, adică implicitul;
+- **damage: cerut lui `damage_mult()`**, adică exact funcția pe care o citește fiecare glonț. +1%/nivel la el, 0 la ceilalți trei, și **+1% exact** față de The G la nivelul 1, cu aceeași armă;
+- **deblocarea: cerută lui `Unlocks.verifica_statusuri(p)`**, aceeași funcție pe care o cheamă `player.gd::_process`. Sub prag stă încuiat; la 101 damage se deschid **și el, și sabia**; iar un HUD de carton, pus în grupa „hud", confirmă că **ajung pe ecran amândouă pancartele**, una după alta (`["CURSED SWORD", "LIU XIANG"]`);
+- pagina: patru rânduri, portretul decupat 76×76, fișa scrie `+1% DAMAGE PER LEVEL` **din cifra din cod**, iar cerința afișată e chiar `Unlocks.cerinta("liu")`.
+
+**Salvarea reală a ieșit nevătămată** — comparată bit cu bit cu o copie făcută înainte. Unealta pune la loc acum și `op_start`, și `unlocked`, și arma, nu doar caracterul, și **tipărește ce-a rămas în fișier** (capcana din regulile de sus: `Unlocks.deblocheaza` scrie pe disc).
+
+`tool_check_i18n.tscn`: **TOTUL E TRADUS** (1 cheie nouă × 8 limbi; „LIU XIANG" a intrat în `IGNORATE`, ca THE G, SPELLMAN și JORDAN BLACKFORD — numele unui om nu se traduce). `main.tscn`: **zero erori**.
+
+Și cu poze (scenă de unică folosință, ștearsă după): Liu Xiang pe toate cele 8 direcții, mers și stat pe loc, la scara din joc și pe aceeași linie de pământ cu The G; plus pagina CHOOSE CHARACTER de două ori — **cu lacătul** („LOCKED / HAVE 100 DAMAGE IN ONE RUN", siluetă neagră) și după ce-l câștigi.
+
+### 🔎 Rămas pe masă (NU am atins)
+
+`Characters/Nerd/` — un al cincilea folder de personaj, apărut pe disc la 16:45, după Warrior. Răzvan nu l-a cerut, deci n-are nici nume, nici bonus, nici cerință de deblocare; stă neatins. ⚠️ Când vine rândul lui: **fișierele lui se cheamă `… (1).gif`**, iar `tool_taie_gifuri.ps1` ia direcția din coada numelui — pe ele ar ieși `east (1)`, nu `east`. Se redenumesc întâi.
+
+---
+
 ## Session log — 2026-09-23 (șapte iteme noi, și busola care iese din dimensiuni)
 
 **Cerut de Răzvan:** „upgrade_72 - Sunglasses (Rare) - Reflect 25% of damage back; upgrade_73 - Third Eye (Epic) - Reveal the closest portal (cum arată când ești într-o dimensiune portalul, doar că în lumea normală să îi arate cu săgeata cel mai apropiat portal); upgrade_74 - Studio Mic (Rare) - -10% Difficulty; upgrade_75 - Diamond Watch (Legendary) - 75% less XP to level up; upgrade_76 - Sunscreen (Common) - +10 HP, +1HP/sec; upgrade_77 - Museum Piece (Rare) - -10% Movement Speed, +25% Crit chance; upgrade_78 - Skateboard (Rare) - +30 Movement Speed."

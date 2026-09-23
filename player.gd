@@ -188,6 +188,7 @@ const ARME := {
 #   the g      — arta de până acum, fără niciun bonus. Etalonul.
 #   spellman   — vrăjitorul: la fiecare nivel îi trebuie cu 5% mai puțin XP pentru următorul.
 #   jordan     — omul de afaceri: cheile de cufăr cad de 10× mai des.
+#   liu        — războinicul: +1% damage la fiecare nivel (2026-09-23).
 #
 # 🔑 Bonusurile sunt CÂMPURI OPȚIONALE, nu un câmp „bonus" care le-ar amesteca: fiecare are alt
 # fel de a lucra (unul se compune la level up, altul înlocuiește o rată fixă), iar cine n-are
@@ -225,10 +226,20 @@ const ARME := {
 # ⚠️ Cifra asta e SINGURUL loc unde se reglează: textul din fișa de meniu („2% CHANCE OF KEY
 # DROPS") se face din ea, iar `tool_caracter.tscn` o cere unui inamic adevărat. Nu e scrisă
 # nicăieri de mână, deci nu are cum să rămână în urmă.
+#
+# `dmg_pe_nivel`: cât DAMAGE în plus dă fiecare nivel, ca procent (0.01 = +1%/nivel). Se adună
+# în `damage_mult()`, lângă bonusul de nivel al sabiei — sunt exact același fel de lucru, doar
+# că unul vine din armă și celălalt din cine ești, deci se și adună cinstit: Liu Xiang cu
+# Cursed Sword urcă cu 2%/nivel. Ca la arme, se CALCULEAZĂ la folosire, nu se scrie în stat:
+# `damage_mult()` e citit la fiecare lovitură, deci nu există „bonusul vechi" de scăzut la level up.
+#
+#   nivel          1      10      20      30
+#   +1%/nivel    ×1,01   ×1,10   ×1,20   ×1,30     ← peste tot ce mai ai (țigări, Theo, Diesel)
 const CARACTERE := {
 	"grasu":    {"frames": "res://player_frames.tres"},
 	"spellman": {"frames": "res://spellman_frames.tres", "xp_pe_nivel": 0.95},
 	"jordan":   {"frames": "res://jordan_frames.tres",   "sansa_cheie": 0.02},
+	"liu":      {"frames": "res://liu_frames.tres",      "dmg_pe_nivel": 0.01},
 }
 
 # Caracterul cu care se joacă runda asta și bonusurile lui, citite o dată în `_ready` din
@@ -241,6 +252,10 @@ var _xp_pe_nivel := 1.0
 # n-are de ce să știe rata implicită a inamicilor, iar dacă ar ști-o, ar fi a doua copie a ei și
 # s-ar despărți de original la prima reglare.
 var sansa_cheie := -1.0
+# ⚠️ 0 = „nu schimb nimic", spre deosebire de `_xp_pe_nivel`, unde neutrul e 1.0: ăsta se ADUNĂ
+# în `damage_mult()` (înmulțitorul de damage), nu înmulțește. Un 1.0 pus aici din greșeală ar fi
+# însemnat +100% damage pe nivel.
+var dmg_pe_nivel := 0.0
 
 # --- BONUSUL DE NIVEL AL FIECĂREI ARME (cerut de Răzvan pe 2026-08-05) ---
 # „La fiecare nivel fiecare armă are un bonus specific." Nu e un item și nu se poate pierde: e
@@ -954,6 +969,10 @@ func bullet_size_scale() -> float:
 func damage_mult() -> float:
 	var m := 1.0 + cig_bonus  # Cigarette Pack: mereu pornit
 	m += bonus_arma("sword")  # Cursed Sword: +1% damage pe nivel
+	# Liu Xiang: +1% damage pe nivel, exact în locul în care stă și bonusul sabiei — sunt
+	# același fel de lucru (procent care crește cu nivelul), doar că unul vine din armă și
+	# celălalt din cine ești. Se ADUNĂ: cu Cursed Sword în mână, Liu Xiang urcă cu 2%/nivel.
+	m += level * dmg_pe_nivel
 	# Theo's Wrath: doar cât ești sub pragul de viață (20% din max_hp)
 	if theo_bonus > 0.0 and hp <= int(round(max_hp * theo_hp_threshold)):
 		m += theo_bonus
@@ -2251,6 +2270,7 @@ func _aplica_caracter() -> void:
 	# caracter fără bonus n-are de ce să scrie „fără bonus" în tabel ca să nu crape aici.
 	_xp_pe_nivel = float(c.get("xp_pe_nivel", 1.0))
 	sansa_cheie = float(c.get("sansa_cheie", -1.0))
+	dmg_pe_nivel = float(c.get("dmg_pe_nivel", 0.0))
 	var cale := String(c["frames"])
 	if ResourceLoader.exists(cale):
 		anim.sprite_frames = load(cale)

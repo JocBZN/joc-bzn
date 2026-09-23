@@ -22,6 +22,19 @@ extends Node
 #      `enemy.gd::_sansa_cheie()`. Firul player -> inamic e singurul loc unde bonusul asta poate
 #      sa se rupa, si s-ar rupe mut: nu crapa nimic, doar cad chei ca la toata lumea.
 #
+#   5. DAMAGE-UL. Bonusul lui Liu Xiang (+1% pe nivel) se masoara pe un player ADEVARAT, prin
+#      `damage_mult()` — adica exact functia pe care o citeste fiecare glont. Se verifica si ca
+#      se ADUNA cu bonusul sabiei (amandoua sunt "+1% damage / nivel", din doua surse diferite).
+#
+#   6. DEBLOCAREA. 100 damage intr-o runda il deblocheaza CU ADEVARAT, prin
+#      `Unlocks.verifica_statusuri(p)` — aceeasi functie pe care o cheama `player.gd::_process`.
+#      Si ca deblocarea lui NU inghite pancarta sabiei: amandoua cer acelasi prag, deci pica in
+#      acelasi cadru, iar `hud.announce` scrie peste pancarta dinainte.
+#
+# ⚠️ Liu Xiang e INCUIAT intr-o salvare obisnuita, iar `_aplica_caracter` cade inapoi pe The G
+# pentru un caracter necastigat — deci probele de mai sus l-ar fi masurat pe The G si ar fi trecut
+# toate. De-asta unealta aprinde `op_start` in RAM cat tine masuratoarea si-l stinge inainte de
+# orice scriere pe disc.
 # ⚠️ NU moare nimeni si nu se scrie nimic in `user://scores.save`: `GameSettings.character` se
 # schimba doar in RAM si se pune la loc la sfarsit. Tipareste si ce-a ramas in fisier, ca sa se
 # vada. (Capcana din CLAUDE.md: un test care atinge GameSettings poate ajunge in salvarea reala.)
@@ -53,10 +66,24 @@ func _salt_voie(id: String) -> float:
 
 var _erori := 0
 var _caracter_initial := ""
+# Ce am imprumutat din `GameSettings` si trebuie pus inapoi INAINTE de orice `_save()`.
+# `unlocked` se DUPLICA: e un Dictionary, deci o referinta ar fi fost acelasi obiect pe care
+# `Unlocks.deblocheaza` il modifica sub noi, si "copia" ar fi fost la fel de stricata.
+var _op_initial := false
+var _unlocked_initial := {}
+var _arma_initiala := ""
 
 func _ready() -> void:
 	_caracter_initial = GameSettings.character
+	_op_initial = GameSettings.op_start
+	_unlocked_initial = GameSettings.unlocked.duplicate()
+	_arma_initiala = GameSettings.weapon_type
 	print("(caracterul salvat, inainte de test: `%s`)" % _caracter_initial)
+	# Cat tin masuratorile, TOTUL e deblocat — altfel `_aplica_caracter` cade pe The G pentru
+	# orice caracter necastigat si probele l-ar masura pe el, trecand senine. Numai in RAM:
+	# `op_start` e un comutator care nu scrie nimic de la sine (vezi `unlocks.gd`), iar inainte
+	# de fiecare `_save()` al uneltei se pune la loc.
+	GameSettings.op_start = true
 
 	print("\n--- [1] arta: cele 16 animatii ---")
 	var talpi := {}
@@ -90,7 +117,13 @@ func _ready() -> void:
 	print("\n--- [4] sansa de chei, ceruta de un inamic adevarat ---")
 	await _verifica_chei()
 
-	print("\n--- [5] pagina CHOOSE CHARACTER ---")
+	print("\n--- [5] damage-ul lui Liu Xiang, masurat pe un player adevarat ---")
+	await _verifica_damage()
+
+	print("\n--- [6] deblocarea: 100 damage intr-o runda ---")
+	await _verifica_deblocarea()
+
+	print("\n--- [7] pagina CHOOSE CHARACTER ---")
 	await _verifica_meniul()
 
 	GameSettings.character = _caracter_initial
@@ -196,6 +229,8 @@ const ASTEPTAT := {
 	# inutila a randului de sus: daca cineva pune din greseala un `xp_pe_nivel` si pe el, aici se
 	# vede imediat.
 	"jordan":   {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
+	# La fel si Liu Xiang: bonusul lui e pe damage, nu pe XP.
+	"liu":      {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
 }
 
 func _verifica_xp() -> void:
@@ -242,6 +277,9 @@ func _masoara_praguri(id: String) -> Dictionary:
 # Pagina reala din meniu, construita de-adevaratelea. Verifica si ca lista de acolo si tabelul
 # din `player.gd` vorbesc despre aceleasi personaje — doua liste, doua locuri de uitat.
 func _verifica_meniul() -> void:
+	# Pagina se construieste cu lacatele ADEVARATE (`op_start` inapoi cum era): altfel Liu Xiang
+	# ar fi aparut deblocat si proba de mai jos n-ar fi masurat nimic.
+	GameSettings.op_start = _op_initial
 	var m: Node = load("res://menu.tscn").instantiate()
 	add_child(m)
 	await get_tree().process_frame
@@ -272,6 +310,17 @@ func _verifica_meniul() -> void:
 	var s: String = m._bonus_caracter("spellman")
 	_cer(s.contains("5") and s.to_upper().contains("XP"),
 		"Spellman isi scrie bonusul din cifra din cod (`%s`)" % s)
+	var l: String = m._bonus_caracter("liu")
+	_cer(l.contains("1") and l.to_upper().contains("DAMAGE"),
+		"Liu Xiang isi scrie bonusul din cifra din cod (`%s`)" % l)
+
+	# Lacatul lui: e singurul personaj necastigat in salvarea obisnuita, iar cerinta care se vede
+	# in fisa trebuie sa fie chiar cea din `unlocks.gd`, nu un text scris a doua oara in meniu.
+	_cer(Unlocks.CERINTE.has("liu"), "Liu Xiang are o cerinta de deblocare in `unlocks.gd`")
+	_cer(Unlocks.cerinta("liu") == Unlocks.cerinta("sword"),
+		"cerinta lui e aceeasi cu a sabiei (`%s`)" % Unlocks.cerinta("liu"))
+	_cer(Unlocks.nume("liu") == "LIU XIANG",
+		"pancarta de deblocare ii stie numele din `menu.gd` (`%s`)" % Unlocks.nume("liu"))
 
 	# Alegerea chiar ajunge in GameSettings. ⚠️ `_on_character_chosen` SALVEAZA pe disc, deci
 	# punem la loc IMEDIAT, nu abia in `_gata`: daca unealta se opreste intre timp (o eroare, un
@@ -294,20 +343,29 @@ func _cer(bun: bool, ce: String) -> void:
 		print("  XX  %s" % ce)
 
 func _gata() -> void:
-	# ⚠️ ce a ramas pe disc: `_on_character_chosen` SALVEAZA, deci testul chiar a scris in
-	# `scores.save`. Punem la loc ce era si salvam inapoi, apoi aratam rezultatul.
+	# ⚠️ ce a ramas pe disc: `_on_character_chosen` SALVEAZA, si tot asa `Unlocks.deblocheaza`
+	# din proba [6]. Punem la loc TOT ce-am imprumutat si salvam inapoi, apoi aratam rezultatul.
 	GameSettings.character = _caracter_initial
+	GameSettings.op_start = _op_initial
+	GameSettings.unlocked = _unlocked_initial.duplicate()
+	GameSettings.weapon_type = _arma_initiala
 	GameSettings._save()
 	var f := FileAccess.open("user://scores.save", FileAccess.READ)
 	var scris := "?"
+	var lacate := "?"
 	if f != null:
 		var d = f.get_var()
 		if d is Dictionary:
 			scris = String(d.get("character", "(lipseste)"))
+			lacate = str(d.get("unlocked", "(lipseste)"))
 	print("\n(caracterul ramas in salvare: `%s` — trebuie sa fie `%s`)" % [scris, _caracter_initial])
+	print("(deblocarile ramase in salvare: %s)" % lacate)
 	if scris != _caracter_initial:
 		_erori += 1
 		print("  XX  testul a lasat alt caracter in salvarea reala")
+	if lacate != str(_unlocked_initial):
+		_erori += 1
+		print("  XX  testul a lasat alte deblocari in salvarea reala (erau %s)" % str(_unlocked_initial))
 	if _erori == 0:
 		print("\nTOTUL E BINE")
 	else:
@@ -346,3 +404,127 @@ func _verifica_chei() -> void:
 		"fara player in scena, inamicul ramane pe KEY_CHANCE (%.4f)" % float(e2._sansa_cheie()))
 	e2.queue_free()
 	await get_tree().process_frame
+
+
+# Bonusul de damage, CERUT lui `damage_mult()` — adica exact functia pe care o citeste fiecare
+# glont la fiecare lovitura. Nu se recalculeaza formula aici: una copiata ar fi trecut proba si
+# cu firul rupt intre `CARACTERE` si player.
+#
+# Se masoara DIFERENTA fata de nivelul 1, nu valoarea bruta: `damage_mult()` porneste de la
+# `1.0 + cig_bonus`, iar `cig_bonus` poate veni din upgrade-urile permanente ale lui Razvan.
+# Proba trebuie sa masoare bonusul, nu salvarea de pe masina asta.
+func _verifica_damage() -> void:
+	var la_nivelul_1 := {}
+	for id in PLAYER.CARACTERE:
+		var asteptat := float(PLAYER.CARACTERE[id].get("dmg_pe_nivel", 0.0))
+		var m := await _masoara_damage(id, "pistol")
+		if m.is_empty():
+			continue
+		la_nivelul_1[id] = m[1]
+		var ok := true
+		var rele := []
+		for L in [1, 5, 10, 20]:
+			var crestere: float = m[L] - m[1]
+			var trebuie: float = (L - 1) * asteptat
+			if absf(crestere - trebuie) > 0.0001:
+				ok = false
+				rele.append("nivel %d: +%.4f in loc de +%.4f" % [L, crestere, trebuie])
+		_cer(ok, "%s: damage-ul creste cu %.0f%%/nivel%s"
+			% [id, asteptat * 100.0, "" if ok else "  " + str(rele)])
+
+	# Cat de mult e "+1%/nivel" fata de nimic, cap la cap, cu aceeasi arma.
+	if la_nivelul_1.has("liu") and la_nivelul_1.has("grasu"):
+		var d: float = la_nivelul_1["liu"] - la_nivelul_1["grasu"]
+		_cer(absf(d - 0.01) < 0.0001,
+			"liu are la nivelul 1 exact +1%% fata de The G (+%.4f)" % d)
+
+	# Se ADUNA cu bonusul sabiei: amandoua sunt "+1% damage / nivel", dar una vine din arma si
+	# cealalta din caracter. Daca cineva le-ar scrie vreodata in acelasi loc, aici se vede.
+	var cu_sabie := await _masoara_damage("liu", "sword")
+	var fara := await _masoara_damage("grasu", "sword")
+	if not cu_sabie.is_empty() and not fara.is_empty():
+		var c20: float = cu_sabie[20] - cu_sabie[1]
+		var f20: float = fara[20] - fara[1]
+		_cer(absf(c20 - 0.38) < 0.0001 and absf(f20 - 0.19) < 0.0001,
+			"liu cu Cursed Sword urca cu 2%%/nivel, The G cu 1%% (+%.2f vs +%.2f pana la nivelul 20)"
+			% [c20, f20])
+
+
+func _masoara_damage(id: String, arma: String) -> Dictionary:
+	GameSettings.character = id
+	GameSettings.weapon_type = arma
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+	if p.caracter != id:
+		_cer(false, "%s: player-ul a pornit ca `%s` — masuratoarea ar fi fost a altcuiva" % [id, p.caracter])
+		p.queue_free()
+		await get_tree().process_frame
+		return {}
+	var iesire := {1: float(p.damage_mult())}
+	for L in range(2, 21):
+		p._level_up(false)
+		iesire[L] = float(p.damage_mult())
+	p.queue_free()
+	await get_tree().process_frame
+	GameSettings.weapon_type = _arma_initiala
+	return iesire
+
+
+# HUD de carton: `hud.announce` e singurul lucru pe care `Unlocks` il cere de la HUD, deci atat
+# ii dam — si tine minte ce a primit, ca sa se poata NUMARA pancartele. Un HUD adevarat ar fi
+# adus cu el toata scena de joc; grupa "hud" e tot ce conteaza pentru proba.
+const HUD_FALS := """
+extends Node
+var primite: Array[String] = []
+func announce(text: String, sub: String = \"\", culoare: Color = Color.WHITE) -> void:
+	primite.append(sub)
+"""
+
+# Deblocarea, ceruta functiei ADEVARATE (`Unlocks.verifica_statusuri`), aceeasi pe care o cheama
+# `player.gd::_process` de doua ori pe secunda.
+#
+# ⚠️ `deblocheaza()` SCRIE pe disc. Punem `unlocked` la loc IMEDIAT dupa proba, nu abia in
+# `_gata()`: o rulare cazuta la mijloc i-ar fi lasat lui Razvan un personaj castigat pe degeaba.
+func _verifica_deblocarea() -> void:
+	var hud := Node.new()
+	var s := GDScript.new()
+	s.source_code = HUD_FALS
+	s.reload()
+	hud.set_script(s)
+	hud.add_to_group("hud")
+	add_child(hud)
+
+	GameSettings.unlocked = {}     # doar in RAM; nimic nu s-a scris inca
+	GameSettings.character = "liu"
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+
+	# sub prag: nimic nu se deblocheaza
+	p.bullet_damage = 10
+	Unlocks.verifica_statusuri(p)
+	_cer(not Unlocks.e_castigat("liu"), "sub 100 damage, Liu Xiang ramane incuiat")
+
+	# peste prag: se deblocheaza el SI sabia, fiindca amandoua cer acelasi lucru
+	p.bullet_damage = int(ceil(100.0 / p.damage_mult()))
+	var damage_vazut := int(round(p.bullet_damage * p.damage_mult()))
+	Unlocks.verifica_statusuri(p)
+	_cer(Unlocks.e_castigat("liu"), "la %d damage, Liu Xiang se deblocheaza" % damage_vazut)
+	_cer(Unlocks.e_castigat("sword"), "acelasi prag deblocheaza si Cursed Sword (%d)" % damage_vazut)
+
+	# Pancartele: una peste alta s-ar fi vazut doar ultima. Coada le scoate pe rand, deci dupa
+	# doua pancarte intregi HUD-ul trebuie sa fi primit AMANDOUA numele.
+	await get_tree().create_timer(Unlocks.PANCARTA * 2.0 + 0.3).timeout
+	_cer(hud.primite.size() == 2,
+		"amandoua deblocarile ajung pe ecran, una dupa alta (%s)" % str(hud.primite))
+
+	p.queue_free()
+	hud.queue_free()
+	await get_tree().process_frame
+	# INAPOI pe disc, pe loc.
+	GameSettings.unlocked = _unlocked_initial.duplicate()
+	GameSettings.character = _caracter_initial
+	GameSettings.op_start = _op_initial
+	GameSettings._save()
+	GameSettings.op_start = true   # restul probelor au iar nevoie de tot deblocat

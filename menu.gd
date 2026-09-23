@@ -129,6 +129,8 @@ const CHARACTERS := [
 		"icon": "res://Characters/Wizard/frames/idle_south_0.png"},
 	{"id": "jordan",   "name": "JORDAN BLACKFORD",
 		"icon": "res://Characters/Business/frames/idle_south_0.png"},
+	{"id": "liu",      "name": "LIU XIANG",
+		"icon": "res://Characters/Warrior/frames/idle_south_0.png"},
 ]
 
 const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
@@ -1198,6 +1200,12 @@ func _bonus_caracter(id: String) -> String:
 	var chei := float(c.get("sansa_cheie", -1.0))
 	if chei >= 0.0:
 		linii.append(tr("%d%% CHANCE OF KEY DROPS") % int(round(chei * 100.0)))
+
+	# 0 = nu schimbă damage-ul (vezi `player.gd::dmg_pe_nivel`), deci nu e un bonus. Neutrul lui
+	# e 0, nu 1.0 ca la XP: ăla înmulțește pragul, ăsta se adună în înmulțitorul de damage.
+	var dmg := float(c.get("dmg_pe_nivel", 0.0))
+	if dmg > 0.0:
+		linii.append(tr("+%d%% DAMAGE PER LEVEL") % int(round(dmg * 100.0)))
 
 	if linii.is_empty():
 		return "NO BONUS STATS"
