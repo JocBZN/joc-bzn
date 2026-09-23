@@ -24,6 +24,75 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-23 (Crucea, a șasea armă — prima care nu trage)
+
+**Cerut de Răzvan:** „Ti-am pus la weapons_icons o arma noua - Cross. Vreau sa fie o cruce care se invarte in jurul player-ului. La inceput incepi cu 2 cruci, de 2 ori mai mici decat scythe. Damage 30, Attack Speed 1.5/s (adica cat de repede se invart). - get level 50 in one run to unlock. Poate sa creasca ca si size la fel de mult ca scythe. Foloseste ce efecte de sunet vrei din Soundpack."
+
+**Fișiere noi:** `audio/Cross.wav`, `tool_cruce.gd` + `tool_cruce.tscn`.
+**Atinse:** `player.gd` (`ARME`, `weapon_size_scale`, `_fire`, `_level_up`, `_ready`, `_process` și **secțiunea CRUCEA**, ~200 de rânduri noi), `menu.gd`, `unlocks.gd`, `audio.gd`, `i18n.gd` (2 chei × 8 limbi), `tool_duridama.gd`, `tool_deblocari.gd`.
+
+### Ce e diferit la arma asta față de toate celelalte cinci
+
+**Nu trage nimic și n-are nicio lovitură pe care s-o DAI.** Două cruci se învârt în jurul tău fără oprire și lovesc pe cine le iese în cale. De aici vin aproape toate hotărârile de mai jos: la sabie și la coasă există o tăietură, un moment, un „acum" de care se agață damage-ul, sunetul, zguduitura și vindecarea. Aici nu există.
+
+`_fire()` are acum o ramură `cross` care **nu face nimic**, iar tot lucrul se petrece în `_update_cruci(delta)`, chemat din `_process` lângă `_update_sweeps`.
+
+### 🔑 Cadența ESTE rotația
+
+`ARME["cross"]["interval"]` e scris `1.0 / 1.5` (se vede chiar cifra cerută, nu 0.667), iar turul se socotește **din `fire_interval_now()`**. Deci „Attack Speed 1.50/s" din panoul de level up e chiar numărul care învârte inelul: nu sunt două cifre ținute una lângă alta, care să se despartă în tăcere. Orice upgrade de cadență le învârte mai repede — măsurat: 1,50 ture/s, iar cu intervalul înjumătățit, 3,00.
+
+### 🔑 Proiectilele devin cruci
+
+Numărul de cruci e `2 + (Projectiles − 1)`, adică fix rândul din panou. Gunslinger și Twin Comets pun încă o cruce pe cerc în loc de încă un glonț în alt inamic.
+
+Inelul **se reface din nimic** la fiecare schimbare de număr, nu se cârpește la coadă: tenta fiecărei cruci (una din patru albastră de la 5 proiectile în sus) se alege după locul ei în ciclul de patru, iar ăla depinde de câte proiectile ai — deci crucile vechi ar fi rămas cu culoarea dinainte de upgrade. Se întâmplă la un level up, nu în fiecare cadru.
+### 🔑 Creșterea e chiar creșterea coasei
+
+`cross_art_size = 75` e fix jumătate din `scythe_art_size = 150`, cum s-a cerut. Creșterea o dă același `weapon_size_scale()`, care mișcă **deodată desenul, hitbox-ul ȘI raza orbitei** — dacă orbita n-ar crește, o cruce de două ori mai mare ar sta în capul player-ului, nu în jurul lui. Bonusul de nivel al armei e tot **+1% mărime**, ca la coasă (`bonus_arma("cross")` intră lângă `bonus_arma("scythe")` în `weapon_size_scale`).
+
+⚠️ Am ales bonusul ăsta fiindcă „poate sa creasca ca si size la fel de mult ca scythe" se citește în două feluri (ori „itemele de size o cresc la fel", ori „are și ea bonusul de size al coasei") și amândouă duc aici. Dacă Răzvan voia altceva, se schimbă un rând în `menu.gd::WEAPONS` și unul în `weapon_size_scale`.
+
+### ⚠️ Cele două capcane ale unei arme care stă permanent peste inamici
+
+1. **Damage la fiecare cadru.** O armă care se suprapune peste un inamic 200 de milisecunde ar da damage de vreo 12 ori, la 60 fps, dacă nimeni nu-i spune să nu. Fiecare cruce ține minte pe cine a atins, cu un **ceas de un tur întreg** (`loviti[id] = perioada`). Așa, un inamic care stă în inel încasează o dată de la fiecare cruce pe tur: **3 lovituri pe secundă**, nu 60.
+2. **Zguduitura, vindecarea și sunetul.** La sabie și la coasă sunt „o dată pe tăietură", ceea ce vine de la sine. Aici, fără frâu, **Bloody Situation ar fi vindecat de trei ori pe secundă** într-o gloată și ecranul ar fi tremurat continuu. Toate trei trec acum printr-un singur ceas, `_cross_ecou`, la cel mult o dată pe **jumătate de tur**.
+
+Hitbox-ul e **desenul**, prin câmpul de distanțe al coasei (`_camp_distante`): o cruce e mai mult gol decât plin, iar un cerc sau un dreptunghi în jurul ei ar fi lovit aerul din cele patru colțuri.
+
+Mărunțișuri care se văd: crucea trece **prin fața** player-ului când e jos și **prin spatele** lui când e sus (`z_index` după semnul lui `sin(unghi)`), iar inelul se stinge când mori — altfel ar fi măcelărit peste ecranul de Game Over.
+
+### 🔊 Sunetul
+
+`audio/Cross.wav`, din `Soundpack/DSGNMisc_MELEE-Sword Deflect-001` („metallic hit with short small shimmering echoes"). Candidații i-am ales citind **descrierile din metadatele WAV-urilor** (fiecare fișier din pachet are un `comment` care spune ce e) și i-am cernut cu **spectrograme**, ca la sunetele de dash. Prelucrat ca tot ce intră în joc: tăiat de liniște, **scurtat la 220 ms** (fade 5 ms / 50 ms), 48 kHz/16 biți, vârf −1 dBFS.
+
+🔑 Scurt și **scobit cu −2,5 dB la 5 kHz**, fiindcă se aude de până la două ori pe secundă cât ții arma: banda 3–8 kHz stă la **−23,3 dBFS**, cu 3,9 dB sub corpul sunetului (200 Hz–3 kHz, −19,4). Metal, nu lamă — e singura armă care nici nu taie, nici nu trage.
+### 🔓 Deblocarea: nivelul 50
+
+Primul prag care se uită la **nivel**, nu la un stat. Nivelul nu scade și nu se schimbă în mers, deci n-avea de ce să fie întrebat pe ceas ca damage-ul și criticul: `player.gd::_level_up` cheamă `Unlocks.nivel_atins(level)` fix în cadrul în care se întâmplă. Al cincilea cârlig din lista din capul lui `unlocks.gd`.
+
+### ✅ Verificat rulând: `tool_cruce.tscn`, 10 secțiuni, toate verzi
+
+Unealtă nouă. Ce contează cel mai mult nu e o funcție care întoarce 30, ci **un inamic care pierde viață**: pus pe raza inelului, a pierdut **180 HP în 2,00 s — șase lovituri de exact 30, 2,99 pe secundă**, adică 2 cruci × 1,5 ture, și NU cele ~60/s pe care le-ar fi dat greșeala de la punctul 1 de mai sus.
+
+Restul: rotația măsurată **pe cadre adevărate** (nu citind `_cross_period()`); mărimea 75 px pe ecran, 151 la Weapon Size dublu, orbita 111 → 222, și o țintă la 50 px pe care crucea mică **o ratează** iar cea mare **o prinde** (deci hitbox-ul chiar crește cu desenul); bonusul ×1,01 → ×1,20 la nivelul 20, cu panoul scriind `120%`, și ×1,00 cu pistolul în mână; Helping Hand dă crucea **pe drumul adevărat al itemului** și inelul apare, fără să aducă bonusul de nivel; Duridama aurește printr-o lovitură de cruce; deblocarea cerută lui **`_level_up`**, încuiată la 49 și deschisă la 50, cu un HUD de carton care prinde pancarta strigând `CROSS`.
+
+Secțiunea [9] pornește **jocul adevărat** (`main.tscn`), plimbă player-ul câteva secunde și verifică că omoară cu inelul în lume și că inelul îl urmează.
+
+`tool_check_i18n`: **TOTUL E TRADUS** (2 chei noi × 8 limbi). ⚠️ „CROSS" **se traduce** — numele armelor sunt substantive comune, spre deosebire de numele caracterelor, care stau în `IGNORATE`.
+
+⚠️ Unealta atinge salvarea adevărată pe două căi (secțiunea [8] chiar deblochează crucea, iar ea își pune `unlocked["cross"]` în RAM ca măsurătorile să nu cadă pe pistol) și pune totul la loc la sfârșit. **Pe mașina asta `scores.save` nici nu exista** înainte de rulare; după, există unul cu valorile implicite (0 monede, niciun deblocat, niciun scor) — adică exact ce citește jocul când fișierul lipsește.
+
+### ⚠️ Două lucruri de ținut minte
+
+- **Pagina CHOOSE WEAPON e PLINĂ.** Șase rânduri la 68 px unul de altul, ultimul la y≈492 din 648, BACK la ≈595. A șaptea armă ar cădea peste buton. Aceeași problemă ca la CHOOSE CHARACTER, doar că aici nu mai e loc deloc.
+- **Pe hârtie crucea e cea mai tare armă din joc:** 2 × 30 la 1,5 ture = **90 dps**, față de ~38 la coasă. Cifrele sunt cele cerute, iar inelul plătește pentru ele fiind **pozițional** — atinge doar un cerc subțire la o distanță fixă, deci trebuie să plimbi inamicii prin el. De urmărit după ce se joacă; toate cifrele stau în `ARME["cross"]` și în export-urile `cross_*`.
+
+### ⚠️ `tool_duridama.gd` NU a primit crucea
+
+Dinadins, și e scris acolo de ce: unealta aia probează fiecare armă chemând `_fire_secundar(arma)`, iar crucea nu trage nimic, deci proba ar fi ieșit roșie pe o armă în regulă. Duridama cu crucea se probează în `tool_cruce.tscn`, secțiunea [5].
+
+---
+
 ## Session log — 2026-09-23 (Nerd, al cincilea caracter)
 
 **Cerut de Răzvan:** „Ti-am bagat un nou folder in Characters - se numeste Nerd - o sa fie un nou caracter pe care poti sa il deblochezi - Nerd - +1% movement speed per level - ca sa il deblochezi iti trebuie Take Hermes' Sandals in one run."

@@ -13,6 +13,7 @@ extends Node
 #   · `chest.gd::invoca`     → `cufar_deschis()`      (3 cufere)
 #   · `celesto.gd::_die`     → `celesto_invins()`
 #   · `player.gd::_process`  → `verifica_statusuri(p)` (noroc / damage / crit, la fiecare 0.5s)
+#   · `player.gd::_level_up` → `nivel_atins(level)`   (nivelul 50 → crucea)
 #
 # ⚠️ Ce s-a deblocat se ține în `GameSettings.unlocked` (deci în `user://scores.save`), NU aici:
 # aici e doar logica. O salvare veche n-are cheia → totul e încuiat în afară de Pistol și The G,
@@ -33,6 +34,7 @@ const CERINTE := {
 	"sword":    {"tip": "weapon",    "cerinta": "Have 100 Damage in one run"},
 	"scythe":   {"tip": "weapon",    "cerinta": "Defeat Celesto"},
 	"knife":    {"tip": "weapon",    "cerinta": "Have 100 Crit in one run"},
+	"cross":    {"tip": "weapon",    "cerinta": "Reach level 50 in one run"},
 }
 
 # Pragurile, scoase din texte ca să nu poată minți unul pe altul: dacă schimbi cifra aici,
@@ -46,6 +48,10 @@ const CUFERE_JORDAN := 3
 const LUCK_MAGE := 20.0
 const DAMAGE_SWORD := 100
 const CRIT_KNIFE := 1.0                   # 1.0 = 100% șansă de critic
+# ⚠️ Cea mai grea cerință din joc, cu mult: nivelul 50 înseamnă o rundă dusă până departe, nu un
+# stat împins cu două iteme potrivite. Cerut așa („get level 50 in one run to unlock"); dacă vrei
+# să vină mai devreme, aici e singura cifră de schimbat.
+const NIVEL_CROSS := 50
 # ⚠️ Liu Xiang cere ACELAȘI prag ca Cursed Sword, fiindcă așa a fost cerut („100 damage in one
 # run"). Deci amândouă se deblochează în ACELAȘI cadru, la aceeași lovitură — de-asta anunțul
 # de mai jos are coadă: `hud.announce` scrie peste pancarta de dinainte, iar fără coadă jucătorul
@@ -122,6 +128,13 @@ func cufar_deschis() -> void:
 
 func celesto_invins() -> void:
 	deblocheaza("scythe")
+
+# Nivelul 50 într-o rundă — crucea. E singurul prag care se uită la NIVEL, nu la un stat: nivelul
+# nu scade niciodată și nu se schimbă în mers, deci n-avea de ce să fie întrebat pe ceas. Se
+# anunță din `player.gd::_level_up`, adică fix în clipa în care s-a întâmplat.
+func nivel_atins(nivel: int) -> void:
+	if nivel >= NIVEL_CROSS:
+		deblocheaza("cross")
 
 # Cele trei cerințe care se uită la STATUSURILE de acum. Nu se pot prinde pe un eveniment (un item
 # luat, un inamic mort), fiindcă damage-ul și criticul se schimbă și în mers — Diesel Power crește

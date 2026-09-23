@@ -25,7 +25,7 @@ func _ready() -> void:
 	await get_tree().create_timer(0.5).timeout
 
 	print("--- ce zice unlocks.gd ---")
-	for id in ["pistol", "mage", "sword", "scythe", "knife", "grasu", "spellman", "jordan"]:
+	for id in ["pistol", "mage", "sword", "scythe", "knife", "cross", "grasu", "spellman", "jordan", "liu", "nerd"]:
 		print("  %-9s deblocat=%s  cerinta=\"%s\"" % [id, Unlocks.e_deblocat(id), Unlocks.cerinta(id)])
 
 	GameSettings.unlocked = {}
@@ -46,8 +46,8 @@ func _ready() -> void:
 	print("dupa click pe incuiate: arma=%s caracter=%s (trebuie pistol/grasu)"
 		% [GameSettings.weapon_type, GameSettings.character])
 
-	GameSettings.unlocked = {"mage": true, "sword": true, "scythe": true, "knife": true,
-		"spellman": true, "jordan": true}
+	GameSettings.unlocked = {"mage": true, "sword": true, "scythe": true, "knife": true, "cross": true,
+		"spellman": true, "jordan": true, "liu": true, "nerd": true}
 	await _poza("weapon", "arme_deblocate")
 	await _poza("character", "caractere_deblocate")
 

@@ -166,6 +166,7 @@ var _timere_secundare: Array = []
 #   cursed sword       20           0.75               1.33
 #   celesto's scythe   24           0.95               1.05   ← cea mai rară, dar taie în jur
 #   throwing knife     12           0.55               1.82   ← cea mai deasă, dar cea mai slabă
+#   cross              30           0.667              1.50   ← nu trage: se învârte în jurul tău
 #
 # (STINGĂTORUL a fost ȘTERS din joc pe 2026-08-04, la cererea lui Răzvan — cu tot cu aura care
 #  pulsa, spuma, iconița și cadrele ei. Sunetul lui a rămas: îl folosește acum sabia.)
@@ -179,6 +180,9 @@ const ARME := {
 	"sword":        {"damage": 20, "interval": 0.75},
 	"scythe":       {"damage": 24, "interval": 0.95},
 	"knife":        {"damage": 12, "interval": 0.55},
+	# ⚠️ `interval` e scris ca împărțire, nu ca 0.667: cifra cerută de Răzvan e „1.5/s" (cât de
+	# repede se învârt crucile), iar aici se vede chiar ea. Vezi secțiunea CRUCEA.
+	"cross":        {"damage": 30, "interval": 1.0 / 1.5},
 }
 
 # --- CARACTERELE (cerute de Răzvan pe 2026-09-02) ---
@@ -280,6 +284,7 @@ var speed_pe_nivel := 0.0
 #   pistol           +1% ATTACK SPEED / nivel      (`fire_interval_now`)
 #   celesto's scythe +1% WEAPON SIZE / nivel       (`weapon_size_scale`)
 #   mage staff       +1 NOROC / nivel              (`luck_total`)
+#   cross            +1% WEAPON SIZE / nivel       (`weapon_size_scale`)
 #
 # Se numără de la nivelul 1, nu de la 0: la nivelul 12 ai +12%. Nu se scriu nicăieri în stat-uri,
 # se CALCULEAZĂ la folosire (ca `damage_mult` sau `weapon_size_scale`) — altfel ar trebui scăzut
@@ -581,6 +586,10 @@ func _ready() -> void:
 	if ResourceLoader.exists(SCYTHE_ART):
 		_scythe_tex = load(SCYTHE_ART)
 		_masoara_arta_coasei()   # din desenul ei ies și hitbox-ul, și felul cum se așază pe cerc
+	# crucea: tot o singură poză, chiar iconița din meniu (ca la cuțit) — n-are cadre, se învârte
+	if ResourceLoader.exists(CROSS_ART):
+		_cross_tex = load(CROSS_ART)
+		_masoara_arta_crucii()   # din desen ies și hitbox-ul, și mărimea ei pe ecran
 	_electric_frames = _load_fx_frames("res://fx/electricity fx", 30.0, false)  # arcul de Thunder God (14 cadre)
 	_masoara_arta_sabiei()  # anvelopa animației → din ea se croiește dreptunghiul care lovește
 	# (Cursed Sword avea aici un slow de 1.9× la început. A dispărut pe 2026-07-27: Răzvan a
@@ -738,6 +747,7 @@ func _process(delta: float) -> void:
 		Unlocks.verifica_statusuri(self)
 	_update_slashes()  # tăieturile în curs se întorc după privire și lovesc pe unde mătură
 	_update_sweeps(delta)  # coasa: lama se rotește în jurul tău și lovește pe cine ajunge
+	_update_cruci(delta)   # crucea: inelul se învârte în jurul tău și lovește pe cine prinde
 	if scythe_debug and weapon_type == "scythe":
 		queue_redraw()   # lama se mișcă în fiecare cadru → și banda desenată
 	if sword_debug:
@@ -944,9 +954,12 @@ func _drop_dash_ghost() -> void:
 # Mărimea armei ca factor de scalare: pixelii ceruți se traduc în scară raportat la glonțul de
 # bază, apoi se aplică procentele (Pufferfish, Double Dose, Rat's Burger — toate în `weapon_size_mult`).
 func weapon_size_scale() -> float:
-	# Celesto's Scythe: +1% mărime pe nivel. Intră aici, în STATUL de mărime, nu doar în lama ei:
-	# așa se vede și în panou, și crește tot ce ține de „cât de mare lovești" cu coasa în mână.
-	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult * (1.0 + bonus_arma("scythe"))
+	# Celesto's Scythe ȘI Crucea: +1% mărime pe nivel. Intră aici, în STATUL de mărime, nu doar în
+	# lama/crucea lor: așa se vede și în panou, și crește tot ce ține de „cât de mare lovești" cu
+	# arma aia în mână. Se ADUNĂ, deși nu pot fi amândouă odată (`bonus_arma` se uită la arma
+	# ALEASĂ, care e una singură) — scrise așa, cele două rămân două rânduri independente.
+	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult \
+		* (1.0 + bonus_arma("scythe") + bonus_arma("cross"))
 
 # Cât de mare iese GLONȚUL, cu plafonul armei aplicat (cerut de Răzvan pe 2026-07-30).
 # Pistolul trage un glonț mic și des: umflat de Pufferfish/Rat's Burger/Doză dublă ajungea să
@@ -1260,6 +1273,8 @@ func _fire() -> void:
 	elif weapon_type == "scythe":
 		_scythe_swing()             # primul măturat acum
 		_start_burst("scythe")        # proiectilele extra = încă un tur de lamă, imediat după
+	elif weapon_type == "cross":
+		pass   # crucile se învârt singure în `_update_cruci`; ticul ăsta e doar ceasul turului
 	else:
 		_fire_bullets()    # pistol / mage (trag salve paralele, nu burst)
 
@@ -1825,6 +1840,205 @@ func _update_sweeps(delta: float) -> void:
 				t["nod"].queue_free()
 			_sweeps.remove_at(i)
 
+# ---------- CRUCEA (cerută de Răzvan pe 2026-09-23) ----------
+#
+# Prima armă din joc care nu TRAGE nimic: două cruci se învârt fără oprire în jurul tău și lovesc
+# pe cine le iese în cale. N-ai unde să țintești și n-ai ce apăsa — singurul lucru pe care îl
+# hotărăști e unde stai, adică pe cine plimbi prin inelul lor. De-aia e recompensa pentru nivelul
+# 50: o armă care schimbă felul în care te MIȘTI, nu una care lovește mai tare.
+#
+# 🔑 CADENȚA E CHIAR ROTAȚIA. `ARME["cross"]["interval"]` e 1/1.5 s, adică un tur complet la
+# 0,667 s = 1,5 ture pe secundă, fix cifra scrisă în panou la „Attack Speed". Nu e o a doua cifră
+# ținută pe lângă: turul se socotește DIN `fire_interval_now()`, deci orice upgrade de cadență le
+# învârte mai repede și rândul din panou nu are cum să ajungă să mintă.
+#
+# 🔑 CÂTE CRUCI: `cross_count` la început (2) plus una pentru fiecare proiectil câștigat, adică
+# exact rândul „Projectiles" din panou (`projectiles_total()`). Gunslinger și Twin Comets îți pun
+# cruci pe cerc, nu gloanțe în alt inamic — și se VĂD, fiindcă inelul se reface la fiecare
+# schimbare și crucile se împart din nou în mod egal pe el.
+#
+# 🔑 MĂRIMEA: `cross_art_size` e fix jumătate din `scythe_art_size` (75 față de 150), cerut așa
+# („de 2 ori mai mici decat scythe"), iar creșterea o dă același `weapon_size_scale()` ca la coasă
+# — deci crucea crește exact cât crește și ea, și ca desen, și ca hitbox, și ca rază a orbitei.
+# Bonusul de nivel al armei e tot +1% mărime (vezi `BONUS_PE_NIVEL`): cu crucea în mână, inelul se
+# lărgește nivel după nivel, adică arma își mărește singură bucata de lume pe care o stăpânește.
+#
+# ⚠️ HITBOX-UL E DESENUL, ca la coasă: același câmp de distanțe (`_camp_distante`), fiindcă o cruce
+# e mai mult gol decât plin — un cerc sau un dreptunghi în jurul ei ar fi lovit și aerul din cele
+# patru colțuri, adică exact reclamația de la coasă („hitboxu nu e egal cu sprite-ul în sine").
+#
+# ⚠️ O CRUCE NU POATE LOVI ACELAȘI INAMIC DE DOUĂ ORI PE TUR. Fiecare cruce ține minte pe cine a
+# atins, cu un ceas de un tur întreg (`loviti`). Fără asta ar fi dat damage la FIECARE cadru cât
+# stă peste el, adică de 60 de ori pe secundă. Așa, un inamic care stă în inel încasează o dată de
+# la fiecare cruce pe tur: cu cele două de pornire, de 3 ori pe secundă (2 × 1,5).
+#
+# ⚠️ ZGUDUITURA de la critic, VINDECAREA de la Bloody Situation și SUNETUL sunt ținute în frâu de
+# un singur ceas (`_cross_ecou`), la cel mult o dată pe jumătate de tur. La sabie și la coasă
+# există o lovitură pe care o DAI, deci „o dată pe tăietură" e o limită care vine de la sine;
+# crucea lovește fără oprire, iar fără frâul ăsta Bloody Situation ar fi vindecat de trei ori pe
+# secundă într-o gloată și ecranul ar fi tremurat încontinuu.
+const CROSS_ART := "res://weapons_icons/Cross.png"
+@export var cross_count: int = 2           # câte cruci ai la început
+@export var cross_raza: float = 110.0      # raza orbitei (unde stă CENTRUL crucii), în pixeli de lume
+@export var cross_art_size: float = 75.0   # cât de lată e crucea pe ecran — jumătate din coasă
+@export var cross_spin: float = 0.0        # rotația ei proprie (rad/s); 0 = stă dreaptă, cum se cade
+@export var cross_marja: float = 5.0       # cât iese hitbox-ul în afara desenului, ca `scythe_marja`
+# ⚠️ Tenta e aproape NEUTRĂ (o luminare de ~10%), spre deosebire de coasă, care e trasă în
+# albastru-mov ca să se vadă pe nebuloasă: crucea e de AUR cu pietre roșii, iar o tentă caldă mai
+# tare o scotea portocalie și îi ștergea pietrele. Probat pe patru variante, la 75 și la 150 px.
+@export var cross_tint: Color = Color(1.12, 1.08, 1.02)
+
+var _cross_tex: Texture2D
+var _cross_px := Vector2.ZERO                                # mărimea pozei, în pixeli de artă
+var _cross_dist: PackedFloat32Array = PackedFloat32Array()   # distanța de la fiecare pixel la desen
+var _cruci: Array = []      # [{nod: Sprite2D, loviti: {id_inamic: secunde până poate fi lovit iar}}]
+var _cross_unghi := 0.0     # unde e PRIMA cruce pe cerc, acum
+var _cross_rot := 0.0       # rotația proprie a crucilor (se mișcă doar dacă `cross_spin` nu e 0)
+var _cross_ecou := 0.0      # frâul de zguduitură / vindecare / sunet (vezi ⚠️ de mai sus)
+
+# Ai crucea în mână? Ori ai ales-o din meniu, ori ți-a dat-o Helping Hand — în amândouă cazurile
+# inelul se învârte, fiindcă o armă care nu trage nimic nu are cum să fie „folosită" altfel.
+# Mort, crucile se sting: altfel ar fi măcelărit mai departe peste ecranul de Game Over.
+func _are_crucea() -> bool:
+	return not dead and (arma_aleasa == "cross" or arme_secundare.has("cross"))
+
+# Câte cruci se învârt ACUM: cele de pornire plus fiecare proiectil câștigat.
+func _numar_cruci() -> int:
+	if not _are_crucea() or _cross_tex == null:
+		return 0
+	return maxi(1, cross_count + projectiles_total() - 1)
+
+# Cât ține un TUR complet, în secunde. Aleasă din meniu, crucea merge pe cadența ei (deci și pe
+# tot attack speed-ul câștigat); primită din Helping Hand, pe cadența armelor secundare, ca toate.
+func _cross_period() -> float:
+	var t: float = fire_interval_now() if arma_aleasa == "cross" else _interval_secundar("cross")
+	return maxf(t, 0.05)
+
+# Cât de mare e crucea pe ecran, ca fracție din poză. Aceeași socoteală ca `_scythe_scale`.
+func _cross_scale() -> float:
+	if _cross_px.x <= 0.0:
+		return 1.0
+	return cross_art_size * weapon_size_scale() / _cross_px.x
+
+# Raza orbitei crește odată cu arma. Dacă n-ar crește, o cruce de două ori mai mare pe același
+# cerc ți-ar sta ÎN cap, nu în jurul tău — și zona câștigată s-ar mânca singură.
+func _cross_raza_acum() -> float:
+	return cross_raza * weapon_size_scale()
+
+# Măsoară o dată, la pornire, tot ce trebuie știut despre desen: cât e de mare și câmpul de
+# distanțe din care iese hitbox-ul. Schimbi poza, se recalculează singur — ca la coasă și la sabie.
+func _masoara_arta_crucii() -> void:
+	var img := _cross_tex.get_image()
+	if img == null:
+		return
+	if img.is_compressed():
+		img.decompress()   # `get_pixel` nu merge pe o imagine comprimată
+	_cross_px = Vector2(img.get_width(), img.get_height())
+	_cross_dist = _camp_distante(img)
+
+# Inelul se REFACE din nimic ori de câte ori se schimbă numărul de cruci, nu se cârpește la coadă:
+# tenta fiecărei cruci se alege după locul ei în ciclul de patru (`_tenta_slot`), iar ăla depinde
+# de CÂTE proiectile ai — deci crucile dinainte ar fi rămas cu culoarea de dinaintea upgrade-ului.
+# Se întâmplă la un level up, nu în fiecare cadru, deci n-are cine să simtă costul.
+func _reface_crucile(n: int) -> void:
+	for t in _cruci:
+		if is_instance_valid(t["nod"]):
+			t["nod"].queue_free()
+	_cruci.clear()
+	for i in n:
+		var s := Sprite2D.new()
+		s.texture = _cross_tex
+		s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		s.modulate = cross_tint
+		# Culoarea de proiectil, după locul ei în inel: cu 5 cruci pe cerc, una din patru e
+		# albastră — chiar tiparul gloanțelor, doar că aici îl ai sub ochi tot timpul, nu o clipă.
+		var slot := _tenta_slot(i)
+		if slot >= 0:
+			s.material = _tenta_mats[slot]
+		add_child(s)
+		_cruci.append({"nod": s, "loviti": {}})
+
+# Învârte inelul și dă damage pe măsură ce fiecare cruce ajunge la câte un inamic.
+func _update_cruci(delta: float) -> void:
+	var n := _numar_cruci()
+	if n != _cruci.size():
+		_reface_crucile(n)
+	if n == 0:
+		return
+	var perioada := _cross_period()
+	_cross_unghi = fposmod(_cross_unghi + TAU * delta / perioada, TAU)
+	_cross_rot = fposmod(_cross_rot + cross_spin * delta, TAU)
+	_cross_ecou = maxf(0.0, _cross_ecou - delta)
+	var ps: float = max(scale.x, 0.001)   # player-ul e la scale 2 în main.tscn
+	var scara := _cross_scale()
+	var raza := _cross_raza_acum()
+	var dmg := int(round(bullet_damage * damage_mult()))
+	var inamici := get_tree().get_nodes_in_group("enemy")
+	for i in _cruci.size():
+		var t: Dictionary = _cruci[i]
+		# Crucile stau la distanțe egale pe cerc: două față în față, trei în triunghi ș.a.m.d.
+		var unghi: float = _cross_unghi + TAU * float(i) / float(n)
+		var centru := Vector2(raza, 0).rotated(unghi)
+		if is_instance_valid(t["nod"]):
+			var nod: Sprite2D = t["nod"]
+			nod.position = centru / ps
+			nod.rotation = _cross_rot
+			nod.scale = Vector2.ONE * scara / ps
+			# Trece pe DINAINTEA ta când e jos și pe dinapoia ta când e sus. Fără asta, jumătate
+			# din tur ar părea lipită pe fața personajului, iar inelul n-ar mai arăta rotund.
+			nod.z_index = 1 if sin(unghi) > 0.0 else -1
+		# Ceasurile de reîncărcare: fiecare inamic lovit se răcește în `perioada` secunde.
+		var loviti: Dictionary = t["loviti"]
+		for id in loviti.keys():
+			var ramas: float = float(loviti[id]) - delta
+			if ramas <= 0.0:
+				loviti.erase(id)
+			else:
+				loviti[id] = ramas
+		for e in inamici:
+			var enemy := e as Node2D
+			if enemy == null or not is_instance_valid(enemy):
+				continue
+			var id := enemy.get_instance_id()   # ID, nu nodul: poate muri între cadre
+			if loviti.has(id):
+				continue
+			var spre: Vector2 = enemy.global_position - global_position
+			if not _crucea_atinge(centru, spre, _raza_corp(enemy)):
+				continue
+			loviti[id] = perioada   # nu-l mai poate atinge până nu face un tur întreg
+			# Criticul se aruncă PE LOVITURĂ, nu pe tur: la coasă un tur e o lovitură, aici
+			# fiecare atingere e a ei, cu norocul ei.
+			var cr := roll_crit()
+			var is_crit: bool = cr["tiers"] > 0
+			var d := int(round(dmg * float(cr["mult"]))) if is_crit else dmg
+			_lovitura_melee(enemy, d, is_crit, spre.normalized())
+			if _cross_ecou <= 0.0:
+				_cross_ecou = perioada * 0.5
+				# −13 dB: se aude de vreo două ori pe secundă cât ții arma, deci stă SUB
+				# `enemy_hit` (−31,5 dBFS efectiv), ca ticul de lovitură să rămână confirmarea.
+				Audio.play("cross", -13.0)
+				if is_crit:
+					add_shake(0.35)
+					bloody_heal()   # Bloody Situation: o vindecare pe jumătate de tur, nu pe lovitură
+
+# LOVEȘTE crucea aflată la `centru` (față de player) inamicul de la `spre`? Aceeași metodă ca la
+# coasă: îl aducem în sistemul DESENULUI (mutat în centrul crucii, rotit invers cu rotația ei,
+# împărțit la mărimea de pe ecran) și citim din câmpul de distanțe cât are până la cel mai
+# apropiat pixel de cruce. Cercul CORPULUI, nu punctul lui din mijloc: un boss mare încasează
+# când îl atinge crucea, nu când îi intri în buric.
+func _crucea_atinge(centru: Vector2, spre: Vector2, raza_corp: float) -> bool:
+	var s := _cross_scale()
+	if s <= 0.0 or _cross_dist.is_empty():
+		return false
+	var local := (spre - centru).rotated(-_cross_rot) / s + _cross_px * 0.5
+	var w := int(_cross_px.x)
+	var h := int(_cross_px.y)
+	# în afara pozei nu există tabel: ne oprim pe margine și adăugăm cât mai e până acolo
+	var pe_margine := Vector2(clampf(local.x, 0.0, w - 1.0), clampf(local.y, 0.0, h - 1.0))
+	var dist: float = _cross_dist[int(pe_margine.y) * w + int(pe_margine.x)] \
+		+ pe_margine.distance_to(local)
+	return dist <= (raza_corp + cross_marja) / s
+
 # Cât se joacă, fiecare tăietură se întoarce după privire și mai dă o trecere de damage.
 # Ăsta e „ca în Megabonk": sabia se mișcă odată cu tine, nu rămâne unde ai pornit-o.
 func _update_slashes() -> void:
@@ -2316,6 +2530,9 @@ func _aplica_arma() -> void:
 
 func _level_up(cu_sunet: bool = true) -> void:
 	level += 1
+	# Crucea se câștigă la nivelul 50. E un EVENIMENT, nu un status care se schimbă în mers, deci
+	# se anunță de aici, nu din `verifica_statusuri` (care se uită pe ceas la damage/crit/noroc).
+	Unlocks.nivel_atins(level)
 	# Bonusul de nivel al armei crește ODATĂ cu nivelul. Cele patru procente se citesc la
 	# folosire, deci se aplică singure; doar cadența trăiește într-un `Timer`, care trebuie
 	# împins de mână (vezi `_seteaza_cadenta`).

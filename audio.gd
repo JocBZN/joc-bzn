@@ -36,6 +36,23 @@ const SFX := {
 	# stingătorului din joc. `Cursed Sword.wav` a rămas pe disc, nefolosit — dacă vrei sunetul
 	# vechi înapoi, schimbi doar linia asta.
 	"sword":          "res://audio/Extinguisher.wav",                   # tăietura săbiei
+	# CRUCEA (2026-09-23): tingul de metal cu care crucea prinde un inamic. Făcut din
+	# `DSGNMisc_MELEE-Sword Deflect-001` („metallic hit with short small shimmering echoes"), din
+	# aceeași bibliotecă `Soundpack/` ca tot restul, și trecut prin aceeași prelucrare: tăiat de
+	# liniște, SCURTAT la 220 ms (fade 5 ms la intrare, 50 ms la ieșire), 48 kHz/16 biți, vârf
+	# −1 dBFS. Metalul l-am ales pentru că e singura armă care nu taie și nu trage: nu poate suna
+	# a lamă, trebuie să sune a obiect greu care lovește.
+	#
+	# 🔑 Scurtimea nu e stil, e nevoie: sunetul ăsta se aude de până la două ori pe secundă cât
+	# ții arma în mână, deci o coadă lungă s-ar fi călcat pe ea însăși, exact cum făcea vechiul
+	# `mage_shoot`. Din același motiv e și SCOBIT cu −2,5 dB la 5 kHz: banda 3–8 kHz stă acum la
+	# −23,3 dBFS, cu 3,9 dB sub corpul sunetului (200 Hz–3 kHz, −19,4) — adică se aude ca o
+	# izbitură cu sclipire, nu ca un țiuit care obosește urechea după un minut.
+	#
+	# ⚠️ Cât de DES se aude nu se reglează aici, ci în `player.gd::_update_cruci`: o dată pe
+	# jumătate de tur, oricâți inamici ar fi sub cruci. Poarta de 45 ms din `play()` n-ar fi fost
+	# de ajuns — ar fi lăsat 20 de tinguri pe secundă într-o gloată.
+	"cross":          "res://audio/Cross.wav",                          # crucea prinde un inamic
 	"garda_attack":   "res://audio/Garda Attack.wav",                   # boss-ul Garda aruncă bastonul
 	"game_start":     "res://audio/Game Start.wav",                     # începutul unei runde
 	"game_over":      "res://audio/Game Over.wav",                      # ecranul de Game Over

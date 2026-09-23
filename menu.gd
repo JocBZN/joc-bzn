@@ -109,6 +109,11 @@ const WEAPONS := [
 	# La fel și aici: iconița din meniu E proiectilul aruncat (`player.gd::_make_knife`).
 	{"id": "knife",        "name": "THROWING KNIFE", "icon": "res://weapons_icons/throwing knife.png",
 		"bonus": "+1% CRIT PER LEVEL"},
+	# Și aici iconița E arma: aceeași poză se învârte în jurul player-ului (`player.gd`,
+	# secțiunea CRUCEA). Bonusul de nivel e același ca al coasei, fiindcă e același lucru:
+	# crucea crește, iar odată cu ea și inelul pe care îl mătură.
+	{"id": "cross",        "name": "CROSS",         "icon": "res://weapons_icons/Cross.png",
+		"bonus": "+1% WEAPON SIZE PER LEVEL"},
 ]
 
 # --- CARACTERELE (2026-09-02) ---

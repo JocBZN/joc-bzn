@@ -63,6 +63,7 @@ const TRAD := {
 # „Celesto" e nume propriu, rămâne peste tot; se traduce doar „coasa lui"
 "CELESTO'S SCYTHE": ["塞莱斯托之镰", "CELESTOS SENSE", "GUADAÑA DE CELESTO", "КОСА ЦЕЛЕСТО", "FAUX DE CELESTO", "セレストの大鎌", "KOSA CELESTA", "CELESTO'NUN TIRPANI"],
 "THROWING KNIFE": ["飞刀", "WURFMESSER", "CUCHILLO ARROJADIZO", "МЕТАТЕЛЬНЫЙ НОЖ", "COUTEAU DE LANCER", "投げナイフ", "NÓŻ DO RZUCANIA", "FIRLATMA BIÇAĞI"],
+"CROSS": ["十字架", "KREUZ", "CRUZ", "КРЕСТ", "CROIX", "十字架", "KRZYŻ", "HAÇ"],
 # Bonusul pe care fiecare armă îl primește la fiecare nivel (vezi `player.gd::bonus_arma`)
 "+1% ATTACK SPEED PER LEVEL": ["每级 +1% 攻速", "+1% ANGRIFFSTEMPO PRO LEVEL", "+1% VEL. DE ATAQUE POR NIVEL", "+1% СКОРОСТИ АТАКИ ЗА УРОВЕНЬ", "+1% VIT. D'ATTAQUE PAR NIVEAU", "レベルごとに攻撃速度+1%", "+1% SZYBKOŚCI ATAKU NA POZIOM", "SEVİYE BAŞINA +%1 SALDIRI HIZI"],
 "+1 LUCK PER LEVEL": ["每级 +1 幸运", "+1 GLÜCK PRO LEVEL", "+1 SUERTE POR NIVEL", "+1 УДАЧИ ЗА УРОВЕНЬ", "+1 CHANCE PAR NIVEAU", "レベルごとに幸運+1", "+1 SZCZĘŚCIA NA POZIOM", "SEVİYE BAŞINA +1 ŞANS"],
@@ -217,6 +218,7 @@ const TRAD := {
 "Have 100 Damage in one run": ["在一局中达到 100 伤害", "Erreiche 100 Schaden in einem Lauf", "Alcanza 100 de Daño en una partida", "Достигни 100 урона за один забег", "Atteins 100 de Dégâts en une partie", "1回のランでダメージ100に到達", "Osiągnij 100 Obrażeń w jednym podejściu", "Tek turda 100 Hasara ulaş"],
 "Defeat Celesto": ["击败塞莱斯托", "Besiege Celesto", "Derrota a Celesto", "Победи Целесто", "Bats Celesto", "セレストを倒す", "Pokonaj Celesta", "Celesto'yu yen"],
 "Have 100 Crit in one run": ["在一局中达到 100% 暴击", "Erreiche 100 Krit in einem Lauf", "Alcanza 100 de Crítico en una partida", "Достигни 100 крита за один забег", "Atteins 100 de Critique en une partie", "1回のランでクリティカル100に到達", "Osiągnij 100 Kryta w jednym podejściu", "Tek turda 100 Kritik'e ulaş"],
+"Reach level 50 in one run": ["在一局中达到 50 级", "Erreiche Level 50 in einem Lauf", "Alcanza el nivel 50 en una partida", "Достигни 50 уровня за один забег", "Atteins le niveau 50 en une partie", "1回のランでレベル50に到達", "Osiągnij poziom 50 w jednym podejściu", "Tek turda 50. seviyeye ulaş"],
 "Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],
 "STATS": ["属性", "WERTE", "ESTADÍSTICAS", "ХАРАКТЕРИСТИКИ", "STATS", "ステータス", "STATYSTYKI", "İSTATİSTİK"],
 "Common": ["普通", "Gewöhnlich", "Común", "Обычный", "Commun", "コモン", "Zwykły", "Sıradan"],

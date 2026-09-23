@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tool_cruce.gd" id="1_cruce"]
+
+[node name="ToolCruce" type="Node2D"]
+script = ExtResource("1_cruce")

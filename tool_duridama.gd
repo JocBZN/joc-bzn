@@ -15,6 +15,9 @@ extends Node2D
 # Apoi aceeași probă cu șansa REALĂ a unei singure luări (1%), pe multe lovituri, ca să se vadă
 # că nu e ceva ce merge doar la 100%.
 
+# ⚠️ CRUCEA nu e în listă, dinadins: ea nu TRAGE nimic, deci `_fire_secundar("cross")` nu face
+# nimic și proba ar fi ieșit roșie pe o armă care e, de fapt, în regulă. Duridama cu crucea se
+# probează în `tool_cruce.tscn`, unde inelul chiar se învârte și inamicul stă pe raza lui.
 const ARME := ["pistol", "mage", "knife", "sword", "scythe"]
 const ENEMY := "res://enemy.tscn"
 const DIST := 40.0            # cât de aproape stă inamicul de player (în raza oricărei arme)
