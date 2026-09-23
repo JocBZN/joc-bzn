@@ -26,10 +26,16 @@ extends Node
 #      `damage_mult()` — adica exact functia pe care o citeste fiecare glont. Se verifica si ca
 #      se ADUNA cu bonusul sabiei (amandoua sunt "+1% damage / nivel", din doua surse diferite).
 #
-#   6. DEBLOCAREA. 100 damage intr-o runda il deblocheaza CU ADEVARAT, prin
+#   6. VITEZA. La fel pentru Nerd, dar in DOUA feluri: si `speed_now()`, si cat de repede se
+#      MISCA de-adevaratelea (se apasa „move_right" si se lasa motorul sa faca doua cadre de
+#      fizica). O functie corecta pe care n-o citeste nimeni ar fi trecut prima proba singura.
+#      Plus randul „Move Speed" din panou, care trebuie sa arate acelasi numar cu care mergi.
+#
+#   7. DEBLOCARILE. 100 damage intr-o runda il deblocheaza pe Liu Xiang CU ADEVARAT, prin
 #      `Unlocks.verifica_statusuri(p)` — aceeasi functie pe care o cheama `player.gd::_process`.
 #      Si ca deblocarea lui NU inghite pancarta sabiei: amandoua cer acelasi prag, deci pica in
-#      acelasi cadru, iar `hud.announce` scrie peste pancarta dinainte.
+#      acelasi cadru, iar `hud.announce` scrie peste pancarta dinainte. Nerd se deblocheaza
+#      LUAND Hermes' Sandals, prin `levelup._apply` — drumul adevarat al oricarui item.
 #
 # ⚠️ Liu Xiang e INCUIAT intr-o salvare obisnuita, iar `_aplica_caracter` cade inapoi pe The G
 # pentru un caracter necastigat — deci probele de mai sus l-ar fi masurat pe The G si ar fi trecut
@@ -120,10 +126,13 @@ func _ready() -> void:
 	print("\n--- [5] damage-ul lui Liu Xiang, masurat pe un player adevarat ---")
 	await _verifica_damage()
 
-	print("\n--- [6] deblocarea: 100 damage intr-o runda ---")
+	print("\n--- [6] viteza lui Nerd, masurata si pe MERSUL adevarat ---")
+	await _verifica_viteza()
+
+	print("\n--- [7] deblocarile: 100 damage, si Hermes' Sandals ---")
 	await _verifica_deblocarea()
 
-	print("\n--- [7] pagina CHOOSE CHARACTER ---")
+	print("\n--- [8] pagina CHOOSE CHARACTER ---")
 	await _verifica_meniul()
 
 	GameSettings.character = _caracter_initial
@@ -231,6 +240,8 @@ const ASTEPTAT := {
 	"jordan":   {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
 	# La fel si Liu Xiang: bonusul lui e pe damage, nu pe XP.
 	"liu":      {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
+	# Si Nerd: bonusul lui e pe viteza.
+	"nerd":     {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
 }
 
 func _verifica_xp() -> void:
@@ -321,6 +332,13 @@ func _verifica_meniul() -> void:
 		"cerinta lui e aceeasi cu a sabiei (`%s`)" % Unlocks.cerinta("liu"))
 	_cer(Unlocks.nume("liu") == "LIU XIANG",
 		"pancarta de deblocare ii stie numele din `menu.gd` (`%s`)" % Unlocks.nume("liu"))
+	var n: String = m._bonus_caracter("nerd")
+	_cer(n.contains("1") and n.to_upper().contains("SPEED"),
+		"Nerd isi scrie bonusul din cifra din cod (`%s`)" % n)
+	_cer(Unlocks.cerinta("nerd").contains("Hermes"),
+		"cerinta lui e itemul, nu o cifra (`%s`)" % Unlocks.cerinta("nerd"))
+	_cer(Unlocks.nume("nerd") == "NERD",
+		"pancarta ii stie numele din `menu.gd` (`%s`)" % Unlocks.nume("nerd"))
 
 	# Alegerea chiar ajunge in GameSettings. ⚠️ `_on_character_chosen` SALVEAZA pe disc, deci
 	# punem la loc IMEDIAT, nu abia in `_gata`: daca unealta se opreste intre timp (o eroare, un
@@ -519,6 +537,22 @@ func _verifica_deblocarea() -> void:
 	_cer(hud.primite.size() == 2,
 		"amandoua deblocarile ajung pe ecran, una dupa alta (%s)" % str(hud.primite))
 
+	# NERD: se deblocheaza LUAND un item, deci proba il si ia — prin `levelup._apply`, drumul
+	# adevarat prin care trece orice item din joc (level up, cufar, statuia din Ender). Un
+	# `Unlocks.item_luat("hermes_sandals")` chemat de-a dreptul ar fi trecut si cu carligul din
+	# `_apply` sters.
+	_cer(not Unlocks.e_castigat("nerd"), "pana nu iei sandalele, Nerd ramane incuiat")
+	var lvl := CanvasLayer.new()
+	lvl.set_script(load("res://levelup.gd"))
+	add_child(lvl)
+	await get_tree().process_frame
+	lvl._apply(Unlocks.ITEM_NERD, p)
+	_cer(Unlocks.e_castigat("nerd"), "Hermes' Sandals il deblocheaza pe Nerd")
+	_cer(p.run_items.has(Unlocks.ITEM_NERD), "itemul a intrat si in registrul rundei")
+	await get_tree().create_timer(Unlocks.PANCARTA + 0.3).timeout
+	_cer(hud.primite.has("NERD"), "pancarta lui ajunge pe ecran (%s)" % str(hud.primite))
+	lvl.queue_free()
+
 	p.queue_free()
 	hud.queue_free()
 	await get_tree().process_frame
@@ -528,3 +562,95 @@ func _verifica_deblocarea() -> void:
 	GameSettings.op_start = _op_initial
 	GameSettings._save()
 	GameSettings.op_start = true   # restul probelor au iar nevoie de tot deblocat
+
+
+# Viteza, in doua feluri — fiindca `speed_now()` poate fi corecta si totusi sa n-o foloseasca
+# nimeni. Deci se cere si functiei, SI mersului adevarat.
+func _verifica_viteza() -> void:
+	for id in PLAYER.CARACTERE:
+		var asteptat := float(PLAYER.CARACTERE[id].get("speed_pe_nivel", 0.0))
+		var m := await _masoara_viteza(id)
+		if m.is_empty():
+			continue
+		var ok := true
+		var rele := []
+		for L in [1, 5, 10, 20]:
+			# raportat la nivelul 1, ca la damage: `speed` de pornire depinde de META lui Razvan
+			var raport: float = m[L] / m[1]
+			var trebuie: float = (1.0 + L * asteptat) / (1.0 + asteptat)
+			if absf(raport - trebuie) > 0.0005:
+				ok = false
+				rele.append("nivel %d: x%.4f in loc de x%.4f" % [L, raport, trebuie])
+		_cer(ok, "%s: viteza creste cu %.0f%%/nivel%s"
+			% [id, asteptat * 100.0, "" if ok else "  " + str(rele)])
+
+	# MERSUL. `speed_now()` corecta nu ajuta la nimic daca `_physics_process` citeste tot `speed`.
+	# Apasam cu adevarat pe „move_right" si lasam motorul sa faca doua cadre de fizica, apoi ne
+	# uitam la `velocity` — adica la cat de repede s-a MISCAT, nu la ce scrie intr-o functie.
+	var v1 := await _viteza_reala("nerd", 1)
+	var v20 := await _viteza_reala("nerd", 20)
+	var g1 := await _viteza_reala("grasu", 1)
+	var g20 := await _viteza_reala("grasu", 20)
+	_cer(v1 > 0.0 and g1 > 0.0, "player-ul chiar se misca in proba (%.1f px/s)" % v1)
+	_cer(absf(v20 / maxf(v1, 0.001) - 1.20 / 1.01) < 0.002,
+		"Nerd MERGE mai repede la nivelul 20 (%.1f -> %.1f px/s, x%.3f)" % [v1, v20, v20 / maxf(v1, 0.001)])
+	_cer(absf(g20 - g1) < 0.5,
+		"The G merge la fel la orice nivel (%.1f -> %.1f px/s)" % [g1, g20])
+
+	# ⚠️ Panoul de statusuri trebuie sa arate acelasi numar cu care mergi. Randul „Move Speed"
+	# citea `speed` gol; daca cineva il da inapoi, aici se vede.
+	GameSettings.character = "nerd"
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+	for i in 9:
+		p._level_up(false)
+	# Randul din panou e {"label", "value" (text), "state"} — comparam textul, adica exact ce
+	# citeste jucatorul de pe ecran.
+	var scris := ""
+	for rand in p.stat_lines():
+		if String(rand.get("label", "")) == "Move Speed":
+			scris = String(rand.get("value", ""))
+	_cer(scris == str(int(round(p.speed_now()))) and scris != str(int(round(p.speed))),
+		"panoul scrie viteza CU bonus la nivelul 10 (scrie `%s`, cu bonus %.1f, speed gol %.1f)"
+		% [scris, p.speed_now(), p.speed])
+	p.queue_free()
+	await get_tree().process_frame
+
+
+func _masoara_viteza(id: String) -> Dictionary:
+	GameSettings.character = id
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+	if p.caracter != id:
+		_cer(false, "%s: player-ul a pornit ca `%s`" % [id, p.caracter])
+		p.queue_free()
+		await get_tree().process_frame
+		return {}
+	var iesire := {1: float(p.speed_now())}
+	for L in range(2, 21):
+		p._level_up(false)
+		iesire[L] = float(p.speed_now())
+	p.queue_free()
+	await get_tree().process_frame
+	return iesire
+
+
+# Cat de repede se MISCA de-adevaratelea, la nivelul cerut. `Input.action_press` intra in
+# `Input.get_vector` exact ca o tasta apasata, deci trece prin linia din `_physics_process`.
+func _viteza_reala(id: String, nivel: int) -> float:
+	GameSettings.character = id
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+	for i in range(1, nivel):
+		p._level_up(false)
+	Input.action_press("move_right")
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var v: float = p.velocity.length()
+	Input.action_release("move_right")
+	p.queue_free()
+	await get_tree().process_frame
+	return v

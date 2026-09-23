@@ -27,6 +27,7 @@ const CERINTE := {
 	"spellman": {"tip": "character", "cerinta": "Take Tome of Knowledge in one run"},
 	"jordan":   {"tip": "character", "cerinta": "Open 3 chests in one run"},
 	"liu":      {"tip": "character", "cerinta": "Have 100 Damage in one run"},
+	"nerd":     {"tip": "character", "cerinta": "Take Hermes' Sandals in one run"},
 	# --- ARME ---
 	"mage":     {"tip": "weapon",    "cerinta": "Get 20 Luck in one run"},
 	"sword":    {"tip": "weapon",    "cerinta": "Have 100 Damage in one run"},
@@ -37,6 +38,10 @@ const CERINTE := {
 # Pragurile, scoase din texte ca să nu poată minți unul pe altul: dacă schimbi cifra aici,
 # schimb-o și în textul de sus (sunt două rânduri, unul lângă altul).
 const ITEM_SPELLMAN := "tome_knowledge"   # id-ul din `levelup.gd` al lui Tome of Knowledge
+# ⚠️ Hermes' Sandals e LEGENDARY, iar Tome of Knowledge (cerința lui Spellman) e doar RARE — deci
+# Nerd e de departe cel mai greu de deblocat dintre caractere. Cerut așa; dacă vrei să pice mai
+# des, aici se schimbă itemul, nicăieri altundeva.
+const ITEM_NERD := "hermes_sandals"       # id-ul din `levelup.gd` al lui Hermes' Sandals
 const CUFERE_JORDAN := 3
 const LUCK_MAGE := 20.0
 const DAMAGE_SWORD := 100
@@ -105,6 +110,8 @@ func tot_deblocat() -> bool:
 func item_luat(id: String) -> void:
 	if id == ITEM_SPELLMAN:
 		deblocheaza("spellman")
+	if id == ITEM_NERD:
+		deblocheaza("nerd")
 
 # Contorul stă în `GameSettings.run_chests`, lângă `run_kills`/`run_keys`, fiindcă e stat de RUNDĂ:
 # se șterge singur la `reset_run()`, deci trei cufere adunate în două runde diferite nu contează.

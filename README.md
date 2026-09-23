@@ -151,6 +151,14 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-23, Nerd — a fifth character, and `speed_now()`)
+
+- 🎒 **NERD**, the schoolboy from `Characters/Nerd`. His perk: **+1% movement speed per level**, and unlike the damage one it needed a function that did not exist yet — `_physics_process` multiplied `directie * speed` directly. So there is now **`speed_now()`**, exactly like `fire_interval_now()` for the pistol and `crit_chance_now()` for the knife, and **three places moved onto it**: the walk itself, Diesel Power's yardstick (`_speed_base`) and the "Move Speed" row in the level-up panel, which had been reading the bare stat.
+- 🔑 **Why it is not written into `speed`.** Museum Piece does `speed *= 0.90` and the trade-up does `speed *= factor`. With the bonus living in the stat, those would have multiplied the bonus too, and every level-up would have had to subtract the old bonus and add the new one. Computed on use, they touch only the *stat* and the bonus goes on top. ⚠️ It **multiplies**: with Hermes' Sandals on, 1% means 1% of the increased speed, not of the starting speed.
+- 🔓 **Unlocked by taking Hermes' Sandals** — the first character since Spellman that is earned by *picking something up* rather than reaching a number. The hook already existed: `levelup.gd::_apply` calls `Unlocks.item_luat(id)` and every item in the game passes through there, from a level-up, a chest or the Ender statue alike. ⚠️ Hermes' Sandals is **Legendary** while Spellman's Tome of Knowledge is only **Rare**, so Nerd is by a distance the hardest of the five to unlock. Asked for that way; the item id sits in one constant if it should drop more often.
+- ✅ **Verified by running:** `tool_caracter.tscn`, **all eight sections green**. The new one measures speed **two ways, because a correct function nobody reads would have passed the first check on its own**: `speed_now()` per level, and then how fast the player *actually moves* — `Input.action_press("move_right")`, two real physics frames, then read `velocity`. Nerd goes **252.5 → 300.0 px/s** from level 1 to 20 (×1.188 = 1.20/1.01); The G stays at 250.0 at every level. The panel row now prints `275` at level 10 instead of `250`. The unlock is asked of **`levelup._apply`**, not of `Unlocks.item_luat` directly — calling the latter would have passed with the hook inside `_apply` deleted. The real save came out **byte-identical** to a copy taken beforehand. `tool_check_i18n`: everything translated (2 new keys × 8 languages). `main.tscn`: zero errors.
+- ⚠️ **The CHOOSE CHARACTER list is five rows into about six.** Rows sit 115px apart and BACK is at ~880 on the 1080 canvas; row five is at 710. One more fits, a seventh does not — the sixth character will need a `ScrollContainer` or tighter rows. Nothing is broken today; this is the number to meet *before* it bites.
+
 ## Current state (2026-09-23, Liu Xiang — a fourth character, and unlock banners that queue)
 
 - ⚔️ **LIU XIANG**, the warrior from `Characters/Warrior`. His perk: **+1% damage per level**, added inside `damage_mult()` right beside the Cursed Sword's level bonus — which is deliberate, because they are the same kind of thing arriving from two different places (one from the weapon, one from who you are) and they **stack honestly**: Liu Xiang with a Cursed Sword climbs 2%/level (measured: +0.38 vs +0.19 by level 20). Like every other level bonus in the game it is **computed on use**, not written into a stat, so there is never an old bonus to subtract at level-up.
@@ -253,13 +261,14 @@ Three things asked for in one go, all around *getting at* the game rather than p
 
 ## Current state (2026-09-07, everything but the Pistol and The G is now earned)
 
-**The game starts with one character and one weapon.** The other seven are locked behind a single thing each, and the menu shows them as **black silhouettes** with the requirement written on the card next to them — you can see the *shape* of what you're missing, and exactly what to do about it:
+**The game starts with one character and one weapon.** The other eight are locked behind a single thing each, and the menu shows them as **black silhouettes** with the requirement written on the card next to them — you can see the *shape* of what you're missing, and exactly what to do about it:
 
 | Locked | Requirement |
 |---|---|
 | **Spellman** | Take Tome of Knowledge in one run |
 | **Jordan Blackford** | Open 3 chests in one run |
 | **Liu Xiang** | Have 100 Damage in one run *(added 2026-09-23 — the same requirement as the Cursed Sword, so both unlock at once)* |
+| **Nerd** | Take Hermes' Sandals in one run *(added 2026-09-23 — Legendary, so the hardest of the five)* |
 | **Mage Staff** | Get 20 Luck in one run |
 | **Cursed Sword** | Have 100 Damage in one run |
 | **Celesto's Scythe** | Defeat Celesto |

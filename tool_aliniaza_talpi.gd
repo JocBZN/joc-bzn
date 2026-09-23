@@ -32,16 +32,17 @@ extends Node
 # `harta/castle/castle enemies/frames` (cavalerul de castel, 2026-08-29),
 # `Characters/Wizard/frames` (Spellman, 2026-09-02),
 # `Characters/Business/frames` (Jordan Blackford, 2026-09-02),
-# `Characters/Warrior/frames` (Liu Xiang, 2026-09-23 — ținta curentă).
+# `Characters/Warrior/frames` (Liu Xiang, 2026-09-23),
+# `Characters/Nerd/frames` (Nerd, 2026-09-23 — ținta curentă).
 #
 # ⚠️ Un CARACTER se aliniază în DOUĂ treceri, fiindcă are două seturi pe aceleași direcții:
 # `PREFIX = "run"` (mersul) și `PREFIX = "idle"` cu `CADRE = 1` (cele 8 poze de stat pe loc,
 # tăiate din `Idle_rotations_8dir.gif`). Amândouă trecerile cu ACELEAȘI `PANZA` și
 # `TINTA_TALPA` — altfel personajul ar sări în sus când se oprește din mers.
 #
-# ⚠️ `CADRE` diferă de la un caracter la altul (The G 4, Spellman 8, Jordan 6, Liu Xiang 8) — se ia din
+# ⚠️ `CADRE` diferă de la un caracter la altul (The G 4, Spellman 8, Jordan 6, Liu Xiang 8, Nerd 8) — se ia din
 # numele GIF-ului, nu se presupune.
-const FOLDER := "res://Characters/Warrior/frames"
+const FOLDER := "res://Characters/Nerd/frames"
 const PREFIX := "idle"
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 const CADRE := 1

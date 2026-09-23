@@ -24,6 +24,49 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-23 (Nerd, al cincilea caracter)
+
+**Cerut de Răzvan:** „Ti-am bagat un nou folder in Characters - se numeste Nerd - o sa fie un nou caracter pe care poti sa il deblochezi - Nerd - +1% movement speed per level - ca sa il deblochezi iti trebuie Take Hermes' Sandals in one run."
+
+**Fișiere noi:** `nerd_frames.tres`, `Characters/Nerd/frames/` (72 PNG).
+**Atinse:** `player.gd` (`CARACTERE`, `speed_pe_nivel`, **`speed_now()`**, mersul, panoul), `menu.gd`, `unlocks.gd`, `i18n.gd` (2 chei × 8 limbi), `tool_check_i18n.gd`, `tool_aliniaza_talpi.gd` (re-țintit), `tool_caracter.gd` (o secțiune nouă).
+
+### Arta
+
+Aceeași conductă. GIF-urile au venit cu coada `… (1).gif` de la descărcare — **redenumite întâi**, fiindcă tăietorul ia direcția din coada numelui și altfel ar fi ieșit `east (1)`. Mersul a venit pe pânze amestecate (84 și 88), cele de stat pe loc pe 64; după cele două treceri de aliniere, toate pe 96 și **centru→talpă 33.0**, ca la ceilalți patru. Ordinea celor 8 cadre din GIF-ul de rotații — verificată iar cu planșă de contact.
+
+### Bonusul: `speed_now()`, adică viteza chiar se citește de undeva
+
+Al patrulea fel de bonus de caracter. Spre deosebire de damage, unde exista deja `damage_mult()` gata să primească o linie, **viteza n-avea o funcție**: `_physics_process` înmulțea direct `directie * speed`. Așa că acum există `speed_now()`, exact ca `fire_interval_now()` la pistol și `crit_chance_now()` la cuțit, iar **trei locuri au fost mutate pe ea**: mersul, reperul lui Diesel Power (`_speed_base`) și rândul „Move Speed" din panoul de level up.
+
+🔑 **De ce nu se scrie în `speed`:** Museum Piece face `speed *= 0.90` și trade-up-ul face `speed *= factor`. Dacă bonusul ar fi stat în stat, ele l-ar fi înmulțit și pe el — iar la fiecare level up ar fi trebuit scăzut bonusul vechi și adunat cel nou. Așa, ele ating doar STATUL, iar bonusul se pune peste, la citire.
+
+⚠️ Se **înmulțește**, nu se adună: cu Hermes' Sandals în picioare, 1% înseamnă 1% din viteza mărită.
+
+### Deblocarea: un ITEM, nu o cifră
+
+Primul caracter de la Spellman încoace care se deblochează luând ceva. Cârligul exista deja — `levelup.gd::_apply` cheamă `Unlocks.item_luat(id)`, și pe acolo trec **toate** itemele din joc, din orice sursă (level up, cufăr, statuia din Ender). Deci e un `if` în `item_luat` și atât.
+
+⚠️ **Hermes' Sandals e LEGENDARY**, iar Tome of Knowledge (cerința lui Spellman) e doar RARE — deci Nerd e de departe cel mai greu de deblocat dintre cele cinci personaje. Cerut așa; scris pe față lângă `ITEM_NERD`, unde se și schimbă dacă vrea alt item.
+
+### ✅ Verificat rulând
+
+`tool_caracter.tscn` (o secțiune nouă, [6]), **TOTUL E BINE** — 8 secțiuni, toate verzi. Ce e nou la proba asta:
+
+🔑 **Viteza se măsoară în DOUĂ feluri, fiindcă o funcție corectă pe care n-o citește nimeni ar fi trecut prima probă singură.** Întâi `speed_now()` la fiecare nivel; apoi **cât de repede se MIȘCĂ de-adevăratelea**: se apasă `move_right` cu `Input.action_press` și se lasă motorul să facă două cadre de fizică, apoi se citește `velocity`. Nerd: **252,5 → 300,0 px/s** de la nivelul 1 la 20 (×1,188 = 1,20/1,01). The G: 250,0 la orice nivel. Plus rândul „Move Speed" din panou, care la nivelul 10 scrie `275`, nu `250` — el citea `speed` gol până acum.
+
+Restul: cele 16 animații la toți cinci, niciun salt, toți la 33.0; pragurile de XP ale lui Nerd **cifră cu cifră ca The G**; damage-ul lui creste cu 0%/nivel (prinde un `dmg_pe_nivel` pus din greșeală); deblocarea cerută prin **`levelup._apply`**, nu prin `Unlocks.item_luat` chemat de-a dreptul — altfel proba ar fi trecut și cu cârligul din `_apply` șters; itemul intră și în registrul rundei; pancarta lui ajunge pe ecran.
+
+**Salvarea reală a ieșit nevătămată**, comparată bit cu bit cu o copie făcută înainte. `tool_check_i18n.tscn`: **TOTUL E TRADUS** (2 chei noi × 8 limbi; „NERD" în `IGNORATE`). `main.tscn`: **zero erori**.
+
+Poze: cele 8 direcții la scara din joc, pe aceeași linie de pământ cu The G; pagina CHOOSE CHARACTER cu lacătul („TAKE HERMES' SANDALS IN ONE RUN") și fără.
+
+### ⚠️ Pagina CHOOSE CHARACTER e la 5 rânduri din ~6
+
+Rândurile sunt la 115px unul de altul, iar butonul BACK stă la ~880 în pânza de 1080. Al cincilea rând e la 710. **Mai încape unul, al șaptelea nu** — la al șaselea caracter, lista are nevoie de un `ScrollContainer` sau de rânduri mai strânse. Nu e nimic stricat azi; e cifra de care să te lovești înainte, nu după.
+
+---
+
 ## Session log — 2026-09-23 (Liu Xiang, al patrulea caracter)
 
 **Cerut de Răzvan:** „Ti-am bagat un nou folder in Characters - se numeste Warrior - o sa fie un nou caracter pe care poti sa il deblochezi - Liu Xiang - +1% damage per level - ca sa il deblochezi iti trebuie 100 damage in one run to unlock."

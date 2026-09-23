@@ -189,6 +189,7 @@ const ARME := {
 #   spellman   — vrăjitorul: la fiecare nivel îi trebuie cu 5% mai puțin XP pentru următorul.
 #   jordan     — omul de afaceri: cheile de cufăr cad de 10× mai des.
 #   liu        — războinicul: +1% damage la fiecare nivel (2026-09-23).
+#   nerd       — tocilarul: +1% viteză de mers la fiecare nivel (2026-09-23).
 #
 # 🔑 Bonusurile sunt CÂMPURI OPȚIONALE, nu un câmp „bonus" care le-ar amesteca: fiecare are alt
 # fel de a lucra (unul se compune la level up, altul înlocuiește o rată fixă), iar cine n-are
@@ -235,11 +236,21 @@ const ARME := {
 #
 #   nivel          1      10      20      30
 #   +1%/nivel    ×1,01   ×1,10   ×1,20   ×1,30     ← peste tot ce mai ai (țigări, Theo, Diesel)
+#
+# `speed_pe_nivel`: cât VITEZĂ în plus dă fiecare nivel, ca procent (0.01 = +1%/nivel). Se
+# înmulțește în `speed_now()`, adică peste tot ce ai strâns — cu Hermes' Sandals în picioare,
+# 1% înseamnă 1% din viteza mărită, nu din cea de start. La fel ca damage-ul, se citește la
+# folosire (mersul, panoul), deci nu există un „bonus vechi" de scăzut la level up, iar Museum
+# Piece (`speed *= 0.90`) și trade-up-ul înmulțesc doar STATUL, nu și bonusul.
+#
+#   nivel          1      10      20      30
+#   +1%/nivel    ×1,01   ×1,10   ×1,20   ×1,30
 const CARACTERE := {
 	"grasu":    {"frames": "res://player_frames.tres"},
 	"spellman": {"frames": "res://spellman_frames.tres", "xp_pe_nivel": 0.95},
 	"jordan":   {"frames": "res://jordan_frames.tres",   "sansa_cheie": 0.02},
 	"liu":      {"frames": "res://liu_frames.tres",      "dmg_pe_nivel": 0.01},
+	"nerd":     {"frames": "res://nerd_frames.tres",     "speed_pe_nivel": 0.01},
 }
 
 # Caracterul cu care se joacă runda asta și bonusurile lui, citite o dată în `_ready` din
@@ -256,6 +267,9 @@ var sansa_cheie := -1.0
 # în `damage_mult()` (înmulțitorul de damage), nu înmulțește. Un 1.0 pus aici din greșeală ar fi
 # însemnat +100% damage pe nivel.
 var dmg_pe_nivel := 0.0
+# Tot 0 = „nu schimb nimic", ca la `dmg_pe_nivel`: se înmulțește cu `speed` în `speed_now()`,
+# adică e un PROCENT în plus, nu viteza însăși.
+var speed_pe_nivel := 0.0
 
 # --- BONUSUL DE NIVEL AL FIECĂREI ARME (cerut de Răzvan pe 2026-08-05) ---
 # „La fiecare nivel fiecare armă are un bonus specific." Nu e un item și nu se poate pierde: e
@@ -553,7 +567,7 @@ func _ready() -> void:
 	# Reperul lui Diesel Power = viteza cu care PORNEȘTI runda, luată DUPĂ META. Așa itemul
 	# măsoară viteza câștigată în rundă (Weird Concoction, Alex's Protection), nu ce ai cumpărat
 	# din magazin — altfel cine are Speed-ul maxat ar începe cu bonusul deja pe jumătate dat.
-	_speed_base = speed
+	_speed_base = speed_now()
 	_muzzle_frames = _load_fx_frames("res://fx/muzzle", 26.0, false)
 	# Proiectilul Mage Staff-ului: izbucnirea galbenă, în BUCLĂ (`loop = true`) — trebuie să pulseze
 	# cât zboară, nu să se stingă la jumătatea drumului. 18 fps × 4 cadre = un ciclu de 0,22 s.
@@ -584,7 +598,7 @@ func _ready() -> void:
 		"weapon_size": weapon_size_scale(),
 		"knockback": knockback,
 		"instakill_chance": instakill_chance,
-		"speed": speed,
+		"speed": speed_now(),
 		"max_hp": float(max_hp),
 		"hp_regen": float(hp_regen),
 	}
@@ -775,7 +789,7 @@ func _physics_process(delta: float) -> void:
 	if _dash_left > 0.0:
 		velocity = _dash_dir * dash_speed()
 	else:
-		velocity = directie * speed
+		velocity = directie * speed_now()
 	move_and_slide()
 	# Marginea Nether-ului / Ender-ului: te oprești pe buza gropii. NU e un zid de coliziune —
 	# un StaticBody în cerc ar fi însemnat un al doilea adevăr despre unde e marginea, iar podeaua
@@ -981,6 +995,20 @@ func damage_mult() -> float:
 		m += diesel_per_stack * diesel_stacks * speed_ratio()
 	return m
 
+# Viteza REALĂ de mers: statul „curat" (`speed`, scris de iteme, meta și OP start), crescut de
+# bonusul de nivel al caracterului. Ăsta e numărul pe care trebuie să-l citească toată lumea —
+# mersul din `_physics_process` și rândul „Move Speed" din panou —, exact ca `fire_interval_now`
+# la pistol sau `crit_chance_now` la cuțit.
+#
+# Se CALCULEAZĂ la folosire, nu se scrie în `speed`: altfel, la fiecare level up ar fi trebuit
+# scăzut bonusul vechi și adunat cel nou, iar Museum Piece (`speed *= 0.90`) sau trade-up-ul
+# (`speed *= factor`) ar fi înmulțit și bonusul, nu doar statul.
+#
+# ⚠️ Se ÎNMULȚEȘTE, deci crește și peste ce ai luat de pe jos: cu Hermes' Sandals în picioare,
+# +1%/nivel înseamnă 1% din viteza mărită, nu 1% din cea de start.
+func speed_now() -> float:
+	return speed * (1.0 + level * speed_pe_nivel)
+
 # Cât de repede mergi ACUM, raportat la viteza cu care ai pornit runda: 0 dacă stai pe loc,
 # 1 la viteza de start, plafonat la speed_ratio_cap. Reperul lui Diesel Power ȘI al lui
 # Megane's Katana — amândouă cresc la fel cu viteza, doar plătesc în monede diferite.
@@ -1056,7 +1084,7 @@ func stat_lines() -> Array:
 		# Norocul se arată TOTAL (iteme + bonusul de nivel al Mage Staff-ului), ca Crit și Damage.
 		# Fără „.0" degeaba: 2.5 rămâne „2.5", dar 5.0 se scrie „5".
 		_stat_row("Luck", luck_total(), 0.0, false, ("%.1f" % luck_total()).trim_suffix(".0")),
-		_stat_row("Move Speed", speed, b["speed"], false, str(int(round(speed)))),
+		_stat_row("Move Speed", speed_now(), b["speed"], false, str(int(round(speed_now())))),
 		_stat_row("Max HP", max_hp, b["max_hp"], false, str(max_hp)),
 		_stat_row("HP Regen", hp_regen, b["hp_regen"], false, "%d/s" % hp_regen),
 	]
@@ -2271,6 +2299,7 @@ func _aplica_caracter() -> void:
 	_xp_pe_nivel = float(c.get("xp_pe_nivel", 1.0))
 	sansa_cheie = float(c.get("sansa_cheie", -1.0))
 	dmg_pe_nivel = float(c.get("dmg_pe_nivel", 0.0))
+	speed_pe_nivel = float(c.get("speed_pe_nivel", 0.0))
 	var cale := String(c["frames"])
 	if ResourceLoader.exists(cale):
 		anim.sprite_frames = load(cale)
