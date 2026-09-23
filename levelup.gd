@@ -101,6 +101,17 @@ var UPGRADES := [
 	{"id": "broken_glasses", "nume": "Broken Glasses", "icon": "upgrade_68.png", "rar": "common", "desc": "25% chance to fire +1 projectile"},
 	{"id": "poisoned_water", "nume": "Poisoned Water", "icon": "upgrade_70.png", "rar": "uncommon", "desc": "+5% Difficulty, +5% Attack Speed"},
 	{"id": "submission", "nume": "Submission", "icon": "upgrade_71.png", "rar": "rare", "desc": "Crits heal you 6 HP"},
+	# 2026-09-23 — șapte iteme noi, cerute de Răzvan. Patru se lipesc de canale care există deja
+	# (reflexia din Old Reliable, dificultatea cumpărată, pragul de XP, viteza), unul e primul
+	# item care SCADE dificultatea, iar Third Eye e primul care aduce busola din dimensiuni în
+	# lumea normală. Efectele, ca întotdeauna, în `_apply`.
+	{"id": "sunglasses", "nume": "Sunglasses", "icon": "upgrade_72.png", "rar": "rare", "desc": "Reflect 25% of damage taken"},
+	{"id": "third_eye", "nume": "Third Eye", "icon": "upgrade_73.png", "rar": "epic", "desc": "Reveal the closest portal", "unic": true},
+	{"id": "studio_mic", "nume": "Studio Mic", "icon": "upgrade_74.png", "rar": "rare", "desc": "-10% Difficulty"},
+	{"id": "diamond_watch", "nume": "Diamond Watch", "icon": "upgrade_75.png", "rar": "legendary", "desc": "75% less XP to level up"},
+	{"id": "sunscreen", "nume": "Sunscreen", "icon": "upgrade_76.png", "rar": "common", "desc": "+10 Max HP, +1 HP/sec"},
+	{"id": "museum_piece", "nume": "Museum Piece", "icon": "upgrade_77.png", "rar": "rare", "desc": "-10% Move speed +25% Crit chance"},
+	{"id": "skateboard", "nume": "Skateboard", "icon": "upgrade_78.png", "rar": "rare", "desc": "+30 Movement Speed"},
 ]
 
 const CELL := 88.0    # latura chenarului de RARITATE (cu iconița în interior)
@@ -1248,3 +1259,94 @@ func _apply(id: String, p) -> void:
 			# ⚠️ Fără șansă de critic nu face NIMIC. Nu e o scăpare: e itemul care transformă un
 			# build pe critic într-unul care se ține singur în viață.
 			p.bloody_heal_hp += 6
+		"sunglasses":
+			# ochelarii de soare: 25% din damage-ul primit se întoarce în inamicul care te-a lovit,
+			# la FIECARE lovitură (+25% pe luare). ACELAȘI rezervor ca Old Reliable (15%) și Vodka
+			# (10%) — `reflect_pct` — deci cele trei se adună: cu toate în build, jumătate din
+			# fiecare lovitură pleacă înapoi. E fratele mare al lui Old Reliable, de-aia e Rare.
+			#
+			# ⚠️ Reflexia se socotește din damage-ul PRIMIT, deci crește singură pe măsură ce
+			# inamicii lovesc mai tare (vezi `player.gd`, unde `reflect_pct` intră în `take_damage`)
+			# — și e minimum 1, ca să nu se piardă la rotunjire pe loviturile mici.
+			# Cu Mike's Hedgehog e altă mecanică (100%, o dată la 6s), care se ADAUGĂ peste asta.
+			p.reflect_pct += 0.25
+		"third_eye":
+			# EPIC. Al treilea ochi: busola din dimensiuni, adusă în lumea normală — o săgeată pe
+			# marginea ecranului care arată spre CEL MAI APROPIAT portal, cu distanța sub ea.
+			# Exact cum te scoate Nether-ul la portalul de întoarcere (`nether.gd::_update_compass`),
+			# doar că aici ținta se CAUTĂ: `portals.gd::cel_mai_apropiat` întreabă chunk-urile din
+			# jur unde le-ar cădea portalul, fără să le încarce — deci arată și portaluri aflate
+			# mult dincolo de marginea hărții încărcate. Desenul e în `hud.gd::_update_third_eye`.
+			#
+			# Arată ce naște generatorul ACUM: portaluri Nether cât trăiește Saratalin, fântâni
+			# Ender după ce cade. După Celesto generatorul se oprește, deci săgeata se stinge
+			# singură — n-a mai rămas niciun portal de găsit.
+			#
+			# Cât ești ÎN Nether/Ender/Limbo/Pușcărie săgeata nu apare: acolo dimensiunea își
+			# desenează busola ei, spre obiectivul ei, și două săgeți diferite s-ar bate cap în cap.
+			#
+			# E „unic" din același motiv ca Lightning Step și Casino VIP Pass: efectul e un
+			# COMUTATOR, nu un status. A doua luare n-ar face nimic, iar un Epic irosit doare.
+			p.third_eye = true
+		"studio_mic":
+			# microfonul de studio: primul item din joc care SCADE dificultatea — inamicii se fac
+			# cu 10% mai slabi, pe loc și până la capătul rundei.
+			#
+			# E ACELAȘI canal ca Tome of Witchcraft / Poisoned Water și ca prețul plătit la statuia
+			# din Ender, la trade-up, la Alba-Neagra, la Dubiosu și la cazinou
+			# (`Difficulty.trade_penalty`), doar în direcția cealaltă: se ÎNMULȚEȘTE, deci se poate
+			# folosi ca să ȘTERGI o carte de vrăjitorii luată mai devreme (×1,10 × 0,90 = ×0,99).
+			# Scade viața, damage-ul de contact, viteza și CÂȚI inamici apar.
+			#
+			# ⚠️ NU-ți taie XP-ul: `xp_mult` nu trece prin `trade_penalty` (vezi difficulty.gd).
+			# Singurul cost indirect e că 10% mai puțini inamici înseamnă și 10% mai puține geme
+			# pe jos. Oglinda exactă a lui Tome of Witchcraft, care nu-ți dă XP în plus pentru
+			# dificultatea cumpărată.
+			#
+			# ⚠️ Are o PODEA (`Difficulty.MIN_TRADE`): oricâte microfoane aduni, inamicii nu scad
+			# sub un sfert din cât ar fi trebuit să fie. Fără ea, zece luări ar fi făcut runda o
+			# plimbare, iar scorul din leaderboard n-ar mai fi însemnat nimic.
+			Difficulty.add_trade_relief(0.10)
+		"diamond_watch":
+			# LEGENDARY. Ceasul cu diamante: nivelezi de patru ori mai repede. Fratele mare al lui
+			# Tome of Knowledge (50%) și al lui Grinder (15%) — același rând, `xp_to_next`.
+			#
+			# Reducerea se propagă la TOATE nivelurile următoare, fiindcă pragul următor crește din
+			# valoarea deja tăiată (×1.2 pe nivel), nu din cea originală. Se stivuiește: a doua
+			# luare mai taie un sfert din ce a rămas (6% din original).
+			#
+			# ⚠️ Podeaua de 5 XP e cea care-l ține să nu devină „level up la fiecare gemă" — la un
+			# ceas luat devreme pragul ajunge repede acolo și se oprește. Vezi Tome of Knowledge.
+			p.xp_to_next = max(5, int(p.xp_to_next * 0.25))
+		"sunscreen":
+			# crema de plajă: Common-ul de regenerare — fratele mic al lui Medkit (+10/s, Legendary)
+			# și al lui Water and electrolytes (+2/s, Uncommon). Se ADUNĂ la fiecare luare, ca ele
+			# (`hp_regen` e întreg, nu-l face procent, s-ar pierde la rotunjire).
+			#
+			# `upgrade_max_hp` te și VINDECĂ cu cele 10 pe loc (ca la Beer / Medkit), deci nu e doar
+			# un plafon ridicat, ci și o gură de aer imediat. Regenerarea nu trece de maxim:
+			# ceasul din `player.gd` scrie `hp = min(max_hp, hp + hp_regen)`.
+			p.upgrade_max_hp(10)
+			p.hp_regen += 1
+		"museum_piece":
+			# piesa de muzeu: stai pe loc și țintești. Cel mai mare plus de CRIT dintr-o singură
+			# luare (de peste trei ori cât Adrenaline), plătit în picioare.
+			#
+			# Criticul se ADUNĂ (ca Adrenaline / Hellas / Butterfly Knife) și NU e plafonat la
+			# 100%: peste el intră multi-crit-ul din `player.roll_crit` (200% = ×4 garantat).
+			# Viteza e PROCENT pe valoarea CURENTĂ (ca Bulletproof Vest), deci a doua luare taie
+			# 10% din ce mai aveai — nu te lasă niciodată pe loc, oricâte iei.
+			#
+			# ⚠️ Încetinirea costă de două ori: taie și din Diesel Power / Megane's Katana, care
+			# măsoară viteza curentă față de cea de start (`speed_ratio()`). Katana e chiar
+			# opusul acestui item — critic din mers — deci cele două se bat între ele.
+			p.speed *= 0.90
+			p.crit_chance += 0.25
+		"skateboard":
+			# skateboard-ul: +30 viteză, valoare FIXĂ, nu procent — ca Hermes' Sandals (+100), nu
+			# ca Hellas (+15%). Diferența contează: fix înseamnă că e cel mai bun devreme (+14% pe
+			# viteza de start, 215) și tot mai mic pe măsură ce aduni procente peste el.
+			#
+			# Fiind pe viteză, umflă indirect și Diesel Power / Megane's Katana, care se uită la cât
+			# de repede te miști față de viteza de start.
+			p.speed += 30.0

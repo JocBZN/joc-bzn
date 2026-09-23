@@ -129,6 +129,53 @@ func chunk_fantana_pos(key: Vector2i) -> Vector2:
 		return Vector2.INF
 	return p
 
+# ---------------------------------------------------------------------------
+# BUSOLA (itemul Third Eye, 2026-09-23)
+# ---------------------------------------------------------------------------
+# Unde e CEL MAI APROPIAT portal de `de_la`? Vector2.INF dacă n-are ce găsi.
+#
+# ⚠️ NU se uită la nodurile încărcate, ci ÎNTREABĂ CHUNK-URILE. Generatorul e determinist
+# (`_loc_in_chunk`: sămânța vine din cheia chunk-ului), deci poziția unui portal se poate afla
+# fără să-l construiești. Dacă am fi numărat nodurile din `_loaded`, săgeata ar fi arătat doar
+# portaluri aflate la cel mult `load_radius` (3 chunk-uri ≈ 1500 px) — adică aproape întotdeauna
+# unul pe care oricum îl vedeai pe ecran, și itemul n-ar fi „dezvăluit" nimic.
+#
+# Raza de căutare: `SCAN_CHUNKS`. La 1,5% pe chunk, distanța medie până la cel mai apropiat
+# portal e ~2400 px (≈4,6 chunk-uri), deci 8 chunk-uri (4096 px) acoperă aproape întotdeauna cel
+# puțin unul: șansa să nu fie NICIUNUL în cele 17×17 chunk-uri e ~1%. Atunci săgeata se stinge
+# pur și simplu, ca și cum portalul ar fi prea departe — nu e o eroare.
+#
+# Costul: 289 de aruncări de zar, din care doar ~4 ajung să caute un loc liber de copaci/pietre
+# (restul cad din prima la `rng.randf() >= sansa`). Rezultatele se țin în `_cache_busola`, fiindcă
+# sunt DETERMINISTE — același chunk dă mereu același răspuns. Cache-ul se golește odată cu
+# chunk-urile (`_goleste`), adică exact când se schimbă vârsta generatorului.
+const SCAN_CHUNKS := 8
+
+var _cache_busola := {}
+
+func cel_mai_apropiat(de_la: Vector2) -> Vector2:
+	if oprit:
+		return Vector2.INF     # după Celesto nu mai există portaluri de găsit
+	var pc := _chunk_of(de_la)
+	var best := Vector2.INF
+	var best_d := INF
+	for cx in range(pc.x - SCAN_CHUNKS, pc.x + SCAN_CHUNKS + 1):
+		for cy in range(pc.y - SCAN_CHUNKS, pc.y + SCAN_CHUNKS + 1):
+			var key := Vector2i(cx, cy)
+			var p: Vector2 = Vector2.INF
+			if _cache_busola.has(key):
+				p = _cache_busola[key]
+			else:
+				p = chunk_fantana_pos(key) if ender else chunk_portal_pos(key)
+				_cache_busola[key] = p
+			if p == Vector2.INF:
+				continue
+			var d := de_la.distance_squared_to(p)
+			if d < best_d:
+				best_d = d
+				best = p
+	return best
+
 # Tiparul comun al celor două vârste: sămânță din cheia chunk-ului, o aruncare de zar pentru
 # „are sau n-are", apoi câteva poziții încercate până iese una liberă de copaci/pietre/statui.
 #
@@ -231,6 +278,11 @@ func _goleste() -> void:
 		if is_instance_valid(_loaded[key]):
 			_loaded[key].queue_free()
 	_loaded.clear()
+	# Busola itemului Third Eye ținea minte pozițiile vârstei VECHI: după `treci_pe_ender` aceleași
+	# chunk-uri dau alte răspunsuri (altă sămânță, altă șansă, plus golul din jurul ieșirii), deci
+	# cache-ul trebuie să plece odată cu portalurile. Altfel săgeata ar fi arătat luni întregi spre
+	# un portal Nether care nu mai există.
+	_cache_busola.clear()
 
 func _build_chunk(key: Vector2i) -> Node2D:
 	var container := Node2D.new()

@@ -64,6 +64,7 @@ func _ready() -> void:
 	_fa_viata()
 	_fa_xp()
 	_fa_dash()
+	_fa_third_eye()
 
 	# --- Cronometrul (sus, centrat) ---
 	# Întâi numără invers de la 10:00; după ce ajunge la 0 o ia în sus, cu roșu.
@@ -358,10 +359,27 @@ func _process(delta: float) -> void:
 	keys_label.text = str(GameSettings.run_keys)   # doar cifra: iconița de lângă spune ce e
 	var player := get_tree().get_first_node_in_group("player")
 	if player == null:
+		_ascunde_third_eye()   # mort / între runde: săgeata n-are de unde să măsoare
 		return
 	_update_viata(player, delta)
 	_update_xp(player)
 	_update_dash(player)
+	_update_third_eye(player, delta)
+
+# Ești într-o DIMENSIUNE (Limbo / Nether / Ender / Pușcărie)? Fiecare dintre ele înghețează
+# cronometrul rundei și-și desenează singură ce are de arătat, într-un CanvasLayer al ei, peste
+# al nostru. Deci HUD-ul trebuie să-și stingă lucrurile care s-ar suprapune: cronometrul
+# (`_update_timer`) și busola Third Eye (`_update_third_eye`), care are acolo o soră mai bună —
+# busola dimensiunii, care arată spre obiectivul de acolo.
+func _in_dimensiune() -> bool:
+	var limbo := get_tree().get_first_node_in_group("limbo")
+	var nether := get_tree().get_first_node_in_group("nether")
+	var ender := get_tree().get_first_node_in_group("ender")
+	var prison := get_tree().get_first_node_in_group("prison")
+	return (limbo != null and limbo.active) \
+		or (nether != null and nether.active) \
+		or (ender != null and ender.active) \
+		or (prison != null and prison.active)
 
 # Cronometrul: numără invers cele 10 minute, apoi urcă de la 0 cu roșu (Final Swarm).
 func _update_timer() -> void:
@@ -370,14 +388,7 @@ func _update_timer() -> void:
 	# alb-negru, altfel roșul ei iese gri (filtrul acoperă și HUD-ul).
 	# La fel în Nether: cronometrul rundei e înghețat acolo, iar cel de 7:00 și-l desenează
 	# `nether.gd` singur (tot într-un CanvasLayer al lui).
-	var limbo := get_tree().get_first_node_in_group("limbo")
-	var nether := get_tree().get_first_node_in_group("nether")
-	var ender := get_tree().get_first_node_in_group("ender")   # la fel ca Nether-ul: 6:00-ul lui și-l desenează singur
-	var prison := get_tree().get_first_node_in_group("prison") # ...și 5:00-ul Pușcăriei, tot al ei
-	timer_label.visible = not ((limbo != null and limbo.active) \
-		or (nether != null and nether.active) \
-		or (ender != null and ender.active) \
-		or (prison != null and prison.active))
+	timer_label.visible = not _in_dimensiune()
 	if not timer_label.visible:
 		return
 	if Difficulty.is_final_swarm():
@@ -496,3 +507,117 @@ func _sare_dash() -> void:
 func _mmss(secunde: float) -> String:
 	var s := int(secunde)
 	return "%d:%02d" % [s / 60, s % 60]
+
+# ---------------------------------------------------------------------------
+# THIRD EYE — busola spre cel mai apropiat portal (item, 2026-09-23)
+# ---------------------------------------------------------------------------
+# Aceeași busolă pe care o vezi în Nether și în Ender (`nether.gd::_update_compass`), mutată în
+# lumea normală: o săgeată lipită de marginea ecranului, cu distanța sub ea, arătând încotro e
+# cel mai apropiat portal. Cerut de Răzvan exact așa: „cum arată când ești într-o dimensiune
+# portalul, doar că în lumea normală să îi arate cu săgeata cel mai apropiat portal".
+#
+# Trei diferențe față de busola dimensiunilor, toate din cauza că aici ținta nu e una singură:
+#   1. ȚINTA SE CAUTĂ, nu se ține minte: `portals.gd::cel_mai_apropiat` întreabă chunk-urile din
+#      jur (determinist, fără să le încarce), deci arată și portaluri de dincolo de zona
+#      încărcată — altfel „dezvăluie" ceva ce oricum vedeai.
+#   2. Se recalculează o dată la `TE_REFRESH` secunde, nu în fiecare cadru: scanarea trece prin
+#      289 de chunk-uri, iar portalul cel mai apropiat nu se schimbă de la un cadru la altul.
+#      Între două scanări săgeata tot se mișcă — se învârte în jurul poziției reținute, care e
+#      un punct FIX din lume, deci urmărirea rămâne lină cât mergi.
+#   3. Dispare cât ești în Nether / Ender / Limbo / Pușcărie: acolo dimensiunea are busola ei,
+#      spre obiectivul ei, și două săgeți în același loc s-ar bate cap în cap.
+#
+# Culoarea e violetul iris din iconița itemului (`upgrade_73.png`), nu portocaliul Nether-ului:
+# pe iarba verde a lumii normale portocaliul se pierde printre gemele de XP și flăcări.
+const TE_MARGIN := 96.0                        # cât de departe de marginea ecranului stă săgeata
+const TE_COLOR := Color(0.78, 0.48, 1.0)       # violetul din iris
+const TE_ARROW := 56.0                         # latura săgeții (ca în Nether)
+const TE_REFRESH := 0.3                        # la câte secunde recăutăm portalul cel mai apropiat
+var _te_arrow: Label
+var _te_dist: Label
+var _te_tinta := Vector2.INF   # portalul găsit la ultima scanare (punct fix în lume)
+var _te_t := 0.0               # countdown până la următoarea scanare
+
+func _fa_third_eye() -> void:
+	_te_arrow = Label.new()
+	_te_arrow.text = "▲"
+	_te_arrow.custom_minimum_size = Vector2(TE_ARROW, TE_ARROW)
+	_te_arrow.size = Vector2(TE_ARROW, TE_ARROW)
+	_te_arrow.pivot_offset = Vector2(TE_ARROW, TE_ARROW) * 0.5
+	_te_arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_te_arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_te_arrow.add_theme_font_size_override("font_size", 40)
+	_te_arrow.add_theme_color_override("font_color", TE_COLOR)
+	_te_arrow.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	_te_arrow.add_theme_constant_override("outline_size", 7)
+	_te_arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_te_arrow.visible = false
+	add_child(_te_arrow)
+
+	_te_dist = Label.new()
+	_te_dist.custom_minimum_size = Vector2(160, 0)
+	_te_dist.size = Vector2(160, 0)
+	_te_dist.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_te_dist.add_theme_font_size_override("font_size", 22)
+	_te_dist.add_theme_color_override("font_color", TE_COLOR)
+	_te_dist.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	_te_dist.add_theme_constant_override("outline_size", 6)
+	_te_dist.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_te_dist.visible = false
+	add_child(_te_dist)
+
+func _ascunde_third_eye() -> void:
+	if _te_arrow != null:
+		_te_arrow.visible = false
+		_te_dist.visible = false
+
+# Nodul generator de portaluri (`World/Portals`), luat prin părintele player-ului — același drum
+# pe care merg `nether.gd::_generator` și `prison_gates.gd`.
+func _portals_node(p) -> Node:
+	var world = p.get_parent()
+	return world.get_node_or_null("Portals") if world != null else null
+
+func _update_third_eye(p, delta: float) -> void:
+	if _te_arrow == null or not ("third_eye" in p) or not bool(p.third_eye) or _in_dimensiune():
+		_ascunde_third_eye()
+		return
+
+	# --- scanarea, o dată la TE_REFRESH ---
+	_te_t -= delta
+	if _te_t <= 0.0:
+		_te_t = TE_REFRESH
+		var portals := _portals_node(p)
+		_te_tinta = Vector2.INF
+		if portals != null and portals.has_method("cel_mai_apropiat"):
+			_te_tinta = portals.cel_mai_apropiat(p.global_position)
+	if _te_tinta == Vector2.INF:
+		# nu e niciun portal în raza de căutare (sau generatorul s-a oprit după Celesto)
+		_ascunde_third_eye()
+		return
+
+	# --- săgeata, în fiecare cadru (poziția din lume → pixeli de ecran) ---
+	var vp := get_viewport().get_visible_rect().size
+	var screen: Vector2 = get_viewport().get_canvas_transform() * _te_tinta
+	var m := TE_MARGIN
+	var pe_ecran := screen.x > m and screen.x < vp.x - m and screen.y > m and screen.y < vp.y - m
+	_te_arrow.visible = not pe_ecran
+	_te_dist.visible = not pe_ecran
+	if pe_ecran:
+		return    # îl vezi cu ochii tăi, n-are rost să-l mai arătăm cu degetul
+	var centru := vp * 0.5
+	var dir := screen - centru
+	if dir.length() < 1.0:
+		dir = Vector2.RIGHT
+	dir = dir.normalized()
+	# cât trebuie să mergem din centru pe direcția `dir` ca să atingem chenarul (ecran − margine)
+	var half := centru - Vector2(m, m)
+	var t := INF
+	if absf(dir.x) > 0.0001:
+		t = minf(t, half.x / absf(dir.x))
+	if absf(dir.y) > 0.0001:
+		t = minf(t, half.y / absf(dir.y))
+	var poz := centru + dir * t
+	_te_arrow.position = poz - Vector2(TE_ARROW, TE_ARROW) * 0.5
+	_te_arrow.rotation = dir.angle() + PI * 0.5   # „▲" arată în sus la rotație 0
+	_te_dist.position = poz - Vector2(80, -34)
+	_te_dist.text = "%d" % int(p.global_position.distance_to(_te_tinta))

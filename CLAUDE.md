@@ -24,6 +24,75 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-23 (șapte iteme noi, și busola care iese din dimensiuni)
+
+**Cerut de Răzvan:** „upgrade_72 - Sunglasses (Rare) - Reflect 25% of damage back; upgrade_73 - Third Eye (Epic) - Reveal the closest portal (cum arată când ești într-o dimensiune portalul, doar că în lumea normală să îi arate cu săgeata cel mai apropiat portal); upgrade_74 - Studio Mic (Rare) - -10% Difficulty; upgrade_75 - Diamond Watch (Legendary) - 75% less XP to level up; upgrade_76 - Sunscreen (Common) - +10 HP, +1HP/sec; upgrade_77 - Museum Piece (Rare) - -10% Movement Speed, +25% Crit chance; upgrade_78 - Skateboard (Rare) - +30 Movement Speed."
+
+**Fișiere noi:** `tool_iteme_72_78.gd` + `.tscn`, iconițele `Upgrades/upgrade_72..78.png` (+ `.import`).
+**Atinse:** `levelup.gd` (7 rânduri în `UPGRADES` + 7 cazuri în `_apply`), `difficulty.gd`, `player.gd`, `portals.gd`, `hud.gd`, `i18n.gd` (14 chei × 8 limbi), `codex.html`, README. **Pool: 64 → 71 de iteme.**
+
+### Șase din șapte se lipesc de canale care existau deja
+
+| Item | Se sprijină pe | Ce s-a schimbat în cod |
+|---|---|---|
+| **Sunglasses** (Rare) | `reflect_pct` (Old Reliable / Vodka) | nimic, doar `_apply` |
+| **Studio Mic** (Rare) | `Difficulty.trade_penalty` | funcție nouă `add_trade_relief` + `MIN_TRADE` |
+| **Diamond Watch** (Legendary) | `xp_to_next` (Tome of Knowledge / Grinder) | nimic, doar `_apply` |
+| **Sunscreen** (Common) | `hp_regen` + `upgrade_max_hp` | nimic, doar `_apply` |
+| **Museum Piece** (Rare) | `crit_chance` + `speed` | nimic, doar `_apply` |
+| **Skateboard** (Rare) | `speed` (fix, ca la Hermes) | nimic, doar `_apply` |
+| **Third Eye** (Epic) | busola din `nether.gd` / `ender.gd` | `portals.cel_mai_apropiat` + `hud._update_third_eye` |
+
+### Dificultatea putea doar să CREASCĂ
+
+`Difficulty.add_trade_penalty` are din construcție un `maxf(0.0, procent)` — adică ignoră în tăcere orice număr negativ. Așa trebuia să fie: ea e chemată de la statuia Ender, trade-up, Alba-Neagra, Dubiosu și cazinou, unde dificultatea e un PREȚ, iar o valoare negativă strecurată acolo ar fi fost o scăpare, nu o intenție.
+
+Deci Studio Mic n-a putut fi „add_trade_penalty(-0.10)". Are funcția lui, **`add_trade_relief(procent)`**, care înmulțește același rezervor cu `(1 − procent)`. Consecința bună: cele două se anulează între ele — un microfon chiar șterge o carte de vrăjitorii (×1,10 × 0,90 = ×0,99), fiindcă e același număr, nu două contoare separate.
+
+**Și are o PODEA: `Difficulty.MIN_TRADE = 0.25`.** Înmulțirea cu 0,9 nu se oprește singură nicăieri: zece microfoane lăsau inamicii la 35%, douăzeci la 12%, iar runda devenea o plimbare — cu scorul din leaderboard intact, fiindcă `trade_penalty` nu atinge `time`. Un sfert e cât se poate cumpăra. Simetric cu partea cealaltă, unde plafonul de viteză (`SPEED_CAP`) stă deasupra dificultății cumpărate exact din același motiv.
+
+⚠️ Ca la Tome of Witchcraft, **Studio Mic nu atinge XP-ul**: `xp_mult` nu trece prin `trade_penalty`. Deci nu-ți taie răsplata — singurul cost indirect e că 10% mai puțini inamici lasă 10% mai puține geme.
+
+### Third Eye: busola nu se uită la hartă, ci întreabă generatorul
+
+Cerința era „cum arată când ești într-o dimensiune, doar că în lumea normală". Busola din Nether/Ender arată spre UN obiectiv pe care dimensiunea îl ține minte (`_return_portal`, `_summon_portal`). În lumea normală nu există așa ceva: portalurile se nasc din chunk-uri, iar `Portals` ține încărcate doar cele din `load_radius = 3` chunk-uri (≈1500 px).
+
+Dacă numărăm nodurile încărcate, săgeata ar fi arătat aproape întotdeauna spre un portal **pe care oricum îl vedeai pe ecran** — adică itemul n-ar fi dezvăluit nimic.
+
+Soluția se sprijină pe ceva ce generatorul avea deja: e **determinist** (`_loc_in_chunk`, sămânța din cheia chunk-ului). Deci poziția unui portal se poate afla **fără să-l construiești**. `portals.cel_mai_apropiat(pos)` întreabă 17×17 chunk-uri (`SCAN_CHUNKS = 8`, ≈4000 px) și întoarce cel mai apropiat.
+
+Costul e mic fiindcă 98,5% din chunk-uri cad din prima la aruncarea de zar (`portal_chance = 1.5%`) și doar ~4 ajung să caute un loc liber de copaci/pietre/statui. Peste asta, un **cache per chunk** (rezultatele sunt deterministe, deci valabile pe veci) și o rescanare la 0,3 s în HUD, nu la fiecare cadru — între scanări săgeata tot se mișcă lin, fiindcă ținta e un punct FIX din lume.
+
+⚠️ **Cache-ul se golește în `_goleste()`**, adică exact când `treci_pe_ender()` schimbă vârsta generatorului. Fără asta, după căderea lui Saratalin săgeata ar fi arătat minute întregi spre un portal Nether care nu mai există: aceleași chunk-uri, dar altă sămânță (`SEED_SALT_ENDER`), altă șansă și golul din jurul ieșirii.
+
+Săgeata se stinge în **Nether / Ender / Limbo / Pușcărie** — acolo dimensiunea are busola ei, spre obiectivul ei, în același loc pe ecran. Verificarea asta exista deja copiată în `_update_timer`; acum e o funcție, `hud._in_dimensiune()`, pe care o folosesc amândouă.
+
+### Verificat rulând — `tool_iteme_72_78.tscn`
+
+Rulat în FEREASTRĂ (partea cu pozele are nevoie de GPU). Cinci feluri de probe, toate verzi:
+
+1. **lista** — cele 7 iteme au id/iconiță/raritate/text exact ce s-a cerut, iconițele se încarcă, **71 de id-uri și 71 de iconițe fără nicio repetiție**, „unic" doar pe Third Eye;
+2. **efectele**, aplicate pe un **player adevărat** prin `levelup._apply` (nu scrise de mână în variabile) — inclusiv stivuirea fiecăruia și cele trei cazuri de la Studio Mic: ×0,90 pe luare, anulează două cărți de vrăjitorii (0,9801), și se oprește la podea după 40 de luări. Plus dovada că inamicii chiar simt (viață ×0,90, spawn ×0,90) și că **XP-ul rămâne neatins**;
+3. **busola** — `cel_mai_apropiat` comparată cu o **căutare pe brânci** peste aceleași chunk-uri, în 4 locuri din lume (inclusiv la 99000, 99000): aceleași răspunsuri. Cache-ul dă același rezultat la a doua chemare, se golește la `treci_pe_ender()`, fântânile ies în ALTE locuri decât portalurile (4 din 4), iar după `opreste()` busola tace. HUD-ul: fără item săgeata nu apare, cu item ținta e exact portalul găsit, săgeata stă pe chenar, scrie distanța, și **se stinge când un nod din grupul „nether" e activ**;
+4. **traducerile** — 14 chei noi × 8 limbi, niciuna goală, iar numele/descrierea **încap pe cartonaș în toate cele 9 limbi** (numele are `clip_text`, descrierea `max_lines_visible = 2` — amândouă se strică în tăcere);
+5. **pozele** — trei pagini de level up desenate de codul adevărat, plus o poză cu **busola pe ecran** (săgeata violetă pe marginea dreaptă, „895" sub ea).
+
+Pornirea jocului adevărat (`main.tscn`): zero erori, zero avertismente.
+
+### Codexul
+
+`codex.html` are cele 7 carduri noi și base64-ul celor 7 iconițe. Verificat înainte de publicare: `id|iconiță|raritate` din `levelup.gd` vs `codex.html` — **zero diferențe, 71 de iteme**; fiecare din cele 71 de iconițe **și** cele 6 chenare au base64 **egal octet cu octet** cu fișierul de pe disc; verificarea de ghilimele ASCII (cea care prinde pagina albă) curată; randat în Chrome headless (1.038.681 octeți — o pagină albă face ~530 KB). Republicat pe același URL, **versiunea 22**.
+
+⚠️ **Pagina are în continuare o versiune PINUITĂ pentru vizitatori** — cine intră pe link vede tot versiunea fixată până când Răzvan o schimbă din meniul de versiuni al artifactului.
+
+### 🪤 Două cifre care ies din curba rarităților
+
+Nu le-am schimbat — sunt decizii de design, nu scăpări — dar merită știute:
+- **Museum Piece (Rare) dă +25% crit.** Adrenaline, tot Rare, dă +7%. E de peste trei ori cât el, pentru un cost de 10% viteză care se compune. Dacă pare prea mult, cifra e într-un singur loc în `_apply`.
+- **Skateboard (Rare) dă +30 viteză fixă.** Hellas, care e **Uncommon**, dă +15% (≈+32 pe viteza de start) ȘI +5% crit. Adică la început skateboard-ul e sub un item de raritate mai mică.
+
+---
+
 ## Session log — 2026-09-22 (castelul e iar un disc gol: harta făcută de mână, ștearsă)
 
 **Cerut de Răzvan:** „scoate pereti si structurile din dimensiunea castel, vreau sa fie ca inainte".

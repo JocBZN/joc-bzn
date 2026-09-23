@@ -135,6 +135,11 @@ var undying_used: bool = false
 # verificare (`_vip()`). Nu se stivuiește: a doua luare nu face nimic în plus.
 var casino_vip: bool = false
 
+# Third Eye: busola spre cel mai apropiat portal, în lumea normală. Steagul stă AICI, pe player,
+# din același motiv ca `casino_vip`: HUD-ul e cel care desenează săgeata, dar player-ul poartă
+# itemul, iar `hud.gd::_update_third_eye` îl întreabă la fiecare cadru. Nu se stivuiește.
+var third_eye: bool = false
+
 # --- tipul de armă ---
 # ⚠️ Două variabile, nu una, de pe 2026-08-27 (itemul Helping Hand, care dă o a doua armă):
 #   `weapon_type` = ce trage ACUM. Îl citesc sunetul, fulgerul la țeavă, plafonul de mărime al

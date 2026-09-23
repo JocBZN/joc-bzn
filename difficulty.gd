@@ -108,6 +108,21 @@ var trade_penalty := 1.0
 func add_trade_penalty(procent: float) -> void:
 	trade_penalty *= (1.0 + maxf(0.0, procent))
 
+# Cât de jos poate coborî `trade_penalty`. Există de când s-a putut și SCĂDEA dificultatea
+# (Studio Mic, 2026-09-23): înmulțirea cu 0,9 nu se oprește singură nicăieri, iar zece
+# microfoane ar fi lăsat inamicii la 35% și runda ar fi devenit o plimbare — cu scorul din
+# leaderboard intact, fiindcă `time` nu se atinge. Un sfert e podeaua: destul cât itemul să se
+# simtă la fiecare luare, prea puțin cât să golească runda de conținut.
+const MIN_TRADE := 0.25
+
+# Oglinda lui `add_trade_penalty`: inamicii se fac mai SLABI. `procent` = 0.10 pentru -10%.
+# Se înmulțește în același rezervor, deci un microfon chiar șterge o carte de vrăjitorii
+# (×1,10 × 0,90 = ×0,99), și se oprește la `MIN_TRADE`.
+# ⚠️ Nu atinge `xp_mult` — la fel ca penalizarea, care nu-ți dă XP în plus pentru dificultatea
+# cumpărată. Singurul efect indirect e că mai puțini inamici lasă mai puține geme.
+func add_trade_relief(procent: float) -> void:
+	trade_penalty = maxf(MIN_TRADE, trade_penalty * (1.0 - clampf(procent, 0.0, 0.9)))
+
 # --- NETHER (a doua dimensiune, vezi nether.gd) ---
 # Cât XP lasă inamicii, față de normal. 1.0 în lumea obișnuită; `nether.gd` îl urcă cât ești
 # acolo (risc mai mare → răsplată mai mare) și îl pune la loc la ieșire. Nether-ul folosește

@@ -439,6 +439,13 @@ const TRAD := {
 "Broken Glasses": ["破碎的眼镜", "Kaputte Brille", "Gafas Rotas", "Разбитые Очки", "Lunettes Cassées", "壊れたメガネ", "Rozbite Okulary", "Kırık Gözlük"],
 "Poisoned Water": ["毒水", "Vergiftetes Wasser", "Agua Envenenada", "Отравленная Вода", "Eau Empoisonnée", "毒入りの水", "Zatruta Woda", "Zehirli Su"],
 "Submission": ["降服", "Aufgabe", "Sumisión", "Сдача", "Soumission", "サブミッション", "Poddanie", "Teslimiyet"],
+"Sunglasses": ["太阳镜", "Sonnenbrille", "Gafas de Sol", "Солнечные очки", "Lunettes de Soleil", "サングラス", "Okulary Słoneczne", "Güneş Gözlüğü"],
+"Third Eye": ["第三只眼", "Drittes Auge", "Tercer Ojo", "Третий глаз", "Troisième Œil", "第三の目", "Trzecie Oko", "Üçüncü Göz"],
+"Studio Mic": ["录音麦克风", "Studiomikrofon", "Micrófono de Estudio", "Студийный микрофон", "Micro de Studio", "スタジオマイク", "Mikrofon Studyjny", "Stüdyo Mikrofonu"],
+"Diamond Watch": ["钻石手表", "Diamantuhr", "Reloj de Diamantes", "Бриллиантовые часы", "Montre en Diamants", "ダイヤの腕時計", "Diamentowy Zegarek", "Elmas Saat"],
+"Sunscreen": ["防晒霜", "Sonnencreme", "Protector Solar", "Солнцезащитный крем", "Crème Solaire", "日焼け止め", "Krem z Filtrem", "Güneş Kremi"],
+"Museum Piece": ["博物馆藏品", "Museumsstück", "Pieza de Museo", "Музейный экспонат", "Pièce de Musée", "博物館の逸品", "Eksponat Muzealny", "Müze Parçası"],
+"Skateboard": ["滑板", "Skateboard", "Monopatín", "Скейтборд", "Skateboard", "スケートボード", "Deskorolka", "Kaykay"],
 
 # ---------- descrierile upgrade-urilor ----------
 "+60 Speed +25% Attack Speed": ["+60 速度 +25% 攻速", "+60 Tempo +25% Angriffstempo", "+60 Velocidad +25% Vel. ataque", "+60 скорость +25% скорострельность", "+60 Vitesse +25% Cadence", "+60 移動速度 +25% 攻撃速度", "+60 Szybkość +25% Szybkostrzelność", "+60 Hız +25% Saldırı Hızı"],
@@ -505,6 +512,13 @@ const TRAD := {
 "25% chance to fire +1 projectile": ["25% 几率多射 1 发", "25% Chance auf +1 Geschoss", "25% de prob. de disparar +1 proyectil", "25% шанс выстрелить +1 снарядом", "25% de chance de tirer +1 projectile", "25%の確率で弾を+1発", "25% szans na +1 pocisk", "%25 ihtimalle +1 mermi"],
 "+5% Difficulty, +5% Attack Speed": ["+5% 难度, +5% 攻速", "+5% Schwierigkeit, +5% Angriffstempo", "+5% Dificultad, +5% Vel. de ataque", "+5% сложности, +5% скорострельность", "+5% Difficulté, +5% Cadence", "+5% 難易度、+5% 攻撃速度", "+5% Trudności, +5% Szybkostrzelność", "+5% Zorluk, +5% Saldırı hızı"],
 "Crits heal you 6 HP": ["暴击回复 6 生命", "Krits heilen dich um 6 HP", "Los críticos te curan 6 HP", "Криты лечат на 6 HP", "Les critiques te soignent 6 PV", "クリティカルで6HP回復", "Kryty leczą 6 HP", "Kritikler 6 CAN iyileştirir"],
+"Reflect 25% of damage taken": ["反弹 25% 所受伤害", "25% des erlittenen Schadens reflektieren", "Refleja 25% del daño recibido", "Отражает 25% полученного урона", "Renvoie 25% des dégâts subis", "受けたダメージの25%を反射", "Odbija 25% otrzymanych obrażeń", "Alınan hasarın %25’ini yansıt"],
+"Reveal the closest portal": ["显示最近的传送门", "Zeigt das nächste Portal", "Revela el portal más cercano", "Показывает ближайший портал", "Révèle le portail le plus proche", "最も近いポータルを表示", "Wskazuje najbliższy portal", "En yakın portalı gösterir"],
+"-10% Difficulty": ["-10% 难度", "-10% Schwierigkeit", "-10% Dificultad", "-10% сложности", "-10% Difficulté", "-10% 難易度", "-10% Trudności", "-10% Zorluk"],
+"75% less XP to level up": ["升级所需经验减 75%", "75% weniger XP zum Level-up", "75% menos XP para subir de nivel", "На 75% меньше опыта до уровня", "75% d’XP en moins pour monter", "レベルアップ必要XP 75%減", "75% mniej XP do awansu", "Seviye için %75 daha az XP"],
+"+10 Max HP, +1 HP/sec": ["+10 最大生命, +1 生命/秒", "+10 Max. HP, +1 HP/Sek.", "+10 HP máx., +1 HP/seg", "+10 макс. HP, +1 HP/сек", "+10 PV max, +1 PV/sec", "+10 最大HP、+1 HP/秒", "+10 Maks. HP, +1 HP/sek", "+10 Maks. CAN, +1 CAN/sn"],
+"-10% Move speed +25% Crit chance": ["-10% 移速 +25% 暴击率", "-10% Tempo +25% Kritchance", "-10% Velocidad +25% Prob. crítico", "-10% скорость +25% шанс крита", "-10% Vitesse +25% Critique", "-10% 移動速度 +25% クリティカル率", "-10% Szybkość +25% Szansa na kryt", "-10% Hız +25% Kritik şansı"],
+"+30 Movement Speed": ["+30 移速", "+30 Tempo", "+30 Velocidad", "+30 скорость", "+30 Vitesse", "+30 移動速度", "+30 Szybkość", "+30 Hız"],
 }
 # ========================== SFÂRȘITUL TABELULUI ==========================
 
