@@ -22,7 +22,7 @@ extends Node2D
 # damage, și 2,5 atacuri/s, și 10 proiectile — adică ar fi stricat exact cifrele de măsurat.
 #
 # Ce se probează, pe secțiuni:
-#   [1] registrul armei: 30 damage, 1,5 ture/s, și ce scrie în panoul de level up
+#   [1] registrul armei: 30 damage, 1 tur/s, și ce scrie în panoul de level up
 #   [2] inelul: două cruci, față în față, pe raza cerută (și cu player-ul la scale 2, ca în joc)
 #   [3] rotația E chiar attack speed-ul: măsurată pe cadre adevărate, înainte și după un upgrade
 #   [4] mărimea: fix jumătate din coasă, și crește exact cât crește ea
@@ -40,6 +40,7 @@ var _caracter_initial := ""
 var _arma_initiala := ""
 var _unlocked_initial := {}
 var _upgrades_initial := {}
+var _op_initial := false
 
 func _ok(m: String) -> void:
 	print("  [OK]  ", m)
@@ -83,10 +84,14 @@ func _ready() -> void:
 	_arma_initiala = GameSettings.weapon_type
 	_unlocked_initial = GameSettings.unlocked.duplicate()
 	# ⚠️ Și magazinul, tot în RAM: `_apply_meta` adaugă damage și scade pauza dintre atacuri după
-	# ce ai cumpărat. Cu el pornit, „30 damage" și „1,50/s" n-ar mai fi fost cifrele ARMEI, ci
+	# ce ai cumpărat. Cu el pornit, „30 damage" și „1.00/s" n-ar mai fi fost cifrele ARMEI, ci
 	# cifrele armei plus cumpărăturile lui Răzvan — adică proba ar fi ieșit roșie pe un joc corect.
 	_upgrades_initial = GameSettings.upgrades.duplicate()
 	GameSettings.upgrades = {}
+	# ⚠️ Și cheat-ul OP din meniu (`op_start`), tot numai în RAM: pornit în salvare, îi dă
+	# player-ului de test 100 damage, 2.50/s și încă 9 proiectile — adică 11 cruci. Prins pe 2026-09-24.
+	_op_initial = GameSettings.op_start
+	GameSettings.op_start = false
 	# Caracterul contează: Liu Xiang ar fi adus +1% damage pe nivel peste măsurătorile de la [5].
 	GameSettings.character = "grasu"
 	GameSettings.unlocked["cross"] = true   # ⚠️ NUMAI în RAM; vezi capul fișierului
@@ -114,14 +119,14 @@ func _sectiunea_1() -> void:
 	var c: Dictionary = arme.get("cross", {})
 	_cer(int(c.get("damage", 0)) == 30, "damage de pornire = 30 (scrie %s)" % c.get("damage", 0))
 	var ture := 1.0 / float(c.get("interval", 1.0))
-	_cer(_aprox(ture, 1.5, 0.001), "1,5 ture pe secundă (din interval iese %.4f)" % ture)
+	_cer(_aprox(ture, 1.0, 0.001), "1 tur pe secundă (din interval iese %.4f)" % ture)
 	var p: Node = await _player()
 	_cer(p.weapon_type == "cross", "arma rămâne crucea, nu cade înapoi pe pistol")
 	# Ce SCRIE în panoul de level up trebuie să fie aceeași cifră, nu una ținută pe lângă.
 	var scris := {}
 	for rand in p.stat_lines():
 		scris[String(rand.get("label", ""))] = String(rand.get("value", ""))
-	_cer(String(scris.get("Attack Speed", "")) == "1.50/s",
+	_cer(String(scris.get("Attack Speed", "")) == "1.00/s",
 		"panoul scrie Attack Speed [%s]" % scris.get("Attack Speed", ""))
 	_cer(String(scris.get("Damage", "")) == "30",
 		"panoul scrie Damage [%s]" % scris.get("Damage", ""))
@@ -190,13 +195,13 @@ func _sectiunea_3() -> void:
 	var p: Node = await _player()
 	await get_tree().process_frame
 	var v0: float = await _ture_pe_secunda(p, 1.5)
-	_cer(_aprox(v0, 1.5, 0.05), "se învârte de %.3f ori pe secundă (cerut 1,5)" % v0)
+	_cer(_aprox(v0, 1.0, 0.05), "se învârte de %.3f ori pe secundă (cerut 1)" % v0)
 	# un upgrade de cadență (jumătate de pauză = de două ori mai multe atacuri pe secundă)
 	p.fire_interval *= 0.5
 	p._seteaza_cadenta()
 	await get_tree().process_frame
 	var v1: float = await _ture_pe_secunda(p, 1.5)
-	_cer(_aprox(v1, 3.0, 0.1), "cu attack speed dublu se învârte de %.3f ori pe secundă" % v1)
+	_cer(_aprox(v1, 2.0, 0.1), "cu attack speed dublu se învârte de %.3f ori pe secundă" % v1)
 	await _sterge(p)
 
 # ---------------------------------------------------------------------------
@@ -271,8 +276,8 @@ func _sectiunea_5() -> void:
 	_cer(pierdut % 30 == 0, "fiecare lovitură a scos EXACT 30 (a pierdut %d)" % pierdut)
 	var lovituri := float(pierdut) / 30.0
 	var pe_secunda := lovituri / secunde
-	_cer(_aprox(pe_secunda, 3.0, 0.4),
-		"%d lovituri = %.2f pe secundă (2 cruci x 1,5 ture = 3)" % [int(lovituri), pe_secunda])
+	_cer(_aprox(pe_secunda, 2.0, 0.4),
+		"%d lovituri = %.2f pe secundă (2 cruci x 1 tur = 2)" % [int(lovituri), pe_secunda])
 	_cer(pe_secunda < 10.0, "deci NU lovește în fiecare cadru (aia ar fi fost ~60/s)")
 	# ...și Duridama merge prin cruce, ca prin orice altă armă (vezi ⚠️ din tool_duridama.gd)
 	p.duridama_stacks = 100
@@ -417,7 +422,7 @@ func _sectiunea_9() -> void:
 	# Îl plimbăm spre dreapta: dacă inelul n-ar fi copil al player-ului, ar rămâne în urmă.
 	Input.action_press("move_right")
 	var t0 := Time.get_ticks_usec()
-	while float(Time.get_ticks_usec() - t0) / 1000000.0 < 12.0:
+	while float(Time.get_ticks_usec() - t0) / 1000000.0 < 20.0:   # 20 s, nu 12: de pe 2026-09-24 inelul face 1 tur/s, nu 1.5
 		await get_tree().process_frame
 		if GameSettings.run_kills > morti0:
 			break
@@ -484,11 +489,12 @@ func _gata() -> void:
 	GameSettings.weapon_type = _arma_initiala
 	GameSettings.unlocked = _unlocked_initial.duplicate()
 	GameSettings.upgrades = _upgrades_initial.duplicate()
+	GameSettings.op_start = _op_initial
 	GameSettings._save()
 	print("\n=======================================")
-	print("pus la loc: caracter=%s arma=%s cross-deblocat=%s upgrade-uri=%d"
+	print("pus la loc: caracter=%s arma=%s cross-deblocat=%s upgrade-uri=%d op=%s"
 		% [GameSettings.character, GameSettings.weapon_type,
-			GameSettings.unlocked.has("cross"), GameSettings.upgrades.size()])
+			GameSettings.unlocked.has("cross"), GameSettings.upgrades.size(), GameSettings.op_start])
 	if _erori == 0:
 		print("=== TOTUL E BINE ===")
 	else:

@@ -123,6 +123,7 @@ func _ready() -> void:
 	# orice buton din joc, oricând ar fi creat, primește tratamentul de focus
 	get_tree().node_added.connect(_nod_nou)
 	_leaga_arborele(get_tree().root)
+	_pune_cursorul()
 
 # --------------------------------------------------------------------------------------
 # ACȚIUNI
@@ -384,9 +385,9 @@ func _schimba_mod(nou: String) -> void:
 		return
 	var era_pad := mod == "pad"
 	mod = nou
-	# Cursorul dispare cât joci pe controller. Un cursor de mouse uitat în mijlocul ecranului e
-	# semnul clasic că un joc „are controller, dar nu chiar".
-	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN if nou == "pad" else Input.MOUSE_MODE_VISIBLE
+	# Cursorul dispare cât joci pe controller (vezi CURSORUL, mai jos). Un cursor de mouse uitat în
+	# mijlocul ecranului e semnul clasic că un joc „are controller, dar nu chiar".
+	_aplica_cursor()
 	# Ai pus mâna pe mouse → chenarul de focus n-are ce căuta pe ecran: de acum comandă cursorul.
 	# La tastatură NU eliberăm focusul, ca săgețile să poată duce navigarea mai departe.
 	if nou == "mouse":
@@ -395,6 +396,72 @@ func _schimba_mod(nou: String) -> void:
 			vp.gui_release_focus()
 	if era_pad != (nou == "pad"):
 		dispozitiv_schimbat.emit(nou == "pad")
+
+
+# --------------------------------------------------------------------------------------
+# CURSORUL (cerut de Răzvan pe 2026-09-24)
+# --------------------------------------------------------------------------------------
+# Mâna din `menu/Mouse.png` e cursorul jocului, dar se vede NUMAI într-un meniu: meniul
+# principal, pauza (ESC), Alba-Neagra, EGT-ul, level up, game over... Cât joci propriu-zis nu e
+# nimic de apăsat, iar o săgeată în mijlocul luptei doar acoperă inamici.
+#
+# 🔑 „Meniu" = un ecran care ține butoane: un strat vizibil (`_straturi()`) cu un panou deschis cu
+# butoane în el (`_are_butoane`). Straturile sunt cele după care paznicul de focus alege unde pune
+# cursorul de pad, deci un ecran nou primește cursorul singur, fără listă scrisă de mână care să
+# rămână în urmă. Și tot de aici iese că o cinematică pusă pe pauză (intro-ul, trecerea prin
+# portal) NU arată mâna: n-are butoane.
+#
+# ⚠️ Scurtătura: în rundă, cu jocul NEOPRIT, nu e niciun meniu — toate ecranele cu butoane din
+# `main.tscn` pun jocul pe pauză când se deschid. Așa, cât joci, nu se coboară prin arbore în
+# fiecare cadru; căutarea butoanelor rulează doar cu jocul pe pauză sau pe scenele de meniu.
+#
+# ⚠️ Cursorul se desenează la mărimea LUI, în pixeli de ecran, nu întins cu jocul (`canvas_items`
+# întinde doar ce e ÎN fereastră). 48×62 e cât l-a desenat Răzvan, deci iese la fel de clar la
+# orice rezoluție, fără pixeli înmuiați.
+const CURSOR_POZA := preload("res://menu/Mouse.png")
+# Punctul care „dă clic": vârful arătătorului. Măsurat pe poză (primul rând de pixeli plini e
+# y=1, iar degetul ocupă acolo x=15..18). Fără el clicul ar pleca din colțul stânga-sus al pozei,
+# adică din aerul de lângă deget — butoanele s-ar aprinde cu o jumătate de deget mai încolo.
+const CURSOR_VARF := Vector2(16, 1)
+
+func _pune_cursorul() -> void:
+	# Pe toate formele pe care le poate cere un Control, nu doar pe săgeată: altfel un buton cu
+	# „mânuță" sau un câmp de text ar schimba cursorul înapoi în cel de Windows.
+	for forma in [Input.CURSOR_ARROW, Input.CURSOR_POINTING_HAND, Input.CURSOR_IBEAM]:
+		Input.set_custom_mouse_cursor(CURSOR_POZA, forma, CURSOR_VARF)
+
+func _aplica_cursor() -> void:
+	var vrea := Input.MOUSE_MODE_VISIBLE if mod != "pad" and in_meniu() else Input.MOUSE_MODE_HIDDEN
+	# numai la schimbare: pus în fiecare cadru, pe unele sisteme cursorul clipește
+	if Input.mouse_mode != vrea:
+		Input.mouse_mode = vrea
+
+func in_meniu() -> bool:
+	var scena := get_tree().current_scene
+	if scena == null:
+		return false
+	if not get_tree().paused and not (scena is Control):
+		return false   # în rundă și jocul merge → joci, nu ești în meniu (vezi ⚠️ de sus)
+	for strat in _straturi():
+		if _are_butoane(strat):
+			return true
+	return false
+
+# Un panou DESCHIS care ține butoane — chiar dacă butoanele lui sunt, în clipa asta, ascunse sau
+# dezactivate. ⚠️ Nu „un buton pe care-l poți apăsa acum": omul în palton își ascunde butoanele
+# cât dă cu zarul, EGT-ul le dezactivează cât se învârt rolele, iar meniul principal le ține
+# ascunse în intro. Cu regula aia, mâna ar fi dispărut și reapărut în mijlocul aceluiași meniu.
+# Ce contează e dacă PĂRINȚII butonului se văd: un ecran închis își ascunde panoul, nu doar
+# butoanele, deci el nu trece.
+func _are_butoane(nod: Node) -> bool:
+	if nod is BaseButton:
+		return true         # am ajuns la el, deci tot ce e deasupra lui se vede
+	if nod is CanvasItem and not nod.visible:
+		return false        # un panou închis n-are ce da mai departe (nici copiii lui)
+	for c in nod.get_children():
+		if _are_butoane(c):
+			return true
+	return false
 
 func pe_pad() -> bool:
 	return mod == "pad"
@@ -496,6 +563,7 @@ func opreste_vibratia() -> void:
 # chiar numărul după care se desenează.
 func _process(_delta: float) -> void:
 	_asculta_padul()
+	_aplica_cursor()   # meniul se deschide / se închide oricând, nu doar la schimbarea mâinii
 	if mod != "pad":
 		return
 	_pazeste_focusul()

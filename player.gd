@@ -166,7 +166,7 @@ var _timere_secundare: Array = []
 #   cursed sword       20           0.75               1.33
 #   celesto's scythe   24           0.95               1.05   ← cea mai rară, dar taie în jur
 #   throwing knife     12           0.55               1.82   ← cea mai deasă, dar cea mai slabă
-#   cross              30           0.667              1.50   ← nu trage: se învârte în jurul tău
+#   cross              30           1.00               1.00   ← nu trage: se învârte în jurul tău
 #
 # (STINGĂTORUL a fost ȘTERS din joc pe 2026-08-04, la cererea lui Răzvan — cu tot cu aura care
 #  pulsa, spuma, iconița și cadrele ei. Sunetul lui a rămas: îl folosește acum sabia.)
@@ -180,9 +180,10 @@ const ARME := {
 	"sword":        {"damage": 20, "interval": 0.75},
 	"scythe":       {"damage": 24, "interval": 0.95},
 	"knife":        {"damage": 12, "interval": 0.55},
-	# ⚠️ `interval` e scris ca împărțire, nu ca 0.667: cifra cerută de Răzvan e „1.5/s" (cât de
-	# repede se învârt crucile), iar aici se vede chiar ea. Vezi secțiunea CRUCEA.
-	"cross":        {"damage": 30, "interval": 1.0 / 1.5},
+	# ⚠️ `interval` e scris ca împărțire: cifra din panou e ture pe secundă (cât de
+	# repede se învârt crucile). A pornit la 1.5/s, iar pe 2026-09-24 Răzvan a cerut-o de 1.5× mai
+	# mică: 1.5 / 1.5 = 1.0/s, un tur pe secundă. Vezi secțiunea CRUCEA.
+	"cross":        {"damage": 30, "interval": 1.0 / 1.0},
 }
 
 # --- CARACTERELE (cerute de Răzvan pe 2026-09-02) ---
@@ -1847,8 +1848,8 @@ func _update_sweeps(delta: float) -> void:
 # hotărăști e unde stai, adică pe cine plimbi prin inelul lor. De-aia e recompensa pentru nivelul
 # 50: o armă care schimbă felul în care te MIȘTI, nu una care lovește mai tare.
 #
-# 🔑 CADENȚA E CHIAR ROTAȚIA. `ARME["cross"]["interval"]` e 1/1.5 s, adică un tur complet la
-# 0,667 s = 1,5 ture pe secundă, fix cifra scrisă în panou la „Attack Speed". Nu e o a doua cifră
+# 🔑 CADENȚA E CHIAR ROTAȚIA. `ARME["cross"]["interval"]` e 1 s (până pe 2026-09-24: 1/1.5 s), adică
+# un tur complet pe secundă, fix cifra scrisă în panou la „Attack Speed". Nu e o a doua cifră
 # ținută pe lângă: turul se socotește DIN `fire_interval_now()`, deci orice upgrade de cadență le
 # învârte mai repede și rândul din panou nu are cum să ajungă să mintă.
 #
@@ -1870,7 +1871,7 @@ func _update_sweeps(delta: float) -> void:
 # ⚠️ O CRUCE NU POATE LOVI ACELAȘI INAMIC DE DOUĂ ORI PE TUR. Fiecare cruce ține minte pe cine a
 # atins, cu un ceas de un tur întreg (`loviti`). Fără asta ar fi dat damage la FIECARE cadru cât
 # stă peste el, adică de 60 de ori pe secundă. Așa, un inamic care stă în inel încasează o dată de
-# la fiecare cruce pe tur: cu cele două de pornire, de 3 ori pe secundă (2 × 1,5).
+# la fiecare cruce pe tur: cu cele două de pornire, de 2 ori pe secundă (2 × 1).
 #
 # ⚠️ ZGUDUITURA de la critic, VINDECAREA de la Bloody Situation și SUNETUL sunt ținute în frâu de
 # un singur ceas (`_cross_ecou`), la cel mult o dată pe jumătate de tur. La sabie și la coasă
