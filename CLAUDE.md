@@ -24,6 +24,39 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-24b (Romanian Trapper, al șaselea caracter)
+
+**Cerut de Răzvan:** „Ti-am adaugat in folderul Characters un folder nou - Trapper - o sa fie urmatorul caracter nou - vreau sa se numeasca Romanian Trapper - +1% luck per level - reach level 150 in one run to unlock"
+
+**Fișiere noi:** `trapper_frames.tres`, `Characters/Trapper/frames/` (72 PNG).
+**Atinse:** `player.gd` (`CARACTERE`, `luck_pe_nivel`, `_aplica_caracter`, `luck_total`), `menu.gd` (`CHARACTERS`, `_bonus_caracter`), `unlocks.gd` (`CERINTE`, `NIVEL_TRAPPER`, `nivel_atins`), `i18n.gd` (2 chei × 8 limbi), `tool_check_i18n.gd`, `tool_deblocari.gd`, `tool_aliniaza_talpi.gd` (re-țintit), `tool_caracter.gd` (secțiunea [9]).
+
+### Bonusul: +1 NOROC pe nivel (nu „+1%")
+
+⚠️ Cerut „+1% luck per level", dar norocul e în **puncte** (`luck`, pornește de la 0): 1% din 0 = nimic, la orice nivel. Exact aceeași hotărâre ca la bonusul Mage Staff-ului (vezi ⚠️ NOROCUL lângă `LUCK_PE_NIVEL`), deci Trapper-ul primește **+1 punct/nivel**, iar fișa scrie „+1 LUCK PER LEVEL", ca la toiag. Dacă Răzvan chiar voia procent, se schimbă o linie în `luck_total()`.
+
+Câmp nou opțional `luck_pe_nivel` (neutrul 0), adunat în `luck_total()` — singurul număr pe care îl citește tot ce ține de noroc: `luck_bonus`, raritățile de la level up, **deblocarea Mage Staff-ului** (`verifica_statusuri`). Deci Trapper-ul deblochează toiagul singur la nivelul 20. Se adună cu bonusul toiagului: +2/nivel cu Mage Staff.
+
+### Deblocarea: nivelul 150
+
+`NIVEL_TRAPPER = 150` lângă `NIVEL_CROSS`, verificat în `nivel_atins()` (chemat din `_level_up`). Cea mai grea deblocare din joc.
+
+### Arta
+
+GIF-urile au venit cu ` (2)` în coadă → **redenumite întâi**. Conducta obișnuită, cu aceleași `PANZA 96` / `TINTA_TALPA 81`: toate direcțiile la **33.0**. Mers 8 cadre (pânze de 88), rotații pe 64. Ordinea rotațiilor verificată pe planșă: la fel (0 = sud, apoi în sensul acelor). `trapper_frames.tres` = `nerd_frames.tres` cu folderul schimbat (același 8 cadre × 8 + idle).
+
+⚠️ **Spre nord silueta e ~5 px mai înaltă** (64–67 față de 60–62). Verificat: e POZA, nu scara — aceeași lățime, aceeași șapcă; din spate aleargă drept, din față aplecat. Lăsat cum e desenat (nu e cazul pompierului, care era chiar la altă scară).
+
+### ✅ Verificat rulând
+
+`tool_caracter.tscn` → **TOTUL E BINE**. Secțiunea nouă [9]: +19 noroc de la nivelul 1 la 20 (The G +0), +1 față de The G deja la nivelul 1, +38 cu Mage Staff; fișa „+1 LUCK PER LEVEL"; cerința; deblocarea prin **`_level_up` adevărat** — încuiat la 149, deschis la 150, pancarta `ROMANIAN TRAPPER` pe HUD-ul de carton. Arta, tălpile, XP, chei, damage și viteza le-au prins secțiunile vechi singure (iterează `CARACTERE`). `tool_check_i18n`: TOTUL E TRADUS. Poze cu pagina (încuiat / deblocat). Salvarea reală identică (`cmp`).
+
+### ⚠️ Pagina CHOOSE CHARACTER e PLINĂ
+
+Al șaselea rând se termină chiar deasupra lui BACK. **Al șaptelea caracter cere `ScrollContainer`** sau rânduri mai strânse.
+
+---
+
 ## Session log — 2026-09-24 (Crucea mai lentă · cursorul-mână, numai în meniuri)
 
 **Cerut de Răzvan:** „Fa attack speed-ul la Cross de 1.5x mai mic. Ai in folderul menu un png - se numeste Mouse - vreau ala sa fie cursorul doar atunci cand esti intr-un meniu, cum ar fi cand apesi ESC, la alba, la EGT, etc. - doar atunci cand esti in jocul propriu zis vreau sa nu apara."

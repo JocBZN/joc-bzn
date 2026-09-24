@@ -195,6 +195,7 @@ const ARME := {
 #   jordan     — omul de afaceri: cheile de cufăr cad de 10× mai des.
 #   liu        — războinicul: +1% damage la fiecare nivel (2026-09-23).
 #   nerd       — tocilarul: +1% viteză de mers la fiecare nivel (2026-09-23).
+#   trapper    — Romanian Trapper: +1 noroc la fiecare nivel (2026-09-24).
 #
 # 🔑 Bonusurile sunt CÂMPURI OPȚIONALE, nu un câmp „bonus" care le-ar amesteca: fiecare are alt
 # fel de a lucra (unul se compune la level up, altul înlocuiește o rată fixă), iar cine n-are
@@ -250,12 +251,23 @@ const ARME := {
 #
 #   nivel          1      10      20      30
 #   +1%/nivel    ×1,01   ×1,10   ×1,20   ×1,30
+#
+# `luck_pe_nivel`: câte PUNCTE de noroc dă fiecare nivel (1.0 = +1 noroc/nivel). Cerut ca „+1%
+# luck per level", dar norocul nu e un procent, e un număr de puncte (`luck`, pornește de la 0),
+# iar 1% din 0 ar fi însemnat nimic la orice nivel. Deci e exact bonusul Mage Staff-ului
+# (`LUCK_PE_NIVEL`, vezi ⚠️ NOROCUL de mai jos): un punct valorează +0.4 puncte procentuale la
+# toate șansele din joc. Se adună în `luck_total()`, lângă bonusul toiagului, deci Trapper-ul cu
+# Mage Staff urcă cu +2 noroc/nivel — cinstit, ca Liu Xiang cu sabia.
+#
+#   nivel          1      10      20      50     150
+#   +1/nivel      +1     +10     +20     +50    +150     ← la nivelul 20 deblochează singur Mage Staff
 const CARACTERE := {
 	"grasu":    {"frames": "res://player_frames.tres"},
 	"spellman": {"frames": "res://spellman_frames.tres", "xp_pe_nivel": 0.95},
 	"jordan":   {"frames": "res://jordan_frames.tres",   "sansa_cheie": 0.02},
 	"liu":      {"frames": "res://liu_frames.tres",      "dmg_pe_nivel": 0.01},
 	"nerd":     {"frames": "res://nerd_frames.tres",     "speed_pe_nivel": 0.01},
+	"trapper":  {"frames": "res://trapper_frames.tres",  "luck_pe_nivel": 1.0},
 }
 
 # Caracterul cu care se joacă runda asta și bonusurile lui, citite o dată în `_ready` din
@@ -275,6 +287,8 @@ var dmg_pe_nivel := 0.0
 # Tot 0 = „nu schimb nimic", ca la `dmg_pe_nivel`: se înmulțește cu `speed` în `speed_now()`,
 # adică e un PROCENT în plus, nu viteza însăși.
 var speed_pe_nivel := 0.0
+# Tot 0 = „nu schimb nimic": se ADUNĂ în `luck_total()`, în PUNCTE de noroc, nu în procente.
+var luck_pe_nivel := 0.0
 
 # --- BONUSUL DE NIVEL AL FIECĂREI ARME (cerut de Răzvan pe 2026-08-05) ---
 # „La fiecare nivel fiecare armă are un bonus specific." Nu e un item și nu se poate pierde: e
@@ -316,11 +330,12 @@ func bonus_arma(pentru: String) -> float:
 # level up, cufere, statuia însăși.
 var run_items: Array = []
 
-# Norocul TOTAL: cel strâns din iteme + bonusul de nivel al Mage Staff-ului. Ăsta e numărul pe
-# care trebuie să-l citească toată lumea (`luck_bonus` aici, `_norocul_meu` în `levelup.gd`,
+# (`luck_pe_nivel`, 2026-09-24). Ăsta e numărul pe care trebuie să-l citească toată lumea
+# (`luck_bonus` aici, `_norocul_meu` în `levelup.gd`, panoul de statusuri, deblocarea Mage
+# Staff-ului) — `luck` gol e doar partea din iteme.
 # panoul de statusuri) — `luck` gol e doar partea din iteme.
 func luck_total() -> float:
-	return luck + (level * LUCK_PE_NIVEL if arma_aleasa == "mage" else 0.0)
+	return luck + (level * LUCK_PE_NIVEL if arma_aleasa == "mage" else 0.0) + level * luck_pe_nivel
 
 # Pauza REALĂ dintre lovituri: cea a armei, scurtată de bonusul de nivel al PISTOLULUI.
 # `fire_interval` rămâne statul „curat" (îl scriu arma, meta, OP start și `upgrade_fire_rate`);
@@ -2515,6 +2530,7 @@ func _aplica_caracter() -> void:
 	sansa_cheie = float(c.get("sansa_cheie", -1.0))
 	dmg_pe_nivel = float(c.get("dmg_pe_nivel", 0.0))
 	speed_pe_nivel = float(c.get("speed_pe_nivel", 0.0))
+	luck_pe_nivel = float(c.get("luck_pe_nivel", 0.0))
 	var cale := String(c["frames"])
 	if ResourceLoader.exists(cale):
 		anim.sprite_frames = load(cale)

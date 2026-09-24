@@ -13,7 +13,7 @@ extends Node
 #   · `chest.gd::invoca`     → `cufar_deschis()`      (3 cufere)
 #   · `celesto.gd::_die`     → `celesto_invins()`
 #   · `player.gd::_process`  → `verifica_statusuri(p)` (noroc / damage / crit, la fiecare 0.5s)
-#   · `player.gd::_level_up` → `nivel_atins(level)`   (nivelul 50 → crucea)
+#   · `player.gd::_level_up` → `nivel_atins(level)`   (nivelul 50 → crucea, 150 → Romanian Trapper)
 #
 # ⚠️ Ce s-a deblocat se ține în `GameSettings.unlocked` (deci în `user://scores.save`), NU aici:
 # aici e doar logica. O salvare veche n-are cheia → totul e încuiat în afară de Pistol și The G,
@@ -29,6 +29,7 @@ const CERINTE := {
 	"jordan":   {"tip": "character", "cerinta": "Open 3 chests in one run"},
 	"liu":      {"tip": "character", "cerinta": "Have 100 Damage in one run"},
 	"nerd":     {"tip": "character", "cerinta": "Take Hermes' Sandals in one run"},
+	"trapper":  {"tip": "character", "cerinta": "Reach level 150 in one run"},
 	# --- ARME ---
 	"mage":     {"tip": "weapon",    "cerinta": "Get 20 Luck in one run"},
 	"sword":    {"tip": "weapon",    "cerinta": "Have 100 Damage in one run"},
@@ -52,6 +53,9 @@ const CRIT_KNIFE := 1.0                   # 1.0 = 100% șansă de critic
 # stat împins cu două iteme potrivite. Cerut așa („get level 50 in one run to unlock"); dacă vrei
 # să vină mai devreme, aici e singura cifră de schimbat.
 const NIVEL_CROSS := 50
+# Romanian Trapper, de TREI ori mai departe decât crucea (cerut așa, 2026-09-24): cea mai grea
+# deblocare din joc. Tot pe nivel, deci tot din `nivel_atins` — fără ceas, fără stat de urmărit.
+const NIVEL_TRAPPER := 150
 # ⚠️ Liu Xiang cere ACELAȘI prag ca Cursed Sword, fiindcă așa a fost cerut („100 damage in one
 # run"). Deci amândouă se deblochează în ACELAȘI cadru, la aceeași lovitură — de-asta anunțul
 # de mai jos are coadă: `hud.announce` scrie peste pancarta de dinainte, iar fără coadă jucătorul
@@ -129,12 +133,14 @@ func cufar_deschis() -> void:
 func celesto_invins() -> void:
 	deblocheaza("scythe")
 
-# Nivelul 50 într-o rundă — crucea. E singurul prag care se uită la NIVEL, nu la un stat: nivelul
+# Nivelul 50 într-o rundă — crucea; 150 — Romanian Trapper. Singurele praguri care se uită la NIVEL, nu la un stat: nivelul
 # nu scade niciodată și nu se schimbă în mers, deci n-avea de ce să fie întrebat pe ceas. Se
 # anunță din `player.gd::_level_up`, adică fix în clipa în care s-a întâmplat.
 func nivel_atins(nivel: int) -> void:
 	if nivel >= NIVEL_CROSS:
 		deblocheaza("cross")
+	if nivel >= NIVEL_TRAPPER:
+		deblocheaza("trapper")
 
 # Cele trei cerințe care se uită la STATUSURILE de acum. Nu se pot prinde pe un eveniment (un item
 # luat, un inamic mort), fiindcă damage-ul și criticul se schimbă și în mers — Diesel Power crește

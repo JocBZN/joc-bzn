@@ -204,6 +204,7 @@ const TRAD := {
 "%d%% CHANCE OF KEY DROPS": ["钥匙掉落几率 %d%%", "%d%% CHANCE AUF SCHLÜSSEL", "%d%% DE PROBABILIDAD DE LLAVES", "%d%% ШАНС ВЫПАДЕНИЯ КЛЮЧЕЙ", "%d%% DE CHANCE DE CLÉS", "鍵のドロップ率 %d%%", "%d%% SZANSY NA KLUCZE", "%d%% ANAHTAR DÜŞME ŞANSI"],
 "+%d%% DAMAGE PER LEVEL": ["每级 +%d%% 伤害", "+%d%% SCHADEN PRO LEVEL", "+%d%% DAÑO POR NIVEL", "+%d%% УРОНА ЗА УРОВЕНЬ", "+%d%% DÉGÂTS PAR NIVEAU", "レベルごとにダメージ+%d%%", "+%d%% OBRAŻEŃ NA POZIOM", "SEVİYE BAŞINA +%d%% HASAR"],
 "+%d%% MOVEMENT SPEED PER LEVEL": ["每级 +%d%% 移动速度", "+%d%% TEMPO PRO LEVEL", "+%d%% VELOCIDAD POR NIVEL", "+%d%% СКОРОСТИ ЗА УРОВЕНЬ", "+%d%% DE VITESSE PAR NIVEAU", "レベルごとに移動速度+%d%%", "+%d%% SZYBKOŚCI NA POZIOM", "SEVİYE BAŞINA +%d%% HIZ"],
+"+%d LUCK PER LEVEL": ["每级 +%d 幸运", "+%d GLÜCK PRO LEVEL", "+%d SUERTE POR NIVEL", "+%d УДАЧИ ЗА УРОВЕНЬ", "+%d CHANCE PAR NIVEAU", "レベルごとに幸運+%d", "+%d SZCZĘŚCIA NA POZIOM", "SEVİYE BAŞINA +%d ŞANS"],
 # --- DEBLOCĂRI (2026-09-07, `unlocks.gd`) ---
 # „LOCKED" e capul de secțiune din fișă (stă în locul lui „PERK"/al bonusului), „UNLOCKED" e
 # pancarta mare, aurie, care sare în joc când tocmai ai câștigat ceva. Restul sunt CERINȚELE,
@@ -219,6 +220,7 @@ const TRAD := {
 "Defeat Celesto": ["击败塞莱斯托", "Besiege Celesto", "Derrota a Celesto", "Победи Целесто", "Bats Celesto", "セレストを倒す", "Pokonaj Celesta", "Celesto'yu yen"],
 "Have 100 Crit in one run": ["在一局中达到 100% 暴击", "Erreiche 100 Krit in einem Lauf", "Alcanza 100 de Crítico en una partida", "Достигни 100 крита за один забег", "Atteins 100 de Critique en une partie", "1回のランでクリティカル100に到達", "Osiągnij 100 Kryta w jednym podejściu", "Tek turda 100 Kritik'e ulaş"],
 "Reach level 50 in one run": ["在一局中达到 50 级", "Erreiche Level 50 in einem Lauf", "Alcanza el nivel 50 en una partida", "Достигни 50 уровня за один забег", "Atteins le niveau 50 en une partie", "1回のランでレベル50に到達", "Osiągnij poziom 50 w jednym podejściu", "Tek turda 50. seviyeye ulaş"],
+"Reach level 150 in one run": ["在一局中达到 150 级", "Erreiche Level 150 in einem Lauf", "Alcanza el nivel 150 en una partida", "Достигни 150 уровня за один забег", "Atteins le niveau 150 en une partie", "1回のランでレベル150に到達", "Osiągnij poziom 150 w jednym podejściu", "Tek turda 150. seviyeye ulaş"],
 "Choose one": ["选择一个", "Wähle eines", "Elige uno", "Выбери одно", "Choisis-en un", "ひとつ選べ", "Wybierz jedno", "Birini seç"],
 "STATS": ["属性", "WERTE", "ESTADÍSTICAS", "ХАРАКТЕРИСТИКИ", "STATS", "ステータス", "STATYSTYKI", "İSTATİSTİK"],
 "Common": ["普通", "Gewöhnlich", "Común", "Обычный", "Commun", "コモン", "Zwykły", "Sıradan"],

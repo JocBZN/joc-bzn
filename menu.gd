@@ -138,6 +138,8 @@ const CHARACTERS := [
 		"icon": "res://Characters/Warrior/frames/idle_south_0.png"},
 	{"id": "nerd",     "name": "NERD",
 		"icon": "res://Characters/Nerd/frames/idle_south_0.png"},
+	{"id": "trapper",  "name": "ROMANIAN TRAPPER",
+		"icon": "res://Characters/Trapper/frames/idle_south_0.png"},
 ]
 
 const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
@@ -1218,6 +1220,12 @@ func _bonus_caracter(id: String) -> String:
 	var viteza := float(c.get("speed_pe_nivel", 0.0))
 	if viteza > 0.0:
 		linii.append(tr("+%d%% MOVEMENT SPEED PER LEVEL") % int(round(viteza * 100.0)))
+
+	# Tot 0 = fără bonus (vezi `player.gd::luck_pe_nivel`). ⚠️ Fără „%": norocul e în PUNCTE,
+	# deci fișa scrie ce scrie și la Mage Staff („+1 LUCK PER LEVEL"), din cifra din cod.
+	var noroc := float(c.get("luck_pe_nivel", 0.0))
+	if noroc > 0.0:
+		linii.append(tr("+%d LUCK PER LEVEL") % int(round(noroc)))
 
 	if linii.is_empty():
 		return "NO BONUS STATS"

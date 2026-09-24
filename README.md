@@ -154,6 +154,14 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-24b, Romanian Trapper — a sixth character, luck per level)
+
+- 🧢 **ROMANIAN TRAPPER**, from `Characters/Trapper`. His perk: **+1 luck per level**, through a new optional `CARACTERE` field, `luck_pe_nivel`, added inside `luck_total()` — the one number every chance in the game reads (`luck_bonus`, the level-up rarities, the Mage Staff unlock). ⚠️ It was asked as "+1% luck per level", but luck is **points**, not a percentage (it starts at 0, and 1% of 0 is nothing at any level). So it is exactly the Mage Staff's own level bonus: one point = +0.4 percentage points on every chance. The card says **+1 LUCK PER LEVEL**, generated from the number in code, like the staff's. It **stacks honestly** with the staff: Trapper + Mage Staff gains +2 a level. A side effect worth knowing: at level 20 he reaches 20 luck on his own, which **unlocks the Mage Staff** in passing.
+- 🔓 **Unlocked by reaching level 150 in one run** — `Unlocks.NIVEL_TRAPPER`, checked in `nivel_atins()` next to the Cross's 50. The hardest unlock in the game by far.
+- 🎨 **Art through the usual pipeline**: the GIFs came as `… (2).gif` and were **renamed first** (the slicer takes the direction from the tail of the name) → `tool_taie_gifuri.ps1` → the 8 rotation frames mapped to `idle_<dir>_0` (order checked on a contact sheet: 0 = south, then clockwise, as with the others) → `tool_aliniaza_talpi.tscn` twice → `--import`. 8 run frames per direction; every direction at **centre→foot 33.0**, like the other five. `trapper_frames.tres` is `nerd_frames.tres` with the folder swapped (same 8-frame layout). ⚠️ Running **north** his silhouette is ~5 px taller (64–67 vs 60–62) — checked, it is the pose, not the scale: same width, same cap size, he runs upright seen from behind and leaned forward seen from the front. Left as drawn.
+- ✅ **Verified by running:** `tool_caracter.tscn`, **TOTUL E BINE**, with a new section [9]: +19 luck from level 1 to 20 (The G: +0), +1 over The G already at level 1, +38 with the Mage Staff; the card text; the requirement; and the unlock through **real `_level_up` calls** — locked at 149, open at 150, and the cardboard HUD catches the `ROMANIAN TRAPPER` banner. Art, feet, XP thresholds (identical to The G), keys, damage and speed all checked by the existing sections, which pick up any new `CARACTERE` entry on their own. `tool_check_i18n`: everything translated (2 new keys × 8 languages; the name is kept as a proper name). Screenshots of CHOOSE CHARACTER locked and unlocked. Real save byte-identical afterwards.
+- ⚠️ **The CHOOSE CHARACTER page is now full**: the sixth row ends just above BACK. A **seventh character needs a `ScrollContainer`** or tighter rows — nothing is broken today, it is the number to hit before, not after.
+
 ## Current state (2026-09-24, a slower Cross · the hand cursor, only in menus)
 
 - ✝️ **The Cross turns 1.5× slower**: **1.00 turn per second** instead of 1.50 (`ARME["cross"]["interval"]` is now `1.0 / 1.0`). Because the turn *is* the cadence, the panel now reads **Attack Speed 1.00/s** and an enemy parked on the ring takes **2 hits a second** instead of 3 — the "strongest weapon on paper" drops from 90 to **60 dps** at the start. Every attack-speed upgrade still winds it faster (measured 2.00 turns/s with the interval halved).
@@ -296,6 +304,7 @@ Three things asked for in one go, all around *getting at* the game rather than p
 | **Jordan Blackford** | Open 3 chests in one run |
 | **Liu Xiang** | Have 100 Damage in one run *(added 2026-09-23 — the same requirement as the Cursed Sword, so both unlock at once)* |
 | **Nerd** | Take Hermes' Sandals in one run *(added 2026-09-23 — Legendary, so the hardest of the five)* |
+| **Romanian Trapper** | Reach level 150 in one run *(added 2026-09-24 — three times the Cross, now the hardest requirement in the game)* |
 | **Mage Staff** | Get 20 Luck in one run |
 | **Cursed Sword** | Have 100 Damage in one run |
 | **Celesto's Scythe** | Defeat Celesto |

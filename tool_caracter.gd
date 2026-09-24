@@ -31,6 +31,9 @@ extends Node
 #      fizica). O functie corecta pe care n-o citeste nimeni ar fi trecut prima proba singura.
 #      Plus randul „Move Speed" din panou, care trebuie sa arate acelasi numar cu care mergi.
 #
+#   9. NOROCUL lui Romanian Trapper (+1 pe nivel, cerut lui `luck_total()`), si deblocarea lui
+#      la nivelul 150 prin `_level_up` adevarat. (Ruleaza inaintea paginii [8].)
+#
 #   7. DEBLOCARILE. 100 damage intr-o runda il deblocheaza pe Liu Xiang CU ADEVARAT, prin
 #      `Unlocks.verifica_statusuri(p)` — aceeasi functie pe care o cheama `player.gd::_process`.
 #      Si ca deblocarea lui NU inghite pancarta sabiei: amandoua cer acelasi prag, deci pica in
@@ -131,6 +134,9 @@ func _ready() -> void:
 
 	print("\n--- [7] deblocarile: 100 damage, si Hermes' Sandals ---")
 	await _verifica_deblocarea()
+
+	print("\n--- [9] Romanian Trapper: norocul si nivelul 150 ---")
+	await _verifica_norocul()
 
 	print("\n--- [8] pagina CHOOSE CHARACTER ---")
 	await _verifica_meniul()
@@ -242,6 +248,8 @@ const ASTEPTAT := {
 	"liu":      {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
 	# Si Nerd: bonusul lui e pe viteza.
 	"nerd":     {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
+	# Si Romanian Trapper: bonusul lui e pe noroc.
+	"trapper":  {1: 20, 5: 39, 10: 94, 15: 230, 20: 571},
 }
 
 func _verifica_xp() -> void:
@@ -654,3 +662,95 @@ func _viteza_reala(id: String, nivel: int) -> float:
 	p.queue_free()
 	await get_tree().process_frame
 	return v
+
+
+# ROMANIAN TRAPPER (2026-09-24): +1 NOROC pe nivel, deblocat la nivelul 150.
+#
+# Norocul se cere lui `luck_total()` — exact numarul pe care il citesc sansele (`luck_bonus`),
+# raritatile de la level up si deblocarea Mage Staff-ului. Se masoara ca DIFERENTA intre nivelul
+# 20 si nivelul 1, nu ca valoare: `op_start` e aprins in RAM cat tin probele, iar magazinul
+# permanent poate aduce noroc de pornire — diferenta le scoate pe amandoua din socoteala.
+func _verifica_norocul() -> void:
+	var t := await _noroc_pe_niveluri("trapper", "pistol")
+	var g := await _noroc_pe_niveluri("grasu", "pistol")
+	var tm := await _noroc_pe_niveluri("trapper", "mage")
+	if t.is_empty() or g.is_empty() or tm.is_empty():
+		return
+	_cer(is_equal_approx(t[20] - t[1], 19.0),
+		"Trapper castiga +1 noroc pe nivel (nivel 1 -> 20: %+.1f, cerut +19)" % (t[20] - t[1]))
+	_cer(is_equal_approx(g[20] - g[1], 0.0),
+		"The G nu castiga noroc din nivel (%+.1f)" % (g[20] - g[1]))
+	_cer(is_equal_approx(t[1] - g[1], 1.0),
+		"la nivelul 1 are deja +1 fata de The G (%.1f vs %.1f)" % [t[1], g[1]])
+	# se ADUNA cinstit cu bonusul toiagului, ca Liu Xiang cu sabia
+	_cer(is_equal_approx(tm[20] - tm[1], 38.0),
+		"Trapper cu Mage Staff: +2 pe nivel (nivel 1 -> 20: %+.1f, cerut +38)" % (tm[20] - tm[1]))
+
+	# Fisa din meniu: din cifra din cod, fara „%" (norocul e in puncte, ca la Mage Staff)
+	var m: Node = load("res://menu.tscn").instantiate()
+	add_child(m)
+	await get_tree().process_frame
+	var b: String = m._bonus_caracter("trapper")
+	_cer(b == "+1 LUCK PER LEVEL", "fisa scrie `%s`" % b)
+	m.queue_free()
+	await get_tree().process_frame
+	_cer(Unlocks.nume("trapper") == "ROMANIAN TRAPPER",
+		"pancarta ii stie numele din `menu.gd` (`%s`)" % Unlocks.nume("trapper"))
+	_cer(Unlocks.cerinta("trapper") == "Reach level 150 in one run",
+		"cerinta: `%s`" % Unlocks.cerinta("trapper"))
+
+	# DEBLOCAREA, prin `_level_up` ADEVARAT (nu `Unlocks.nivel_atins` chemat de-a dreptul: ar fi
+	# trecut si cu firul din `_level_up` rupt). ⚠️ `deblocheaza()` scrie pe disc — `unlocked` se
+	# pune la loc IMEDIAT dupa, ca la [7].
+	var hud := Node.new()
+	var s := GDScript.new()
+	s.source_code = HUD_FALS
+	s.reload()
+	hud.set_script(s)
+	hud.add_to_group("hud")
+	add_child(hud)
+	GameSettings.unlocked = {}
+	GameSettings.character = "grasu"
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+	p.max_hp = 100000000
+	p.hp = p.max_hp
+	while p.level < 149:
+		p._level_up(false)
+	_cer(p.level == 149 and not Unlocks.e_castigat("trapper"),
+		"la nivelul %d Trapper e tot incuiat" % p.level)
+	p._level_up(false)
+	_cer(p.level == 150 and Unlocks.e_castigat("trapper"),
+		"la nivelul %d se deblocheaza" % p.level)
+	await get_tree().create_timer(Unlocks.PANCARTA * 2.0 + 0.3).timeout
+	_cer(hud.primite.has("ROMANIAN TRAPPER"), "pancarta lui ajunge pe ecran (%s)" % str(hud.primite))
+	p.queue_free()
+	hud.queue_free()
+	await get_tree().process_frame
+	GameSettings.unlocked = _unlocked_initial.duplicate()
+	GameSettings.character = _caracter_initial
+	var op := GameSettings.op_start
+	GameSettings.op_start = _op_initial
+	GameSettings._save()
+	GameSettings.op_start = op
+
+func _noroc_pe_niveluri(id: String, arma: String) -> Dictionary:
+	GameSettings.character = id
+	GameSettings.weapon_type = arma
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+	if p.caracter != id or p.arma_aleasa != arma:
+		_cer(false, "%s/%s: player-ul a pornit ca `%s`/`%s`" % [id, arma, p.caracter, p.arma_aleasa])
+		p.queue_free()
+		await get_tree().process_frame
+		return {}
+	var iesire := {1: float(p.luck_total())}
+	for L in range(2, 21):
+		p._level_up(false)
+		iesire[L] = float(p.luck_total())
+	p.queue_free()
+	await get_tree().process_frame
+	GameSettings.weapon_type = _arma_initiala
+	return iesire
