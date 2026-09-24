@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tool_reflect.gd" id="1_reflect"]
+
+[node name="ToolReflect" type="Node"]
+script = ExtResource("1_reflect")

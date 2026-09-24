@@ -24,6 +24,29 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-24c (reflectul nu blochează; Mike's Hedgehog blochează — de-adevăratelea, acum)
+
+**Cerut de Răzvan:** „Abilitatea de reflect nu vreau sa blocheze damage-ul, vreau doar sa il dea inapoi, singurul item de blocheaza damage e Mike's Hedgehog"
+
+**Fișiere noi:** `tool_reflect.gd` + `tool_reflect.tscn`. **Atinse:** `player.gd` (`_take_contact_damage`), `codex.html` (cardul ariciului), README.
+
+### Ce era de fapt
+
+- **Reflectul cu procent** (Vodka 10%, Old Reliable 15%, Sunglasses 25% → `reflect_pct`) făcea DEJA ce cere regula: încasai lovitura întreagă și o parte se întorcea. Neschimbat.
+- 🪤 **Mike's Hedgehog NU bloca nimic.** `take_damage(dmg)` rula PRIMUL, pentru orice lovitură, iar ramura ariciului venea după: întorcea 100%, fulgera alb și scria „Blocked" — dar viața îți scăzuse deja. Așa era din 2026-07-25 (`2dca3845`), deși notele de atunci spun „reflectă 100% și te apără". Blocul exista doar ca text.
+
+### Reparat
+
+În `_take_contact_damage`, ariciul se întreabă ÎNAINTE: dacă e gata (`now >= _hedgehog_next`), lovitura **nu mai ajunge la `take_damage`**, se întoarce întreagă în inamic, pornește cooldown-ul de 6 s și apare „Blocked". Altfel `take_damage` normal. Reflectul cu procent rulează după, pe ORICE lovitură (și pe cea blocată), deci se adună cu ariciul cum s-a cerut la Old Reliable.
+
+⚠️ Ariciul blochează doar **contactul** (singurul loc unde e cablat); proiectilele boșilor cheamă `take_damage` direct și nu trec pe aici. Așa a fost mereu.
+
+### ✅ Verificat
+
+`tool_reflect.tscn` (headless, cheamă chiar `_take_contact_damage` cu un `enemy.tscn` adevărat lipit de player): fără nimic 5/0; 40% reflect → pierzi 5 la fiecare lovitură, inamicul 2; ariciul → 0 / 5, apoi în cooldown 5 / 0, cooldown 6 s, după cooldown iar 0 / 5; arici + 25% → 0 / 6, apoi 5 / 1. Salvarea identică (`cmp`). Codex: cardul ariciului spune acum că e singurul care blochează; randat (~1 MB). Textul din joc („Reflect 100% damage (once/6s)") a rămas neschimbat.
+
+---
+
 ## Session log — 2026-09-24b (Romanian Trapper, al șaselea caracter)
 
 **Cerut de Răzvan:** „Ti-am adaugat in folderul Characters un folder nou - Trapper - o sa fie urmatorul caracter nou - vreau sa se numeasca Romanian Trapper - +1% luck per level - reach level 150 in one run to unlock"

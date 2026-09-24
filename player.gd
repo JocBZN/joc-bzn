@@ -2342,20 +2342,27 @@ func _take_contact_damage() -> void:
 		if "charmed" in enemy and enemy.charmed:
 			continue
 		if global_position.distance_to(enemy.global_position) < contact_range:
-			take_damage(dmg)
-			# Old Reliable: reflectă un procent din damage înapoi, la FIECARE lovitură. Fără
-			# cooldown și fără block — lovitura te-a atins oricum (`take_damage` de mai sus).
-			# Minimul de 1 e pentru ca la damage mic (5 × 15% = 0.75) reflectul să nu fie rotunjit
-			# la 0, adică itemul să nu pară stricat în primele minute.
+			# 🔑 Mike's Hedgehog e SINGURUL item care blochează (regulă a lui Răzvan, 2026-09-24):
+			# lovitura prinsă de el NU te atinge deloc și se întoarce întreagă în inamic, cel mult
+			# o dată la HEDGEHOG_CD. ⚠️ Până pe 2026-09-24 `take_damage` rula ÎNAINTE de ramura asta,
+			# deci ariciul scria „Blocked" dar lovitura intra oricum — blocul exista doar ca text.
+			var blocat := hedgehog and now >= _hedgehog_next
+			if blocat:
+				_hedgehog_next = now + HEDGEHOG_CD
+				if enemy.has_method("take_damage"):
+					enemy.take_damage(dmg)
+				_show_block()   # flash alb pe player + text „Blocked"
+			else:
+				take_damage(dmg)
+			# Reflectul cu PROCENT (Vodka, Old Reliable, Sunglasses → `reflect_pct`) NU blochează,
+			# doar întoarce: la FIECARE lovitură, fără cooldown. Merge și pe lovitura prinsă de
+			# arici (se adună cu el, cum s-a cerut la Old Reliable). Minimul de 1 e pentru ca la
+			# damage mic (5 × 15% = 0.75) reflectul să nu fie rotunjit la 0, adică itemul să nu pară
+			# stricat în primele minute.
 			if reflect_pct > 0.0 and enemy.has_method("take_damage"):
 				var refl := maxi(1, int(round(dmg * reflect_pct)))
 				enemy.take_damage(refl)
 				Fx.damage_number(enemy.global_position, refl)
-			# Mike's Hedgehog: reflectă 100% din damage înapoi în inamic, cel mult o dată la HEDGEHOG_CD
-			if hedgehog and now >= _hedgehog_next and enemy.has_method("take_damage"):
-				enemy.take_damage(dmg)
-				_hedgehog_next = now + HEDGEHOG_CD
-				_show_block()   # flash alb pe player + text „Blocked"
 
 # Feedback la block-ul lui Mike's Hedgehog: sprite-ul player-ului fulgeră alb (flash 1→0)
 # și apare un „Blocked" plutitor deasupra capului.

@@ -154,6 +154,13 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-24c, reflect only reflects — Mike's Hedgehog is the one item that blocks)
+
+- 🛡️ **Rule (Răzvan):** reflect items give damage back, they never block it; **the only item that blocks is Mike's Hedgehog**.
+- ✅ The percentage reflects (Vodka 10%, Old Reliable 15%, Sunglasses 25% — `reflect_pct`) already worked that way: you take the full hit, a share goes back to the enemy. Unchanged.
+- 🪤 **Mike's Hedgehog never actually blocked.** In `_take_contact_damage` the hit went through `take_damage` first, and only then did the hedgehog reflect it, flash white and float "Blocked" — the block existed only as text, since 2026-07-25. Now the hedgehog is asked **first**: when it is ready, the hit never reaches `take_damage`, goes back 100% into the enemy, and starts the 6 s cooldown. Percentage reflect still applies on top, on every hit including the blocked one. It covers **contact** hits only, as before (boss projectiles call `take_damage` directly).
+- ✅ **Verified** with the new `tool_reflect.tscn` (headless, real `enemy.tscn` against the real `_take_contact_damage`): 40% reflect → you lose 5 every hit, the enemy 2; hedgehog → 0 / 5, then 5 / 0 during cooldown, 0 / 5 again after it; both → 0 / 6, then 5 / 1. Save untouched. The codex card now says the hedgehog is the one item that blocks.
+
 ## Current state (2026-09-24b, Romanian Trapper — a sixth character, luck per level)
 
 - 🧢 **ROMANIAN TRAPPER**, from `Characters/Trapper`. His perk: **+1 luck per level**, through a new optional `CARACTERE` field, `luck_pe_nivel`, added inside `luck_total()` — the one number every chance in the game reads (`luck_bonus`, the level-up rarities, the Mage Staff unlock). ⚠️ It was asked as "+1% luck per level", but luck is **points**, not a percentage (it starts at 0, and 1% of 0 is nothing at any level). So it is exactly the Mage Staff's own level bonus: one point = +0.4 percentage points on every chance. The card says **+1 LUCK PER LEVEL**, generated from the number in code, like the staff's. It **stacks honestly** with the staff: Trapper + Mage Staff gains +2 a level. A side effect worth knowing: at level 20 he reaches 20 luck on his own, which **unlocks the Mage Staff** in passing.
