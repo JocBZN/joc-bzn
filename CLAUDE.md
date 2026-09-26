@@ -25,6 +25,19 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-26c (crucea: +1 proiectil la fiecare 10 niveluri, în loc de mărime)
+
+**Cerut de Răzvan:** „la cross vreau sa fie +1 projectile every 10 levels in loc de ce are acum(size)"
+
+**Atinse:** `player.gd` (`weapon_size_scale` fără cruce, `proiectile_din_nivel` + `CROSS_NIVELURI_PE_PROIECTIL` în `projectiles_total`), `menu.gd` (fișa armei), `i18n.gd` (1 cheie), `tool_cruce.gd` ([2], [4], [6], [7]), `codex.html` (rândul Cross din „Statusuri de start").
+
+- Proiectilele crucii SUNT crucile de pe cerc (`_numar_cruci`). Nivelurile 1-9 au 2 cruci, 10-19 au 3, 20-29 au 4, iar la 30 sunt 5. Bonusul stă în statul „Projectiles", deci apare în panou. Ca orice proiectil câștigat, îl primesc și armele de la Helping Hand. Se aplică doar cu crucea **aleasă** din meniu.
+- Mărimea NU mai crește cu nivelul: crucea pornește de la 75 px pe o orbită de 110 (înainte, la nivelul 1, era ×1,01).
+- ✅ `tool_cruce.tscn` → **TOTUL E BINE** (cruci numărate din inelul adevărat, nivel cu nivel până la 30; 5 cruci la 72°; panoul scrie Projectiles 4; pistolul nu primește nimic; Helping Hand nu aduce bonusul). `tool_check_i18n`: TOTUL E TRADUS. `scores.save` a rămas identic.
+- **Codex republicat** (versiunea 23). Pagina live era în urmă: îi lipseau și cardul actualizat al lui Mike's Hedgehog (din 09-24), și rândul Cross. Asset-urile erau identice (md5). ⚠️ Vizitatorii văd tot versiunea PINUITĂ, până o schimbă Răzvan din meniul de versiuni.
+
+---
+
 ## Session log — 2026-09-26b (Hooligan, al șaptelea caracter)
 
 **Cerut de Răzvan:** „Nou caracter - Hooligan - ai folderul la Characters - vezi animatia de running la sud e mai mica decat celelalte, fa-o tu sa fie aceasi marime. - +1% Attack Speed per level - to unlock get 5 legendary upgrades in one run"

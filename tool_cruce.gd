@@ -27,7 +27,7 @@ extends Node2D
 #   [3] rotația E chiar attack speed-ul: măsurată pe cadre adevărate, înainte și după un upgrade
 #   [4] mărimea: fix jumătate din coasă, și crește exact cât crește ea
 #   [5] damage-ul PE UN INAMIC ADEVĂRAT: 30 pe lovitură și 3 lovituri pe secundă, nu 60
-#   [6] bonusul de nivel: +1% mărime pe nivel, și numai cu crucea ALEASĂ
+#   [6] bonusul de nivel: +1 cruce la fiecare 10 niveluri (nu mai e mărime), numai cu crucea ALEASĂ
 #   [7] Helping Hand: crucea primită cadou se învârte și ea, dar nu aduce bonusul de nivel
 #   [8] deblocarea la nivelul 50, pe drumul adevărat, cu pancarta prinsă într-un HUD de carton
 #   [9] runda ADEVĂRATĂ: crucea pornită din meniu, în lumea cu inamici, plimbată câteva secunde
@@ -147,9 +147,9 @@ func _sectiunea_2() -> void:
 		var b: Node2D = p._cruci[1]["nod"]
 		var da := a.global_position.distance_to(p.global_position)
 		var db := b.global_position.distance_to(p.global_position)
-		# ⚠️ 110 × 1,01, din același motiv ca la mărime (vezi [4]): la nivelul 1 crucea are deja
-		# primul procent din bonusul ei de mărime, iar orbita crește odată cu desenul.
-		var astept: float = p.cross_raza * 1.01
+		# 110 fix: de pe 2026-09-26 crucea nu mai are bonus de MĂRIME pe nivel (are proiectile), deci
+		# la nivelul 1 orbita e exact cea din `cross_raza` (până atunci era × 1,01).
+		var astept: float = p.cross_raza
 		_cer(_aprox(da, astept, 0.5) and _aprox(db, astept, 0.5),
 			"amândouă la %.1f px de player, deși el e la scale 2 (măsurat %.1f și %.1f)"
 			% [astept, da, db])
@@ -215,11 +215,11 @@ func _sectiunea_4() -> void:
 		"e fix de două ori mai mică decât coasa (%.0f px față de %.0f)"
 		% [p.cross_art_size, p.scythe_art_size])
 	var latime0: float = p._cruci[0]["nod"].scale.x * p._cross_px.x
-	# ⚠️ 75 × 1,01: bonusul de nivel al armei se numără de la nivelul 1, ca la coasă, deci crucea
-	# pornește deja cu un procent în plus. Cifra așteptată e scrisă aici cu bonusul cu tot, nu
+	# 75 fix (până pe 2026-09-26: 75 × 1,01, cât ținea bonusul de mărime de la nivelul 1). Cifra
+	# așteptată e scrisă aici, nu
 	# luată din `weapon_size_scale()` — altfel proba s-ar fi comparat cu ea însăși.
-	_cer(_aprox(latime0, p.cross_art_size * 1.01, 0.5),
-		"pe ecran iese lată de %.1f px (75 + 1%% bonusul de nivel 1)" % latime0)
+	_cer(_aprox(latime0, p.cross_art_size, 0.5),
+		"pe ecran iese lată de %.1f px (75, fără bonus de mărime)" % latime0)
 	var raza0: float = p._cross_raza_acum()
 	var m0: float = p.weapon_size_mult
 	# Pufferfish / Rat's Burger / Double Dose cresc `weapon_size_mult`
@@ -291,33 +291,43 @@ func _sectiunea_5() -> void:
 	await _sterge(p)
 
 # ---------------------------------------------------------------------------
-# [6] Bonusul de nivel: +1% mărime, și numai cu crucea ALEASĂ
+# [6] Bonusul de nivel: +1 PROIECTIL (o cruce în plus) la fiecare 10 niveluri, numai cu crucea
+# ALEASĂ. Până pe 2026-09-26 era +1% mărime; proba verifică și că mărimea NU mai crește.
 # ---------------------------------------------------------------------------
 func _sectiunea_6() -> void:
 	print("\n[6] BONUSUL DE NIVEL")
 	var p: Node = await _player()
 	await get_tree().process_frame
-	_cer(_aprox(p.weapon_size_scale(), 1.01, 0.0001),
-		"la nivelul 1: x%.4f (cerut 1,01)" % p.weapon_size_scale())
-	for i in range(1, 20):
+	# câte cruci se învârt la fiecare nivel, citite din inelul ADEVĂRAT (nu din formulă)
+	var cruci := {}
+	cruci[1] = p._cruci.size()
+	for L in range(2, 31):
 		p._level_up(false)
-	await get_tree().process_frame
-	var s20: float = p.weapon_size_scale()
-	_cer(_aprox(s20, 1.20, 0.0001), "la nivelul 20: x%.4f (cerut 1,20)" % s20)
-	_cer(_aprox(p._cross_raza_acum(), p.cross_raza * s20, 0.5),
-		"inelul s-a lărgit odată cu el: %.1f px" % p._cross_raza_acum())
+		await get_tree().process_frame
+		cruci[L] = p._cruci.size()
+	_cer(cruci[1] == 2 and cruci[9] == 2, "nivelurile 1-9: tot 2 cruci (%d, %d)" % [cruci[1], cruci[9]])
+	_cer(cruci[10] == 3 and cruci[19] == 3, "nivelul 10: a treia cruce, până la 19 (%d, %d)" % [cruci[10], cruci[19]])
+	_cer(cruci[20] == 4 and cruci[30] == 5, "nivelul 20: 4 cruci, nivelul 30: 5 (%d, %d)" % [cruci[20], cruci[30]])
+	_cer(_aprox(p.weapon_size_scale(), 1.0, 0.0001),
+		"mărimea NU mai crește cu nivelul (x%.4f la nivelul 30)" % p.weapon_size_scale())
+	# crucile se împart egal pe cerc și după ce au venit din nivel
+	if p._cruci.size() == 5:
+		var a: Vector2 = p._cruci[0]["nod"].global_position - p.global_position
+		var b: Vector2 = p._cruci[1]["nod"].global_position - p.global_position
+		_cer(_aprox(absf(rad_to_deg(a.angle_to(b))), 72.0, 0.5),
+			"cele 5 cruci stau la 72° una de alta (%.1f°)" % absf(rad_to_deg(a.angle_to(b))))
 	var scris := ""
 	for rand in p.stat_lines():
-		if String(rand.get("label", "")) == "Weapon Size":
+		if String(rand.get("label", "")) == "Projectiles":
 			scris = String(rand.get("value", ""))
-	_cer(scris == "120%", "panoul scrie Weapon Size [%s]" % scris)
+	_cer(scris == "4", "panoul scrie Projectiles [%s] (1 de bază + 3 din nivel)" % scris)
 	await _sterge(p)
 	var q: Node = await _player("pistol")
-	for i in range(1, 20):
+	for i in range(1, 30):
 		q._level_up(false)
 	await get_tree().process_frame
-	_cer(_aprox(q.weapon_size_scale(), 1.0, 0.0001),
-		"cu pistolul în mână mărimea rămâne x%.4f" % q.weapon_size_scale())
+	_cer(q.proiectile_din_nivel() == 0 and q.projectiles_total() == 1,
+		"cu pistolul în mână nu vine niciun proiectil din nivel (%d)" % q.projectiles_total())
 	_cer(q._cruci.is_empty(), "și nu se învârte nicio cruce")
 	await _sterge(q)
 
@@ -343,8 +353,8 @@ func _sectiunea_7() -> void:
 	for i in range(1, 20):
 		p._level_up(false)
 	await get_tree().process_frame
-	_cer(_aprox(p.bonus_arma("cross"), 0.0, 0.0001),
-		"dar NU aduce bonusul ei de nivel (bonus %.3f)" % p.bonus_arma("cross"))
+	_cer(p.proiectile_din_nivel() == 0 and p._cruci.size() == 2,
+		"dar NU aduce bonusul ei de nivel: tot 2 cruci la nivelul 20 (%d)" % p._cruci.size())
 	_cer(_aprox(p.weapon_size_scale(), 1.0, 0.0001),
 		"deci Weapon Size rămâne x%.4f" % p.weapon_size_scale())
 	await _sterge(p)

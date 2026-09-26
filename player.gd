@@ -313,7 +313,7 @@ var as_pe_nivel := 0.0
 #   pistol           +1% ATTACK SPEED / nivel      (`fire_interval_now`)
 #   celesto's scythe +1% WEAPON SIZE / nivel       (`weapon_size_scale`)
 #   mage staff       +1 NOROC / nivel              (`luck_total`)
-#   cross            +1% WEAPON SIZE / nivel       (`weapon_size_scale`)
+#   cross            +1 PROIECTIL / 10 niveluri    (`projectiles_total`; până pe 2026-09-26: +1% mărime)
 #
 # Se numără de la nivelul 1, nu de la 0: la nivelul 12 ai +12%. Nu se scriu nicăieri în stat-uri,
 # se CALCULEAZĂ la folosire (ca `damage_mult` sau `weapon_size_scale`) — altfel ar trebui scăzut
@@ -985,12 +985,13 @@ func _drop_dash_ghost() -> void:
 # Mărimea armei ca factor de scalare: pixelii ceruți se traduc în scară raportat la glonțul de
 # bază, apoi se aplică procentele (Pufferfish, Double Dose, Rat's Burger — toate în `weapon_size_mult`).
 func weapon_size_scale() -> float:
-	# Celesto's Scythe ȘI Crucea: +1% mărime pe nivel. Intră aici, în STATUL de mărime, nu doar în
+	# Celesto's Scythe: +1% mărime pe nivel. (Crucea a avut și ea bonusul ăsta până pe 2026-09-26;
+	# acum ea primește proiectile, vezi `proiectile_din_nivel`.) Intră aici, în STATUL de mărime, nu doar în
 	# lama/crucea lor: așa se vede și în panou, și crește tot ce ține de „cât de mare lovești" cu
 	# arma aia în mână. Se ADUNĂ, deși nu pot fi amândouă odată (`bonus_arma` se uită la arma
 	# ALEASĂ, care e una singură) — scrise așa, cele două rămân două rânduri independente.
 	return (1.0 + weapon_size_px / BULLET_BASE_PX) * weapon_size_mult \
-		* (1.0 + bonus_arma("scythe") + bonus_arma("cross"))
+		* (1.0 + bonus_arma("scythe"))
 
 # Cât de mare iese GLONȚUL, cu plafonul armei aplicat (cerut de Răzvan pe 2026-07-30).
 # Pistolul trage un glonț mic și des: umflat de Pufferfish/Rat's Burger/Doză dublă ajungea să
@@ -1136,8 +1137,19 @@ func stat_lines() -> Array:
 # Câte proiectile pleacă GARANTAT la o salvă: cele paralele + cele trase în alți inamici
 # (Gunslinger / Twin Comets). Broken Watch NU intră aici — e pe șansă, nu garantat.
 # Fără asta, rândul „Projectiles" din panou ar rămâne veșnic pe 1, deși itemele îl cresc.
+# CRUCEA (cerut de Răzvan pe 2026-09-26): +1 proiectil la fiecare 10 niveluri, în locul lui +1%
+# mărime. Proiectilele crucii SUNT crucile de pe cerc (`_numar_cruci`), deci la nivelul 10 se
+# învârt 3, la 20 patru... Se numără pe nivele ÎNTREGI de zece: 1-9 nimic, 10-19 +1, 20-29 +2.
+# Stă în `projectiles_total()`, adică în statul „Projectiles" — deci se vede în panou și, ca orice
+# proiectil câștigat (Gunslinger, Twin Comets), îl primesc și armele de la Helping Hand. Doar cu
+# crucea ALEASĂ din meniu, ca toate bonusurile de nivel (`bonus_arma`).
+const CROSS_NIVELURI_PE_PROIECTIL := 10
+
+func proiectile_din_nivel() -> int:
+	return floori(float(level) / CROSS_NIVELURI_PE_PROIECTIL) if arma_aleasa == "cross" else 0
+
 func projectiles_total() -> int:
-	return bullet_count + stacked_armory_stacks
+	return bullet_count + stacked_armory_stacks + proiectile_din_nivel()
 
 # ---------- CULOAREA PROIECTILELOR (după CÂTE proiectile tragi) ----------
 #
@@ -1891,8 +1903,8 @@ func _update_sweeps(delta: float) -> void:
 # 🔑 MĂRIMEA: `cross_art_size` e fix jumătate din `scythe_art_size` (75 față de 150), cerut așa
 # („de 2 ori mai mici decat scythe"), iar creșterea o dă același `weapon_size_scale()` ca la coasă
 # — deci crucea crește exact cât crește și ea, și ca desen, și ca hitbox, și ca rază a orbitei.
-# Bonusul de nivel al armei e tot +1% mărime (vezi `BONUS_PE_NIVEL`): cu crucea în mână, inelul se
-# lărgește nivel după nivel, adică arma își mărește singură bucata de lume pe care o stăpânește.
+# Bonusul de nivel al armei NU mai e mărimea (până pe 2026-09-26 era +1%, ca la coasă): e +1
+# proiectil — adică o CRUCE în plus pe cerc — la fiecare 10 niveluri (`proiectile_din_nivel`).
 #
 # ⚠️ HITBOX-UL E DESENUL, ca la coasă: același câmp de distanțe (`_camp_distante`), fiindcă o cruce
 # e mai mult gol decât plin — un cerc sau un dreptunghi în jurul ei ar fi lovit și aerul din cele

@@ -110,10 +110,10 @@ const WEAPONS := [
 	{"id": "knife",        "name": "THROWING KNIFE", "icon": "res://weapons_icons/throwing knife.png",
 		"bonus": "+1% CRIT PER LEVEL"},
 	# Și aici iconița E arma: aceeași poză se învârte în jurul player-ului (`player.gd`,
-	# secțiunea CRUCEA). Bonusul de nivel e același ca al coasei, fiindcă e același lucru:
-	# crucea crește, iar odată cu ea și inelul pe care îl mătură.
+	# secțiunea CRUCEA). Bonusul de nivel: o cruce în plus pe cerc la fiecare 10 niveluri (până pe
+	# 2026-09-26 era +1% mărime, ca la coasă).
 	{"id": "cross",        "name": "CROSS",         "icon": "res://weapons_icons/Cross.png",
-		"bonus": "+1% WEAPON SIZE PER LEVEL"},
+		"bonus": "+1 PROJECTILE EVERY 10 LEVELS"},
 ]
 
 # --- CARACTERELE (2026-09-02) ---

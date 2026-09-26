@@ -154,6 +154,11 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-26c, the Cross grows in crosses, not in size)
+
+- ✝️ **The Cross's level bonus is now +1 projectile every 10 levels**, replacing +1% weapon size per level. Its projectiles *are* the crosses on the ring: 2 crosses at levels 1-9, 3 at 10-19, 4 at 20-29, and so on. The bonus lives in `projectiles_total()` (`proiectile_din_nivel`), so it shows in the panel's Projectiles row, and weapons from Helping Hand get it too, like any gained projectile. It applies only with the Cross chosen from the menu. The size no longer grows with level (75 px on a 110 px orbit).
+- ✅ `tool_cruce.tscn`: **all checks pass**. The codex was republished (version 23); viewers still see the pinned version until Răzvan changes it.
+
 ## Current state (2026-09-26b, Hooligan, the seventh character)
 
 - 🧢 **Hooligan**: **+1% attack speed per level**, unlocked by taking **5 Legendary upgrades in one run** (from any source: level up, chest, the Ender statue; the same Legendary taken twice counts twice; Mythic does *not* count). The bonus is added next to the pistol's own level bonus in `fire_interval_now()`, so the weapon timer, secondary weapons, the Cross and the stats panel all get it. With the pistol, that makes +2% per level.
