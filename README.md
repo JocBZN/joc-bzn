@@ -154,6 +154,10 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-26d, the weapon and character pages fit on screen)
+
+- 📐 **CHOOSE WEAPON and CHOOSE CHARACTER no longer spill off the screen.** They were ~653 px tall in a 648 px screen: the frame's bottom corners were cut and the title touched the top edge. Now `CELULA_LISTA` is 58 (was 62), the gap under the frame is gone and the gap before BACK is 6 (was 18). Each page is ~597 px tall, with margin above and below. Verified on screenshots of the real menu; `tool_caracter.tscn` passes.
+
 ## Current state (2026-09-26c, the Cross grows in crosses, not in size)
 
 - ✝️ **The Cross's level bonus is now +1 projectile every 10 levels**, replacing +1% weapon size per level. Its projectiles *are* the crosses on the ring: 2 crosses at levels 1-9, 3 at 10-19, 4 at 20-29, and so on. The bonus lives in `projectiles_total()` (`proiectile_din_nivel`), so it shows in the panel's Projectiles row, and weapons from Helping Hand get it too, like any gained projectile. It applies only with the Cross chosen from the menu. The size no longer grows with level (75 px on a 110 px orbit).

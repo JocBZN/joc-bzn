@@ -752,13 +752,17 @@ func _on_start() -> void:
 # ⚠️ Cifrele astea sunt croite pe ÎNĂLȚIME: pagina trebuie să încapă în cei 648px ai ecranului
 # de bază, cu tot cu titlu, ramă și butonul BACK. Cu celula la 68 și separarea 8 ieșea 623 din
 # 648 — încăpea la limită, dar nu mai respira nimic. Măsoară din nou dacă umbli la ele.
-const CELULA_LISTA := 62.0     # latura unei iconițe din lista de arme
+# ⚠️ 2026-09-26: paginile CHOOSE WEAPON / CHOOSE CHARACTER ieșeau cu 5 px peste 648 (colțurile de
+# jos ale ramei tăiate, titlul lipit de marginea de sus). Reparat strângând trei cifre: celula
+# 62 → 58, golul de sub ramă (spacer 6) scos, golul dinaintea lui BACK 18 → 6. Pagina are acum
+# ~597 px, adică ~25 px de aer sus și jos. Verificat pe poză, rulând meniul adevărat.
+const CELULA_LISTA := 58.0     # latura unei iconițe din lista de arme (62 până pe 2026-09-26)
 # Cât de înaltă are voie să fie o LISTĂ (arme sau caractere): exact cât ocupau 6 rânduri de 62 cu
 # separarea de 6 — măsurat că încape în 648 cu titlu, ramă și BACK. Cu mai multe rânduri
 # (Hooligan, al 7-lea caracter, 2026-09-26) rândurile se STRÂNG ca să intre tot aici, în loc să
 # împingă BACK afară din ecran. Sub `CELULA_MIN` iconița devine prea mică de citit — acolo e
 # momentul pentru un ScrollContainer sau pentru două coloane, nu pentru rânduri și mai mici.
-const LISTA_H := 6 * 62.0 + 5 * 6.0
+const LISTA_H := 6 * CELULA_LISTA + 5 * 6.0
 const CELULA_MIN := 44.0
 
 # Latura rândurilor și separarea, pentru o listă de `n` rânduri.
@@ -773,7 +777,6 @@ const PLAYER_GD := "res://player.gd"
 
 func _build_weapon() -> void:
 	var box := _make_panel("weapon", "CHOOSE WEAPON")
-	box.add_child(_spacer(6))
 
 	var doua := HBoxContainer.new()
 	doua.add_theme_constant_override("separation", 26)
@@ -791,7 +794,7 @@ func _build_weapon() -> void:
 	doua.add_child(_fisa_arma())
 
 	_refresh_weapon_selection()
-	box.add_child(_spacer(18))
+	box.add_child(_spacer(6))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
 
 # Un rând din listă: [chenar cu iconița] [numele]. Butonul e doar zona de click (transparentă);
@@ -1111,7 +1114,6 @@ func _fisa_blocata(d: Dictionary, id: String) -> void:
 # (`GameSettings.character`), arma nu. Vezi comentariul din `game_settings.gd`.
 func _build_character() -> void:
 	var box := _make_panel("character", "CHOOSE CHARACTER")
-	box.add_child(_spacer(6))
 
 	var doua := HBoxContainer.new()
 	doua.add_theme_constant_override("separation", 26)
@@ -1129,7 +1131,7 @@ func _build_character() -> void:
 	doua.add_child(_fisa_caracter())
 
 	_refresh_character_selection()
-	box.add_child(_spacer(18))
+	box.add_child(_spacer(6))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
 
 # Fișa personajului: portret mare + nume, apoi ce are el și n-au ceilalți.

@@ -25,6 +25,20 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-26d (CHOOSE WEAPON / CHOOSE CHARACTER încap pe ecran)
+
+**Cerut de Răzvan:** „repara meniurile de choose weapon si choose character ca ies putin de pe ecran"
+
+**Măsurat rulând meniul adevărat** (`menu.tscn` ca scenă, `_show("weapon"/"character")`, captură la 1152×648): pagina avea ~653 px. Colțurile de jos ale ramei erau tăiate, iar titlul era lipit de marginea de sus. Pe amândouă, fiindcă au aceeași croială.
+
+**Reparat în `menu.gd`:** `CELULA_LISTA` 62 → **58** (și `LISTA_H` se calculează acum din ea); spacer-ul de 6 de sub ramă e scos; cel dinaintea lui BACK a scăzut de la 18 la **6**. Pagina are acum ~597 px, cu ~25 px de aer sus și ~35 px jos. Cele 7 caractere încap tot în `LISTA_H`: celula lor iese 50.
+
+✅ Poze cu ambele pagini (încap, BACK e în ramă). `tool_caracter.tscn` → TOTUL E BINE. `scores.save` identic.
+
+🪤 **Testul meu de poze a golit o dată `scores.save`** (0 octeți; își făcea copia cu `get_file_as_bytes` și o scria la loc, iar la prima rulare copia a ieșit goală — cauza n-am aflat-o, la a doua a citit 560 de octeți). Am restaurat-o din copia făcută la începutul sesiunii (`cmp` identic). **Regulă:** o unealtă care pune salvarea la loc NU scrie niciodată un buffer gol (`if salvare.is_empty(): return`) — `tool_deblocari.gd` o are deja (`if not salvare.is_empty()`).
+
+---
+
 ## Session log — 2026-09-26c (crucea: +1 proiectil la fiecare 10 niveluri, în loc de mărime)
 
 **Cerut de Răzvan:** „la cross vreau sa fie +1 projectile every 10 levels in loc de ce are acum(size)"
