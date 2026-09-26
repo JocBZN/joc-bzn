@@ -32,6 +32,8 @@ var run_keys: int = 0
 # Blackford e „3 cufere ÎNTR-O rundă" (vezi `unlocks.gd`), deci trebuie să se șteargă la fiecare
 # început de joc — altfel s-ar aduna trei cufere din trei runde diferite.
 var run_chests: int = 0
+# Câte upgrade-uri LEGENDARY ai luat în runda asta — cerința lui Hooligan (vezi `unlocks.gd`).
+var run_legendaries: int = 0
 var run_spawn: Vector2 = Vector2.ZERO  # unde a început runda (lumea e infinită, startul e aleator)
 
 # --- sunet (reglat din meniul Settings) --- 0.0 = mut, 1.0 = volum normal.
@@ -283,6 +285,7 @@ func reset_run() -> void:
 	run_kills = 0
 	run_keys = 0
 	run_chests = 0
+	run_legendaries = 0
 
 func add_run_coins(n: int) -> void:
 	run_coins += n

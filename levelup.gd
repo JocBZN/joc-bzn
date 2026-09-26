@@ -831,7 +831,9 @@ func _apply(id: String, p) -> void:
 		p.run_items.append(id)
 	# Tome of Knowledge îl deblochează pe Spellman. Cârligul stă AICI fiindcă pe aici trec toate
 	# itemele, din orice sursă (level up, cufăr, statuia din Ender) — vezi comentariul de sus.
-	Unlocks.item_luat(id)
+	# raritatea merge și ea: 5 Legendary într-o rundă îl deblochează pe Hooligan
+	var u = item_dupa_id(id)
+	Unlocks.item_luat(id, String(u.get("rar", "common")) if u != null else "")
 	match id:
 		"cocaina":
 			# stimulent puternic: viteză + cadență. Glonțul rămâne normal;

@@ -25,6 +25,41 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-26b (Hooligan, al șaptelea caracter)
+
+**Cerut de Răzvan:** „Nou caracter - Hooligan - ai folderul la Characters - vezi animatia de running la sud e mai mica decat celelalte, fa-o tu sa fie aceasi marime. - +1% Attack Speed per level - to unlock get 5 legendary upgrades in one run"
+
+**Fișiere noi:** `hooligan_frames.tres`, `Characters/Hooligan/frames/` (72 PNG). **Atinse:** `player.gd` (`CARACTERE`, `as_pe_nivel`, `fire_interval_now`, `_aplica_caracter`), `menu.gd` (`CHARACTERS`, `_bonus_caracter`, rândurile care se strâng), `unlocks.gd` (`CERINTE`, `LEGENDARE_HOOLIGAN`, `item_luat(id, rar)`), `levelup.gd::_apply` (trimite raritatea), `game_settings.gd` (`run_legendaries`), `i18n.gd` (2 chei), `tool_check_i18n.gd`, `tool_caracter.gd` (secțiunea [10]), `tool_deblocari.gd`, `tool_egaleaza_directii.gd`, `tool_aliniaza_talpi.gd`.
+
+### Arta: direcția mică era `north`, nu `south`
+
+⚠️ Răzvan a zis „running la sud e mai mică", dar măsurat e **`north`** (Hooligan văzut din SPATE, când fuge în sus pe ecran): silueta are ~44 px, iar celelalte 7 direcții ~57-59 px. `south` (din față) avea 58,6 px, adică era normal. Am verificat pe planșă: e aceeași scară greșită, nu altă poză, deci am reparat `north`.
+- `tool_egaleaza_directii` → factor **×1,315**. Era peste `PLAFON` 1,30, așa că l-am ridicat la 1,40, cu motivul scris lângă el. **Metodă nouă `METODA = "pixel"`**: Scale2x ×3 + pixelul cel mai apropiat, ca RotSprite. Lanczos ar fi înmuiat o direcție întreagă la un factor atât de mare. După: 57,75 px.
+- `tool_aliniaza_talpi` (două treceri, `run` 8 cadre și `idle` 1) → toate la **33.0**. 🪤 Refuza pânzele de 92 mutate cu +5 px, deși rândurile de sus erau goale. Acum verifică DESENUL (`sus` + deplasarea ≥ 0), nu pânza.
+- Rotațiile au ordinea obișnuită (0 = sud, apoi în sensul acelor), verificată pe planșă. Cadrele `run_8dir_*` sunt redenumite în `idle_<dir>_0`.
+
+### Bonusul: +1% attack speed pe nivel
+
+`as_pe_nivel` se adună la bonusul pistolului în `fire_interval_now()` (se ÎMPARTE, nu se scade). Deci îl primesc singure timer-ul, armele secundare, crucea și panoul. Cu pistolul face +2%/nivel.
+
+### Deblocarea: 5 Legendary într-o rundă
+
+`_apply` trimite acum și raritatea (`item_dupa_id`) la `Unlocks.item_luat(id, rar)`. Contorul e `GameSettings.run_legendaries`, șters în `reset_run()`. Se numără **luările** (același Legendary de două ori contează de două ori), din orice sursă. ⚠️ **Mythic NU se numără**, fiindcă s-a cerut „legendary". Dacă Răzvan vrea să conteze și Mythic, se schimbă condiția din `item_luat`.
+
+### Pagina CHOOSE CHARACTER: rândurile se strâng singure
+
+Cu 7 caractere, BACK ieșea din ecran. Acum `_celula_lista(n)` încape mereu în `LISTA_H` (402 px, cât ocupau 6 rânduri): la 7 rânduri, celula e **54** cu separare 4. Sub `CELULA_MIN` 44 (de pe la al 9-lea caracter) apare un `push_warning`: acolo e nevoie de scroll sau de două coloane.
+
+### 🪤 `tool_deblocari` STRICA salvarea reală
+
+Cu OP START pornit (cum e la Răzvan), un clic pe un rând „încuiat" chiar alege, iar alegerea salvează cu `unlocked = {}` pus de unealtă în RAM. A ieșit o salvare fără nicio deblocare și cu Jordan ales. **Am pus-o la loc** din copia de la începutul sesiunii (identică, `cmp`). Acum unealta își copiază singură salvarea octet cu octet și o pune la loc la final.
+
+### ✅ Verificat rulând
+
+`tool_caracter.tscn` → **TOTUL E BINE**. Hooligan are toate cele 16 animații, nu saltă (33.0..33.0) și calcă la fel ca ceilalți. Secțiunea [10], citită din timer-ul armei: sabie ×1,1881 de la nivelul 1 la 20, pistol ×1,3725, The G neschimbat. Fișa scrie „+1% ATTACK SPEED PER LEVEL". Deblocarea: 4 Legendary (plus 2 Common, unul luat de două ori) îl lasă încuiat, al 5-lea îl deschide, apare pancarta, iar runda nouă pune contorul pe 0. `tool_check_i18n`: TOTUL E TRADUS. Poză cu pagina: 7 rânduri, iar BACK încape. `scores.save` identic (`cmp`).
+
+---
+
 ## Session log — 2026-09-26 (cursorul înclinat + animația de clic)
 
 **Cerut de Răzvan:** „fa mouse-ul sa fie putin inclinat spre stanga [...] vreau ca si cursorul sa aiba o animatie cand apesi, sa se vada ca dai click pe bune."

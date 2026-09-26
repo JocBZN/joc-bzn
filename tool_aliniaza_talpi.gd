@@ -34,16 +34,17 @@ extends Node
 # `Characters/Business/frames` (Jordan Blackford, 2026-09-02),
 # `Characters/Warrior/frames` (Liu Xiang, 2026-09-23),
 # `Characters/Nerd/frames` (Nerd, 2026-09-23),
-# `Characters/Trapper/frames` (Romanian Trapper, 2026-09-24 — ținta curentă).
+# `Characters/Trapper/frames` (Romanian Trapper, 2026-09-24),
+# `Characters/Hooligan/frames` (Hooligan, 2026-09-26 — ținta curentă).
 #
 # ⚠️ Un CARACTER se aliniază în DOUĂ treceri, fiindcă are două seturi pe aceleași direcții:
 # `PREFIX = "run"` (mersul) și `PREFIX = "idle"` cu `CADRE = 1` (cele 8 poze de stat pe loc,
 # tăiate din `Idle_rotations_8dir.gif`). Amândouă trecerile cu ACELEAȘI `PANZA` și
 # `TINTA_TALPA` — altfel personajul ar sări în sus când se oprește din mers.
 #
-# ⚠️ `CADRE` diferă de la un caracter la altul (The G 4, Spellman 8, Jordan 6, Liu Xiang 8, Nerd 8, Trapper 8) — se ia din
+# ⚠️ `CADRE` diferă de la un caracter la altul (The G 4, Spellman 8, Jordan 6, Liu Xiang 8, Nerd 8, Trapper 8, Hooligan 8) — se ia din
 # numele GIF-ului, nu se presupune.
-const FOLDER := "res://Characters/Trapper/frames"
+const FOLDER := "res://Characters/Hooligan/frames"
 const PREFIX := "idle"
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 const CADRE := 1
@@ -78,7 +79,10 @@ func _ready() -> void:
 		var lat: int = stare[d]["panza"]
 		var dx := int(round((PANZA - lat) * 0.5))
 		var dy: int = TINTA_TALPA - int(stare[d]["talpa"])
-		if dx < 0 or dy < 0 or dx + lat > PANZA or dy + lat > PANZA:
+		# ⚠️ Pe verticală contează DESENUL, nu pânza (2026-09-26): Hooligan are pânze de 92 cu
+		# rândurile de sus goale — pânza mutată cu 5 px iese din 96, dar din desen nu se taie nimic.
+		# Talpa ajunge oricum la TINTA_TALPA < PANZA, deci rămâne de verificat doar creștetul.
+		if dx < 0 or dx + lat > PANZA or int(stare[d]["sus"]) + dy < 0:
 			push_error("`%s`: pânza %d cu deplasarea (%d, %d) nu încape în %d — ridică PANZA sau coboară TINTA_TALPA" % [d, lat, dx, dy, PANZA])
 			get_tree().quit(1)
 			return
@@ -141,6 +145,7 @@ func _masoara_tot() -> Dictionary:
 		var talpa := 0
 		var panza := -1
 		var inalt := 0
+		var sus := 100000
 		for i in CADRE:
 			var img := _img(d, i)
 			if img == null:
@@ -154,7 +159,8 @@ func _masoara_tot() -> Dictionary:
 			var r := _contur(img)
 			talpa = maxi(talpa, r.position.y + r.size.y)
 			inalt = maxi(inalt, r.size.y)
-		iesire[d] = {"panza": panza, "talpa": talpa, "inalt": inalt}
+			sus = mini(sus, r.position.y)
+		iesire[d] = {"panza": panza, "talpa": talpa, "inalt": inalt, "sus": sus}
 	return iesire
 
 

@@ -24,9 +24,11 @@ extends Node
 # nimic. Asta contează fiindcă scrie PESTE cadre — sursa adevărată rămâne GIF-ul de alături, deci
 # oricând se poate lua totul de la capăt cu `tool_taie_gifuri.ps1`.
 
-const FOLDER := "res://homeless directii/Firefighter/frames"
+# Ținte de până acum: `homeless directii/Firefighter/frames` (north, Lanczos, 2026-08-05),
+# `Characters/Hooligan/frames` (north ×1,31, PIXEL, 2026-09-26 — ținta curentă).
+const FOLDER := "res://Characters/Hooligan/frames"
 const PREFIX := "run"
-const CADRE := 6
+const CADRE := 8
 const DIRECTII := ["east", "south_east", "south", "south_west", "west", "north_west", "north", "north_east"]
 const TINTA := "north"
 
@@ -34,7 +36,7 @@ const TINTA := "north"
 const PRAG := 0.015
 # Peste atâta refuzăm: un factor de 1,4 nu mai e „o direcție desenată puțin altfel", e altceva
 # stricat (altă pânză, alt personaj) și trebuie privit cu ochii înainte să rescriem fișiere.
-const PLAFON := 1.30
+const PLAFON := 1.40   # 1,30 → 1,40 pe 2026-09-26: spatele Hooligan-ului e chiar desenat cu ~31% mai mic (44 px față de ~58), verificat cu ochii pe planșă
 # Lucrăm la 4×: factorul nu e întreg, deci decupajul cade între pixeli, iar rotunjirea la pixel
 # întreg ar muta personajul cu până la o jumătate de pixel de textură — adică unul întreg pe
 # ecran, la `scale = 2`. Cu 4× eroarea scade la o optime de pixel.
@@ -44,6 +46,12 @@ const SUPRA := 4
 # decât e de fapt. La 0,5 muchia cade unde pixelul e acoperit pe jumătate — adică exact acolo unde
 # o vede ochiul, și la fel pentru cadrele vechi (care au alfa „da/nu", deci pragul nu le mișcă).
 const PRAG_ALFA := 0.5
+
+# CUM se mărește. "lanczos" = neted (bun pentru un factor mic, 1-5%, unde nu se vede nimic);
+# "pixel" = Scale2x de trei ori (8×) și apoi pixelul cel mai apropiat, ca RotSprite. La un factor
+# mare (Hooligan: ×1,31) Lanczos ar fi înmuiat o direcție întreagă între șapte direcții cu pixeli
+# tăioși; „pixel" păstrează muchiile tari și paleta originală (nicio culoare nouă).
+const METODA := "pixel"
 
 
 func _ready() -> void:
@@ -81,7 +89,10 @@ func _ready() -> void:
 	var talpa := _talpa(TINTA)
 	print("mărire în jurul punctului (x=%.1f, y=%.1f): mijlocul pânzei și talpa" % [32.0, talpa])
 	for i in CADRE:
-		_scaleaza(TINTA, i, f, talpa)
+		if METODA == "pixel":
+			_scaleaza_pixel(TINTA, i, f, talpa)
+		else:
+			_scaleaza(TINTA, i, f, talpa)
 
 	_tabel("DUPĂ", _masoara_tot())
 	print("")
@@ -199,3 +210,51 @@ func _scaleaza(d: String, i: int, f: float, talpa: float) -> void:
 	pat.convert(Image.FORMAT_RGBA8)
 	pat.save_png(ProjectSettings.globalize_path(_cale(d, i)))
 	print("  %s_%d: ×%.4f (pânză %d→%d), decupat de la (%d, %d)" % [d, i, fe, w, n, ox, oy])
+
+
+# --- mărit „pixel" (Scale2x ×3 + cel mai apropiat) ----------------------------------------------
+
+func _px(img: Image, x: int, y: int) -> Color:
+	if x < 0 or y < 0 or x >= img.get_width() or y >= img.get_height():
+		return Color(0, 0, 0, 0)
+	return img.get_pixel(x, y)
+
+# EPX: fiecare pixel devine 2×2, iar colțurile iau culoarea vecinilor când două laturi se
+# potrivesc — o treaptă de diagonală devine pantă, fără nicio culoare nouă.
+func _epx(img: Image) -> Image:
+	var w := img.get_width()
+	var h := img.get_height()
+	var o := Image.create(w * 2, h * 2, false, Image.FORMAT_RGBA8)
+	for y in h:
+		for x in w:
+			var p := img.get_pixel(x, y)
+			var a := _px(img, x, y - 1)
+			var b := _px(img, x + 1, y)
+			var c := _px(img, x - 1, y)
+			var d := _px(img, x, y + 1)
+			o.set_pixel(2 * x, 2 * y, a if (c == a and c != d and a != b) else p)
+			o.set_pixel(2 * x + 1, 2 * y, b if (a == b and a != c and b != d) else p)
+			o.set_pixel(2 * x, 2 * y + 1, c if (d == c and d != b and c != a) else p)
+			o.set_pixel(2 * x + 1, 2 * y + 1, d if (b == d and b != a and d != c) else p)
+	return o
+
+func _scaleaza_pixel(d: String, i: int, f: float, talpa: float) -> void:
+	var img := _img(d, i)
+	img.convert(Image.FORMAT_RGBA8)
+	var lat := img.get_width()
+	# transparența din GIF e „da/nu", dar pixelii invizibili au culori diferite sub ei → le curățăm,
+	# altfel EPX ar vedea muchii în aer
+	for y in img.get_height():
+		for x in lat:
+			if img.get_pixel(x, y).a < 0.5:
+				img.set_pixel(x, y, Color(0, 0, 0, 0))
+	var mare := _epx(_epx(_epx(img)))
+	# Fiecare pixel nou se întreabă de unde vine: mărire în jurul (mijlocul pânzei, talpa).
+	var cx := 0.5 * float(lat)
+	var o := Image.create(lat, img.get_height(), false, Image.FORMAT_RGBA8)
+	for y in o.get_height():
+		for x in lat:
+			var sx := cx + (float(x) + 0.5 - cx) / f
+			var sy := talpa + (float(y) + 0.5 - talpa) / f
+			o.set_pixel(x, y, _px(mare, int(floor(sx * 8.0)), int(floor(sy * 8.0))))
+	o.save_png(ProjectSettings.globalize_path(_cale(d, i)))

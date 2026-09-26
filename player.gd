@@ -196,6 +196,7 @@ const ARME := {
 #   liu        — războinicul: +1% damage la fiecare nivel (2026-09-23).
 #   nerd       — tocilarul: +1% viteză de mers la fiecare nivel (2026-09-23).
 #   trapper    — Romanian Trapper: +1 noroc la fiecare nivel (2026-09-24).
+#   hooligan   — Hooligan: +1% attack speed la fiecare nivel (2026-09-26).
 #
 # 🔑 Bonusurile sunt CÂMPURI OPȚIONALE, nu un câmp „bonus" care le-ar amesteca: fiecare are alt
 # fel de a lucra (unul se compune la level up, altul înlocuiește o rată fixă), iar cine n-are
@@ -261,6 +262,16 @@ const ARME := {
 #
 #   nivel          1      10      20      50     150
 #   +1/nivel      +1     +10     +20     +50    +150     ← la nivelul 20 deblochează singur Mage Staff
+#
+# `as_pe_nivel`: cât ATTACK SPEED în plus dă fiecare nivel, ca procent (0.01 = +1%/nivel). Se
+# adună în `fire_interval_now()`, lângă bonusul de nivel al PISTOLULUI — e exact același fel de
+# lucru, deci Hooligan cu pistolul urcă cu +2%/nivel, cinstit, ca Liu Xiang cu sabia. Se ÎMPARTE,
+# nu se scade (+10% = de 1,1 ori mai multe lovituri pe secundă), deci n-ajunge niciodată la
+# pauză zero. Trece prin `fire_interval_now()`, deci îl primesc singure și armele secundare
+# (`_interval_secundar`), crucea (tura ei E cadența) și panoul de statusuri.
+#
+#   nivel          1      10      20      50
+#   +1%/nivel    ×1,01   ×1,10   ×1,20   ×1,50   lovituri pe secundă
 const CARACTERE := {
 	"grasu":    {"frames": "res://player_frames.tres"},
 	"spellman": {"frames": "res://spellman_frames.tres", "xp_pe_nivel": 0.95},
@@ -268,6 +279,7 @@ const CARACTERE := {
 	"liu":      {"frames": "res://liu_frames.tres",      "dmg_pe_nivel": 0.01},
 	"nerd":     {"frames": "res://nerd_frames.tres",     "speed_pe_nivel": 0.01},
 	"trapper":  {"frames": "res://trapper_frames.tres",  "luck_pe_nivel": 1.0},
+	"hooligan": {"frames": "res://hooligan_frames.tres", "as_pe_nivel": 0.01},
 }
 
 # Caracterul cu care se joacă runda asta și bonusurile lui, citite o dată în `_ready` din
@@ -289,6 +301,8 @@ var dmg_pe_nivel := 0.0
 var speed_pe_nivel := 0.0
 # Tot 0 = „nu schimb nimic": se ADUNĂ în `luck_total()`, în PUNCTE de noroc, nu în procente.
 var luck_pe_nivel := 0.0
+# Tot 0 = „nu schimb nimic": se ADUNĂ la bonusul pistolului în `fire_interval_now()`.
+var as_pe_nivel := 0.0
 
 # --- BONUSUL DE NIVEL AL FIECĂREI ARME (cerut de Răzvan pe 2026-08-05) ---
 # „La fiecare nivel fiecare armă are un bonus specific." Nu e un item și nu se poate pierde: e
@@ -337,12 +351,13 @@ var run_items: Array = []
 func luck_total() -> float:
 	return luck + (level * LUCK_PE_NIVEL if arma_aleasa == "mage" else 0.0) + level * luck_pe_nivel
 
-# Pauza REALĂ dintre lovituri: cea a armei, scurtată de bonusul de nivel al PISTOLULUI.
+# Pauza REALĂ dintre lovituri: cea a armei, scurtată de bonusul de nivel al PISTOLULUI și de al
+# lui Hooligan (`as_pe_nivel`, 2026-09-26).
 # `fire_interval` rămâne statul „curat" (îl scriu arma, meta, OP start și `upgrade_fire_rate`);
 # ăsta e ce ajunge în `fire_timer` și în panou. Se ÎMPARTE, nu se scade: +10% attack speed
 # înseamnă de 1.1 ori mai multe lovituri pe secundă, nu cu 10% mai puțină pauză.
 func fire_interval_now() -> float:
-	return fire_interval / (1.0 + bonus_arma("pistol"))
+	return fire_interval / (1.0 + bonus_arma("pistol") + level * as_pe_nivel)
 
 # Pune cadența de acum în timer. Se cheamă de fiecare dată când se schimbă `fire_interval` SAU
 # nivelul — bonusul pistolului crește cu nivelul, deci un level up trebuie să miște și timer-ul.
@@ -2538,6 +2553,7 @@ func _aplica_caracter() -> void:
 	dmg_pe_nivel = float(c.get("dmg_pe_nivel", 0.0))
 	speed_pe_nivel = float(c.get("speed_pe_nivel", 0.0))
 	luck_pe_nivel = float(c.get("luck_pe_nivel", 0.0))
+	as_pe_nivel = float(c.get("as_pe_nivel", 0.0))
 	var cale := String(c["frames"])
 	if ResourceLoader.exists(cale):
 		anim.sprite_frames = load(cale)

@@ -140,6 +140,8 @@ const CHARACTERS := [
 		"icon": "res://Characters/Nerd/frames/idle_south_0.png"},
 	{"id": "trapper",  "name": "ROMANIAN TRAPPER",
 		"icon": "res://Characters/Trapper/frames/idle_south_0.png"},
+	{"id": "hooligan", "name": "HOOLIGAN",
+		"icon": "res://Characters/Hooligan/frames/idle_south_0.png"},
 ]
 
 const BG_STILL := "res://menu/bg_still.webp"        # cadru clar (1080p), rezervă dacă lipsesc cadrele
@@ -751,6 +753,21 @@ func _on_start() -> void:
 # de bază, cu tot cu titlu, ramă și butonul BACK. Cu celula la 68 și separarea 8 ieșea 623 din
 # 648 — încăpea la limită, dar nu mai respira nimic. Măsoară din nou dacă umbli la ele.
 const CELULA_LISTA := 62.0     # latura unei iconițe din lista de arme
+# Cât de înaltă are voie să fie o LISTĂ (arme sau caractere): exact cât ocupau 6 rânduri de 62 cu
+# separarea de 6 — măsurat că încape în 648 cu titlu, ramă și BACK. Cu mai multe rânduri
+# (Hooligan, al 7-lea caracter, 2026-09-26) rândurile se STRÂNG ca să intre tot aici, în loc să
+# împingă BACK afară din ecran. Sub `CELULA_MIN` iconița devine prea mică de citit — acolo e
+# momentul pentru un ScrollContainer sau pentru două coloane, nu pentru rânduri și mai mici.
+const LISTA_H := 6 * 62.0 + 5 * 6.0
+const CELULA_MIN := 44.0
+
+# Latura rândurilor și separarea, pentru o listă de `n` rânduri.
+func _celula_lista(n: int) -> Vector2:
+	var sep := 6.0 if n <= 6 else 4.0
+	var c := floorf((LISTA_H - (n - 1) * sep) / float(n))
+	if c < CELULA_MIN:
+		push_warning("lista are %d rânduri, iconițele ar ieși de %dpx — e nevoie de scroll sau de două coloane" % [n, int(c)])
+	return Vector2(minf(CELULA_LISTA, c), sep)
 const FISA_W := 420.0          # lățimea fișei din dreapta
 const PLAYER_GD := "res://player.gd"
 
@@ -794,12 +811,12 @@ func _rand_arma(i: int) -> Button:
 func _rand_caracter(i: int) -> Button:
 	var c = CHARACTERS[i]
 	return _rand_alegere(String(c["id"]), String(c["name"]), _portret(String(c["icon"])),
-		_on_character_chosen, _preview_caracter, _character_buttons)
+		_on_character_chosen, _preview_caracter, _character_buttons, _celula_lista(CHARACTERS.size()).x)
 
 func _rand_alegere(id: String, nume_text: String, tex: Texture2D,
-		ales: Callable, previzualizare: Callable, lista: Array) -> Button:
+		ales: Callable, previzualizare: Callable, lista: Array, celula: float = CELULA_LISTA) -> Button:
 	var b := Button.new()
-	b.custom_minimum_size = Vector2(320, CELULA_LISTA)
+	b.custom_minimum_size = Vector2(320, celula)
 	b.flat = true
 	for stare in ["normal", "hover", "pressed", "focus", "disabled"]:
 		b.add_theme_stylebox_override(stare, StyleBoxEmpty.new())
@@ -817,7 +834,7 @@ func _rand_alegere(id: String, nume_text: String, tex: Texture2D,
 	b.add_child(hb)
 
 	var cell := Control.new()
-	cell.custom_minimum_size = Vector2(CELULA_LISTA, CELULA_LISTA)
+	cell.custom_minimum_size = Vector2(celula, celula)
 	cell.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hb.add_child(cell)
@@ -835,10 +852,11 @@ func _rand_alegere(id: String, nume_text: String, tex: Texture2D,
 	# iconița stă ÎN interiorul chenarului, nu peste el. 9px la o celulă de 68 = cât ține rama
 	# pictată a chenarului de raritate (ICON_PAD e croit pentru celula mare, de 132).
 	poza.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	poza.offset_left = 9
-	poza.offset_top = 9
-	poza.offset_right = -9
-	poza.offset_bottom = -9
+	var pad := roundf(9.0 * celula / CELULA_LISTA)   # rama se micșorează odată cu celula
+	poza.offset_left = pad
+	poza.offset_top = pad
+	poza.offset_right = -pad
+	poza.offset_bottom = -pad
 	poza.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	poza.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	poza.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -1101,7 +1119,7 @@ func _build_character() -> void:
 	box.add_child(doua)
 
 	var lista := VBoxContainer.new()
-	lista.add_theme_constant_override("separation", 6)
+	lista.add_theme_constant_override("separation", int(_celula_lista(CHARACTERS.size()).y))
 	lista.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	doua.add_child(lista)
 	_character_buttons.clear()
@@ -1226,6 +1244,11 @@ func _bonus_caracter(id: String) -> String:
 	var noroc := float(c.get("luck_pe_nivel", 0.0))
 	if noroc > 0.0:
 		linii.append(tr("+%d LUCK PER LEVEL") % int(round(noroc)))
+
+	# Tot 0 = fără bonus (vezi `player.gd::as_pe_nivel`), ca la damage și viteză.
+	var cadenta := float(c.get("as_pe_nivel", 0.0))
+	if cadenta > 0.0:
+		linii.append(tr("+%d%% ATTACK SPEED PER LEVEL") % int(round(cadenta * 100.0)))
 
 	if linii.is_empty():
 		return "NO BONUS STATS"

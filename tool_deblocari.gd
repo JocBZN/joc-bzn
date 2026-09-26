@@ -18,6 +18,12 @@ var _menu: Node
 
 func _ready() -> void:
 	var vechi: Dictionary = GameSettings.unlocked.duplicate()
+	# ⚠️ Copia OCTET CU OCTET a salvării, pusă la loc la final (2026-09-26). Nota de sus nu mai era
+	# adevărată: cu OP START pornit (cum e la Răzvan), un click pe un rând „încuiat" CHIAR alege
+	# (cheat-ul deschide tot) — iar alegerea cheamă `_save()` cu `unlocked = {}` pus de noi în RAM.
+	# Așa a ieșit o salvare fără nicio deblocare și cu Jordan ales. Copia face unealta sigură
+	# orice ar chema meniul pe drum.
+	var salvare := FileAccess.get_file_as_bytes("user://scores.save")
 
 	_menu = MENU.instantiate()
 	add_child(_menu)
@@ -25,7 +31,7 @@ func _ready() -> void:
 	await get_tree().create_timer(0.5).timeout
 
 	print("--- ce zice unlocks.gd ---")
-	for id in ["pistol", "mage", "sword", "scythe", "knife", "cross", "grasu", "spellman", "jordan", "liu", "nerd", "trapper"]:
+	for id in ["pistol", "mage", "sword", "scythe", "knife", "cross", "grasu", "spellman", "jordan", "liu", "nerd", "trapper", "hooligan"]:
 		print("  %-9s deblocat=%s  cerinta=\"%s\"" % [id, Unlocks.e_deblocat(id), Unlocks.cerinta(id)])
 
 	GameSettings.unlocked = {}
@@ -47,11 +53,16 @@ func _ready() -> void:
 		% [GameSettings.weapon_type, GameSettings.character])
 
 	GameSettings.unlocked = {"mage": true, "sword": true, "scythe": true, "knife": true, "cross": true,
-		"spellman": true, "jordan": true, "liu": true, "nerd": true, "trapper": true}
+		"spellman": true, "jordan": true, "liu": true, "nerd": true, "trapper": true, "hooligan": true}
 	await _poza("weapon", "arme_deblocate")
 	await _poza("character", "caractere_deblocate")
 
-	GameSettings.unlocked = vechi   # înapoi cum era; nu s-a salvat nimic pe disc
+	GameSettings.unlocked = vechi   # înapoi cum era în RAM
+	if not salvare.is_empty():
+		var fs := FileAccess.open("user://scores.save", FileAccess.WRITE)
+		fs.store_buffer(salvare)
+		fs.close()
+		print("salvarea pusă la loc octet cu octet (%d octeți)" % salvare.size())
 	get_tree().quit()
 
 func _poza(pagina: String, nume: String) -> void:

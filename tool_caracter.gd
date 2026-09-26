@@ -34,6 +34,9 @@ extends Node
 #   9. NOROCUL lui Romanian Trapper (+1 pe nivel, cerut lui `luck_total()`), si deblocarea lui
 #      la nivelul 150 prin `_level_up` adevarat. (Ruleaza inaintea paginii [8].)
 #
+#  10. CADENTA lui Hooligan (+1% attack speed pe nivel, citita din timer-ul armei) si deblocarea
+#      lui: 5 Legendary intr-o runda, prin `levelup._apply`.
+#
 #   7. DEBLOCARILE. 100 damage intr-o runda il deblocheaza pe Liu Xiang CU ADEVARAT, prin
 #      `Unlocks.verifica_statusuri(p)` — aceeasi functie pe care o cheama `player.gd::_process`.
 #      Si ca deblocarea lui NU inghite pancarta sabiei: amandoua cer acelasi prag, deci pica in
@@ -137,6 +140,10 @@ func _ready() -> void:
 
 	print("\n--- [9] Romanian Trapper: norocul si nivelul 150 ---")
 	await _verifica_norocul()
+
+	print("
+--- [10] Hooligan: attack speed pe nivel si 5 Legendary ---")
+	await _verifica_cadenta()
 
 	print("\n--- [8] pagina CHOOSE CHARACTER ---")
 	await _verifica_meniul()
@@ -750,6 +757,103 @@ func _noroc_pe_niveluri(id: String, arma: String) -> Dictionary:
 	for L in range(2, 21):
 		p._level_up(false)
 		iesire[L] = float(p.luck_total())
+	p.queue_free()
+	await get_tree().process_frame
+	GameSettings.weapon_type = _arma_initiala
+	return iesire
+
+
+# HOOLIGAN (2026-09-26): +1% attack speed pe nivel, cerut lui `fire_interval_now()` — singura
+# cifra pe care o citesc timer-ul armei, armele secundare, crucea si panoul. Plus deblocarea lui:
+# 5 upgrade-uri LEGENDARY intr-o runda, luate prin `levelup._apply` (drumul adevarat).
+func _verifica_cadenta() -> void:
+	var h := await _cadenta_pe_niveluri("hooligan", "pistol")
+	var g := await _cadenta_pe_niveluri("grasu", "pistol")
+	var hs := await _cadenta_pe_niveluri("hooligan", "sword")
+	var gs := await _cadenta_pe_niveluri("grasu", "sword")
+	if h.is_empty() or g.is_empty() or hs.is_empty() or gs.is_empty():
+		return
+	# lovituri pe secunda = 1 / pauza; bonusul se IMPARTE, deci raportul e (1 + 20%) / (1 + 1%)
+	_cer(is_equal_approx(gs[20] / gs[1], 1.0),
+		"The G cu sabia nu castiga cadenta din nivel (x%.4f)" % (gs[20] / gs[1]))
+	_cer(is_equal_approx(hs[20] / hs[1], 1.20 / 1.01),
+		"Hooligan cu sabia: +1%%/nivel (nivel 1 -> 20: x%.4f, cerut x%.4f)" % [hs[20] / hs[1], 1.20 / 1.01])
+	_cer(is_equal_approx(hs[1] / gs[1], 1.01),
+		"la nivelul 1 loveste deja cu 1%% mai des decat The G (x%.4f)" % (hs[1] / gs[1]))
+	# se ADUNA cu bonusul pistolului, ca Liu Xiang cu sabia: +2%/nivel
+	_cer(is_equal_approx(h[20] / h[1], 1.40 / 1.02),
+		"Hooligan cu pistolul: +2%%/nivel (x%.4f, cerut x%.4f)" % [h[20] / h[1], 1.40 / 1.02])
+	_cer(is_equal_approx(g[20] / g[1], 1.20 / 1.01),
+		"The G cu pistolul ramane la bonusul pistolului (x%.4f)" % (g[20] / g[1]))
+
+	var m: Node = load("res://menu.tscn").instantiate()
+	add_child(m)
+	await get_tree().process_frame
+	var b: String = m._bonus_caracter("hooligan")
+	_cer(b == "+1% ATTACK SPEED PER LEVEL", "fisa scrie `%s`" % b)
+	m.queue_free()
+	await get_tree().process_frame
+	_cer(Unlocks.nume("hooligan") == "HOOLIGAN", "pancarta ii stie numele (`%s`)" % Unlocks.nume("hooligan"))
+	_cer(Unlocks.cerinta("hooligan") == "Get 5 Legendary upgrades in one run",
+		"cerinta: `%s`" % Unlocks.cerinta("hooligan"))
+
+	# DEBLOCAREA. ⚠️ `deblocheaza()` scrie pe disc — `unlocked` se pune la loc imediat, ca la [7].
+	var hud := Node.new()
+	var s := GDScript.new()
+	s.source_code = HUD_FALS
+	s.reload()
+	hud.set_script(s)
+	hud.add_to_group("hud")
+	add_child(hud)
+	GameSettings.unlocked = {}
+	GameSettings.character = "grasu"
+	GameSettings.reset_run()
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	var lvl := CanvasLayer.new()
+	lvl.set_script(load("res://levelup.gd"))
+	add_child(lvl)
+	await get_tree().process_frame
+	p.max_hp = 100000000
+	p.hp = p.max_hp
+	# iteme banale (nu schimba lumea), unul luat de doua ori: se numara LUARILE
+	for id in ["bere", "foite", "medkit", "diamond_watch", "medkit", "gloante_paralele"]:
+		lvl._apply(id, p)
+	_cer(GameSettings.run_legendaries == 4 and not Unlocks.e_castigat("hooligan"),
+		"4 Legendary (+2 Common) -> tot incuiat (contor %d)" % GameSettings.run_legendaries)
+	lvl._apply("aussie_special", p)
+	_cer(Unlocks.e_castigat("hooligan"), "al 5-lea Legendary il deblocheaza")
+	await get_tree().create_timer(Unlocks.PANCARTA * 2.0 + 0.3).timeout
+	_cer(hud.primite.has("HOOLIGAN"), "pancarta lui ajunge pe ecran (%s)" % str(hud.primite))
+	GameSettings.reset_run()
+	_cer(GameSettings.run_legendaries == 0, "runda noua -> contorul porneste iar de la 0")
+	lvl.queue_free()
+	p.queue_free()
+	hud.queue_free()
+	await get_tree().process_frame
+	GameSettings.unlocked = _unlocked_initial.duplicate()
+	GameSettings.character = _caracter_initial
+	var op := GameSettings.op_start
+	GameSettings.op_start = _op_initial
+	GameSettings._save()
+	GameSettings.op_start = op
+
+# Lovituri pe secunda, citite din TIMER-ul armei (ce trage de-adevaratelea), nivel cu nivel.
+func _cadenta_pe_niveluri(id: String, arma: String) -> Dictionary:
+	GameSettings.character = id
+	GameSettings.weapon_type = arma
+	var p: Node = load("res://player.tscn").instantiate()
+	add_child(p)
+	await get_tree().process_frame
+	if p.caracter != id or p.arma_aleasa != arma:
+		_cer(false, "%s/%s: player-ul a pornit ca `%s`/`%s`" % [id, arma, p.caracter, p.arma_aleasa])
+		p.queue_free()
+		await get_tree().process_frame
+		return {}
+	var iesire := {1: 1.0 / float(p.fire_timer.wait_time)}
+	for L in range(2, 21):
+		p._level_up(false)
+		iesire[L] = 1.0 / float(p.fire_timer.wait_time)
 	p.queue_free()
 	await get_tree().process_frame
 	GameSettings.weapon_type = _arma_initiala

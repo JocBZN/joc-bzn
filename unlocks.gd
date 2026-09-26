@@ -9,7 +9,7 @@ extends Node
 # 🔑 Tot ce ține de deblocări trece pe aici: și CE se cere (tabelul), și DACĂ s-a împlinit
 # (funcțiile de mai jos), și CINE știe asta (meniul întreabă `e_deblocat`). Locurile din joc care
 # declanșează o deblocare cheamă o singură funcție și nu știu nimic despre restul:
-#   · `levelup.gd::_apply`   → `item_luat(id)`        (Tome of Knowledge)
+#   · `levelup.gd::_apply`   → `item_luat(id, rar)`   (Tome of Knowledge, Hermes, 5 Legendary)
 #   · `chest.gd::invoca`     → `cufar_deschis()`      (3 cufere)
 #   · `celesto.gd::_die`     → `celesto_invins()`
 #   · `player.gd::_process`  → `verifica_statusuri(p)` (noroc / damage / crit, la fiecare 0.5s)
@@ -30,6 +30,7 @@ const CERINTE := {
 	"liu":      {"tip": "character", "cerinta": "Have 100 Damage in one run"},
 	"nerd":     {"tip": "character", "cerinta": "Take Hermes' Sandals in one run"},
 	"trapper":  {"tip": "character", "cerinta": "Reach level 150 in one run"},
+	"hooligan": {"tip": "character", "cerinta": "Get 5 Legendary upgrades in one run"},
 	# --- ARME ---
 	"mage":     {"tip": "weapon",    "cerinta": "Get 20 Luck in one run"},
 	"sword":    {"tip": "weapon",    "cerinta": "Have 100 Damage in one run"},
@@ -63,6 +64,12 @@ const NIVEL_TRAPPER := 150
 # sunt două recompense diferite care azi se întâmplă să coste la fel, iar dacă Răzvan reglează
 # una, cealaltă n-are de ce să se miște odată cu ea.
 const DAMAGE_LIU := 100
+# Hooligan (cerut 2026-09-26): 5 upgrade-uri LEGENDARY luate în aceeași rundă, din orice sursă —
+# level up, cufăr, statuia din Ender (toate trec prin `levelup.gd::_apply`). Se numără LUĂRILE, nu
+# itemele diferite: același Legendary luat de două ori contează de două ori. ⚠️ Doar raritatea
+# „legendary" — un Mythic NU intră la socoteală, fiindcă așa a fost cerut. Dacă Răzvan vrea ca
+# Mythic să conteze și el, se schimbă condiția din `item_luat`, nu cifra de aici.
+const LEGENDARE_HOOLIGAN := 5
 
 var _nume := {}   # id -> numele de pe ecran, citit o singură dată din `menu.gd`
 
@@ -117,11 +124,17 @@ func tot_deblocat() -> bool:
 
 # --- ce declanșează deblocările ---
 
-func item_luat(id: String) -> void:
+# `rar` = raritatea itemului, din `levelup.gd::UPGRADES`. Gol la apelurile vechi, care nu-l dau.
+func item_luat(id: String, rar: String = "") -> void:
 	if id == ITEM_SPELLMAN:
 		deblocheaza("spellman")
 	if id == ITEM_NERD:
 		deblocheaza("nerd")
+	# Contorul e stat de RUNDĂ, lângă `run_chests`: se șterge singur la `reset_run()`.
+	if rar == "legendary":
+		GameSettings.run_legendaries += 1
+		if GameSettings.run_legendaries >= LEGENDARE_HOOLIGAN:
+			deblocheaza("hooligan")
 
 # Contorul stă în `GameSettings.run_chests`, lângă `run_kills`/`run_keys`, fiindcă e stat de RUNDĂ:
 # se șterge singur la `reset_run()`, deci trei cufere adunate în două runde diferite nu contează.
