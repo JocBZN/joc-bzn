@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tool_coace_cursor.gd" id="1_coace"]
+
+[node name="ToolCoaceCursor" type="Node"]
+script = ExtResource("1_coace")

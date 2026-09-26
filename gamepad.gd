@@ -334,8 +334,14 @@ func _input(event: InputEvent) -> void:
 		_schimba_mod("pad")
 	elif event is InputEventKey and event.pressed and not event.echo:
 		_schimba_mod("tasta")
-	elif event is InputEventMouseButton and event.pressed:
-		_schimba_mod("mouse")   # un CLIC e limpede, nu se discută
+	elif event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_clic_jos()
+			else:
+				_clic_sus()
+		if event.pressed:
+			_schimba_mod("mouse")   # un CLIC e limpede, nu se discută
 	elif event is InputEventMouseMotion:
 		_miscare_mouse(event.relative.length())
 
@@ -418,17 +424,93 @@ func _schimba_mod(nou: String) -> void:
 # ⚠️ Cursorul se desenează la mărimea LUI, în pixeli de ecran, nu întins cu jocul (`canvas_items`
 # întinde doar ce e ÎN fereastră). 48×62 e cât l-a desenat Răzvan, deci iese la fel de clar la
 # orice rezoluție, fără pixeli înmuiați.
+#
+# ÎNCLINAT + CLIC (cerut de Răzvan pe 2026-09-26): mâna stă aplecată ~15° spre stânga, ca o
+# săgeată de cursor, iar la clic se APASĂ — se strânge, se mai apleacă și se întunecă, cât ții
+# butonul jos, apoi sare înapoi cu un mic resort când îi dai drumul. Pe deasupra, din vârful
+# degetului pleacă o scânteie de aramă (`cursor_clic.gd`), ca să se vadă că ai dat clic pe bune.
+#
+# Cadrele NU se rotesc în joc: sunt coapte dinainte de `tool_coace_cursor.tscn` în
+# `menu/Mouse_anim.png` (o rotire de pixel art făcută pe loc iese ori zimțată, ori cețoasă — vezi
+# unealta). Desenul original, drept, rămâne `Mouse.png`; dacă Răzvan îl redesenează, rulezi unealta.
+#
+# 🔑 Cursorul rămâne cel al SISTEMULUI (hardware), doar că îi schimbăm poza cadru cu cadru. Un
+# cursor desenat de joc ar fi rămas cu un cadru în urma mâinii — exact „lag-ul de mouse" pe care îl
+# simte oricine în meniuri. Poza se schimbă doar în cele ~170 ms ale unui clic, nu în fiecare cadru.
 const CURSOR_POZA := preload("res://menu/Mouse.png")
-# Punctul care „dă clic": vârful arătătorului. Măsurat pe poză (primul rând de pixeli plini e
-# y=1, iar degetul ocupă acolo x=15..18). Fără el clicul ar pleca din colțul stânga-sus al pozei,
-# adică din aerul de lângă deget — butoanele s-ar aprinde cu o jumătate de deget mai încolo.
-const CURSOR_VARF := Vector2(16, 1)
+const CURSOR_BANDA := preload("res://menu/Mouse_anim.png")
+const CURSOR_CADRE := 6
+# Punctul care „dă clic": vârful arătătorului, pe ACELAȘI pixel în toate cadrele (unealta rotește
+# și micșorează în jurul lui și îl tipărește). Dacă re-coci cadrele, copiază-l de acolo.
+const CURSOR_VARF := Vector2(11, 1)
+# Cât stă fiecare cadru al apăsării. 28 ms = apăsarea ajunge jos în ~85 ms, sub cât ține un clic
+# obișnuit, deci chiar și un clic scurt se vede până la capăt.
+const CURSOR_PAS := 0.028
+const CLIC_APASA := [1, 2, 3]        # 3 = apăsat, stă acolo cât ții butonul
+const CLIC_ELIBEREAZA := [4, 5, 0]   # 4 = resortul, 0 = repaus
+
+var _cursor_cadre: Array[Texture2D] = []
+var _cursor_acum := -1
+var _clic_coada: Array = []
+var _clic_urmator := 0.0
+var _clic_tinut := false
+var _clic_fx: Node2D
 
 func _pune_cursorul() -> void:
+	var banda: Image = CURSOR_BANDA.get_image()
+	var w := banda.get_width() / CURSOR_CADRE
+	for i in CURSOR_CADRE:
+		var bucata := banda.get_region(Rect2i(i * w, 0, w, banda.get_height()))
+		_cursor_cadre.append(ImageTexture.create_from_image(bucata))
+	_arata_cadrul(0)
+	# Scânteia stă pe cel mai de sus strat posibil, peste orice meniu.
+	var strat := CanvasLayer.new()
+	strat.layer = 128
+	add_child(strat)
+	_clic_fx = preload("res://cursor_clic.gd").new()
+	strat.add_child(_clic_fx)
+
+func _arata_cadrul(i: int) -> void:
+	if i == _cursor_acum:
+		return
+	_cursor_acum = i
 	# Pe toate formele pe care le poate cere un Control, nu doar pe săgeată: altfel un buton cu
 	# „mânuță" sau un câmp de text ar schimba cursorul înapoi în cel de Windows.
 	for forma in [Input.CURSOR_ARROW, Input.CURSOR_POINTING_HAND, Input.CURSOR_IBEAM]:
-		Input.set_custom_mouse_cursor(CURSOR_POZA, forma, CURSOR_VARF)
+		Input.set_custom_mouse_cursor(_cursor_cadre[i], forma, CURSOR_VARF)
+
+func _clic_jos() -> void:
+	if _clic_tinut:
+		return
+	_clic_tinut = true
+	_clic_coada = CLIC_APASA.duplicate()
+	_clic_urmator = 0.0   # primul cadru chiar acum: apăsarea trebuie să se simtă pe loc
+	if Input.mouse_mode == Input.MOUSE_MODE_VISIBLE and mod != "pad":
+		_clic_fx.scanteie(_clic_fx.get_global_mouse_position())
+
+func _clic_sus() -> void:
+	if not _clic_tinut:
+		return
+	_clic_tinut = false
+	_clic_coada.append_array(CLIC_ELIBEREAZA)
+
+func _anima_cursorul() -> void:
+	# Plase de siguranță, citite direct din starea mouse-ului: (1) un clic CONSUMAT de alt nod
+	# (`set_input_as_handled()` — ex. clicul care sare peste intro-ul meniului) nu mai ajunge la
+	# `_input`-ul nostru, fiindcă autoload-urile îl primesc ULTIMELE; (2) dacă ridicarea butonului
+	# s-a pierdut (ai ieșit din fereastră ținând clicul), mâna n-are voie să rămână apăsată pe vecie.
+	var apasat := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	if apasat and not _clic_tinut:
+		_clic_jos()
+	elif _clic_tinut and not apasat:
+		_clic_sus()
+	if _clic_coada.is_empty():
+		return
+	var acum := Time.get_ticks_msec() / 1000.0   # merge și cu jocul pe pauză
+	if acum < _clic_urmator:
+		return
+	_arata_cadrul(_clic_coada.pop_front())
+	_clic_urmator = acum + CURSOR_PAS
 
 func _aplica_cursor() -> void:
 	var vrea := Input.MOUSE_MODE_VISIBLE if mod != "pad" and in_meniu() else Input.MOUSE_MODE_HIDDEN
@@ -563,6 +645,7 @@ func opreste_vibratia() -> void:
 # chiar numărul după care se desenează.
 func _process(_delta: float) -> void:
 	_asculta_padul()
+	_anima_cursorul()
 	_aplica_cursor()   # meniul se deschide / se închide oricând, nu doar la schimbarea mâinii
 	if mod != "pad":
 		return

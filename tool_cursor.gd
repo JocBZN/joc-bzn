@@ -51,22 +51,61 @@ func _ready() -> void:
 
 	print("\n[1] POZA")
 	_cer(Gamepad.CURSOR_POZA != null and Gamepad.CURSOR_POZA.get_width() == 48,
-		"menu/Mouse.png s-a încărcat (48x62)")
-	var img: Image = Gamepad.CURSOR_POZA.get_image()
+		"menu/Mouse.png (desenul drept) s-a încărcat (48x62)")
+	_cer(Gamepad._cursor_cadre.size() == Gamepad.CURSOR_CADRE, "banda Mouse_anim.png e tăiată în %d cadre" % Gamepad.CURSOR_CADRE)
 	var v: Vector2i = Vector2i(Gamepad.CURSOR_VARF)
-	_cer(img.get_pixelv(v).a > 0.5, "vârful %s cade pe un pixel plin al degetului" % v)
-	var gol_deasupra := true
-	for x in img.get_width():
-		if img.get_pixel(x, 0).a > 0.05:
-			gol_deasupra = false
-	_cer(gol_deasupra, "și deasupra lui nu mai e nimic (e chiar vârful)")
+	for i in Gamepad._cursor_cadre.size():
+		var img: Image = Gamepad._cursor_cadre[i].get_image()
+		var gol_deasupra := true
+		for x in img.get_width():
+			if img.get_pixel(x, v.y - 1).a > 0.05:
+				gol_deasupra = false
+		_cer(img.get_pixelv(v).a > 0.5 and gol_deasupra,
+			"cadrul %d: vârful %s e pe deget, iar deasupra lui nu mai e nimic" % [i, v])
 
+	print("\n[1b] CLICUL")
+	var jos := InputEventMouseButton.new()
+	jos.button_index = MOUSE_BUTTON_LEFT
+	jos.pressed = true
+	Input.parse_input_event(jos)   # prin Input, ca să știe și `is_mouse_button_pressed`
+	# primul cadru care apare după apăsare: trebuie să fie 1, și repede (cel mult 2 cadre de joc)
+	var primul := 0
+	var t_p := Time.get_ticks_msec()
+	while primul == 0 and Time.get_ticks_msec() - t_p < 200:
+		await get_tree().process_frame
+		primul = Gamepad._cursor_acum
+	_cer(primul == 1 and Time.get_ticks_msec() - t_p < 60,
+		"la apăsare mâna se strânge PE LOC (cadrul %d după %d ms)" % [primul, Time.get_ticks_msec() - t_p])
+	var t_c := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t_c < 300:
+		await get_tree().process_frame
+	_cer(Gamepad._cursor_acum == 3, "ținut apăsat → stă pe cadrul 3 (apăsat)")
+	var sus := jos.duplicate()
+	sus.pressed = false
+	Input.parse_input_event(sus)
+	t_c = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t_c < 300:
+		await get_tree().process_frame
+	_cer(Gamepad._cursor_acum == 0 and not Gamepad._clic_tinut, "dat drumul → înapoi în repaus (cadrul 0)")
 	print("\n[2] MENIUL PRINCIPAL")
 	var meniu: Node = load("res://menu.tscn").instantiate()
 	await _pune_scena(meniu)
 	await _cadre(10)
 	_cer(Gamepad.in_meniu(), "e meniu")
 	_cer(_vizibil(), "cursorul se vede")
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_LEFT
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await _cadre(2)
+	_cer(Gamepad._clic_fx._scantei.size() == 1, "clic în meniu → pornește scânteia de aramă")
+	ev = ev.duplicate()
+	ev.pressed = false
+	Input.parse_input_event(ev)
+	var t_s := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t_s < 500:
+		await get_tree().process_frame
+	_cer(Gamepad._clic_fx._scantei.is_empty(), "…și se stinge singură")
 	Gamepad._schimba_mod("pad")
 	await _cadre(2)
 	_cer(not _vizibil(), "cu controllerul în mână dispare")
