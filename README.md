@@ -154,6 +154,10 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-30, a QUIT button on the main menu)
+
+- 🚪 **The main menu has a QUIT button** under LEADERBOARD that closes the game (translated in all languages). To keep the menu inside the 648 px screen, the gap between the logo and the button plate is gone and the buttons are 8 px apart (was 12). Not yet checked on a screenshot — Godot was not available on this machine.
+
 ## Current state (2026-09-26d, the weapon and character pages fit on screen)
 
 - 📐 **CHOOSE WEAPON and CHOOSE CHARACTER no longer spill off the screen.** They were ~653 px tall in a 648 px screen: the frame's bottom corners were cut and the title touched the top edge. Now `CELULA_LISTA` is 58 (was 62), the gap under the frame is gone and the gap before BACK is 6 (was 18). Each page is ~597 px tall, with margin above and below. Verified on screenshots of the real menu; `tool_caracter.tscn` passes.

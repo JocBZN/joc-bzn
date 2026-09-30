@@ -620,10 +620,12 @@ func _build_main() -> void:
 	# subtitlul „CYBER SURVIVOR" a fost scos când a intrat logo-ul: numele e deja în logo,
 	# iar textul cyan se bătea cu stilul de lemn. Ca să-l aduci înapoi, adaugi aici un
 	# _center_label(...) în _title_group și scazi TITLE_SIZE cu ~40, altfel nu mai încape.
-	box.add_child(_spacer(10))
+	# (aici era un `_spacer(10)`; a ieșit pe 2026-09-30 odată cu butonul QUIT, vezi mai jos)
 	# la fel, butoanele într-un grup separat — apar după titlu
 	_main_buttons = VBoxContainer.new()
-	_main_buttons.add_theme_constant_override("separation", 12)
+	# 8, nu 12, de pe 2026-09-30: cu al cincilea buton (QUIT) meniul ajungea la ~664px, peste cei
+	# 648 ai ecranului de referință. 8 între butoane + spacer-ul scos de deasupra => ~624px.
+	_main_buttons.add_theme_constant_override("separation", 8)
 	_main_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	var start_btn := _menu_button("START", _on_start, true)
 	Gamepad.primul(start_btn)   # pe controller, cursorul pornește de pe START, nu de pe rotița din colț
@@ -631,6 +633,7 @@ func _build_main() -> void:
 	_main_buttons.add_child(_menu_button("CHOOSE CHARACTER", _show.bind("character")))
 	_main_buttons.add_child(_menu_button("CHOOSE WEAPON", _show.bind("weapon")))
 	_main_buttons.add_child(_menu_button("LEADERBOARD", _on_leaderboard))
+	_main_buttons.add_child(_menu_button("QUIT", get_tree().quit))
 	# ⚠️ De pe 2026-08-11 butoanele stau pe o PLACĂ de aramă, nu plutind peste fundalul blurat.
 	# Era ultimul ecran din joc fără ramă, deci pagina de start — prima pe care o vede oricine —
 	# arăta ca o listă lipită peste o poză, în timp ce toate sub-paginile erau încadrate.

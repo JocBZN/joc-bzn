@@ -47,6 +47,7 @@ const TRAD := {
 "CHOOSE CHARACTER": ["选择角色", "CHARAKTER WÄHLEN", "ELEGIR PERSONAJE", "ВЫБОР ПЕРСОНАЖА", "CHOISIR UN PERSONNAGE", "キャラクター選択", "WYBIERZ POSTAĆ", "KARAKTER SEÇ"],
 "CHOOSE WEAPON": ["选择武器", "WAFFE WÄHLEN", "ELEGIR ARMA", "ВЫБОР ОРУЖИЯ", "CHOISIR UNE ARME", "武器選択", "WYBIERZ BROŃ", "SİLAH SEÇ"],
 "LEADERBOARD": ["排行榜", "BESTENLISTE", "CLASIFICACIÓN", "ТАБЛИЦА ЛИДЕРОВ", "CLASSEMENT", "ランキング", "RANKING", "SIRALAMA"],
+"QUIT": ["退出", "BEENDEN", "SALIR", "ВЫХОД", "QUITTER", "終了", "WYJDŹ", "ÇIKIŞ"],
 "BACK": ["返回", "ZURÜCK", "VOLVER", "НАЗАД", "RETOUR", "戻る", "POWRÓT", "GERİ"],
 "SETTINGS": ["设置", "EINSTELLUNGEN", "AJUSTES", "НАСТРОЙКИ", "OPTIONS", "設定", "USTAWIENIA", "AYARLAR"],
 "LANGUAGE": ["语言", "SPRACHE", "IDIOMA", "ЯЗЫК", "LANGUE", "言語", "JĘZYK", "DİL"],

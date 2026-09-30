@@ -26,6 +26,16 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-30 (buton QUIT în meniul principal)
+
+**Cerut de Răzvan:** „Fa, un buton de quit pentru main menu".
+
+- `menu.gd::_build_main` — al cincilea buton pe placa de aramă, **QUIT**, sub LEADERBOARD; cheamă direct `get_tree().quit` (ca „Quit Game" din `pause.gd`). Salvarea nu are nevoie de nimic la ieșire — `GameSettings._save()` scrie deja la fiecare schimbare.
+- `i18n.gd` — rând nou `"QUIT"` în blocul meniului principal (退出 / BEENDEN / SALIR / ВЫХОД / QUITTER / 終了 / WYJDŹ / ÇIKIŞ). Cheie separată de „Quit Game" din pauză, pentru că butoanele de aici sunt cu MAJUSCULE.
+- **Loc pe ecran:** logo 240 + placa cu 5 butoane ar fi dat ~664px în ecranul de 648. Am scos `_spacer(10)` dintre logo și placă și am redus `separation` între butoane de la 12 la 8 → ~624px.
+
+⚠️ **NEVERIFICAT vizual:** Godot nu mai e pe mașina asta (`Downloads\Godot_v4.7-stable_win64_console.exe` lipsește; căutat pe tot `C:`). Înălțimea e calculată din cod, nu măsurată pe captură. Primul lucru de făcut când e Godot înapoi: captură a meniului principal (intro sărit) și `tool_check_i18n.tscn`.
+
 ## Session log — 2026-09-26d (CHOOSE WEAPON / CHOOSE CHARACTER încap pe ecran)
 
 **Cerut de Răzvan:** „repara meniurile de choose weapon si choose character ca ies putin de pe ecran"
