@@ -26,6 +26,15 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-30b (iconița nouă de Settings)
+
+**Cerut de Răzvan:** „la menu ti-am pus o poza, - Setting_Icon - vreau sa fie noua iconita de la setari" (fișierul e `menu/Settings_Icon.png`, 128×128, desenul util 96×96 la 16,16).
+
+- `menu.gd::_settings_icon()` (nou) — butonul din colț (poziția 0) nu mai are ⚙ pe plăcuță de aramă: poza are deja rama ei de lemn, deci plăcuța e scoasă (stylebox-uri goale, inclusiv `disabled`, că în intro butoanele sunt dezactivate) și panoul cu unelte umple butonul. Decupat cu `AtlasTexture` (16,16,96,96) și desenat la **48 px = exact ½**, cu filtru LINEAR (la NEAREST pe ½ se pierd linii din plasă). Hover: `_viata()` (mărire), pentru că fără plăcuță nu mai are hover din stylebox.
+- **Plasă de siguranță:** dacă `ResourceLoader.exists()` dă fals (poza nu e importată), rămâne vechea rotiță ⚙.
+
+⚠️ **NEVERIFICAT și NEIMPORTAT:** tot fără Godot pe mașină. PNG-ul n-are `.import` → până nu deschide Răzvan proiectul în editor (sau `--headless --import`), jocul arată tot rotița. De verificat pe captură: iconița clară la 48 px, aliniată cu steagul și OP-ul de lângă ea.
+
 ## Session log — 2026-09-30 (buton QUIT în meniul principal)
 
 **Cerut de Răzvan:** „Fa, un buton de quit pentru main menu".

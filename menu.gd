@@ -645,9 +645,7 @@ func _build_main() -> void:
 	# Butoanele mici de sus NU stau în lista verticală (ar înghesui-o și ar ieși din ecran).
 	# Sunt ancorate în colțul dreapta-sus: rotița de Settings, iar la stânga ei steagul de limbă.
 	_settings_btn = _corner_button(_show.bind("settings"), 0)
-	_settings_btn.text = "⚙"
-	_settings_btn.add_theme_font_size_override("font_size", 26)
-	_settings_btn.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+	_settings_icon(_settings_btn)
 	_panels["main"].add_child(_settings_btn)
 
 	_lang_btn = _corner_button(_show.bind("language"), 1)
@@ -695,6 +693,41 @@ func _corner_button(cb: Callable, pozitie: int) -> Button:
 	b.offset_bottom = MARGINE + MARIME
 	b.pressed.connect(cb)
 	return b
+
+# Iconița de Settings (2026-09-30, desenată de Răzvan): panoul cu unelte din `menu/Settings_Icon.png`.
+# Poza are DEJA rama ei de lemn, deci butonul își pierde plăcuța de aramă — ramă în ramă arăta
+# înghesuit. Desenul util e 96×96 în mijlocul pânzei de 128 (margini transparente de 16 px), deci îl
+# decupăm și îl punem la 48 px, adică exact jumătate: cu filtru LINEAR fiecare pixel nou e media a
+# 2×2 pixeli vechi, curat. La NEAREST, pe o scară de 0,5 s-ar pierde linii întregi din plasă.
+# Fără plăcuță nu mai are hover din stylebox, deci primește mărirea din `_viata()`, ca butoanele
+# mari; inelul de pe controller îl pune `gamepad.gd` peste orice buton.
+# Dacă poza lipsește / nu e încă importată (n-are `.import`), rămâne rotița ⚙ pe plăcuță.
+const SETTINGS_ICON := "res://menu/Settings_Icon.png"
+
+func _settings_icon(b: Button) -> void:
+	if not ResourceLoader.exists(SETTINGS_ICON):
+		b.text = "⚙"
+		b.add_theme_font_size_override("font_size", 26)
+		b.add_theme_color_override("font_color", Color(0.98, 0.94, 0.88))
+		return
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	var atlas := AtlasTexture.new()
+	atlas.atlas = load(SETTINGS_ICON)
+	atlas.region = Rect2(16, 16, 96, 96)
+	var t := TextureRect.new()
+	t.texture = atlas
+	t.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE   # clicul trebuie să ajungă la buton
+	t.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	t.offset_left = 2   # 52 - 2×2 = 48 = 96 / 2
+	t.offset_top = 2
+	t.offset_right = -2
+	t.offset_bottom = -2
+	b.add_child(t)
+	_viata(b)
 
 # Logo-ul animat, în locul vechiului titlu scris cu text.
 # Dacă lipsesc cadrele, ne întoarcem la titlul-text, ca meniul să nu rămână gol.
