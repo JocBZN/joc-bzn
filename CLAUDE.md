@@ -26,6 +26,16 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-30c (sfaturi „Tips:" pe ecranul de încărcare)
+
+**Cerut de Răzvan:** sfaturi ca la loading screen-ul din League of Legends, deasupra lui „LOADING", câte unul la întâmplare la fiecare intrare în joc, din zece fraze date de el (glume: nevasta cu telefonul, băutură + țigări, LoL, Counter-Strike și rusa, „Never trust a Hungarian/Romanian"…).
+
+- `loading.gd` — `const TIPS` (cele zece fraze, cuvânt cu cuvânt ca la Răzvan) + `_sfat()`: un Label deasupra lui „LOADING x%", „Tips: <frază>", ales cu `TIPS.pick_random()`. Caseta e aliniată JOS și crește în sus (autowrap), între logo (se termină la y≈384) și procent (y≈468).
+- `i18n.gd` — 11 rânduri noi lângă „LOADING %d%%": „Tips:" + fiecare frază în cele 8 limbi.
+- ⚠️ `tr(TIPS.pick_random())` nu e un `tr("...")` literal → `tool_check_i18n` nu vede frazele. Frază nouă în `TIPS` = rând nou în `TRAD`, de mână.
+
+⚠️ **NEVERIFICAT vizual** (tot fără Godot). De verificat: fraza cea mai lungă (Counter-Strike) în germană/franceză/rusă încape pe două rânduri fără să atingă logo-ul.
+
 ## Session log — 2026-09-30b (iconița nouă de Settings)
 
 **Cerut de Răzvan:** „la menu ti-am pus o poza, - Setting_Icon - vreau sa fie noua iconita de la setari" (fișierul e `menu/Settings_Icon.png`, 128×128, desenul util 96×96 la 16,16).

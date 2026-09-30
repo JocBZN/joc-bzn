@@ -154,6 +154,10 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-30c, tips on the loading screen)
+
+- 💡 **The loading screen shows a random "Tips:" line** above the LOADING bar, League of Legends style, picked from ten joke tips each time the game starts (`loading.gd::TIPS`), translated in every language (`i18n.gd`).
+
 ## Current state (2026-09-30b, a new Settings icon)
 
 - 🧰 **The Settings button in the top-right corner is Răzvan's tool-board icon** (`menu/Settings_Icon.png`) instead of the ⚙ gear on a copper plate. It grows slightly on hover. Until the PNG is imported by opening the project in Godot, the old gear still shows.

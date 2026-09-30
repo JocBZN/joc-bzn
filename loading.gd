@@ -29,6 +29,23 @@ const URMARIRE := 6.0
 # Cât mai stă pe ecran după ce s-a terminat, ca să apuci să vezi „100%" în loc de o clipire.
 const RESPIRO := 0.35
 
+# Sfaturile „ca la League of Legends" de deasupra barei (cerute de Răzvan pe 2026-09-30). Unul
+# ales la întâmplare la fiecare pornire. Sunt glume, nu sfaturi de joc — textele sunt ale lui,
+# nu le „îndrepta". Traducerile stau în `i18n.gd`, lângă „LOADING %d%%"; un rând nou aici are
+# nevoie și de rândul lui acolo, altfel iese în engleză (checker-ul nu-l prinde: nu e `tr("...")`).
+const TIPS := [
+	"If your wife is hiding her phone from you, she might be cheating.",
+	"Don't ask a woman her age for a peaceful life.",
+	"While drinking alcohol try drinking water as well.",
+	"Also try League of Legends if you hate yourself.",
+	"Most gamblers quit right before their big hit.",
+	"Smoking while drinking alcohol may make you look cool asf.",
+	"Don't smoke without drinking.",
+	"Playing Counter-Strike requires at least some knowledge of the Russian language.",
+	"Never trust a Hungarian.",
+	"Never trust a Romanian.",
+]
+
 var _umplere: ColorRect
 var _procent: Label
 var _afisat := 0.0
@@ -40,6 +57,7 @@ func _ready() -> void:
 	_fundal()
 	_logo()
 	_bara()
+	_sfat()
 	PreloadAll.porneste()
 
 func _fundal() -> void:
@@ -112,6 +130,28 @@ func _bara() -> void:
 	_procent.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_procent.text = tr("LOADING %d%%") % 0
 	add_child(_procent)
+
+# Sfatul stă chiar deasupra lui „LOADING x%". Caseta crește în SUS (aliniere jos), ca un sfat lung
+# care trece pe două rânduri să nu intre peste procent; sub logo (care se termină pe la y≈384 din
+# 648) rămân ~80 px, destul pentru două rânduri la 18.
+func _sfat() -> void:
+	var l := Label.new()
+	l.anchor_left = 0.15
+	l.anchor_right = 0.85
+	l.anchor_top = 1.0
+	l.anchor_bottom = 1.0
+	l.offset_top = -BARA_DE_JOS - BARA_INALT - 46.0 - 80.0
+	l.offset_bottom = -BARA_DE_JOS - BARA_INALT - 46.0 - 6.0
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_color_override("font_color", Color(0.92, 0.90, 0.86))
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	l.add_theme_constant_override("outline_size", 5)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.text = "%s %s" % [tr("Tips:"), tr(TIPS.pick_random())]
+	add_child(l)
 
 func _pune_bara(c: Control) -> void:
 	c.anchor_left = 0.5 - BARA_LAT * 0.5
