@@ -373,7 +373,7 @@ func _play_intro() -> void:
 	_main_plate.modulate.a = 0.0
 	_settings_btn.modulate.a = 0.0
 	_lang_btn.modulate.a = 0.0
-	_op_btn.modulate.a = 0.0
+	if _op_btn != null: _op_btn.modulate.a = 0.0
 	_set_buttons_enabled(false)   # invizibile, dar tot ocupă loc — deci nu se poate da click
 
 	# layout-ul se calculează abia după un cadru; până atunci pozițiile sunt încă zero
@@ -410,8 +410,6 @@ func _play_intro() -> void:
 		.set_delay(INTRO_RISE * 0.5)
 	t2.tween_property(_lang_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
 		.set_delay(INTRO_RISE * 0.5)
-	t2.tween_property(_op_btn, "modulate:a", 1.0, INTRO_BUTTONS) \
-		.set_delay(INTRO_RISE * 0.5)
 	await t2.finished
 	if not _intro_running: return
 
@@ -447,7 +445,7 @@ func _skip_intro() -> void:
 	_main_plate.modulate.a = 1.0
 	_settings_btn.modulate.a = 1.0
 	_lang_btn.modulate.a = 1.0
-	_op_btn.modulate.a = 1.0
+	if _op_btn != null: _op_btn.modulate.a = 1.0
 	_title_mover.position.y = 0.0
 
 	# butoanele se activează abia din cadrul următor, ca apăsarea care a dat skip să nu
@@ -664,13 +662,10 @@ func _build_main() -> void:
 	_panels["main"].add_child(_lang_btn)
 	_refresh_lang_button()
 
-	# al treilea din colț: cheat-ul de testare. Nu e ascuns după vreo combinație de taste —
-	# jocul e al lui Răzvan și el e cel care testează.
-	_op_btn = _corner_button(_show.bind("opstart"), 2)
-	_op_btn.text = "OP"
-	_op_btn.add_theme_font_size_override("font_size", 20)
-	_panels["main"].add_child(_op_btn)
-	_refresh_op_button()
+	# Al treilea din colț era butonul „OP" (cheat-ul OP START). SCOS pe 2026-09-30, la cererea lui
+	# Răzvan. Panoul „opstart" (`_build_opstart`) rămâne construit, dar nu mai duce nimic la el;
+	# `_op_btn` rămâne null, iar tot ce-l atinge verifică asta. Și `op_start` nu se mai citește din
+	# salvare (`game_settings.gd`), altfel cine l-a lăsat pornit ar fi rămas cu cheat-ul pe veci.
 
 # Un buton pătrat de 52x52 lipit de colțul dreapta-sus. `pozitie` = al câtelea e, numărând de
 # la dreapta spre stânga (0 = primul din colț), ca să nu repet offset-urile la fiecare buton.

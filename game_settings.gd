@@ -355,7 +355,8 @@ func _load() -> void:
 		vignette = bool(data.get("vignette", vignette))
 		glow = bool(data.get("glow", glow))
 		language = String(data.get("language", language))
-		op_start = bool(data.get("op_start", op_start))
+		# `op_start` NU se mai citește (2026-09-30): butonul OP a ieșit din meniu, deci un cheat
+		# rămas pornit în salvare n-ar mai avea de unde să fie stins. Cheia din fișier e ignorată.
 		vibration = bool(data.get("vibration", vibration))
 		character = String(data.get("character", character))
 		# salvare de dinainte de deblocări (2026-09-07) → tot ce are cerință rămâne încuiat, adică

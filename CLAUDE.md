@@ -26,6 +26,16 @@ Quick rules:
 
 ---
 
+## Session log — 2026-09-30d (butonul OP scos din meniu)
+
+**Cerut de Răzvan:** „Scoate butonul de op".
+
+- `menu.gd::_build_main` — butonul „OP" din colțul dreapta-sus (poziția 2) nu mai e creat. `_op_btn` rămâne `null`; cele două `modulate` din intro/skip au primit verificare de null, tween-ul lui din intro a ieșit. Panoul `opstart` (`_build_opstart`, ON/OFF + Unlocks) e LĂSAT în cod — nu mai duce nimic la el, dar `tool_op_save.gd` încă face poze pe el.
+- `game_settings.gd::_load` — **`op_start` nu se mai citește din salvare.** Altfel, cine avea cheat-ul pornit (inclusiv Răzvan) ar fi rămas cu el pornit pentru totdeauna, fără buton să-l stingă. Cheia tot se scrie în fișier (mereu `false` de acum), iar uneltele care îl aprind în RAM merg ca înainte.
+- Să-l aduci înapoi: blocul șters e în commit-ul de dinainte (`_corner_button(_show.bind("opstart"), 2)` + `_refresh_op_button()`), plus linia `op_start = bool(data.get(...))`.
+
+⚠️ **NEVERIFICAT** (fără Godot).
+
 ## Session log — 2026-09-30c (sfaturi „Tips:" pe ecranul de încărcare)
 
 **Cerut de Răzvan:** sfaturi ca la loading screen-ul din League of Legends, deasupra lui „LOADING", câte unul la întâmplare la fiecare intrare în joc, din zece fraze date de el (glume: nevasta cu telefonul, băutură + țigări, LoL, Counter-Strike și rusa, „Never trust a Hungarian/Romanian"…).

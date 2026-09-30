@@ -154,6 +154,10 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-09-30d, the OP button is gone)
+
+- 🚫 **The OP START cheat button is no longer in the main menu**, and a cheat left ON in an old save is ignored. The top-right corner now has only Settings and the language flag.
+
 ## Current state (2026-09-30c, tips on the loading screen)
 
 - 💡 **The loading screen shows a random "Tips:" line** above the LOADING bar, League of Legends style, picked from ten joke tips each time the game starts (`loading.gd::TIPS`), translated in every language (`i18n.gd`).
