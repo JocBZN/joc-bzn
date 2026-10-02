@@ -85,6 +85,10 @@ func _ready() -> void:
 	var t_prins: int = v._randuri_run[0]["tinta"]
 	_cer(t_prins >= 1394 and (v._randuri_run[0]["lbl"] as Label).text == v._fmt_timp(t_prins),
 		"timpul (%s)" % (v._randuri_run[0]["lbl"] as Label).text)
+	_cer(v._splash != null and v._splash.visible and v._splash.text == "More content coming soon",
+		"splash-ul din colt e pe ecran")
+	_cer(v._splash.scale.x >= 1.0 and v._splash.scale.x <= 1.0 + v.SPLASH_PULS + 0.001,
+		"si pulseaza intre 100%% si %d%% (acum %.3f)" % [int(round((1.0 + v.SPLASH_PULS) * 100.0)), v._splash.scale.x])
 	_cer(v._randuri_stat.size() == p.stat_lines().size(), "toate statusurile din stat_lines (%d)" % v._randuri_stat.size())
 
 	print("--- [4] CONTINUE ---")

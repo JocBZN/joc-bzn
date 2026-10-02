@@ -39,6 +39,23 @@ const T_PANOU := 0.40       # panoul „pocnește" în ecran
 const T_NUMARA := 0.9       # cifrele rundei se numără de la 0 în sus
 const T_RAND := 0.035       # pauza dintre rândurile din dreapta, când apar pe rând
 
+# --- SPLASH-ul din colț (cerut de Răzvan pe 2026-10-02: „cum are Minecraft în main menu, gen
+# Also Try Terraria") ---
+# Rețeta e chiar a lui Minecraft: galben curat cu umbră galben-închis decalată (nu contur),
+# înclinat ~20° în sus și „respirând" din mărime, ca o inimă — nu se mișcă din loc, doar pulsează.
+# Stă PESTE colțul din dreapta-sus al ramei, nu înăuntru: tocmai faptul că iese din chenar îl
+# face să pară lipit deasupra, ca un abțibild.
+const SPLASH_TEXT := "More content coming soon"
+const SPLASH_GALBEN := Color(1.0, 1.0, 0.0)
+const SPLASH_UMBRA := Color(0.25, 0.25, 0.0)
+const SPLASH_UNGHI := -20.0       # grade (negativ = urcă spre dreapta)
+const SPLASH_PULS := 0.06         # cât crește în vârful pulsului (6%)
+const SPLASH_RITM := 2.2          # pulsuri pe secundă
+# Centrul lui, măsurat de la colțul din dreapta-sus al panoului (spre stânga și în jos).
+# ⚠️ Pus așa încât capătul de jos să treacă FIX pe lângă „!" din YOU WIN! și peste „SIR JOHN HAS
+# FALLEN" — prima încercare (-150, 46) tăia subtitlul. Măsurat pe poză, la 1152×648.
+const SPLASH_LOC := Vector2(-100, 22)
+
 var _asteapta := false
 var _t := 0.0
 var _arata := false
@@ -50,6 +67,8 @@ var _titlu: Label
 var _randuri_run: Array = []      # [{"lbl": Label, "tinta": int, "format": Callable}]
 var _randuri_stat: Array = []     # Control-urile din dreapta, ca să apară pe rând
 var _btn_continua: Button
+var _splash: Label
+var _t_splash := 0.0
 
 func _ready() -> void:
 	add_to_group("victory_screen")
@@ -63,6 +82,8 @@ func porneste() -> void:
 	_t = 0.0
 
 func _process(delta: float) -> void:
+	if _splash != null and _splash.visible:
+		_pulseaza_splash(delta)
 	if not _asteapta:
 		return
 	var p := get_tree().get_first_node_in_group("player")
@@ -138,6 +159,20 @@ func _construieste(p: Node) -> void:
 	Gamepad.primul(_btn_continua)
 	butoane.add_child(_btn_continua)
 	butoane.add_child(_buton("Main Menu", _on_meniu))
+
+	# Splash-ul e frate cu panoul, NU copil: `PanelContainer` și-ar fi așezat singur copilul în
+	# chenar (și l-ar fi întins). Adăugat după `_centru`, deci se desenează deasupra ramei.
+	_splash = Label.new()
+	_splash.text = SPLASH_TEXT
+	_splash.add_theme_font_size_override("font_size", 18)
+	_splash.add_theme_color_override("font_color", SPLASH_GALBEN)
+	_splash.add_theme_color_override("font_shadow_color", SPLASH_UMBRA)
+	_splash.add_theme_constant_override("shadow_offset_x", 3)
+	_splash.add_theme_constant_override("shadow_offset_y", 3)
+	_splash.rotation_degrees = SPLASH_UNGHI
+	_splash.visible = false
+	_splash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_splash)
 
 # Stânga: ce ai FĂCUT în runda asta. Cifrele pornesc de la 0 și se numără (`_intrarea`).
 func _coloana_runda(p: Node) -> Control:
@@ -233,6 +268,34 @@ func _intrarea() -> void:
 		tn.tween_interval(T_PANOU * 0.5)
 		tn.tween_method(_scrie_cifra.bind(d), 0.0, float(d["tinta"]), T_NUMARA) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	# splash-ul se lipește ULTIMUL, după ce s-a așezat panoul: apare din nimic, cu o depășire
+	_aseaza_splash()
+	_splash.scale = Vector2.ZERO
+	_splash.visible = true
+	_t_splash = 0.0
+	var ts := create_tween()
+	ts.tween_interval(T_PANOU + 0.15)
+	ts.tween_property(_splash, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+# Centrul lui pe colțul din dreapta-sus al panoului, cu `pivot_offset` în mijlocul textului — așa
+# și rotația, și pulsul se fac în jurul centrului, nu al colțului din stânga-sus al etichetei.
+# Lungimea textului diferă de la limbă la limbă, de-aia se măsoară, nu se scrie de mână.
+func _aseaza_splash() -> void:
+	var m := _splash.get_minimum_size()
+	_splash.size = m
+	_splash.pivot_offset = m * 0.5
+	var colt := _panou.global_position + Vector2(_panou.size.x, 0.0)
+	_splash.position = colt + SPLASH_LOC - m * 0.5
+
+# „Respiră" ca splash-ul din Minecraft: |sin| dă un puls scurt și sec, nu o undă moale.
+# Pornește abia după ce s-a terminat apariția (tween-ul de mai sus ține scara până atunci).
+func _pulseaza_splash(delta: float) -> void:
+	_t_splash += delta
+	if _t_splash < T_PANOU + 0.5:
+		return
+	var s := 1.0 + SPLASH_PULS * absf(sin(_t_splash * PI * SPLASH_RITM * 0.5))
+	_splash.scale = Vector2(s, s)
 
 func _scrie_cifra(v: float, d: Dictionary) -> void:
 	var f: Callable = d["format"]

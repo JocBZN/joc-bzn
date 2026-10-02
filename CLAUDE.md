@@ -37,6 +37,7 @@ Quick rules:
 - `pause.gd::_blocked` știe și de `victory_screen` (ESC nu deschide pauza peste el).
 - 9 chei noi în `i18n.gd`. Nu există sunet de victorie în proiect: deocamdată `chest_anim` + `levelup`. Dacă Răzvan pune unul, se schimbă în `victory.gd::_arata_ecranul`.
 - Unealtă: **`tool_victorie.tscn`** (cu fereastră; face poza `user://victorie.png`). Probează contoarele, așteptarea, cifrele, CONTINUE și **moartea adevărată a lui Sir John** (`final_boss.tscn` + `take_damage`). Nu apasă MAIN MENU (ar scrie în leaderboard).
+- **Splash ca la Minecraft** (cerut tot pe 2026-10-02, „gen Also Try Terraria"): „More content coming soon", galben `#FFFF00` cu umbră galben-închis decalată 3 px, rotit −20°, puls `|sin|` de 6%, pus PESTE colțul din dreapta-sus al ramei (`SPLASH_*` în `victory.gd`). E frate cu panoul, nu copil (PanelContainer l-ar fi întins), și se poziționează după ce panoul e așezat, măsurând textul — deci se ține pe colț în orice limbă. Prima poziție tăia subtitlul; cea de acum e verificată pe poză.
 - ⚠️ În sesiunea asta `scores.save` a dispărut între 12:15 și 12:21, fără nicio unealtă rulată de mine. Răzvan a confirmat că l-a șters el, dinadins — nu l-am refăcut.
 
 ---

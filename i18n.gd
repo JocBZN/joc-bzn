@@ -374,6 +374,7 @@ const TRAD := {
 "Enemies killed": ["击杀敌人", "Besiegte Gegner", "Enemigos abatidos", "Убито врагов", "Ennemis tués", "倒した敵", "Zabici wrogowie", "Öldürülen düşman"],
 "Chests opened": ["开启宝箱", "Geöffnete Truhen", "Cofres abiertos", "Открыто сундуков", "Coffres ouverts", "開けた宝箱", "Otwarte skrzynie", "Açılan sandık"],
 "Successful gambles": ["赌赢次数", "Gewonnene Wetten", "Apuestas ganadas", "Выигранные ставки", "Paris gagnés", "勝った賭け", "Wygrane zakłady", "Kazanılan bahis"],
+"More content coming soon": ["更多内容即将推出", "Bald gibt's mehr", "Más contenido muy pronto", "Скоро будет больше", "Plus de contenu bientôt", "続々追加予定", "Więcej już wkrótce", "Daha fazlası yakında"],
 "Lost gambles": ["赌输次数", "Verlorene Wetten", "Apuestas perdidas", "Проигранные ставки", "Paris perdus", "負けた賭け", "Przegrane zakłady", "Kaybedilen bahis"],
 # Banul de după trei câștiguri la rând (casino.gd, CASTIGURI_BAN). Primul text apare și pe ecranul
 # de ban, și deasupra aparatului EGT din lume (`egt.gd::eticheta`).
