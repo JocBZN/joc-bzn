@@ -9,7 +9,7 @@ Quick rules:
 - This is a **survivors-like / bullet-heaven** game (Vampire Survivors style), cyberpunk theme, for Android. See the roadmap in `README.md`.
 - **Repo activ — ⚠️ DEPINDE DE CALCULATOR, uită-te ÎNTÂI ce există pe disc.** Sunt două mașini pe care se lucrează, iar rândul ăsta a fost rescris de fiecare ca și cum ar fi una singură:
   - utilizator `stefan-razvan.dogaru`: `C:\Users\stefan-razvan.dogaru\joc-bzn`, **Godot `Downloads\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64.exe`**;
-  - utilizator `gheorghe dracu`: `C:\Users\gheorghe dracu\Desktop\joc-bzn`, **Godot `Downloads\Godot_v4.7-stable_win64_console.exe`** (build de consolă: tipărește stdout/stderr, deci `print`-urile din scenele de test se văd). Verificat pe 2026-08-18.
+  - utilizator `gheorghe dracu`: `C:\Users\gheorghe dracu\Desktop\joc-bzn`, **Godot `Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe`** (build de consolă: tipărește stdout/stderr, deci `print`-urile din scenele de test se văd). Verificat pe 2026-10-02.
   Amândouă sunt clone pe `main`, remote `JocBZN/joc-bzn`. Godot nu e în PATH nicăieri — se cheamă cu calea întreagă. Notele care zic „Downloads\joc-bzn-main" sunt depășite.
 - **Există un CODEX al upgrade-urilor**, artifact pe claude.ai: `https://claude.ai/code/artifact/490e047c-2f80-45c5-b6a6-9af326065a4e`. Când schimbi ceva în `levelup.gd` (item nou, raritate, efect, iconiță) sau în `game_settings.gd` (META), **actualizează-l și pe el** — altfel rămâne în urmă în tăcere. **De pe 2026-07-17 e generat data-driven** din `codex.html` (în repo): editezi array-ul `ITEMS` / `SYN` de sus (efectele reale din cod), iconițele+chenarele se re-encodează base64 și se injectează în placeholder-ul `/*__ASSETS__*/` cu scriptul PowerShell (vezi session log 2026-07-17 „Codex regenerat”), apoi republici pe același URL cu `url=`. Mult mai simplu decât chirurgia pe base64. **De pe 2026-07-28 codexul are și o secțiune „Statusuri de start"** (prima, sub titlu): tabelele `ARME` + `BASE`. Ea se strică ÎN TĂCERE dacă umbli la valorile implicite din `player.gd` — `speed`, `max_hp`, `contact_damage`, `xp_to_next`, tabelul `ARME`, `sword_base_damage`, `scythe_base_damage`. Cifrele de acolo NU se citesc din cod: se scot **rulând** o scenă care instanțiază player-ul cu fiecare armă și tipărește `stat_lines()`, cu `GameSettings.upgrades` golit doar în RAM (altfel prinzi și magazinul permanent din salvarea lui Răzvan). **⚠️ Randează-l ÎNTÂI în Chrome headless** (`--headless=new --enable-logging=stderr --log-level=0 --screenshot=...`): tot conținutul e generat din JS, deci o singură ghilimea greșită într-un string face pagina complet albă, fără niciun semn. S-a întâmplat (vezi log-ul din 2026-07-26 „codexul arată textul EXACT din joc"). Și încă ceva: câmpul `game:` (textul exact de pe cardul din joc) e **generat din `levelup.gd`**, nu scris de mână — dacă schimbi o descriere, o schimbi în `levelup.gd` (`desc`) și regenerezi, nu invers.
 - ⚠️ **ARTIFACTUL CODEXULUI NU POATE FI REPUBLICAT de pe contul de lucru** (`razvanstefan.dogaru@gmail.com`, sesiunile Claude Code din `C:\Users\stefan-razvan.dogaru`). Verificat pe 2026-08-17: `Artifact action:list scope:all` îl întoarce ca **(shared)**, adică e publicat de pe ALT cont și doar împărtășit încoace — iar artifact-urile shared se pot citi, nu rescrie (`WebFetch` pe el dă „served to you as a public (non-member) reader"). Deci: **`codex.html` din repo rămâne sursa de adevăr și se actualizează normal**, dar pagina de pe claude.ai o reîmprospătează Răzvan de pe contul lui. Nu publica o versiune nouă pe alt URL — ar despărți codexul în două.
@@ -23,6 +23,28 @@ Quick rules:
 - **Listele CHOOSE WEAPON / CHOOSE CHARACTER se strâng singure** (din 2026-09-26): o armă sau un caracter nou se adaugă doar în `WEAPONS` / `CHARACTERS`, iar rândurile încap în `LISTA_H` (`_celula_lista`). Pe la al 9-lea rând apare un `push_warning`: de acolo e nevoie de scroll sau de două coloane. Orice schimbare de layout se verifică pe o POZĂ a meniului adevărat (1152×648): pagina trebuie să aibă aer sus și jos.
 - **Regulă de design (Răzvan, 2026-09-24): reflectul NU blochează, doar întoarce damage-ul. SINGURUL item care blochează e Mike's Hedgehog.** Un item nou de reflect se pune pe `reflect_pct` (lovitura te atinge oricum); nu-l face să sară peste `take_damage`. Verifică cu `tool_reflect.tscn`.
 - **NU da `git push` decât dacă Răzvan îți cere explicit** (regulă din 2026-07-16, o înlocuiește pe cea de mai jos din log-ul de sesiune, care zicea să dai push automat). Restul finisajului rămâne automat: după ce termini o serie de schimbări, actualizezi CLAUDE.md + README și faci commit local (mesaj în română) — dar `main`-ul de pe GitHub îl atinge doar el, când zice.
+
+---
+
+## Session log — 2026-10-02 (praguri de deblocare ridicate)
+
+**Cerut de Răzvan:** „La mage staff vreau sa cresc la 100 luck, cursed sword - 300 damage, throwing knife - 200 crit, cross - level 125. La caracterele acum, Jordan Blackford - open 10 chests in one run, Liu Xiang - have 200 damage in one run, Hooligan - get 15 legendary upgrades in one run"
+
+| Deblocare | Înainte | Acum |
+|---|---|---|
+| Mage Staff | 20 noroc | **100 noroc** |
+| Cursed Sword | 100 damage | **300 damage** |
+| Throwing Knife | 100 crit | **200 crit** (`CRIT_KNIFE = 2.0`; `crit_chance_now()` nu e plafonat, deci se poate atinge) |
+| Cross | nivel 50 | **nivel 125** |
+| Jordan Blackford | 3 cufere | **10 cufere** |
+| Liu Xiang | 100 damage | **200 damage** |
+| Hooligan | 5 Legendary | **15 Legendary** |
+
+- Totul în constantele + textele din `unlocks.gd`; traducerile noi în `i18n.gd`. **Liu și sabia nu mai au același text**, deci „Have 100 Damage" s-a despărțit în două rânduri („Have 200…" și „Have 300…").
+- Testele nu mai au cifrele scrise de mână: `tool_deblocari_joc.gd`, `tool_cruce.gd` [8] și `tool_caracter.gd` [7]/[10] citesc pragurile din `Unlocks.*`. Proba de la [7] verifică acum că la 201 damage vine DOAR Liu, iar sabia abia la 301 (coada arată tot ambele pancarte).
+- Verificat: `tool_deblocari_joc` (toate deblocările), `tool_cruce` (încuiată la 124, deschisă la 125), `tool_caracter` (fără niciun `XX`). md5-ul lui `scores.save` neschimbat după `tool_cruce`/`tool_caracter`.
+- ⚠️ **`tool_deblocari_joc.tscn` NU se rulează `--headless`:** poza de la final dă `null` → scriptul cade ÎNAINTE să pună salvarea la loc și lasă `unlocked = {}` scris. Pățit azi; salvarea s-a refăcut din copia de la început. Rulează-l cu fereastră.
+- Godot pe mașina `gheorghe dracu` e acum `Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe` (cel vechi, 4.7, nu mai există).
 
 ---
 

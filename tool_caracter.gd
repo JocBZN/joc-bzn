@@ -35,7 +35,7 @@ extends Node
 #      la nivelul 150 prin `_level_up` adevarat. (Ruleaza inaintea paginii [8].)
 #
 #  10. CADENTA lui Hooligan (+1% attack speed pe nivel, citita din timer-ul armei) si deblocarea
-#      lui: 5 Legendary intr-o runda, prin `levelup._apply`.
+#      lui: 15 Legendary intr-o runda, prin `levelup._apply`.
 #
 #   7. DEBLOCARILE. 100 damage intr-o runda il deblocheaza pe Liu Xiang CU ADEVARAT, prin
 #      `Unlocks.verifica_statusuri(p)` — aceeasi functie pe care o cheama `player.gd::_process`.
@@ -135,14 +135,14 @@ func _ready() -> void:
 	print("\n--- [6] viteza lui Nerd, masurata si pe MERSUL adevarat ---")
 	await _verifica_viteza()
 
-	print("\n--- [7] deblocarile: 100 damage, si Hermes' Sandals ---")
+	print("\n--- [7] deblocarile: 200/300 damage, si Hermes' Sandals ---")
 	await _verifica_deblocarea()
 
 	print("\n--- [9] Romanian Trapper: norocul si nivelul 150 ---")
 	await _verifica_norocul()
 
 	print("
---- [10] Hooligan: attack speed pe nivel si 5 Legendary ---")
+--- [10] Hooligan: attack speed pe nivel si 15 Legendary ---")
 	await _verifica_cadenta()
 
 	print("\n--- [8] pagina CHOOSE CHARACTER ---")
@@ -343,8 +343,8 @@ func _verifica_meniul() -> void:
 	# Lacatul lui: e singurul personaj necastigat in salvarea obisnuita, iar cerinta care se vede
 	# in fisa trebuie sa fie chiar cea din `unlocks.gd`, nu un text scris a doua oara in meniu.
 	_cer(Unlocks.CERINTE.has("liu"), "Liu Xiang are o cerinta de deblocare in `unlocks.gd`")
-	_cer(Unlocks.cerinta("liu") == Unlocks.cerinta("sword"),
-		"cerinta lui e aceeasi cu a sabiei (`%s`)" % Unlocks.cerinta("liu"))
+	_cer(Unlocks.cerinta("liu") == "Have %d Damage in one run" % Unlocks.DAMAGE_LIU,
+		"cerinta lui scrie pragul din cod (`%s`)" % Unlocks.cerinta("liu"))
 	_cer(Unlocks.nume("liu") == "LIU XIANG",
 		"pancarta de deblocare ii stie numele din `menu.gd` (`%s`)" % Unlocks.nume("liu"))
 	var n: String = m._bonus_caracter("nerd")
@@ -537,14 +537,20 @@ func _verifica_deblocarea() -> void:
 	# sub prag: nimic nu se deblocheaza
 	p.bullet_damage = 10
 	Unlocks.verifica_statusuri(p)
-	_cer(not Unlocks.e_castigat("liu"), "sub 100 damage, Liu Xiang ramane incuiat")
+	_cer(not Unlocks.e_castigat("liu"), "sub %d damage, Liu Xiang ramane incuiat" % Unlocks.DAMAGE_LIU)
 
-	# peste prag: se deblocheaza el SI sabia, fiindca amandoua cer acelasi lucru
-	p.bullet_damage = int(ceil(100.0 / p.damage_mult()))
+	# la pragul lui (200): se deblocheaza EL, dar sabia (300) nu inca
+	p.bullet_damage = int(ceil(Unlocks.DAMAGE_LIU / p.damage_mult()))
 	var damage_vazut := int(round(p.bullet_damage * p.damage_mult()))
 	Unlocks.verifica_statusuri(p)
 	_cer(Unlocks.e_castigat("liu"), "la %d damage, Liu Xiang se deblocheaza" % damage_vazut)
-	_cer(Unlocks.e_castigat("sword"), "acelasi prag deblocheaza si Cursed Sword (%d)" % damage_vazut)
+	_cer(not Unlocks.e_castigat("sword"), "la %d damage, Cursed Sword ramane incuiata" % damage_vazut)
+
+	# la pragul sabiei (300): vine si ea, imediat dupa — coada trebuie sa le arate pe amandoua
+	p.bullet_damage = int(ceil(Unlocks.DAMAGE_SWORD / p.damage_mult()))
+	damage_vazut = int(round(p.bullet_damage * p.damage_mult()))
+	Unlocks.verifica_statusuri(p)
+	_cer(Unlocks.e_castigat("sword"), "la %d damage, Cursed Sword se deblocheaza" % damage_vazut)
 
 	# Pancartele: una peste alta s-ar fi vazut doar ultima. Coada le scoate pe rand, deci dupa
 	# doua pancarte intregi HUD-ul trebuie sa fi primit AMANDOUA numele.
@@ -794,7 +800,8 @@ func _verifica_cadenta() -> void:
 	m.queue_free()
 	await get_tree().process_frame
 	_cer(Unlocks.nume("hooligan") == "HOOLIGAN", "pancarta ii stie numele (`%s`)" % Unlocks.nume("hooligan"))
-	_cer(Unlocks.cerinta("hooligan") == "Get 5 Legendary upgrades in one run",
+	var prag: int = Unlocks.LEGENDARE_HOOLIGAN
+	_cer(Unlocks.cerinta("hooligan") == "Get %d Legendary upgrades in one run" % prag,
 		"cerinta: `%s`" % Unlocks.cerinta("hooligan"))
 
 	# DEBLOCAREA. ⚠️ `deblocheaza()` scrie pe disc — `unlocked` se pune la loc imediat, ca la [7].
@@ -819,10 +826,13 @@ func _verifica_cadenta() -> void:
 	# iteme banale (nu schimba lumea), unul luat de doua ori: se numara LUARILE
 	for id in ["bere", "foite", "medkit", "diamond_watch", "medkit", "gloante_paralele"]:
 		lvl._apply(id, p)
-	_cer(GameSettings.run_legendaries == 4 and not Unlocks.e_castigat("hooligan"),
-		"4 Legendary (+2 Common) -> tot incuiat (contor %d)" % GameSettings.run_legendaries)
+	# lista de sus da 4 Legendary; restul pana la prag-1 vin din medkit-uri
+	for i in range(prag - 5):
+		lvl._apply("medkit", p)
+	_cer(GameSettings.run_legendaries == prag - 1 and not Unlocks.e_castigat("hooligan"),
+		"%d Legendary (+2 Common) -> tot incuiat (contor %d)" % [prag - 1, GameSettings.run_legendaries])
 	lvl._apply("aussie_special", p)
-	_cer(Unlocks.e_castigat("hooligan"), "al 5-lea Legendary il deblocheaza")
+	_cer(Unlocks.e_castigat("hooligan"), "al %d-lea Legendary il deblocheaza" % prag)
 	await get_tree().create_timer(Unlocks.PANCARTA * 2.0 + 0.3).timeout
 	_cer(hud.primite.has("HOOLIGAN"), "pancarta lui ajunge pe ecran (%s)" % str(hud.primite))
 	GameSettings.reset_run()

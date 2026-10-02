@@ -372,10 +372,11 @@ func announce(text: String, sub: String = \"\", culoare: Color = Color.WHITE) ->
 """
 
 func _sectiunea_8() -> void:
-	print("\n[8] DEBLOCAREA LA NIVELUL 50")
+	var prag: int = Unlocks.NIVEL_CROSS
+	print("\n[8] DEBLOCAREA LA NIVELUL %d" % prag)
 	GameSettings.unlocked.erase("cross")   # o luăm de la capăt, încuiată
 	_cer(not Unlocks.e_castigat("cross"), "la început e încuiată")
-	_cer(Unlocks.cerinta("cross") == "Reach level 50 in one run",
+	_cer(Unlocks.cerinta("cross") == "Reach level %d in one run" % prag,
 		"cerința scrisă: [%s]" % Unlocks.cerinta("cross"))
 	var sc := GDScript.new()
 	sc.source_code = HUD_FALS
@@ -388,14 +389,14 @@ func _sectiunea_8() -> void:
 	var p: Node = await _player("pistol")
 	# Prin `_level_up`, nu prin `Unlocks.deblocheaza`: altfel proba ar fi trecut și cu cârligul
 	# din `player.gd` șters cu totul.
-	for i in range(1, 49):
+	for i in range(1, prag - 1):
 		p._level_up(false)
 	await get_tree().process_frame
-	_cer(p.level == 49, "player-ul a ajuns la nivelul %d" % p.level)
-	_cer(not Unlocks.e_castigat("cross"), "la nivelul 49 tot încuiată")
+	_cer(p.level == prag - 1, "player-ul a ajuns la nivelul %d" % p.level)
+	_cer(not Unlocks.e_castigat("cross"), "la nivelul %d tot încuiată" % (prag - 1))
 	p._level_up(false)
 	await get_tree().process_frame
-	_cer(Unlocks.e_castigat("cross"), "la nivelul 50 se deblochează")
+	_cer(Unlocks.e_castigat("cross"), "la nivelul %d se deblochează" % prag)
 	await get_tree().create_timer(0.3).timeout
 	_cer(hud.primite.has("CROSS"),
 		"pancarta strigă numele luat din meniu (a primit %s)" % str(hud.primite))

@@ -28,14 +28,19 @@ func _ready() -> void:
 	await get_tree().create_timer(0.3).timeout
 
 	# --- cele trei care se prind pe STATUSURI (ceasul din player.gd::_process) ---
-	_p.luck = 25.0
+	# Pragurile se citesc din `unlocks.gd`, ca unealta să nu rămână în urmă când se reglează.
+	_p.luck = Unlocks.LUCK_MAGE + 5.0
 	await _asteapta("mage")
 	_p.luck = 0.0
 
-	_p.bullet_damage = 120
+	# Liu Xiang (200) cere mai puțin decât sabia (300): întâi doar el, apoi amândouă.
+	_p.bullet_damage = Unlocks.DAMAGE_LIU + 10
+	await _asteapta("liu")
+	print("  sword la %d damage: %s (trebuie false)" % [_p.bullet_damage, Unlocks.e_deblocat("sword")])
+	_p.bullet_damage = Unlocks.DAMAGE_SWORD + 20
 	await _asteapta("sword")
 
-	_p.crit_chance = 1.1
+	_p.crit_chance = Unlocks.CRIT_KNIFE + 0.1
 	await _asteapta("knife")
 
 	# --- cele trei care se prind pe EVENIMENTE ---
@@ -44,11 +49,11 @@ func _ready() -> void:
 	Unlocks.item_luat(Unlocks.ITEM_SPELLMAN)
 	print("  spellman dupa Tome of Knowledge: %s" % Unlocks.e_deblocat("spellman"))
 
+	for i in range(Unlocks.CUFERE_JORDAN - 1):
+		Unlocks.cufar_deschis()
+	print("  jordan dupa %d cufere: %s (trebuie false)" % [Unlocks.CUFERE_JORDAN - 1, Unlocks.e_deblocat("jordan")])
 	Unlocks.cufar_deschis()
-	Unlocks.cufar_deschis()
-	print("  jordan dupa 2 cufere: %s (trebuie false)" % Unlocks.e_deblocat("jordan"))
-	Unlocks.cufar_deschis()
-	print("  jordan dupa 3 cufere: %s" % Unlocks.e_deblocat("jordan"))
+	print("  jordan dupa %d cufere: %s" % [Unlocks.CUFERE_JORDAN, Unlocks.e_deblocat("jordan")])
 
 	# ...și că a treia rundă nu adună cufere din rundele trecute
 	GameSettings.reset_run()

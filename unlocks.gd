@@ -26,17 +26,17 @@ const MENU_GD := "res://menu.gd"
 const CERINTE := {
 	# --- CARACTERE ---
 	"spellman": {"tip": "character", "cerinta": "Take Tome of Knowledge in one run"},
-	"jordan":   {"tip": "character", "cerinta": "Open 3 chests in one run"},
-	"liu":      {"tip": "character", "cerinta": "Have 100 Damage in one run"},
+	"jordan":   {"tip": "character", "cerinta": "Open 10 chests in one run"},
+	"liu":      {"tip": "character", "cerinta": "Have 200 Damage in one run"},
 	"nerd":     {"tip": "character", "cerinta": "Take Hermes' Sandals in one run"},
 	"trapper":  {"tip": "character", "cerinta": "Reach level 150 in one run"},
-	"hooligan": {"tip": "character", "cerinta": "Get 5 Legendary upgrades in one run"},
+	"hooligan": {"tip": "character", "cerinta": "Get 15 Legendary upgrades in one run"},
 	# --- ARME ---
-	"mage":     {"tip": "weapon",    "cerinta": "Get 20 Luck in one run"},
-	"sword":    {"tip": "weapon",    "cerinta": "Have 100 Damage in one run"},
+	"mage":     {"tip": "weapon",    "cerinta": "Get 100 Luck in one run"},
+	"sword":    {"tip": "weapon",    "cerinta": "Have 300 Damage in one run"},
 	"scythe":   {"tip": "weapon",    "cerinta": "Defeat Celesto"},
-	"knife":    {"tip": "weapon",    "cerinta": "Have 100 Crit in one run"},
-	"cross":    {"tip": "weapon",    "cerinta": "Reach level 50 in one run"},
+	"knife":    {"tip": "weapon",    "cerinta": "Have 200 Crit in one run"},
+	"cross":    {"tip": "weapon",    "cerinta": "Reach level 125 in one run"},
 }
 
 # Pragurile, scoase din texte ca să nu poată minți unul pe altul: dacă schimbi cifra aici,
@@ -46,30 +46,30 @@ const ITEM_SPELLMAN := "tome_knowledge"   # id-ul din `levelup.gd` al lui Tome o
 # Nerd e de departe cel mai greu de deblocat dintre caractere. Cerut așa; dacă vrei să pice mai
 # des, aici se schimbă itemul, nicăieri altundeva.
 const ITEM_NERD := "hermes_sandals"       # id-ul din `levelup.gd` al lui Hermes' Sandals
-const CUFERE_JORDAN := 3
-const LUCK_MAGE := 20.0
-const DAMAGE_SWORD := 100
-const CRIT_KNIFE := 1.0                   # 1.0 = 100% șansă de critic
-# ⚠️ Cea mai grea cerință din joc, cu mult: nivelul 50 înseamnă o rundă dusă până departe, nu un
-# stat împins cu două iteme potrivite. Cerut așa („get level 50 in one run to unlock"); dacă vrei
-# să vină mai devreme, aici e singura cifră de schimbat.
-const NIVEL_CROSS := 50
-# Romanian Trapper, de TREI ori mai departe decât crucea (cerut așa, 2026-09-24): cea mai grea
-# deblocare din joc. Tot pe nivel, deci tot din `nivel_atins` — fără ceas, fără stat de urmărit.
+# Pragurile ridicate pe 2026-10-02 (cerut de Răzvan): Jordan 3 → 10 cufere, Liu 100 → 200 damage,
+# Hooligan 5 → 15 Legendary, Mage 20 → 100 luck, Sword 100 → 300 damage, Knife 100 → 200 crit,
+# Cross nivel 50 → 125.
+const CUFERE_JORDAN := 10
+const LUCK_MAGE := 100.0
+const DAMAGE_SWORD := 300
+# 2.0 = 200% șansă de critic. `crit_chance_now()` NU e plafonat la 100%, deci pragul se poate atinge.
+const CRIT_KNIFE := 2.0
+# Nivelul 125 înseamnă o rundă dusă foarte departe, nu un stat împins cu două iteme potrivite.
+# Dacă vrei să vină mai devreme, aici e singura cifră de schimbat.
+const NIVEL_CROSS := 125
+# Romanian Trapper (cerut așa, 2026-09-24): cea mai grea deblocare pe nivel, puțin după cruce.
+# Tot pe nivel, deci tot din `nivel_atins` — fără ceas, fără stat de urmărit.
 const NIVEL_TRAPPER := 150
-# ⚠️ Liu Xiang cere ACELAȘI prag ca Cursed Sword, fiindcă așa a fost cerut („100 damage in one
-# run"). Deci amândouă se deblochează în ACELAȘI cadru, la aceeași lovitură — de-asta anunțul
-# de mai jos are coadă: `hud.announce` scrie peste pancarta de dinainte, iar fără coadă jucătorul
-# ar fi văzut doar una din două deblocări. Cifra e ținută separat de a sabiei, nu împărțită cu ea:
-# sunt două recompense diferite care azi se întâmplă să coste la fel, iar dacă Răzvan reglează
-# una, cealaltă n-are de ce să se miște odată cu ea.
-const DAMAGE_LIU := 100
-# Hooligan (cerut 2026-09-26): 5 upgrade-uri LEGENDARY luate în aceeași rundă, din orice sursă —
+# Liu Xiang și Cursed Sword se uită la aceeași cifră „Damage", dar cu praguri diferite (200 și
+# 300). Până pe 2026-10-02 erau egale (100) și se deblocau în același cadru; coada de anunțuri de
+# mai jos rămâne oricum, fiindcă oricare două deblocări pot pica în aceeași secundă.
+const DAMAGE_LIU := 200
+# Hooligan (cerut 2026-09-26, ridicat la 15 pe 2026-10-02): upgrade-uri LEGENDARY luate în aceeași rundă, din orice sursă —
 # level up, cufăr, statuia din Ender (toate trec prin `levelup.gd::_apply`). Se numără LUĂRILE, nu
 # itemele diferite: același Legendary luat de două ori contează de două ori. ⚠️ Doar raritatea
 # „legendary" — un Mythic NU intră la socoteală, fiindcă așa a fost cerut. Dacă Răzvan vrea ca
 # Mythic să conteze și el, se schimbă condiția din `item_luat`, nu cifra de aici.
-const LEGENDARE_HOOLIGAN := 5
+const LEGENDARE_HOOLIGAN := 15
 
 var _nume := {}   # id -> numele de pe ecran, citit o singură dată din `menu.gd`
 

@@ -350,15 +350,16 @@ Three things asked for in one go, all around *getting at* the game rather than p
 | Locked | Requirement |
 |---|---|
 | **Spellman** | Take Tome of Knowledge in one run |
-| **Jordan Blackford** | Open 3 chests in one run |
-| **Liu Xiang** | Have 100 Damage in one run *(added 2026-09-23 — the same requirement as the Cursed Sword, so both unlock at once)* |
+| **Jordan Blackford** | Open 10 chests in one run *(was 3 until 2026-10-02)* |
+| **Liu Xiang** | Have 200 Damage in one run *(added 2026-09-23 at 100, the same as the sword; raised to 200 on 2026-10-02)* |
 | **Nerd** | Take Hermes' Sandals in one run *(added 2026-09-23 — Legendary, so the hardest of the five)* |
 | **Romanian Trapper** | Reach level 150 in one run *(added 2026-09-24 — three times the Cross, now the hardest requirement in the game)* |
-| **Mage Staff** | Get 20 Luck in one run |
-| **Cursed Sword** | Have 100 Damage in one run |
+| **Hooligan** | Get 15 Legendary upgrades in one run *(added 2026-09-26 at 5; raised to 15 on 2026-10-02)* |
+| **Mage Staff** | Get 100 Luck in one run *(was 20 until 2026-10-02)* |
+| **Cursed Sword** | Have 300 Damage in one run *(was 100 until 2026-10-02)* |
 | **Celesto's Scythe** | Defeat Celesto |
-| **Throwing Knife** | Have 100 Crit in one run |
-| **Cross** | Reach level 50 in one run *(added 2026-09-23 — the hardest requirement in the game)* |
+| **Throwing Knife** | Have 200 Crit in one run *(was 100 until 2026-10-02 — crit chance is not capped at 100%)* |
+| **Cross** | Reach level 125 in one run *(added 2026-09-23 at level 50; raised to 125 on 2026-10-02)* |
 
 **All of it lives in one new autoload, `unlocks.gd` ("Unlocks").** The thresholds, the requirement strings and the check functions are in that one file; nothing else in the game knows a number. The places that can *cause* an unlock call one function and know nothing else — `levelup.gd::_apply` → `item_luat(id)` (so the Tome counts from a level-up, a chest **and** the Ender statue, because every item in the game goes through that one function), `chest.gd::invoca` → `cufar_deschis()`, `celesto.gd::_die` → `celesto_invins()`, `player.gd::_process` → `verifica_statusuri(p)`, and since 2026-09-23 `player.gd::_level_up` → `nivel_atins(level)` for the Cross.
 
