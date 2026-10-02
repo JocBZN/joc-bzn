@@ -26,6 +26,21 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-02b (ecranul YOU WIN! după Sir John)
+
+**Cerut de Răzvan:** „Vreau atunci cand il bati pe Sir John sa iti apara un meniu in care scrie You Win! - iti apar statusurile tale din joc si cati inamici ai omorat, cate chest-uri ai deschis, sucessful gambles, lost gambles (gambles inseamna - alba, ruleta, shady deal) Si apoi jos de tot doua butoan - Continue si Main Menu"
+
+- **`victory.gd`** (nou, CanvasLayer pe `layer = 16`, grupa `victory_screen`): titlu YOU WIN! auriu, „Sir John has fallen", două coloane — **THIS RUN** (timp, nivel, inamici uciși, cufere, gambles câștigate/pierdute; cifrele se numără de la 0) și **YOUR STATS** (citite din `player.gd::stat_lines()`, adică exact panoul de Level Up, cu verde/roșu față de start). Jos: CONTINUE și MAIN MENU. Aceeași ramă și aceleași butoane ca `pause.gd`.
+- **Creat din `final_boss.gd::_die` → `_victorie()`**, agățat de `current_scene` (boss-ul se șterge după animație). ⚠️ **Nu apare pe loc:** așteaptă ≥ 2 s (animația de moarte e 1,6) ȘI ca jocul să nu mai fie pe pauză — adică să alegi întâi cele 5 upgrade-uri de la premiu. Altfel îți arăta statusuri deja vechi. Dacă mori între timp, se șterge singur.
+- **CONTINUE** = runda merge mai departe. **MAIN MENU** = rundă CÂȘTIGATĂ: `add_score` + `bank_run_coins`, ca la Game Over (Pauză → Main Menu nu face asta — acolo abandonezi).
+- **Gambles:** `GameSettings.run_gambles_won/lost` + `add_gamble(castigat)`, șterse în `reset_run()`. Cârlige: `alba_menu.gd::_rezultat` (fiecare pahar ales), `casino.gd::_arata_rezultat` (fiecare spin la ruletă; trade-up-ul NU e pariu), `dubios_menu.gd::_judeca` (egalitatea nu contează — se dă din nou).
+- `pause.gd::_blocked` știe și de `victory_screen` (ESC nu deschide pauza peste el).
+- 9 chei noi în `i18n.gd`. Nu există sunet de victorie în proiect: deocamdată `chest_anim` + `levelup`. Dacă Răzvan pune unul, se schimbă în `victory.gd::_arata_ecranul`.
+- Unealtă: **`tool_victorie.tscn`** (cu fereastră; face poza `user://victorie.png`). Probează contoarele, așteptarea, cifrele, CONTINUE și **moartea adevărată a lui Sir John** (`final_boss.tscn` + `take_damage`). Nu apasă MAIN MENU (ar scrie în leaderboard).
+- ⚠️ În sesiunea asta `scores.save` a dispărut între 12:15 și 12:21, fără nicio unealtă rulată de mine. Răzvan a confirmat că l-a șters el, dinadins — nu l-am refăcut.
+
+---
+
 ## Session log — 2026-10-02 (praguri de deblocare ridicate)
 
 **Cerut de Răzvan:** „La mage staff vreau sa cresc la 100 luck, cursed sword - 300 damage, throwing knife - 200 crit, cross - level 125. La caracterele acum, Jordan Blackford - open 10 chests in one run, Liu Xiang - have 200 damage in one run, Hooligan - get 15 legendary upgrades in one run"

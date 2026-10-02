@@ -974,6 +974,7 @@ func _spin() -> void:
 
 func _arata_rezultat(n: int) -> void:
 	var castigat := _castiga(_pariu, n)
+	GameSettings.add_gamble(castigat)   # pentru ecranul de victorie (`victory.gd`)
 	var culoare := _culoarea(n)
 
 	# numărul ieșit, în butucul roții, pe fundalul culorii lui

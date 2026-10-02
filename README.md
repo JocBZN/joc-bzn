@@ -154,6 +154,17 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-10-02b, a YOU WIN! screen after Sir John)
+
+- 🏆 **Beating Sir John now ends on a victory screen** (`victory.gd`): **YOU WIN!**, then two columns — **THIS RUN** (time, level, enemies killed, chests opened, successful and lost gambles, counting up from 0) and **YOUR STATS** (read straight from `player.gd::stat_lines()`, the same numbers and colours as the level-up panel). At the bottom: **CONTINUE** (keep playing the run) and **MAIN MENU** (the run counts as won: it goes on the leaderboard and the run's coins are banked, like Game Over).
+- The screen waits for Sir John's death animation **and** for the 5 level-ups he gives you, so the stats it shows include them.
+- **Gambles** = Alba-Neagra (each cup you pick), the roulette (each spin) and the Shady Deal dice (a tie is not counted, it's re-rolled). Counted in `GameSettings.run_gambles_won/lost`, reset every run.
+- Test tool: `tool_victorie.tscn` (run with a window; it saves `user://victorie.png`).
+
+## Current state (2026-10-02, harder unlocks)
+
+- Unlock thresholds raised: Mage Staff 100 Luck, Cursed Sword 300 Damage, Throwing Knife 200 Crit, Cross level 125, Jordan Blackford 10 chests, Liu Xiang 200 Damage, Hooligan 15 Legendary upgrades. See the table further down.
+
 ## Current state (2026-09-30d, the OP button is gone)
 
 - 🚫 **The OP START cheat button is no longer in the main menu**, and a cheat left ON in an old save is ignored. The top-right corner now has only Settings and the language flag.

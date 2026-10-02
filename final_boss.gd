@@ -51,6 +51,7 @@ const FPS_MERS := 9.0
 const INEL := preload("res://prison_inel.gd")
 const LOVITURA := preload("res://prison_bolovan.gd")
 const TAIETURA := preload("res://castle_taietura.gd")
+const VICTORIE := preload("res://victory.gd")
 
 # ⚠️ 140, nu 62 (urcat pe 2026-08-17, păstrat). Player-ul merge cu 215+, iar cavalerul, spre
 # deosebire de Saratalin (care cade peste tine) și Celesto (care se teleportează în spatele tău),
@@ -376,6 +377,7 @@ func _die() -> void:
 		prison.boss_invins()
 	_drop_xp.call_deferred()   # Area2D nou nu se poate adăuga în timpul fizicii (vezi enemy.gd)
 	_premiu_niveluri()
+	_victorie()
 	_zguduie_camera(0.8)
 	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 	var t := create_tween()
@@ -392,6 +394,17 @@ func _premiu_niveluri() -> void:
 		return
 	get_tree().create_timer(premiu_intarziere).timeout.connect(
 		p.da_niveluri.bind(NIVELURI_PREMIU, false))
+
+# Ecranul YOU WIN! (`victory.gd`). Se agață de SCENA de joc, nu de boss: boss-ul se șterge la
+# capătul animației de moarte, iar ecranul trebuie să-i supraviețuiască. Așteaptă singur să treacă
+# animația și ecranele de Level Up de la premiu — vezi comentariul din capul lui `victory.gd`.
+func _victorie() -> void:
+	if get_tree().get_first_node_in_group("victory_screen") != null:
+		return
+	var v := CanvasLayer.new()
+	v.set_script(VICTORIE)
+	get_tree().current_scene.add_child(v)
+	v.porneste()
 
 func _drop_xp() -> void:
 	var parent := get_parent()

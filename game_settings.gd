@@ -34,6 +34,11 @@ var run_keys: int = 0
 var run_chests: int = 0
 # Câte upgrade-uri LEGENDARY ai luat în runda asta — cerința lui Hooligan (vezi `unlocks.gd`).
 var run_legendaries: int = 0
+# Pariurile câștigate / pierdute în runda asta — Alba-Neagra, ruleta din EGT și zarurile
+# dubiosului (Shady Deal). Le arată ecranul de victorie (`victory.gd`). Egalitatea la zaruri nu
+# intră nicăieri: se dă mâna din nou, deci nu e nici câștig, nici pierdere.
+var run_gambles_won: int = 0
+var run_gambles_lost: int = 0
 var run_spawn: Vector2 = Vector2.ZERO  # unde a început runda (lumea e infinită, startul e aleator)
 
 # --- sunet (reglat din meniul Settings) --- 0.0 = mut, 1.0 = volum normal.
@@ -286,6 +291,15 @@ func reset_run() -> void:
 	run_keys = 0
 	run_chests = 0
 	run_legendaries = 0
+	run_gambles_won = 0
+	run_gambles_lost = 0
+
+# Un pariu încheiat (vezi `run_gambles_won`). Toate cele trei jocuri trec pe aici.
+func add_gamble(castigat: bool) -> void:
+	if castigat:
+		run_gambles_won += 1
+	else:
+		run_gambles_lost += 1
 
 func add_run_coins(n: int) -> void:
 	run_coins += n

@@ -365,6 +365,16 @@ const TRAD := {
 "Bet: %s": ["下注：%s", "Einsatz: %s", "Apuesta: %s", "Ставка: %s", "Mise : %s", "賭け: %s", "Zakład: %s", "Bahis: %s"],
 "YOU WIN!": ["你赢了！", "GEWONNEN!", "¡GANASTE!", "ТЫ ВЫИГРАЛ!", "GAGNÉ !", "勝ち！", "WYGRANA!", "KAZANDIN!"],
 "YOU LOSE": ["你输了", "VERLOREN", "PERDISTE", "ТЫ ПРОИГРАЛ", "PERDU", "負け", "PRZEGRANA", "KAYBETTİN"],
+# --- ecranul de VICTORIE (`victory.gd`, 2026-10-02) ---
+"Sir John has fallen": ["约翰爵士倒下了", "Sir John ist gefallen", "Sir John ha caído", "Сэр Джон пал", "Sir John est tombé", "サー・ジョンは倒れた", "Sir John poległ", "Sir John düştü"],
+"THIS RUN": ["本局", "DIESER LAUF", "ESTA PARTIDA", "ЭТОТ ЗАБЕГ", "CETTE PARTIE", "このラン", "TO PODEJŚCIE", "BU TUR"],
+"YOUR STATS": ["你的属性", "DEINE WERTE", "TUS ESTADÍSTICAS", "ТВОИ ХАРАКТЕРИСТИКИ", "TES STATS", "ステータス", "TWOJE STATYSTYKI", "İSTATİSTİKLERİN"],
+"Time": ["时间", "Zeit", "Tiempo", "Время", "Temps", "時間", "Czas", "Süre"],
+"Level": ["等级", "Level", "Nivel", "Уровень", "Niveau", "レベル", "Poziom", "Seviye"],
+"Enemies killed": ["击杀敌人", "Besiegte Gegner", "Enemigos abatidos", "Убито врагов", "Ennemis tués", "倒した敵", "Zabici wrogowie", "Öldürülen düşman"],
+"Chests opened": ["开启宝箱", "Geöffnete Truhen", "Cofres abiertos", "Открыто сундуков", "Coffres ouverts", "開けた宝箱", "Otwarte skrzynie", "Açılan sandık"],
+"Successful gambles": ["赌赢次数", "Gewonnene Wetten", "Apuestas ganadas", "Выигранные ставки", "Paris gagnés", "勝った賭け", "Wygrane zakłady", "Kazanılan bahis"],
+"Lost gambles": ["赌输次数", "Verlorene Wetten", "Apuestas perdidas", "Проигранные ставки", "Paris perdus", "負けた賭け", "Przegrane zakłady", "Kaybedilen bahis"],
 # Banul de după trei câștiguri la rând (casino.gd, CASTIGURI_BAN). Primul text apare și pe ecranul
 # de ban, și deasupra aparatului EGT din lume (`egt.gd::eticheta`).
 "You've been banned for cheating": ["你因作弊被封禁", "Du wurdest wegen Betrugs gesperrt", "Te han baneado por hacer trampa", "Ты забанен за читерство", "Tu es banni pour triche", "不正行為により出入り禁止", "Zostałeś zbanowany za oszustwo", "Hile yaptığın için yasaklandın"],

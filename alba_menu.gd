@@ -583,6 +583,7 @@ func _alege(slot: int) -> void:
 	tw.tween_callback(_rezultat.bind(corect))
 
 func _rezultat(corect: bool) -> void:
+	GameSettings.add_gamble(corect)   # pentru ecranul de victorie (`victory.gd`)
 	if corect:
 		_sir += 1
 		Audio.play("chest_anim", -3.0, 0.0)

@@ -72,6 +72,10 @@ func _blocked() -> bool:
 	var go = get_tree().get_first_node_in_group("gameover_screen")
 	if go != null and go.visible:
 		return true
+	var victorie = get_tree().get_first_node_in_group("victory_screen")
+	if victorie != null and victorie.visible:
+		return true   # ecranul YOU WIN! (`victory.gd`) are deja butoanele lui
+
 	var cazinou = get_tree().get_first_node_in_group("casino")
 	if cazinou != null and cazinou.visible:
 		return true   # ESC în cazinou te scoate din cazinou, nu deschide pauza peste el

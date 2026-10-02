@@ -663,6 +663,7 @@ func _judeca() -> void:
 		_inchide()
 		return
 	var stat: String = STATS[randi() % STATS.size()]
+	GameSettings.add_gamble(_suma_tu > _suma_el)   # pentru ecranul de victorie (`victory.gd`)
 	if _suma_tu > _suma_el:
 		_scaleaza_stat(p, stat, CASTIG)
 		# tr() explicit: textul e ASAMBLAT, deci nici el, nici numele statusului din el nu mai trec
