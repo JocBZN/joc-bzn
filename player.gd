@@ -1942,6 +1942,25 @@ var _cross_unghi := 0.0     # unde e PRIMA cruce pe cerc, acum
 var _cross_rot := 0.0       # rotația proprie a crucilor (se mișcă doar dacă `cross_spin` nu e 0)
 var _cross_ecou := 0.0      # frâul de zguduitură / vindecare / sunet (vezi ⚠️ de mai sus)
 
+# 🎲 CRUCILE BONUS (cerut de Răzvan pe 2026-10-12: „Vreau sa mearga si cu itemele de sansa de
+# proiectil sa se spawneze o cruce in plus si sa faca un cerc complet cand e spawnata. Sansa la
+# cruce sa apara o data la 3 secunde"). Până azi Broken Watch / Broken Glasses nu făceau NIMIC pe
+# cruce: zarul lor se arunca doar la o tragere (`_fire_bullets`, `_start_burst`), iar crucea nu
+# trage — se învârte.
+#
+# Acum: la fiecare `cross_zar_interval` secunde se aruncă ACELAȘI zar ca la celelalte arme
+# (`proiectile_bonus_pe_sansa()`: fiecare item cu aruncarea lui, plus norocul, iar stivele dau
+# mai multe cruci deodată). Fiecare proiectil câștigat = o cruce bonus care apare ÎNTRE crucile
+# inelului, merge odată cu el, lovește exact ca ele și dispare după UN TUR COMPLET. Apare și se
+# stinge cu un fade scurt (`cross_bonus_fade`, fracție din tur), ca să nu „pocnească" pe ecran.
+#
+# ⚠️ Zarul se aruncă pe CEAS, nu pe tur: cu attack speed mare un tur ține 0,3 s și o aruncare pe
+# tur ar fi făcut itemele de trei ori mai bune pe cruce decât pe orice altă armă.
+@export var cross_zar_interval: float = 3.0
+@export var cross_bonus_fade: float = 0.12
+var _cruci_bonus: Array = []   # [{nod, loviti, offset: unghiul față de inel, parcurs: cât a mers}]
+var _cross_zar_t := 0.0
+
 # Ai crucea în mână? Ori ai ales-o din meniu, ori ți-a dat-o Helping Hand — în amândouă cazurile
 # inelul se învârte, fiindcă o armă care nu trage nimic nu are cum să fie „folosită" altfel.
 # Mort, crucile se sting: altfel ar fi măcelărit mai departe peste ecranul de Game Over.
@@ -2010,62 +2029,115 @@ func _update_cruci(delta: float) -> void:
 	if n != _cruci.size():
 		_reface_crucile(n)
 	if n == 0:
+		_sterge_cruci_bonus()   # mort / fără cruce: nici bonusurile nu mai au ce căuta pe ecran
+		_cross_zar_t = 0.0
 		return
 	var perioada := _cross_period()
-	_cross_unghi = fposmod(_cross_unghi + TAU * delta / perioada, TAU)
+	var pas := TAU * delta / perioada
+	_cross_unghi = fposmod(_cross_unghi + pas, TAU)
 	_cross_rot = fposmod(_cross_rot + cross_spin * delta, TAU)
 	_cross_ecou = maxf(0.0, _cross_ecou - delta)
-	var ps: float = max(scale.x, 0.001)   # player-ul e la scale 2 în main.tscn
-	var scara := _cross_scale()
-	var raza := _cross_raza_acum()
-	var dmg := int(round(bullet_damage * damage_mult()))
-	var inamici := get_tree().get_nodes_in_group("enemy")
+	var ctx := {
+		"ps": maxf(scale.x, 0.001),   # player-ul e la scale 2 în main.tscn
+		"scara": _cross_scale(),
+		"raza": _cross_raza_acum(),
+		"dmg": int(round(bullet_damage * damage_mult())),
+		"perioada": perioada,
+		"inamici": get_tree().get_nodes_in_group("enemy"),
+	}
 	for i in _cruci.size():
-		var t: Dictionary = _cruci[i]
 		# Crucile stau la distanțe egale pe cerc: două față în față, trei în triunghi ș.a.m.d.
-		var unghi: float = _cross_unghi + TAU * float(i) / float(n)
-		var centru := Vector2(raza, 0).rotated(unghi)
-		if is_instance_valid(t["nod"]):
-			var nod: Sprite2D = t["nod"]
-			nod.position = centru / ps
-			nod.rotation = _cross_rot
-			nod.scale = Vector2.ONE * scara / ps
-			# Trece pe DINAINTEA ta când e jos și pe dinapoia ta când e sus. Fără asta, jumătate
-			# din tur ar părea lipită pe fața personajului, iar inelul n-ar mai arăta rotund.
-			nod.z_index = 1 if sin(unghi) > 0.0 else -1
-		# Ceasurile de reîncărcare: fiecare inamic lovit se răcește în `perioada` secunde.
-		var loviti: Dictionary = t["loviti"]
-		for id in loviti.keys():
-			var ramas: float = float(loviti[id]) - delta
-			if ramas <= 0.0:
-				loviti.erase(id)
-			else:
-				loviti[id] = ramas
-		for e in inamici:
-			var enemy := e as Node2D
-			if enemy == null or not is_instance_valid(enemy):
-				continue
-			var id := enemy.get_instance_id()   # ID, nu nodul: poate muri între cadre
-			if loviti.has(id):
-				continue
-			var spre: Vector2 = enemy.global_position - global_position
-			if not _crucea_atinge(centru, spre, _raza_corp(enemy)):
-				continue
-			loviti[id] = perioada   # nu-l mai poate atinge până nu face un tur întreg
-			# Criticul se aruncă PE LOVITURĂ, nu pe tur: la coasă un tur e o lovitură, aici
-			# fiecare atingere e a ei, cu norocul ei.
-			var cr := roll_crit()
-			var is_crit: bool = cr["tiers"] > 0
-			var d := int(round(dmg * float(cr["mult"]))) if is_crit else dmg
-			_lovitura_melee(enemy, d, is_crit, spre.normalized())
-			if _cross_ecou <= 0.0:
-				_cross_ecou = perioada * 0.5
-				# −13 dB: se aude de vreo două ori pe secundă cât ții arma, deci stă SUB
-				# `enemy_hit` (−31,5 dBFS efectiv), ca ticul de lovitură să rămână confirmarea.
-				Audio.play("cross", -13.0)
-				if is_crit:
-					add_shake(0.35)
-					bloody_heal()   # Bloody Situation: o vindecare pe jumătate de tur, nu pe lovitură
+		_pas_cruce(_cruci[i], _cross_unghi + TAU * float(i) / float(n), ctx, delta)
+
+	# --- crucile bonus (Broken Watch / Broken Glasses), vezi 🎲 de la variabile ---
+	_cross_zar_t += delta
+	if _cross_zar_t >= cross_zar_interval:
+		_cross_zar_t -= cross_zar_interval
+		var extra := proiectile_bonus_pe_sansa()
+		for j in extra:
+			# La jumătatea golului dintre două cruci ale inelului; dacă ies mai multe deodată,
+			# se împart egal pe cerc, pornind tot de acolo.
+			_adauga_cruce_bonus(TAU / float(n) * 0.5 + TAU * float(j) / float(extra), n + j)
+	for i in range(_cruci_bonus.size() - 1, -1, -1):
+		var b: Dictionary = _cruci_bonus[i]
+		b["parcurs"] = float(b["parcurs"]) + pas
+		var gata := float(b["parcurs"]) / TAU          # 0 → 1 pe tot turul
+		if gata >= 1.0 or not is_instance_valid(b["nod"]):
+			if is_instance_valid(b["nod"]):
+				b["nod"].queue_free()
+			_cruci_bonus.remove_at(i)
+			continue
+		var f := clampf(minf(gata, 1.0 - gata) / maxf(cross_bonus_fade, 0.001), 0.0, 1.0)
+		b["nod"].modulate.a = f
+		_pas_cruce(b, _cross_unghi + float(b["offset"]), ctx, delta)
+
+# O cruce bonus nouă, la `offset` radiani în fața primei cruci a inelului. `idx` = locul ei în
+# ciclul de culori, continuat de după crucile inelului.
+func _adauga_cruce_bonus(offset: float, idx: int) -> void:
+	var s := Sprite2D.new()
+	s.texture = _cross_tex
+	s.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	s.modulate = Color(cross_tint.r, cross_tint.g, cross_tint.b, 0.0)   # pornește invizibilă (fade)
+	var slot := _tenta_slot(idx)
+	if slot >= 0:
+		s.material = _tenta_mats[slot]
+	add_child(s)
+	_cruci_bonus.append({"nod": s, "loviti": {}, "offset": offset, "parcurs": 0.0})
+
+func _sterge_cruci_bonus() -> void:
+	for b in _cruci_bonus:
+		if is_instance_valid(b["nod"]):
+			b["nod"].queue_free()
+	_cruci_bonus.clear()
+
+# O cruce, un cadru: o așază pe cerc la `unghi` și lovește ce prinde. Aceeași pentru crucile
+# inelului și pentru cele bonus, ca o cruce bonus să fie EXACT o cruce, nu o imitație.
+func _pas_cruce(t: Dictionary, unghi: float, ctx: Dictionary, delta: float) -> void:
+	var ps: float = ctx["ps"]
+	var perioada: float = ctx["perioada"]
+	var centru := Vector2(float(ctx["raza"]), 0).rotated(unghi)
+	if is_instance_valid(t["nod"]):
+		var nod: Sprite2D = t["nod"]
+		nod.position = centru / ps
+		nod.rotation = _cross_rot
+		nod.scale = Vector2.ONE * float(ctx["scara"]) / ps
+		# Trece pe DINAINTEA ta când e jos și pe dinapoia ta când e sus. Fără asta, jumătate
+		# din tur ar părea lipită pe fața personajului, iar inelul n-ar mai arăta rotund.
+		nod.z_index = 1 if sin(unghi) > 0.0 else -1
+	# Ceasurile de reîncărcare: fiecare inamic lovit se răcește în `perioada` secunde.
+	var loviti: Dictionary = t["loviti"]
+	for id in loviti.keys():
+		var ramas: float = float(loviti[id]) - delta
+		if ramas <= 0.0:
+			loviti.erase(id)
+		else:
+			loviti[id] = ramas
+	var dmg: int = ctx["dmg"]
+	for e in ctx["inamici"]:
+		var enemy := e as Node2D
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		var id := enemy.get_instance_id()   # ID, nu nodul: poate muri între cadre
+		if loviti.has(id):
+			continue
+		var spre: Vector2 = enemy.global_position - global_position
+		if not _crucea_atinge(centru, spre, _raza_corp(enemy)):
+			continue
+		loviti[id] = perioada   # nu-l mai poate atinge până nu face un tur întreg
+		# Criticul se aruncă PE LOVITURĂ, nu pe tur: la coasă un tur e o lovitură, aici
+		# fiecare atingere e a ei, cu norocul ei.
+		var cr := roll_crit()
+		var is_crit: bool = cr["tiers"] > 0
+		var d := int(round(dmg * float(cr["mult"]))) if is_crit else dmg
+		_lovitura_melee(enemy, d, is_crit, spre.normalized())
+		if _cross_ecou <= 0.0:
+			_cross_ecou = perioada * 0.5
+			# −13 dB: se aude de vreo două ori pe secundă cât ții arma, deci stă SUB
+			# `enemy_hit` (−31,5 dBFS efectiv), ca ticul de lovitură să rămână confirmarea.
+			Audio.play("cross", -13.0)
+			if is_crit:
+				add_shake(0.35)
+				bloody_heal()   # Bloody Situation: o vindecare pe jumătate de tur, nu pe lovitură
 
 # LOVEȘTE crucea aflată la `centru` (față de player) inamicul de la `spre`? Aceeași metodă ca la
 # coasă: îl aducem în sistemul DESENULUI (mutat în centrul crucii, rotit invers cu rotația ei,

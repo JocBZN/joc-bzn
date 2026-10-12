@@ -26,6 +26,19 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12c (crucea + Broken Watch / Broken Glasses: cruci bonus)
+
+**Cerut de Răzvan:** „Vreau sa mearga si cu itemele de sansa de proiectil sa se spawneze o cruce in plus si sa faca un cerc complet cand e spawnata. Sansa la cruce sa apara o data la 3 secunde"
+
+- **Până azi itemele cu șansă NU făceau nimic pe cruce:** zarul lor (`proiectile_bonus_pe_sansa`) se arunca doar la o tragere, iar `_fire` pe cruce e `pass`. Răzvan întrebase „se spawnează câteodată o cruce în plus?" — nu, crucile se schimbau doar permanent (nivel /10, Gunslinger, Twin Comets).
+- **Acum (`player.gd`, blocul 🎲 de la variabilele crucii):** o dată la `cross_zar_interval` (3 s) se aruncă același zar ca la celelalte arme. Fiecare proiectil câștigat = o cruce bonus în `_cruci_bonus`, pusă la jumătatea golului dintre crucile inelului (mai multe deodată → împărțite egal pe cerc), merge odată cu inelul, face **un tur complet** și dispare. Fade de `cross_bonus_fade` (12% din tur) la apariție și la dispariție. Mort / fără cruce → dispar.
+- ⚠️ Zarul e pe CEAS, nu pe tur — cu attack speed mare un tur ține 0,3 s și itemele ar fi fost de 3× mai bune pe cruce decât pe orice altă armă.
+- `_update_cruci` refăcut: corpul buclei (așezare + lovit) e acum `_pas_cruce(t, unghi, ctx, delta)`, folosit de ambele liste, deci o cruce bonus lovește exact ca una din inel (critic, Duridama, Bloody Situation, sunet cu frâu).
+- Testat: `tool_cruce.tscn` secțiunea [11] (cu fereastră): fără item nimic; Broken Watch 100% → o cruce după 3,00 s, la π/2, trăiește un tur (0,95 s din 1,00) și dispare; 2× Watch + Glasses → 3 deodată; un inamic pe drum încasează 3 lovituri pe tur în loc de 2; mort → dispar. Tot fișierul: TOTUL E BINE, salvarea identică (`cmp`). Poza: `user://cruce_cruce_bonus.png`.
+- Codex (`codex.html`): Broken Watch + Broken Glasses pomenesc crucea. Pagina publicată arată doar textul din joc → nerepublicată.
+
+---
+
 ## Session log — 2026-10-12b (sunetul Cursed Sword mai încet + Third Eye arată și poarta castelului)
 
 **Cerut de Răzvan:** „Fa sunetu de la cursed sword cu 50% mai incet. Third eye nu arata ultimul portal. Vreau sa ti-l arate si pe ala (usa)"

@@ -107,6 +107,7 @@ func _ready() -> void:
 	await _sectiunea_8()
 	await _sectiunea_9()
 	await _sectiunea_10()
+	await _sectiunea_11()
 	_gata()
 
 # ---------------------------------------------------------------------------
@@ -492,6 +493,90 @@ func _sectiunea_10() -> void:
 	await _poza("meniu_deblocat")
 	GameSettings.unlocked = _unlocked_initial.duplicate()
 	await _sterge(m)
+
+# ---------------------------------------------------------------------------
+# [11] CRUCILE BONUS (2026-10-12): Broken Watch / Broken Glasses pe cruce. O dată la 3 s se
+# aruncă zarul; fiecare proiectil câștigat = o cruce în plus, care face UN tur și dispare.
+# Ca proba să nu depindă de noroc, șansa se pune pe 1.0 (sigur) sau pe 0 (niciodată).
+# ---------------------------------------------------------------------------
+func _asteapta_bonus(p: Node, cond: Callable, max_s: float) -> float:
+	var t0 := Time.get_ticks_usec()
+	while float(Time.get_ticks_usec() - t0) / 1000000.0 < max_s:
+		await get_tree().process_frame
+		if cond.call():
+			break
+	return float(Time.get_ticks_usec() - t0) / 1000000.0
+
+func _sectiunea_11() -> void:
+	print("\n[11] CRUCILE BONUS (Broken Watch / Broken Glasses)")
+	var p: Node = await _player()
+	p.scale = Vector2(2, 2)
+	_cer(_aprox(p.cross_zar_interval, 3.0, 0.0001), "zarul se aruncă o dată la %.1f s" % p.cross_zar_interval)
+	# fără item: nimic, oricât ai aștepta
+	await _asteapta_bonus(p, func(): return false, 3.4)
+	_cer(p._cruci_bonus.is_empty(), "fără Broken Watch / Glasses nu apare nicio cruce în plus")
+	# Broken Watch, șansă forțată la 100%
+	p.broken_watch_stacks = 1
+	p.broken_watch_chance = 1.0
+	p._cross_zar_t = 0.0
+	var pana := await _asteapta_bonus(p, func(): return not p._cruci_bonus.is_empty(), 4.0)
+	_cer(p._cruci_bonus.size() == 1, "Broken Watch: apare O cruce în plus (%d)" % p._cruci_bonus.size())
+	_cer(_aprox(pana, 3.0, 0.15), "...după %.2f s (trebuie ~3)" % pana)
+	_cer(p._cruci.size() == 2, "inelul rămâne cu 2 cruci; bonusul e separat (%d)" % p._cruci.size())
+	if not p._cruci_bonus.is_empty():
+		var b: Dictionary = p._cruci_bonus[0]
+		_cer(_aprox(float(b["offset"]), PI * 0.5, 0.001), "stă la jumătatea golului dintre cele două (%.3f rad)" % float(b["offset"]))
+		await get_tree().create_timer(0.5).timeout
+		await _poza("cruce_bonus")
+		var nod: Node = b["nod"]
+		var viata := await _asteapta_bonus(p, func(): return p._cruci_bonus.is_empty(), 3.0)
+		_cer(p._cruci_bonus.is_empty() and not is_instance_valid(nod), "dispare după un tur")
+		var tur: float = p._cross_period()
+		_cer(_aprox(viata + 0.5, tur, 0.15), "...adică a trăit %.2f s = un tur complet (%.2f s)" % [viata + 0.5, tur])
+	# un al doilea Broken Watch + Broken Glasses → 3 cruci deodată
+	p.broken_watch_stacks = 2
+	p.broken_glasses_stacks = 1
+	p.broken_glasses_chance = 1.0
+	p._cross_zar_t = 0.0
+	await _asteapta_bonus(p, func(): return not p._cruci_bonus.is_empty(), 4.0)
+	_cer(p._cruci_bonus.size() == 3, "2× Watch + Glasses: apar 3 cruci deodată (%d)" % p._cruci_bonus.size())
+	# lovesc ca o cruce adevărată: un inamic fix pe drumul bonusului încasează de la el
+	p._sterge_cruci_bonus()
+	p.broken_watch_stacks = 1
+	p.broken_glasses_stacks = 0
+	p.bullet_damage = 30
+	var e := load("res://enemy.tscn").instantiate() as Node2D
+	add_child(e)
+	await get_tree().process_frame
+	e.speed = 0.0
+	e.max_hp = 1000000
+	e.hp = e.max_hp
+	var lov_fara := 0
+	var lov_cu := 0
+	# o secundă FĂRĂ bonus, apoi o secundă CU bonus (forțăm aruncarea acum)
+	for faza in 2:
+		if faza == 1:
+			p._cross_zar_t = p.cross_zar_interval
+		var hp0: int = e.hp
+		var t0 := Time.get_ticks_usec()
+		while float(Time.get_ticks_usec() - t0) / 1000000.0 < 0.98:
+			await get_tree().process_frame
+			e.global_position = p.global_position + Vector2(p._cross_raza_acum(), 0)
+		var l := int((hp0 - int(e.hp)) / 30)
+		if faza == 0:
+			lov_fara = l
+		else:
+			lov_cu = l
+	_cer(lov_cu == lov_fara + 1, "lovește ca o cruce adevărată: %d lovituri pe tur fără bonus, %d cu" % [lov_fara, lov_cu])
+	await _sterge(e)
+	# mort → dispar și bonusurile
+	p._cross_zar_t = p.cross_zar_interval
+	await get_tree().process_frame
+	await get_tree().process_frame
+	p.dead = true
+	await get_tree().process_frame
+	_cer(p._cruci_bonus.is_empty(), "mort: crucile bonus dispar și ele")
+	await _sterge(p)
 
 # Totul înapoi cum era, ȘI pe disc: secțiunea [8] chiar a deblocat crucea, deci fișierul de
 # salvare s-a atins. Ce scriem acum trebuie să-l aducă bit cu bit la loc (verifică cu `cmp`).
