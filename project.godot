@@ -26,6 +26,7 @@ Audio="*res://audio.gd"
 Fx="*res://fx.gd"
 I18n="*res://i18n.gd"
 PreloadAll="*res://preload_all.gd"
+Achievements="*res://achievements.gd"
 SteamLB="*res://steam_lb.gd"
 
 [display]

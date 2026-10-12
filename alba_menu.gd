@@ -622,6 +622,8 @@ func _ia_premiul() -> void:
 		_actualizeaza()
 		return
 	lu.da_item(u, p)
+	if String(PREMII[_sir]) == "legendary":
+		Achievements.da("Sixth Sense")
 	_premiu_icon.texture = load(lu.icon_path(u))
 	_premiu_nume.text = String(u["nume"])
 	_premiu_box.visible = true

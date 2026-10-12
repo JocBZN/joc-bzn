@@ -596,6 +596,7 @@ func _on_delete_save() -> void:
 		return
 	_dezarmeaza_stergerea()
 	GameSettings.sterge_salvarea()
+	Achievements.amnezie()
 	_refresh_unlock_btn()
 	salvare_stearsa.emit()
 

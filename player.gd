@@ -781,6 +781,7 @@ func _process(delta: float) -> void:
 	if _t_deblocari >= DEBLOCARI_LA:
 		_t_deblocari = 0.0
 		Unlocks.verifica_statusuri(self)
+		Achievements.verifica_runda(self)   # Royal Flush + cele 3 de după timer
 	_update_slashes()  # tăieturile în curs se întorc după privire și lovesc pe unde mătură
 	_update_sweeps(delta)  # coasa: lama se rotește în jurul tău și lovește pe cine ajunge
 	_update_cruci(delta)   # crucea: inelul se învârte în jurul tău și lovește pe cine prinde

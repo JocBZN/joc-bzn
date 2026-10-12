@@ -1007,6 +1007,8 @@ func _arata_rezultat(n: int) -> void:
 	# Cu pasul VIP nu cade niciunul din cele două banuri — dar șirul se numără mai departe, ca să
 	# fie corect dacă vreodată apare un mod de a pierde pasul în mijlocul rundei.
 	_castiguri_la_rand = (_castiguri_la_rand + 1) if castigat else 0
+	if _castiguri_la_rand >= Achievements.RULETA_LA_RAND:
+		Achievements.da("Lucky Strike")
 	if _vip():
 		pass
 	elif _castiguri_la_rand >= CASTIGURI_BAN:

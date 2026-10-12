@@ -28,6 +28,11 @@ var coins: int = 0              # monede permanente (meta-progresie)
 var upgrades: Dictionary = {}   # id upgrade -> nivel deținut
 var run_coins: int = 0          # monede strânse în runda curentă (băgate la bancă la game over)
 var run_kills: int = 0          # inamici uciși în runda curentă
+# --- achievement-uri (2026-10-12, vezi achievements.gd) ---
+var total_kills: int = 0        # inamici uciși în TOATE rundele (Hunter … The Devil)
+var unlock_all_folosit := false # ai apăsat vreodată UNLOCK ALL → fără Collector / Arsenal / True Master
+var achievements: Dictionary = {}  # API name -> true, câștigate (și retrimise pe Steam la pornire)
+var salvare_dinainte_de_achievements := false   # NU se salvează; vezi `achievements.gd::_ready`
 # Chei de cufăr strânse în runda curentă. Cad de la inamici (0.5% — vezi `enemy.gd`) și se
 # consumă câte una la fiecare cufăr deschis (`chest.gd`). NU se păstrează între runde: sunt
 # resursă de rundă, ca monedele necunoscute încă, nu meta-progresie.
@@ -310,6 +315,7 @@ func add_run_coins(n: int) -> void:
 
 func add_kill() -> void:
 	run_kills += 1
+	Achievements.kill()   # kill-urile totale (Hunter … The Devil)
 
 func add_key(n: int = 1) -> void:
 	run_keys += n
@@ -356,6 +362,8 @@ func _save() -> void:
 			"character": character,
 			"unlocked": unlocked,
 			"challenges_done": challenges_done,
+			"total_kills": total_kills, "unlock_all_folosit": unlock_all_folosit,
+			"achievements": achievements,
 		})
 
 func _load() -> void:
@@ -389,6 +397,11 @@ func _load() -> void:
 		unlocked = data.get("unlocked", {})
 		# salvare de dinainte de challenge-uri (2026-10-12) → nicio bifă
 		challenges_done = data.get("challenges_done", {})
+		# salvare de dinainte de achievement-uri (2026-10-12) → kill-urile se numără de acum
+		total_kills = int(data.get("total_kills", 0))
+		unlock_all_folosit = bool(data.get("unlock_all_folosit", false))
+		salvare_dinainte_de_achievements = not data.has("unlock_all_folosit")
+		achievements = data.get("achievements", {})
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil
 
@@ -418,6 +431,11 @@ func sterge_salvarea() -> void:
 	upgrades = {}
 	unlocked = {}
 	challenges_done = {}
+	# achievement-urile de pe Steam rămân pe Steam (nu se pot lua înapoi); aici se golește doar
+	# memoria locală, deci după ștergere True Master se poate câștiga din nou „cinstit"
+	total_kills = 0
+	unlock_all_folosit = false
+	achievements = {}
 	character = "grasu"
 	weapon_type = "pistol"
 	reset_run()

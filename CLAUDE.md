@@ -26,6 +26,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12f (achievement-uri Steam)
+
+**Cerut de Răzvan:** 17 achievement-uri făcute în Steamworks, date ca „trigger - API name”: Easy Way Out, True Master, Hunter, Predator, Demon, The Devil, Cosmic Terror, Dead Chiverly, Lucky Strike, Sixth Sense, Resistant, Made of steel, Unbeatable, Amnesia, Collector, Arsenal, Royal Flush.
+
+- **`achievements.gd`** (autoload `Achievements`, ÎNAINTE de `SteamLB` — `SteamLB._ready` citește `Achievements.LISTA`): `da(api)` ține minte în `GameSettings.achievements` + `_save()` + `SteamLB.achievement(api)`. Capul fișierului listează fiecare cârlig.
+- **Cârlige:** `unlocks.gd::deblocheaza` → `verifica_deblocari()`; `deblocheaza_tot` → `buton_unlock_all()`; `game_settings.gd::add_kill` → `kill()`; `celesto.gd::_die`; `final_boss.gd::_die`; `casino.gd` după `_castiguri_la_rand` (≥ `RULETA_LA_RAND` = 3); `alba_menu.gd::_ia_premiul` (premiul `legendary`); `player.gd::_process` la 0,5 s → `verifica_runda(p)` (`luck_total() >= 100`, `Difficulty.overtime()` ≥ 60/300/600); `settings_ui.gd::_on_delete_save` → `amnezie()` (direct pe Steam, NU prin `_save` — ar fi reînviat fișierul șters).
+- **Decizie mea (de confirmat cu Răzvan):** Collector / Arsenal / True Master cer să NU fi apăsat UNLOCK ALL (`GameSettings.unlock_all_folosit`, salvat; golit la DELETE SAVE). Altfel butonul dădea patru dintr-o apăsare.
+- **`GameSettings`:** `total_kills`, `unlock_all_folosit`, `achievements` (salvate/încărcate/golite la ștergere). ⚠️ `total_kills` se scrie pe disc la următorul `_save()` (finalul rundei), nu la fiecare kill.
+- **`steam_lb.gd`:** `achievement(api)` = `setAchievement` + `storeStats`; la pornire `_trimite_achievements_salvate()`: `getAchievement` pe fiecare nume (`ret` false → avertisment „necunoscut”) și retrimite ce e în salvare dar nu pe Steam.
+- ⚠️ **Capcană prinsă la test:** salvarea lui Răzvan avea TOT deblocat (din butonul UNLOCK ALL) și n-avea cheia `unlock_all_folosit` → la prima pornire jocul și-a dat singur Collector + Arsenal + True Master și le-a scris în salvare. Reparat: `salvare_dinainte_de_achievements` (din `_load`, nesalvat) + `Unlocks.tot_deblocat()` → `unlock_all_folosit = true` în `Achievements._ready`. Salvarea a fost pusă la loc din copia de la începutul sesiunii; după reparație, pornirea n-o mai atinge (cmp identic).
+- **Verificat (headless, Steam închis):** test temporar cu 13 verificări — scripturile modificate compilează, pragurile de kill (999 nu, 1000 da, 1M toate), Collector singur, butonul blochează Arsenal/True Master, fără buton le dă, UNLOCK ALL → Easy Way Out, 99 noroc/+59 s nimic, 100 noroc/+5:01 → Royal Flush + Resistant + Made of steel (nu Unbeatable); salvarea pusă la loc octet cu octet. **NEVERIFICAT cu Steam pornit** — primul test real: log-ul la pornire nu trebuie să aibă „achievement necunoscut”.
+
 ## Session log — 2026-10-12e (leaderboard-ul pe Steam)
 
 **Cerut de Răzvan:** „am facut leaderboard in steamworks - leaga steamworks cu leaderboardu in joc". Întrebat: nume **`Highscore`**, Sort **Descending**, Display **Numeric**.

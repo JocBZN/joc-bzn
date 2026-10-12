@@ -45,6 +45,36 @@ func _ready() -> void:
 	_steam.leaderboard_scores_downloaded.connect(_la_descarcat)
 	_steam.persona_state_change.connect(_la_persona)
 	_steam.findLeaderboard(NUME_LB)
+	_trimite_achievements_salvate()
+
+# --- ACHIEVEMENTS (logica de CÂND se dau e în `achievements.gd`; aici doar vorbim cu Steam) ---
+
+# Dă un achievement pe Steam. Fără Steam pornit nu face nimic — `Achievements` l-a ținut deja
+# minte în salvare și îl retrimite la următoarea pornire cu Steam.
+func achievement(api: String) -> void:
+	if _steam == null:
+		return
+	if not _steam.setAchievement(api):
+		push_warning("SteamLB: setAchievement a refuzat „%s” (numele nu e în Steamworks?)" % api)
+		return
+	_steam.storeStats()   # fără asta rămâne doar în memoria clientului și nu apare popup-ul
+	print("SteamLB: achievement „%s” dat" % api)
+
+# La pornire: (1) verifică că fiecare nume din `Achievements.LISTA` chiar există în Steamworks —
+# o literă mare/mică greșită ar face ca achievement-ul să nu se dea NICIODATĂ, în tăcere;
+# (2) trimite tot ce s-a câștigat cât timp Steam era închis.
+func _trimite_achievements_salvate() -> void:
+	var de_trimis := false
+	for api in Achievements.LISTA:
+		var r: Dictionary = _steam.getAchievement(api)
+		if not bool(r.get("ret", false)):
+			push_warning("SteamLB: achievement necunoscut pe Steam: „%s”" % api)
+			continue
+		if Achievements.are(api) and not bool(r.get("achieved", false)):
+			_steam.setAchievement(api)
+			de_trimis = true
+	if de_trimis:
+		_steam.storeStats()
 
 func _la_gasit(handle: int, gasit: int) -> void:
 	if gasit == 0 or handle == 0:

@@ -366,6 +366,7 @@ func _flash() -> void:
 func _die() -> void:
 	_dying = true
 	GameSettings.add_kill()
+	Achievements.da("Dead Chiverly")   # Sir John bătut
 	remove_from_group("enemy")
 	remove_from_group("final_boss")
 	set_deferred("collision_layer", 0)

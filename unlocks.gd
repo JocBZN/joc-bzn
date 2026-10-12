@@ -102,6 +102,7 @@ func deblocheaza(id: String) -> void:
 	GameSettings.unlocked[id] = true
 	GameSettings._save()
 	_anunta(id)
+	Achievements.verifica_deblocari()   # Collector / Arsenal / True Master (achievements.gd)
 
 # UNLOCK ALL — butonul din Settings → pagina SAVE (2026-09-07). Spre deosebire de OP START, care
 # doar acoperă lacătele cât e pornit, ăsta SCRIE în salvare: e definitiv și rămâne și după ce
@@ -110,6 +111,7 @@ func deblocheaza(id: String) -> void:
 # Nu anunță nimic pe ecran: pancarta „UNLOCKED" e răsplata pentru o cerință împlinită, nu pentru
 # un buton apăsat — și oricum se apasă din meniu, unde nu există HUD care s-o arate.
 func deblocheaza_tot() -> void:
+	Achievements.buton_unlock_all()   # „Easy Way Out" + închide True Master (achievements.gd)
 	for id in CERINTE:
 		GameSettings.unlocked[id] = true
 	GameSettings._save()

@@ -154,6 +154,16 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-10-12f, Steam achievements)
+
+- **17 Steam achievements**, all in **`achievements.gd`** (new autoload `Achievements`, listed before `SteamLB`). The names in `LISTA` are the **API names from Steamworks, character for character**; at startup with Steam running, `steam_lb.gd` writes *"achievement necunoscut pe Steam: …"* to the log for any name Steamworks doesn't know.
+  - **Easy Way Out**: pressing UNLOCK ALL. **True Master / Collector / Arsenal**: everything / every character / every weapon, unlocked by playing. Once UNLOCK ALL has been pressed they can't be earned anymore, until the save is deleted.
+  - **Hunter / Predator / Demon / The Devil**: 1,000 / 10k / 100k / 1M kills **in total** (`GameSettings.total_kills`, counted from this update on).
+  - **Cosmic Terror**: Celesto dies. **Dead Chiverly**: Sir John dies. **Lucky Strike**: 3 roulette wins in a row. **Sixth Sense**: you take the Legendary prize at Alba Neagra.
+  - **Resistant / Made of steel / Unbeatable**: 1 / 5 / 10 minutes survived after the run timer ends (`Difficulty.overtime()`). **Royal Flush**: 100 Luck in a run. **Amnesia**: DELETE SAVE FILE.
+- Earned achievements are also kept **in the save** (`GameSettings.achievements`), so ones earned while Steam is closed are sent the next time the game starts with Steam. Amnesia is the exception: it never writes to the save it has just deleted.
+- An old save that already has **everything** unlocked counts as "UNLOCK ALL was used".
+
 ## Current state (2026-10-12e, the leaderboard is on Steam too)
 
 - **The game now talks to Steam** through **GodotSteam 4.23** (GDExtension, in `addons/godotsteam/` — only the `win64` and `linux64` libraries are kept). Nothing else to install: exporting copies `libgodotsteam…dll` and `steam_api64.dll` next to the `.exe` by itself. ⚠️ When you build for Steam, both DLLs must go into `steam-build\content\` together with the exe and pck.
