@@ -154,6 +154,14 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-10-12g, a Linux build ready for Steam)
+
+- **Linux export preset** (`"Linux"` in `export_presets.cfg`): same exclude filter as Windows (no `tool_*` / `debugging/` / `.aseprite` in the build), binary named **`NicotineAndKnives.x86_64`** (no spaces or `&`, which are a pain on Linux). The export puts `libsteam_api.so` + `libgodotsteam.linux…so` next to it automatically.
+- **Exporting for Steam is one script**, `Desktop\steam-build\export.ps1` (outside the repo, next to the upload scripts). It empties `content\` (Windows) and `content_linux\` (Linux), exports both, and checks that each has its binary, `.pck` and the two Steam libraries.
+- **Linux depot:** `steam-build\scripts\depot_build_5107312.vdf` is ready. The ID **5107312 is assumed**: create the Linux depot in Steamworks, check its ID, then un-comment its line in `app_build_5107310.vdf`.
+- ⚠️ **Not run on Linux yet:** this PC has neither Linux nor WSL. The Windows export was checked by running it (smoke test, same results as in the editor).
+- The macOS preset exists but has no GodotSteam libraries (`addons/godotsteam/osx/` wasn't copied): a Mac build would run, just without the Steam leaderboard / achievements.
+
 ## Current state (2026-10-12f, Steam achievements)
 
 - **17 Steam achievements**, all in **`achievements.gd`** (new autoload `Achievements`, listed before `SteamLB`). The names in `LISTA` are the **API names from Steamworks, character for character**; at startup with Steam running, `steam_lb.gd` writes *"achievement necunoscut pe Steam: …"* to the log for any name Steamworks doesn't know.

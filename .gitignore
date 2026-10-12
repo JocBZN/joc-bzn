@@ -38,3 +38,13 @@ Soundpack/
 # `Desktop\steam-build\content\`, nu de aici.
 /*.exe
 /*.pck
+
+# Build-ul de Linux (2026-10-12): binarul + scriptul `.sh` pe care Godot îl scrie lângă el, plus
+# bibliotecile Steam copiate la export (`.so` pe Linux, `.dll` pe Windows). Același motiv ca la exe/pck.
+/*.x86_64
+/*.sh
+/*.so
+/*.dll
+
+# Copiile temporare pe care editorul le face pluginului GodotSteam când îl reîncarcă (`~lib…dll`).
+addons/**/~*

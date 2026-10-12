@@ -26,6 +26,18 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12g (testat exportul + Linux pregătit pentru Steam)
+
+**Cerut de Răzvan:** „sa rulezi jocul si pe linux si pe windows [...] vreau sa rulezi exportul", apoi „Fa pentru linux tot ce trebuie sa fie optimal".
+
+- **Testul pe export (Windows):** autoload TEMPORAR `smoke_export.gd` (rulează doar cu `-- --smoke`, scrie `user://smoke_report.txt` + capturi): așteaptă meniul, LEADERBOARD (ambele taburi), pornește runda, merge 4 s, numără nodurile pe script + grupuri + `Rocks._rocks` / `DesertStructures._by_name`, level up + alegere, `die()` → Game Over. Rulat în editor și pe exe-ul exportat: aceleași 55 de scripturi, 7 pietre, 3 structuri, level up/pauză/game over OK, zero erori în `godot.log`. Diferențele de noduri = lumea random. Testul a fost scos după (nu e în repo); salvarea pusă la loc (cmp identic).
+- **Linux NU s-a putut rula:** fără WSL pe mașină. Build-ul s-a exportat corect (ELF + `.so`-urile Steam).
+- **Presetul Linux** (îl făcuse Răzvan în editor, necomis): `exclude_filter` ca la Windows (pck-ul a scăzut de la 101,8 la 101,3 MB, cât cel de Windows), `export_path` → `./NicotineAndKnives.x86_64`. Comis împreună cu presetul macOS al lui Răzvan, neschimbat.
+- **`.gitignore`:** `/*.x86_64`, `/*.sh`, `/*.so`, `/*.dll` (exporturile din rădăcină) și `addons/**/~*` (copia `~lib…dll~RF….TMP` lăsată de editor când reîncarcă GDExtension-ul — ștearsă).
+- **`Desktop\steam-build\`** (în afara repo-ului): `export.ps1` (golește `content\` + `content_linux\`, exportă ambele, verifică cele 4 fișiere din fiecare), `scripts\depot_build_5107312.vdf` (Linux, ID PRESUPUS), `app_build_5107310.vdf` cu linia de Linux COMENTATĂ până se creează depot-ul.
+- ⚠️ **Capcană:** un export care atinge presetul macOS (universal → arm64) face Godot să scrie `textures/vram_compression/import_etc2_astc=true` în `project.godot` și să reimporte TOATE texturile și în ETC2 (60 de `.import` din `menu/bg_frames/` modificate). Nu folosim ETC2 pe Windows/Linux → am readus `project.godot` și `.import`-urile la commit + `--import`. Dacă reapare după un export, același tratament.
+- ⚠️ **Permisiunea de executare pe Linux:** fișierele urcate de pe Windows n-au bitul `+x`. Documentația Valve nu spune clar dacă Steam îl pune singur pe fișierul din Launch Options. De verificat la primul test pe Linux / Steam Deck.
+
 ## Session log — 2026-10-12f (achievement-uri Steam)
 
 **Cerut de Răzvan:** 17 achievement-uri făcute în Steamworks, date ca „trigger - API name”: Easy Way Out, True Master, Hunter, Predator, Demon, The Devil, Cosmic Terror, Dead Chiverly, Lucky Strike, Sixth Sense, Resistant, Made of steel, Unbeatable, Amnesia, Collector, Arsenal, Royal Flush.
