@@ -2591,6 +2591,7 @@ func _level_up(cu_sunet: bool = true) -> void:
 	_seteaza_cadenta()
 	if cu_sunet:
 		Audio.play("levelup", -2.0)  # jingle de nivel nou
+	var prag_vechi := xp_to_next
 	xp_to_next = int(xp_to_next * 1.2)  # pragul crește cu 20% la fiecare nivel
 	# BONUSUL CARACTERULUI (Spellman: −5% la fiecare nivel). Se aplică DUPĂ creșterea de ×1.2,
 	# deci pragul urcă efectiv cu ×1.14 în loc de ×1.2 și avantajul se adună nivel după nivel —
@@ -2599,6 +2600,11 @@ func _level_up(cu_sunet: bool = true) -> void:
 	# fi tăiat până la zero de mai multe efecte adunate.
 	if _xp_pe_nivel != 1.0:
 		xp_to_next = max(5, int(xp_to_next * _xp_pe_nivel))
+	# ⚠️ Pragul CREȘTE cu cel puțin 1 la fiecare nivel. Fără asta, la praguri mici rotunjirea în
+	# jos mânca toată creșterea (5 → int(6×0.95) = 5, 8 → int(9×0.95) = 8) și Spellman rămânea
+	# blocat pe vecie la același prag. Bug raportat 2026-10-12 (Diamond Watch → fix pe 5);
+	# la fel pățea cu 2× Tome of Knowledge sau Tome + Grinder. Vezi `tool_xp_spellman`.
+	xp_to_next = max(xp_to_next, prag_vechi + 1)
 	var menu := get_tree().get_first_node_in_group("levelup_menu")
 	if menu != null:
 		menu.open()

@@ -108,7 +108,6 @@ var UPGRADES := [
 	{"id": "sunglasses", "nume": "Sunglasses", "icon": "upgrade_72.png", "rar": "rare", "desc": "Reflect 25% of damage taken"},
 	{"id": "third_eye", "nume": "Third Eye", "icon": "upgrade_73.png", "rar": "epic", "desc": "Reveal the closest portal", "unic": true},
 	{"id": "studio_mic", "nume": "Studio Mic", "icon": "upgrade_74.png", "rar": "rare", "desc": "-10% Difficulty"},
-	{"id": "diamond_watch", "nume": "Diamond Watch", "icon": "upgrade_75.png", "rar": "legendary", "desc": "75% less XP to level up"},
 	{"id": "sunscreen", "nume": "Sunscreen", "icon": "upgrade_76.png", "rar": "common", "desc": "+10 Max HP, +1 HP/sec"},
 	{"id": "museum_piece", "nume": "Museum Piece", "icon": "upgrade_77.png", "rar": "rare", "desc": "-10% Move speed +25% Crit chance"},
 	{"id": "skateboard", "nume": "Skateboard", "icon": "upgrade_78.png", "rar": "rare", "desc": "+30 Movement Speed"},
@@ -1309,17 +1308,6 @@ func _apply(id: String, p) -> void:
 			# sub un sfert din cât ar fi trebuit să fie. Fără ea, zece luări ar fi făcut runda o
 			# plimbare, iar scorul din leaderboard n-ar mai fi însemnat nimic.
 			Difficulty.add_trade_relief(0.10)
-		"diamond_watch":
-			# LEGENDARY. Ceasul cu diamante: nivelezi de patru ori mai repede. Fratele mare al lui
-			# Tome of Knowledge (50%) și al lui Grinder (15%) — același rând, `xp_to_next`.
-			#
-			# Reducerea se propagă la TOATE nivelurile următoare, fiindcă pragul următor crește din
-			# valoarea deja tăiată (×1.2 pe nivel), nu din cea originală. Se stivuiește: a doua
-			# luare mai taie un sfert din ce a rămas (6% din original).
-			#
-			# ⚠️ Podeaua de 5 XP e cea care-l ține să nu devină „level up la fiecare gemă" — la un
-			# ceas luat devreme pragul ajunge repede acolo și se oprește. Vezi Tome of Knowledge.
-			p.xp_to_next = max(5, int(p.xp_to_next * 0.25))
 		"sunscreen":
 			# crema de plajă: Common-ul de regenerare — fratele mic al lui Medkit (+10/s, Legendary)
 			# și al lui Water and electrolytes (+2/s, Uncommon). Se ADUNĂ la fiecare luare, ca ele

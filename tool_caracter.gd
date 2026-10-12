@@ -824,7 +824,7 @@ func _verifica_cadenta() -> void:
 	p.max_hp = 100000000
 	p.hp = p.max_hp
 	# iteme banale (nu schimba lumea), unul luat de doua ori: se numara LUARILE
-	for id in ["bere", "foite", "medkit", "diamond_watch", "medkit", "gloante_paralele"]:
+	for id in ["bere", "foite", "medkit", "medkit", "medkit", "gloante_paralele"]:
 		lvl._apply(id, p)
 	# lista de sus da 4 Legendary; restul pana la prag-1 vin din medkit-uri
 	for i in range(prag - 5):

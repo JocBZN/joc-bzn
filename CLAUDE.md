@@ -26,6 +26,19 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12 (Diamond Watch scos + XP-ul lui Spellman nu se mai blochează)
+
+**Raportat de Răzvan:** „Jucam Spellman si am luat diamond watch si mi s-a bugat xp-ul la 5 - vreau sa scoti diamond watch din joc si sa vezi daca se intampla acelasi lucru si cu tome of knowledge."
+
+- **Cauza NU era ceasul, ci rotunjirea din `player.gd::_level_up`.** La Spellman pragul nou e `int(int(prag × 1.2) × 0.95)`; la praguri mici rotunjirea în jos mănâncă toată creșterea: 5 → 6 → **5**, 8 → 9 → **8**, 6 → 7 → **6**. Orice prag sub ~10 rămânea fix pe vecie. Ceasul (×0.25) ducea pragul direct pe podeaua de 5.
+- **Da, se întâmpla și cu Tome of Knowledge** (verificat rulând, `tool_xp_spellman.tscn`): un singur Tome luat la start → 10, crește normal; dar **2× Tome** → blocat pe 5, **Tome + Grinder** → blocat pe 8, **Tome + 2× Grinder** → blocat pe 6. The G (fără bonus de caracter) nu se bloca niciodată.
+- **Reparat la rădăcină:** `_level_up` ține minte `prag_vechi` și la final `xp_to_next = max(xp_to_next, prag_vechi + 1)` — pragul crește cu cel puțin 1 la fiecare nivel. Acum 2× Tome la Spellman: 5 → 6 → 7 → … → 24 după 15 niveluri.
+- **Diamond Watch scos complet** (cum a cerut Răzvan): din `levelup.gd` (lista + ramura din `_apply`), din `i18n.gd`, din `codex.html` (card + iconița base64). `Upgrades/upgrade_75.png` a rămas pe disc, nefolosit. Teste ajustate: `tool_iteme_72_78` (6 iteme acum, 0 FAIL), `tool_caracter` (al 4-lea Legendary din listă e acum un Medkit).
+- **Codex publicat** republicat pe același URL (versiunea 25). ⚠️ **Pagina live are alt design decât `codex.html` din repo** — cineva a simplificat-o direct pe claude.ai (doar poză + textul din joc, fără tabelele de statusuri / „ce face de fapt"). N-am suprascris-o cu repo-ul: am scos ceasul din versiunea live. Data viitoare, compară întâi.
+- Modificările lui Răzvan din editor (scene, artă, `export_presets.cfg`, folderul șters `Undead executioner puppet`) **NU** sunt în commit-ul ăsta — au rămas necomise, cum erau.
+
+---
+
 ## Session log — 2026-10-02b (ecranul YOU WIN! după Sir John)
 
 **Cerut de Răzvan:** „Vreau atunci cand il bati pe Sir John sa iti apara un meniu in care scrie You Win! - iti apar statusurile tale din joc si cati inamici ai omorat, cate chest-uri ai deschis, sucessful gambles, lost gambles (gambles inseamna - alba, ruleta, shady deal) Si apoi jos de tot doua butoan - Continue si Main Menu"

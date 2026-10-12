@@ -9,7 +9,7 @@ extends Node2D
 # randează negru.
 #
 # Ce verifică, în ordine:
-#   [1] cele 7 iteme sunt în `levelup.UPGRADES`, cu iconița/raritatea/textul cerute, iconițele
+#   [1] cele 6 iteme (Diamond Watch scos pe 2026-10-12) sunt în `levelup.UPGRADES`, cu iconița/raritatea/textul cerute, iconițele
 #       chiar se încarcă, id-urile nu se repetă, „unic" doar unde trebuie;
 #   [2] efectele, aplicate pe un player ADEVĂRAT prin `levelup._apply` (nu citite din sursă),
 #       inclusiv stivuirea și podeaua de dificultate;
@@ -18,21 +18,20 @@ extends Node2D
 #       iar HUD-ul aprinde săgeata doar cu itemul luat și o stinge în dimensiuni;
 #   [4] traducerile: cele 14 chei noi există, au 8 traduceri nevide, iar numele/descrierea
 #       ÎNCAP pe cartonaș în toate cele 9 limbi (numele se taie, descrierea se rupe la 2 rânduri);
-#   [5] poza: trei pagini de level up desenate de codul adevărat, cu cele 7 cartonașe.
+#   [5] poza: trei pagini de level up desenate de codul adevărat, cu cele 6 cartonașe.
 
-const NOI := ["sunglasses", "third_eye", "studio_mic", "diamond_watch", "sunscreen", "museum_piece", "skateboard"]
+const NOI := ["sunglasses", "third_eye", "studio_mic", "sunscreen", "museum_piece", "skateboard"]
 const ASTEPTAT := {
 	"sunglasses":    {"icon": "upgrade_72.png", "rar": "rare",      "desc": "Reflect 25% of damage taken"},
 	"third_eye":     {"icon": "upgrade_73.png", "rar": "epic",      "desc": "Reveal the closest portal"},
 	"studio_mic":    {"icon": "upgrade_74.png", "rar": "rare",      "desc": "-10% Difficulty"},
-	"diamond_watch": {"icon": "upgrade_75.png", "rar": "legendary", "desc": "75% less XP to level up"},
 	"sunscreen":     {"icon": "upgrade_76.png", "rar": "common",    "desc": "+10 Max HP, +1 HP/sec"},
 	"museum_piece":  {"icon": "upgrade_77.png", "rar": "rare",      "desc": "-10% Move speed +25% Crit chance"},
 	"skateboard":    {"icon": "upgrade_78.png", "rar": "rare",      "desc": "+30 Movement Speed"},
 }
 const NUME := {
 	"sunglasses": "Sunglasses", "third_eye": "Third Eye", "studio_mic": "Studio Mic",
-	"diamond_watch": "Diamond Watch", "sunscreen": "Sunscreen", "museum_piece": "Museum Piece",
+	"sunscreen": "Sunscreen", "museum_piece": "Museum Piece",
 	"skateboard": "Skateboard",
 }
 # Singurul „unic" dintre ele: Third Eye e un COMUTATOR, a doua luare n-ar face nimic.
@@ -88,7 +87,7 @@ func _ready() -> void:
 # [1] Itemele sunt în listă, cu ce s-a cerut
 # ---------------------------------------------------------------------------
 func _sectiunea_1() -> void:
-	print("\n--- [1] cele 7 iteme în listă ---")
+	print("\n--- [1] cele 6 iteme în listă ---")
 	var vazute := {}
 	var iconite := {}
 	for u in _lvl.UPGRADES:
@@ -189,16 +188,6 @@ func _sectiunea_2() -> void:
 	# ...dar XP-ul NU: `xp_mult` nu trece prin `trade_penalty`
 	_cer(_cam(Difficulty.xp_mult(), xp_normal, 0.0005), "studio_mic: nu-ți taie XP-ul (%.3f)" % xp_normal)
 	Difficulty.reset_run()
-
-	# --- DIAMOND WATCH: 75% mai puțin XP până la nivel ---
-	_p.xp_to_next = 200
-	_ia("diamond_watch")
-	_cer(_p.xp_to_next == 50, "diamond_watch: 200 → %d XP până la nivel" % _p.xp_to_next)
-	_ia("diamond_watch")
-	_cer(_p.xp_to_next == 12, "diamond_watch: se stivuiește (→ %d)" % _p.xp_to_next)
-	_p.xp_to_next = 6
-	_ia("diamond_watch")
-	_cer(_p.xp_to_next == 5, "diamond_watch: podeaua de 5 XP ține (→ %d)" % _p.xp_to_next)
 
 	# --- SUNSCREEN: +10 max HP (și te vindecă), +1 regen ---
 	_p.hp = 1
@@ -360,8 +349,8 @@ func _arata(ids: Array) -> void:
 
 const PAGINI := [
 	["sunglasses", "third_eye", "studio_mic"],
-	["diamond_watch", "sunscreen", "museum_piece"],
-	["skateboard", "sunglasses", "diamond_watch"],
+	["studio_mic", "sunscreen", "museum_piece"],
+	["skateboard", "sunglasses", "third_eye"],
 ]
 
 func _sectiunea_4() -> void:
@@ -410,7 +399,7 @@ func _sectiunea_4() -> void:
 					probleme += 1
 					_fail("%s / %s: descrierea are %d rânduri, încap %d" % [id, limba["cod"], dl.get_line_count(), dl.max_lines_visible])
 	TranslationServer.set_locale(locala_veche)
-	_cer(probleme == 0, "cele 7 iteme încap pe cartonaș în toate cele %d limbi" % I18n.LIMBI.size())
+	_cer(probleme == 0, "cele 6 iteme încap pe cartonaș în toate cele %d limbi" % I18n.LIMBI.size())
 
 # ---------------------------------------------------------------------------
 # [5] Poza: cele 7 cartonașe, desenate de ecranul adevărat de level up

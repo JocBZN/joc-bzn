@@ -477,7 +477,6 @@ const TRAD := {
 "Sunglasses": ["太阳镜", "Sonnenbrille", "Gafas de Sol", "Солнечные очки", "Lunettes de Soleil", "サングラス", "Okulary Słoneczne", "Güneş Gözlüğü"],
 "Third Eye": ["第三只眼", "Drittes Auge", "Tercer Ojo", "Третий глаз", "Troisième Œil", "第三の目", "Trzecie Oko", "Üçüncü Göz"],
 "Studio Mic": ["录音麦克风", "Studiomikrofon", "Micrófono de Estudio", "Студийный микрофон", "Micro de Studio", "スタジオマイク", "Mikrofon Studyjny", "Stüdyo Mikrofonu"],
-"Diamond Watch": ["钻石手表", "Diamantuhr", "Reloj de Diamantes", "Бриллиантовые часы", "Montre en Diamants", "ダイヤの腕時計", "Diamentowy Zegarek", "Elmas Saat"],
 "Sunscreen": ["防晒霜", "Sonnencreme", "Protector Solar", "Солнцезащитный крем", "Crème Solaire", "日焼け止め", "Krem z Filtrem", "Güneş Kremi"],
 "Museum Piece": ["博物馆藏品", "Museumsstück", "Pieza de Museo", "Музейный экспонат", "Pièce de Musée", "博物館の逸品", "Eksponat Muzealny", "Müze Parçası"],
 "Skateboard": ["滑板", "Skateboard", "Monopatín", "Скейтборд", "Skateboard", "スケートボード", "Deskorolka", "Kaykay"],
