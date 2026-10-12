@@ -26,6 +26,14 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12h (Steamworks: Steam Input cere un „action manifest")
+
+**Problema (poza `debugging/Screenshot 2026-10-12 191041.png`):** pagina Steam Input din Steamworks cerea „Custom Configuration" + calea spre un **action manifest**, cu mesajul roșu „Since you have indicated Steam Input API support for your game…".
+
+- **Cauza:** undeva în Steamworks e bifat că jocul **folosește Steam Input API**. NU-l folosește: citește controller-ul nativ, prin SDL (Godot) — vezi intrarea Steam Input din memoria de Steam / 2026-08-25. Deci nu trebuie niciun fișier de manifest.
+- **Ce i-am spus lui Răzvan să facă:** să scoată bifa de „Steam Input API support" — cel mai probabil în **Edit Store Page → Basic Info → Controller Support**, altfel pe **Edit Steamworks Settings → Application → Steam Input**. ⚠️ Locul exact NU l-am putut confirma din documentația Valve. Apoi Default Controller Configuration = **Gamepad**, iar bifele de dispozitive rămân ca înainte (Switch + Generic + Any Future Devices, fără Xbox/PlayStation, ca să rămână glifele ✕ ◯ ▢ △), apoi Save + Publish.
+- Nicio schimbare de cod.
+
 ## Session log — 2026-10-12g (testat exportul + Linux pregătit pentru Steam)
 
 **Cerut de Răzvan:** „sa rulezi jocul si pe linux si pe windows [...] vreau sa rulezi exportul", apoi „Fa pentru linux tot ce trebuie sa fie optimal".

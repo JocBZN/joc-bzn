@@ -154,6 +154,10 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-10-12h, Steam Input in Steamworks)
+
+- The game does **not** use the Steam Input API (the controller is read natively, through Godot/SDL). So in Steamworks **"Steam Input API support" must stay off**, and the default controller configuration should be **Gamepad**. If Steamworks asks for an *action manifest file*, that box has been ticked somewhere, and the fix is to untick it, not to write a manifest.
+
 ## Current state (2026-10-12g, a Linux build ready for Steam)
 
 - **Linux export preset** (`"Linux"` in `export_presets.cfg`): same exclude filter as Windows (no `tool_*` / `debugging/` / `.aseprite` in the build), binary named **`NicotineAndKnives.x86_64`** (no spaces or `&`, which are a pain on Linux). The export puts `libsteam_api.so` + `libgodotsteam.linux…so` next to it automatically.
