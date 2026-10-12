@@ -219,6 +219,7 @@ func _ready() -> void:
 	_tint_overlay()
 	_vignette()
 	_build_main()
+	_build_mod()
 	_build_weapon()
 	_build_character()
 	_build_leaderboard()
@@ -256,6 +257,8 @@ func _show(which: String) -> void:
 		_refresh_weapon_selection()
 	elif which == "character":
 		_refresh_character_selection()
+	elif which == "mod":
+		_refresh_bife()
 
 # ---------- FUNDAL ANIMAT ----------
 # Fundalul e primul copil, deci stă sub tot restul meniului.
@@ -762,9 +765,117 @@ func _tick_title(delta: float) -> void:
 			_title_dir = 1
 		_title_rect.texture = _title_frames[_title_i]
 
+# START nu mai pornește runda direct (2026-10-12): deschide CHOOSE MODE, unde alegi Normal sau un
+# challenge. Abia de acolo pleacă runda (`_porneste_runda`).
 func _on_start() -> void:
+	_show("mod")
+
+# `challenge` = "" pentru Normal, altfel id-ul din `Challenges.LISTA`.
+func _porneste_runda(challenge: String) -> void:
+	Challenges.activ = challenge
 	Audio.stop_music()   # tema de meniu se oprește când intri în joc
 	get_tree().change_scene_to_file(GAME_SCENE)
+
+# ---------- CHOOSE MODE (challenge-uri, 2026-10-12) ----------
+# Răzvan: „Cand dai start la un run vreau sa te bage in alt meniu in care sa selectezi cum vrei sa
+# joci sa fie Normal si apoi sub el o sectiune challenges [...] Si primesti un checkmark cand termini
+# un challenge." Ce face fiecare challenge stă în `challenges.gd`; aici e doar pagina.
+#
+# NORMAL e butonul mare (ca START), iar challenge-urile sunt rânduri late, cu numele, descrierea și
+# o căsuță în dreapta, bifată verde când l-ai terminat (Sir John bătut cu el activ). Clic = pornește.
+const CHALLENGE_W := 600.0
+const CHALLENGE_H := 70.0
+const BIFA_VERDE := Color(0.44, 0.86, 0.44)   # același verde ca „Challenge complete" din `victory.gd`
+
+var _bife := {}   # id challenge -> Bifa (se recitesc la fiecare deschidere a paginii)
+
+# Căsuța din dreapta rândului. Desenată, nu un caracter „✓": fontul pixel nu-l are sigur, iar un
+# pătrățel gol arată că se POATE bifa, nu doar că încă n-ai bifat.
+class Bifa extends Control:
+	var bifat := false:
+		set(v):
+			bifat = v
+			queue_redraw()
+	var culoare_bifa := Color.GREEN
+	var culoare_casuta := Color.GRAY
+
+	func _draw() -> void:
+		var r := Rect2(Vector2(2, 2), size - Vector2(4, 4))
+		draw_rect(r, culoare_bifa if bifat else culoare_casuta, false, 3.0)
+		if bifat:
+			var a := r.position + Vector2(r.size.x * 0.18, r.size.y * 0.52)
+			var b := r.position + Vector2(r.size.x * 0.42, r.size.y * 0.78)
+			var c := r.position + Vector2(r.size.x * 0.84, r.size.y * 0.22)
+			draw_polyline(PackedVector2Array([a, b, c]), culoare_bifa, 5.0)
+
+func _build_mod() -> void:
+	var box := _make_panel("mod", "CHOOSE MODE")
+	var normal := _menu_button("NORMAL", _porneste_runda.bind(""), true)
+	Gamepad.primul(normal)
+	box.add_child(normal)
+
+	var cap := _center_label("CHALLENGES", 22)
+	cap.add_theme_color_override("font_color", ACCENT_CLAR)
+	box.add_child(cap)
+	_bife.clear()
+	for c in Challenges.LISTA:
+		box.add_child(_rand_challenge(c))
+
+	box.add_child(_menu_button("BACK", _show.bind("main")))
+
+func _rand_challenge(c: Dictionary) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(CHALLENGE_W, CHALLENGE_H)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	b.add_theme_stylebox_override("normal", _sb_buton(FOAIE_STINSA, ZOOM_BUTON))
+	b.add_theme_stylebox_override("hover", _sb_buton(FOAIE_APRINSA, ZOOM_BUTON))
+	b.add_theme_stylebox_override("pressed", _sb_buton(FOAIE_TARE, ZOOM_BUTON))
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.pressed.connect(_porneste_runda.bind(String(c["id"])))
+	_viata(b)
+
+	# conținutul stă PESTE buton, cu aceleași margini ca textul unui buton obișnuit
+	var hb := HBoxContainer.new()
+	hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hb.offset_left = 18
+	hb.offset_right = -16
+	hb.add_theme_constant_override("separation", 12)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(hb)
+
+	var texte := VBoxContainer.new()
+	texte.alignment = BoxContainer.ALIGNMENT_CENTER
+	texte.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	texte.add_theme_constant_override("separation", 0)
+	texte.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(texte)
+	var nume := Label.new()
+	nume.text = String(c["nume"])
+	nume.add_theme_font_size_override("font_size", 22)
+	nume.add_theme_color_override("font_color", OS_ALB)
+	nume.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	texte.add_child(nume)
+	var desc := Label.new()
+	desc.text = String(c["desc"])
+	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_color_override("font_color", CENUSA)
+	desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	texte.add_child(desc)
+
+	var bifa := Bifa.new()
+	bifa.custom_minimum_size = Vector2(30, 30)
+	bifa.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bifa.culoare_bifa = BIFA_VERDE
+	bifa.culoare_casuta = ACCENT_STINS
+	bifa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hb.add_child(bifa)
+	_bife[String(c["id"])] = bifa
+	return b
+
+func _refresh_bife() -> void:
+	for id in _bife:
+		_bife[id].bifat = Challenges.terminat(id)
 
 # ---------- CHOOSE WEAPON ----------
 # Refăcut pe 2026-08-11, cerut de Răzvan: „armele în stânga și să scrie ce fac în dreapta".

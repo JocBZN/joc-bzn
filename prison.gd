@@ -41,6 +41,11 @@ const BOSS := preload("res://final_boss.tscn")
 
 # --- reglaje ---
 const PRISON_TIME := 300.0      # 5:00 — mai scurt decât Ender-ul (6:00): e ultima, deci mai apăsată
+# Cât ține faza normală în runda ASTA: `PRISON_TIME` minus ce taie Speedrunner (2 minute, vezi
+# `challenges.gd`). Tot fișierul citește de aici, nu constanta — cronometru, swarm, dificultate.
+func _durata() -> float:
+	return maxf(30.0, PRISON_TIME - Challenges.secunde_minus())
+
 const XP_BONUS := 4.0           # Nether 2, Ender 3, aici 4
 # ⚠️ 8, nu 26 (2026-08-17, după ce Răzvan a jucat-o): la 26 mureai în prima secundă și nici nu
 # apucai să pleci de lângă poartă. Nether-ul scoate 25, dar acolo inamicii au 50 HP și damage 1.0;
@@ -253,7 +258,7 @@ func enter(player: Node2D, poarta: Node2D) -> void:
 	Audio.stop_forest_ambient()
 	Audio.play("teleport", TELEPORT_DB, 0.0)
 	Audio.play_prison_music()     # n-avem muzică proprie; împrumutăm bucla Nether-ului (`sky-lines`)
-	_clock.text = _mmss(PRISON_TIME)
+	_clock.text = _mmss(_durata())
 	_clock.add_theme_color_override("font_color", CLOCK_COLOR)
 	_clock.visible = true
 	_flash_screen(FLASH_CUT)   # scurt: peste el începe imediat cinematica (vezi FLASH_CUT)
@@ -318,7 +323,7 @@ func _process(delta: float) -> void:
 	Difficulty.mult_time_override = _diff_time()
 	_update_clock()
 	_update_compass()
-	if not _swarm_announced and _elapsed >= PRISON_TIME:
+	if not _swarm_announced and _elapsed >= _durata():
 		_swarm_announced = true
 		_anunta("CASTLE SWARM", "The gate still works. For now.")
 		Audio.play("levelup", -2.0)
@@ -785,8 +790,8 @@ func _free_boss() -> void:
 # ---------- dificultate ----------
 func _diff_time() -> float:
 	var t := _entry_diff_time + _elapsed
-	if _elapsed >= PRISON_TIME:
-		t = maxf(t, Difficulty.RUN_LENGTH + (_elapsed - PRISON_TIME))
+	if _elapsed >= _durata():
+		t = maxf(t, Difficulty.run_length() + (_elapsed - _durata()))
 	return t
 
 func portal_pos() -> Vector2:
@@ -795,15 +800,15 @@ func portal_pos() -> Vector2:
 	return Vector2.INF
 
 func time_left() -> float:
-	return maxf(0.0, PRISON_TIME - _elapsed)
+	return maxf(0.0, _durata() - _elapsed)
 
 # ---------- ecran ----------
 func _update_clock() -> void:
-	if _elapsed >= PRISON_TIME:
-		_clock.text = "+" + _mmss(_elapsed - PRISON_TIME)
+	if _elapsed >= _durata():
+		_clock.text = "+" + _mmss(_elapsed - _durata())
 		_clock.add_theme_color_override("font_color", CLOCK_SWARM)
 		return
-	var ramas := PRISON_TIME - _elapsed
+	var ramas := _durata() - _elapsed
 	_clock.text = _mmss(ramas)
 	_clock.add_theme_color_override("font_color", CLOCK_WARN if ramas <= 60.0 else CLOCK_COLOR)
 

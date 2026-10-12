@@ -137,6 +137,13 @@ func _construieste(p: Node) -> void:
 	var sub := _eticheta("Sir John has fallen", 18, CENUSA)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(sub)
+	# CHALLENGE-UL rundei (2026-10-12): Sir John bătut = challenge terminat → bifa din CHOOSE MODE.
+	# Se bifează AICI, la apariția ecranului, nu la MAIN MENU: CONTINUE e tot o rundă câștigată.
+	if not Challenges.normal():
+		Challenges.marcheaza_terminat()
+		var ch := _eticheta(tr("Challenge complete: %s") % tr(Challenges.nume(Challenges.activ)), 20, VERDE)
+		ch.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		box.add_child(ch)
 	box.add_child(_spatiu(12))
 
 	var coloane := HBoxContainer.new()

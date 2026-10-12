@@ -25,6 +25,10 @@ const SUMMON := preload("res://summoning_portal.tscn")   # structura care îl ch
 
 # --- reglaje (schimbă-le liniștit) ---
 const NETHER_TIME := 420.0      # 7:00 — cât ține faza „normală" înainte de Nether Swarm
+# Cât ține faza normală în runda ASTA: `NETHER_TIME` minus ce taie Speedrunner (2 minute, vezi
+# `challenges.gd`). Tot fișierul citește de aici, nu constanta — cronometru, swarm, dificultate.
+func _durata() -> float:
+	return maxf(30.0, NETHER_TIME - Challenges.secunde_minus())
 
 # --- CÂT DE PLIN E NETHER-UL DACĂ INTRI PREA DEVREME (cerut de Răzvan pe 2026-08-11) ---
 # „Vreau Nether-ul să fie greu în așa fel încât un player să nu poată intra imediat în portal, să
@@ -213,7 +217,7 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	Audio.stop_forest_ambient()
 	Audio.play("teleport", TELEPORT_DB, 0.0)
 	Audio.play_nether_music()
-	_clock.text = _mmss(NETHER_TIME)
+	_clock.text = _mmss(_durata())
 	_clock.add_theme_color_override("font_color", CLOCK_COLOR)
 	_clock.visible = true
 	_flash_screen()
@@ -298,7 +302,7 @@ func _process(delta: float) -> void:
 	Difficulty.mult_time_override = _diff_time()
 	_update_clock()
 	_update_compass()
-	if not _swarm_announced and _elapsed >= NETHER_TIME:
+	if not _swarm_announced and _elapsed >= _durata():
 		_swarm_announced = true
 		_announce("BELOW SWARM", "The portal still works. For now.")
 		Audio.play("levelup", -2.0)
@@ -534,21 +538,21 @@ func boss_invins() -> void:
 #     unde viața inamicilor se dublează la fiecare 45s (vezi `difficulty.gd`).
 func _diff_time() -> float:
 	var t := _entry_diff_time + _elapsed
-	if _elapsed >= NETHER_TIME:
-		t = maxf(t, Difficulty.RUN_LENGTH + (_elapsed - NETHER_TIME))
+	if _elapsed >= _durata():
+		t = maxf(t, Difficulty.run_length() + (_elapsed - _durata()))
 	return t
 
 # Câte secunde mai ai până la Nether Swarm (0 după ce a început).
 func time_left() -> float:
-	return maxf(0.0, NETHER_TIME - _elapsed)
+	return maxf(0.0, _durata() - _elapsed)
 
 # ---------- ecran ----------
 func _update_clock() -> void:
-	if _elapsed >= NETHER_TIME:
-		_clock.text = "+" + _mmss(_elapsed - NETHER_TIME)
+	if _elapsed >= _durata():
+		_clock.text = "+" + _mmss(_elapsed - _durata())
 		_clock.add_theme_color_override("font_color", CLOCK_SWARM)
 		return
-	var ramas := NETHER_TIME - _elapsed
+	var ramas := _durata() - _elapsed
 	_clock.text = _mmss(ramas)
 	_clock.add_theme_color_override("font_color", CLOCK_WARN if ramas <= 60.0 else CLOCK_COLOR)
 

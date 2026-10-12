@@ -26,6 +26,25 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12d (CHOOSE MODE + 3 challenge-uri · nu mai intri în negrul dimensiunilor)
+
+**Cerut de Răzvan:** „Cand dai start la un run vreau sa te bage in alt meniu in care sa selectezi cum vrei sa joci sa fie Normal si apoi sub el o sectiune challenges: Speedrunner - start with 10 Luck, -2 minutes in each world. Dual Wield - start with 2 random weapons, -10 Damage, -50% Attack Speed. Randomizer - you no longer choose upgrades, rarity no longer matters. (aici vreau sa nu mai conteze sansele de la iteme doar primeste la fiecare level un upgrade random) Si primesti un checkmark cand termini un challenge. Vreau sa nu te lase deloc sa atingi partea neagra de la dimensiuni."
+
+**Decizii luate de Răzvan (întrebat):** Dual Wield = AMBELE arme random (CHOOSE WEAPON ignorat); „−10 Damage" = fix, dar minim 1 (Mage pornește cu 10); „terminat" = Sir John bătut; rundele cu challenge NU intră în leaderboard.
+
+- **`challenges.gd`** (autoload nou `Challenges`, adăugat în `project.godot`): `LISTA` (id/nume/desc), cifrele (`SPEEDRUN_LUCK`, `SPEEDRUN_MINUS`, `DUAL_DAMAGE`, `DUAL_DAMAGE_MIN`, `DUAL_ATTACK_SPEED`), `activ` (""=Normal, NU se salvează, dar supraviețuiește unui RETRY), `secunde_minus()`, `terminat()`, `marcheaza_terminat()`. Capul fișierului listează unde se aplică fiecare challenge.
+- **Meniu:** `_on_start` → `_show("mod")`; `_build_mod` + `_rand_challenge` + clasa internă `Bifa` (căsuță desenată cu `draw_rect`/`draw_polyline`, nu „✓" — fontul pixel nu-l are sigur). `_porneste_runda(id)` setează `Challenges.activ` și schimbă scena. Bifele se recitesc în `_show("mod")`. Pagina: 45..603 px din 648.
+- **Speedrunner:** `Difficulty.run_length()` (nou, înlocuiește `RUN_LENGTH` în toată socoteala; constanta rămâne valoarea de bază — leaderboard-ul din meniu încă citește constanta, corect, fiindcă acolo intră doar runde Normal). `nether/ender/prison.gd::_durata()` în loc de `*_TIME` în cod. `gameover.gd` și calculul de Final Swarm din dimensiuni trec pe `run_length()`. +10 noroc în `player.gd::_aplica_challenge`.
+- **Dual Wield:** `player.gd::_doua_arme_random()` (din cele deblocate; dacă ai sub două, a doua vine din toate), arma 1 devine `weapon_type`/`arma_aleasa` (deci are bonusul ei de nivel), arma 2 prin `adauga_arma_secundara(alta)` (parametru nou, opțional). `_aplica_challenge` rulează DUPĂ armă+meta+OP, ÎNAINTE de `_stats_base` → panoul ia valorile drept bază.
+- **Randomizer:** `levelup.gd::open` → `_randomizer()`: pool = toate itemele `_e_disponibil` minus Lucky Die, șanse egale; `_apply` + `_luate_unic`, efectul de cufăr (`chest_fx.gd`) la `RANDOMIZER_FX_Y` (−210, deasupra pancartei — la −90 era ascuns sub ea, prins pe poză) + `hud.announce(nume, desc, culoarea rarității)`. Jocul nu se oprește. ⚠️ Prima versiune folosea `CHEST_FX` fără să-l declare în `levelup.gd` → parse error, adică TOT ecranul de level up ar fi murit; prins de unealtă.
+- **Bifa:** `victory.gd::_construieste` → `Challenges.marcheaza_terminat()` + rând verde „Challenge complete: %s". `GameSettings.challenges_done` salvat/încărcat/șters (DELETE SAVE). `add_score` iese din prima dacă e challenge.
+- **Marginea dimensiunilor:** `ground.gd::in_margine` oprește la `raza_jucabila()` = `MARGINE_RAZA − MARGINE_FADE` (2300 px), unde ÎNCEPE gradientul spre negru, nu la 3000 (negru plin). Spawn-urile (`loc_in_margine`) au rămas pe 3000 — inamicii pot ieși din întuneric. Verificat că nimic de atins nu stă dincolo de 2300 (statuile Ender: max 2000).
+- **i18n:** 10 chei noi (8 limbi). `tool_check_i18n` verifică acum și `challenges.gd` (LISTE_ITEME) și `victory.gd`; `"mod"` în IGNORATE. ✔ TOTUL E TRADUS.
+- **Unealtă: `tool_challenges.tscn`** (cu fereastră): 29 de verificări — pagina + bife + încape pe ecran, cronometrele (480/300/240/180), noroc, Dual Wield pe 12 runde (arme diferite, −10 min 1, pauză ×2, Mage → 1), Randomizer (fără ecran, 300 de niveluri: Legendary 32, Mythic 12, niciun Lucky Die; Normal tot cu ecran), leaderboard refuzat, bifa pe YOU WIN, marginea la 2300. Pune salvarea la loc octet cu octet (doar dacă a citit-o). Poze: `user://challenges_*.png`.
+- ⚠️ Pe la 16:20 `scores.save` s-a schimbat fără nicio unealtă de-a mea: o rundă jucată de Răzvan (7:08, nivel 87, 5817 kills, +5804 monede) — decodată cu un script `-s` din scratchpad care compară cheile. Am făcut altă copie și am comparat de acolo încolo cu ea.
+
+---
+
 ## Session log — 2026-10-12c (crucea + Broken Watch / Broken Glasses: cruci bonus)
 
 **Cerut de Răzvan:** „Vreau sa mearga si cu itemele de sansa de proiectil sa se spawneze o cruce in plus si sa faca un cerc complet cand e spawnata. Sansa la cruce sa apara o data la 3 secunde"

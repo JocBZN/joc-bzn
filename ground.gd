@@ -176,13 +176,24 @@ func _in_lume(p: Vector2) -> bool:
 
 # Punctul adus înapoi în lume. Player-ul se OPREȘTE pe buză (nu e împins înapoi și nu cade):
 # `player.gd` o cheamă după `move_and_slide`.
+#
+# ⚠️ De pe 2026-10-12 buza e la `raza_jucabila()`, adică ACOLO UNDE ÎNCEPE să se întunece podeaua,
+# nu la `margine_raza`, unde e deja negru plin. Răzvan: „Vreau sa nu te lase deloc sa atingi partea
+# neagra de la dimensiuni". Până atunci mergeai 700 px prin gradient și te opreai în beznă.
+# Inamicii încă pot apărea în gradient (`loc_in_margine` se uită la `margine_raza`): vin din
+# întuneric spre tine, ceea ce arată bine — doar TU nu mai ai voie acolo.
 func in_margine(p: Vector2) -> Vector2:
 	if margine_raza <= 0.0:
 		return p
+	var raza := raza_jucabila()
 	var d := p - margine_centru
-	if d.length() <= margine_raza:
+	if d.length() <= raza:
 		return p
-	return margine_centru + d.normalized() * margine_raza
+	return margine_centru + d.normalized() * raza
+
+# Până unde ai voie să mergi: începutul gradientului spre negru (`void_fade` din shader).
+func raza_jucabila() -> float:
+	return maxf(0.0, margine_raza - MARGINE_FADE)
 
 # Loc de spawn care sigur cade în lume, nu în gol. Dacă cel cerut e peste margine îl OGLINDIM
 # față de player — adică inamicul vine dinspre interior, nu de peste prăpastie, și rămâne la

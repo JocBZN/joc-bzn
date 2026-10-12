@@ -154,8 +154,8 @@ func show_gameover(secunde: float, nivel: int) -> void:
 	# automată n-ar mai găsi cheia din i18n.gd
 	time_label.text = tr("Survived: %d:%02d") % [m, s]
 	# dacă a trecut de cele 10 minute, arătăm separat cât a rezistat în Final Swarm
-	if secunde >= Difficulty.RUN_LENGTH:
-		var o := int(secunde - Difficulty.RUN_LENGTH)
+	if secunde >= Difficulty.run_length():
+		var o := int(secunde - Difficulty.run_length())
 		time_label.text += tr("   (Final Swarm: +%d:%02d)") % [o / 60, o % 60]
 	level_label.text = tr("Level reached: %d") % nivel
 	kills_label.text = tr("Kills: %d") % kills

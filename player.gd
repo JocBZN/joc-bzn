@@ -596,10 +596,15 @@ func _ready() -> void:
 	# ca oricare alta) — vezi `unlocks.gd`.
 	if not Unlocks.e_deblocat(weapon_type):
 		weapon_type = "pistol"
+	# Dual Wield: CHOOSE WEAPON nu mai contează, ambele arme sunt la întâmplare (vezi `challenges.gd`)
+	var dual := _doua_arme_random() if Challenges.e_activ("dual_wield") else []
+	if not dual.is_empty():
+		weapon_type = dual[0]
 	arma_aleasa = weapon_type      # bonusul de nivel se leagă de ASTA, nu de ce trage acum
 	_aplica_arma()  # damage-ul și cadența de bază ale armei alese — ÎNAINTE de meta
 	_apply_meta()  # upgrade-uri permanente cumpărate din meniu (meta-progresie)
 	_aplica_op_start()  # cheat-ul din meniu — ULTIMUL, ca să scrie peste armă și peste meta
+	_aplica_challenge(dual[1] if dual.size() > 1 else "")   # DUPĂ tot, ca −10 damage să fie din total
 	# Reperul lui Diesel Power = viteza cu care PORNEȘTI runda, luată DUPĂ META. Așa itemul
 	# măsoară viteza câștigată în rundă (Weird Concoction, Alex's Protection), nu ce ai cumpărat
 	# din magazin — altfel cine are Speed-ul maxat ar începe cu bonusul deja pe jumătate dat.
@@ -2724,11 +2729,12 @@ func arme_libere() -> Array:
 	return libere
 
 # Adaugă o armă secundară la întâmplare. Întoarce ce a dat, sau "" dacă nu mai era nimic.
-func adauga_arma_secundara() -> String:
+# `alta` = o armă anume (Dual Wield o alege singur, din cele deblocate); "" = la întâmplare.
+func adauga_arma_secundara(alta: String = "") -> String:
 	var libere := arme_libere()
 	if libere.is_empty():
 		return ""
-	var noua: String = libere[randi() % libere.size()]
+	var noua: String = alta if libere.has(alta) else libere[randi() % libere.size()]
 	arme_secundare.append(noua)
 	var t := Timer.new()
 	t.wait_time = _interval_secundar(noua)
@@ -2817,6 +2823,33 @@ func _aplica_op_start() -> void:
 	# panoul OP START și în panoul de statusuri. `casino.gd::_aplica` face la fel, la „proj".
 	bullet_count = 1
 	stacked_armory_stacks = maxi(0, GameSettings.OP_PROJECTILES - bullet_count)
+
+# --- CHALLENGE-URI (2026-10-12) — cifrele și explicația stau în `challenges.gd` ---
+# Se aplică la start, DUPĂ armă + meta + OP, deci panoul de statusuri le ia drept „de bază"
+# (`_stats_base` se scrie mai jos în `_ready`), fără săgeți roșii permanente.
+# `a_doua` = arma secundară a lui Dual Wield ("" la celelalte).
+func _aplica_challenge(a_doua: String) -> void:
+	if Challenges.e_activ("speedrunner"):
+		luck += Challenges.SPEEDRUN_LUCK
+	elif Challenges.e_activ("dual_wield"):
+		bullet_damage = maxi(Challenges.DUAL_DAMAGE_MIN, bullet_damage - Challenges.DUAL_DAMAGE)
+		fire_interval /= Challenges.DUAL_ATTACK_SPEED   # −50% attack speed = pauza de 2× mai lungă
+		if a_doua != "":
+			adauga_arma_secundara(a_doua)
+
+# Două arme DIFERITE la întâmplare pentru Dual Wield. Din cele DEBLOCATE — un challenge nu e o
+# scurtătură spre armele pe care încă nu le-ai câștigat. Dacă ai deblocate mai puțin de două,
+# a doua se ia din toate (altfel n-ar mai fi „dual").
+func _doua_arme_random() -> Array:
+	var toate := ARME.keys()
+	var deblocate := toate.filter(func(a): return Unlocks.e_deblocat(a))
+	deblocate.shuffle()
+	var out := deblocate.slice(0, 2)
+	if out.size() < 2:
+		var rest := toate.filter(func(a): return not out.has(a))
+		rest.shuffle()
+		out.append_array(rest.slice(0, 2 - out.size()))
+	return out
 
 # Aplică upgrade-urile permanente (meta-progresie) la începutul rundei.
 func _apply_meta() -> void:

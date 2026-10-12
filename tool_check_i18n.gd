@@ -18,7 +18,7 @@ extends Node
 # Listele de ITEME (nume + descriere). A fost aici și `dubios_menu.gd` (2026-08-12 → 08-14), cât
 # omul în palton avea pool-ul lui de patru iteme, care nu trecea prin `levelup.gd`. Acum el nu mai
 # vinde nimic, joacă barbut — textele meniului lui sunt prinse de verificările [4] și [5].
-const LISTE_ITEME := ["res://levelup.gd"]
+const LISTE_ITEME := ["res://levelup.gd", "res://challenges.gd"]   # challenge-urile au tot „nume"/„desc" (2026-10-12)
 # fișierele care desenează text; restul n-au UI
 const FISIERE_UI := [
 	"res://menu.gd", "res://settings_ui.gd", "res://pause.gd", "res://gameover.gd",
@@ -34,6 +34,7 @@ const FISIERE_UI := [
 	# e doar al mesei și aparatul se deschide normal — dar rămâne în listă, pentru textul următor.
 	"res://casino.gd", "res://egt.gd",
 	"res://alba_menu.gd",   # Alba-Neagra (2026-08-11)
+	"res://victory.gd",     # ecranul YOU WIN! (+ „Challenge complete", 2026-10-12)
 	"res://dubios_menu.gd", # marfa dubiosului (2026-08-12)
 	# Pușcăria, a patra dimensiune (2026-08-17): dimensiunea, statuia care scoate boss-ul, boss-ul
 	# însuși, plus `portal_ender.gd` — el dă acum din `eticheta()` textul de deasupra porții.
@@ -52,6 +53,7 @@ const IGNORATE := [
 	"keybinds", "graphics", "gamepad", "main", "settings", "language", "weapon", "character",
 	"interact",   # `Gamepad.nume_buton("interact")` — nume de ACȚIUNE, nu text de pe ecran
 	"leaderboard", "opstart", "save", "same", "up", "down",
+	"mod",   # cheia paginii CHOOSE MODE din `_show` (2026-10-12)
 ]
 
 var _erori := 0

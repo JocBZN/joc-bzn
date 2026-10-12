@@ -590,9 +590,50 @@ func _linie(latime: float, inaltime: int) -> Control:
 
 # Chemată de player (player.gd -> _level_up) la fiecare creștere în nivel.
 func open() -> void:
+	if Challenges.e_activ("randomizer"):
+		_randomizer()
+		return
 	_pending += 1
 	if not visible:
 		_show_choices()
+
+# --- RANDOMIZER (challenge, 2026-10-12) ---
+# Răzvan: „aici vreau sa nu mai conteze sansele de la iteme doar primeste la fiecare level un
+# upgrade random". Deci fără ecran de alegere și fără roata rarităților (`_trage_raritate`): fiecare
+# item disponibil are ACEEAȘI șansă, un Mythic iese la fel de des ca un Common. Norocul nu mai
+# înclină nimic aici (tot contează la șansele itemelor pe care le ai, ex. Broken Watch).
+#
+# Lucky Die iese din tragere, ca la cufăr (`da_random_acum`): „mai dă-mi o pagină" n-are sens fără
+# pagină. „Unicele" și Helping Hand fără arme libere ies prin `_e_disponibil`, ca peste tot.
+#
+# Ce ai primit se vede ca la cufăr: razele + iconița deasupra ta (`chest_fx.gd`), plus numele pe
+# pancarta aurie din HUD. Jocul NU se oprește — de-aia nu trece prin `_pending`/`_show_choices`.
+# cât de sus deasupra player-ului apare iconița. −210, nu ceva mic: pancarta cu numele (`hud.announce`)
+# stă fix deasupra capului și ar fi acoperit-o — măsurat pe poză, `tool_challenges.tscn`.
+const RANDOMIZER_FX_Y := -210.0
+const CHEST_FX := preload("res://chest_fx.gd")   # aceleași raze + iconiță ca la cufăr
+
+func _randomizer() -> void:
+	var p = get_tree().get_first_node_in_group("player")
+	if p == null:
+		return
+	var pool := []
+	for u in UPGRADES:
+		if u["id"] != "lucky_die" and _e_disponibil(u):
+			pool.append(u)
+	if pool.is_empty():
+		return
+	var u = pool[randi() % pool.size()]
+	_apply(u["id"], p)
+	if u.get("unic", false) and not _luate_unic.has(u["id"]):
+		_luate_unic.append(u["id"])
+	var fx := CHEST_FX.new()
+	p.get_parent().add_child(fx)
+	fx.porneste(p.global_position + Vector2(0, RANDOMIZER_FX_Y), icon_path(u))
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud != null and hud.has_method("announce"):
+		var rar = RARITIES.get(u.get("rar", "common"), RARITIES["common"])
+		hud.announce(u["nume"], u["desc"], (rar["color"] as Color).lerp(Color.WHITE, 0.3))
 
 # Trage o raritate după procentele din RARITY_CHANCE („roata norocului": tăiem un segment
 # proporțional pentru fiecare și vedem unde cade săgeata).

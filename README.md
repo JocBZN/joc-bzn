@@ -154,6 +154,19 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-10-12, challenges · you can no longer walk into the black edge of a dimension)
+
+- **START opens a new page, CHOOSE MODE** (`menu.gd::_build_mod`): **NORMAL** on top, then a **CHALLENGES** section with three rows. Clicking one starts the run with it. One challenge per run; they don't combine.
+  - **Speedrunner** — start with **+10 Luck**, and **every world's timer is 2 minutes shorter**: overworld 10:00 → 8:00 (Final Swarm comes at 8:00), The Below 7:00 → 5:00, Ender 6:00 → 4:00, the castle 5:00 → 3:00. Limbo (1:00) is not a world and is untouched.
+  - **Dual Wield** — **two random weapons** (CHOOSE WEAPON is ignored; picked from the *unlocked* weapons), **−10 Damage** (flat, but never below 1 — the Mage Staff starts at 10) and **−50% Attack Speed**.
+  - **Randomizer** — no level-up screen: every level gives you **one random item, every item with the same chance** (rarity and luck no longer weigh it). You see what you got as the chest's rays + icon above you and its name on the HUD banner. Lucky Die is left out.
+- **The checkmark:** beat **Sir John** with a challenge active → its box turns green (saved in `GameSettings.challenges_done`). The YOU WIN screen says *"Challenge complete: …"*.
+- **Challenge runs don't go into the LEADERBOARD** (`GameSettings.add_score` returns early).
+- Everything about challenges lives in **`challenges.gd`** (new autoload `Challenges`): the list, the numbers, and which challenge is active. To tune one, change the constants there (and the description next to them).
+- **The black edge of The Below / Ender / the castle:** you now stop where the floor **starts** to darken (2300 px from the portal), not 700 px further in, where it is already pitch black (`ground.gd::raza_jucabila`). Enemies can still come out of the dark.
+- Also today: **Diamond Watch removed** (it locked Spellman's XP bar at 5 — the real bug, a rounding issue with Spellman's −5% per level, is fixed for every item), **Cursed Sword swing 50% quieter**, **Third Eye also points to the castle gate** after Celesto, and **Broken Watch / Broken Glasses spawn a bonus Cross** for one full turn, rolled every 3 s.
+- Test tools: `tool_challenges.tscn` (with a window: menu page, the three challenges, leaderboard, checkmark, dimension edge — 29 checks), `tool_xp_spellman.tscn`.
+
 ## Current state (2026-10-02b, a YOU WIN! screen after Sir John)
 
 - 🏆 **Beating Sir John now ends on a victory screen** (`victory.gd`): **YOU WIN!**, then two columns — **THIS RUN** (time, level, enemies killed, chests opened, successful and lost gambles, counting up from 0) and **YOUR STATS** (read straight from `player.gd::stat_lines()`, the same numbers and colours as the level-up panel). At the bottom: **CONTINUE** (keep playing the run) and **MAIN MENU** (the run counts as won: it goes on the leaderboard and the run's coins are banked, like Game Over).

@@ -17,6 +17,10 @@ var character: String = "grasu"
 # aici e doar sertarul, fiindcă `_save()`/`_load()` sunt aici. Cheia lipsă = încă încuiat.
 var unlocked: Dictionary = {}
 
+# Challenge-urile terminate (Sir John bătut cu ele active): id -> true. Bifele din CHOOSE MODE.
+# Logica stă în `challenges.gd`; aici e doar sertarul, ca la `unlocked`.
+var challenges_done: Dictionary = {}
+
 const SAVE_PATH := "user://scores.save"
 
 var scores: Array = []          # {"time": float, "level": int, "kills": int}, cele mai bune primele
@@ -327,6 +331,10 @@ func bank_run_coins() -> void:
 
 # --- leaderboard ---
 func add_score(time_sec: float, level: int, kills: int = 0) -> void:
+	# Rundele cu challenge NU intră în clasament (ales de Răzvan, 2026-10-12): Speedrunner taie
+	# cronometrele, deci timpii nu s-ar mai putea compara cu ai unei runde normale.
+	if not Challenges.normal():
+		return
 	scores.append({"time": time_sec, "level": level, "kills": kills})
 	scores.sort_custom(func(a, b): return a["time"] > b["time"])
 	if scores.size() > 10:
@@ -345,6 +353,7 @@ func _save() -> void:
 			"language": language, "op_start": op_start, "vibration": vibration,
 			"character": character,
 			"unlocked": unlocked,
+			"challenges_done": challenges_done,
 		})
 
 func _load() -> void:
@@ -376,6 +385,8 @@ func _load() -> void:
 		# salvare de dinainte de deblocări (2026-09-07) → tot ce are cerință rămâne încuiat, adică
 		# jucătorul vechi le redeschide jucând, ca oricare altul. Vezi `unlocks.gd`.
 		unlocked = data.get("unlocked", {})
+		# salvare de dinainte de challenge-uri (2026-10-12) → nicio bifă
+		challenges_done = data.get("challenges_done", {})
 	elif data is Array:
 		scores = data  # format vechi (doar scoruri) → rămâne compatibil
 
@@ -404,6 +415,7 @@ func sterge_salvarea() -> void:
 	coins = 0
 	upgrades = {}
 	unlocked = {}
+	challenges_done = {}
 	character = "grasu"
 	weapon_type = "pistol"
 	reset_run()

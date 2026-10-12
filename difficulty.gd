@@ -22,6 +22,14 @@ extends Node
 
 const RUN_LENGTH := 600.0     # 10 minute = cât ține faza 1
 
+# Cât ține faza 1 în runda ASTA. Speedrunner taie 2 minute (`Challenges.secunde_minus`), deci
+# Final Swarm vine la 8:00. Toată socoteala din fișierul ăsta trece pe aici, nu pe constantă:
+# inamicii cresc pe minut la fel, doar că urcarea se oprește și Final Swarm începe mai devreme.
+# ⚠️ Din afară, cere `run_length()`, nu `RUN_LENGTH` — altfel la Speedrunner afișezi altceva
+# decât simte jocul (vezi `gameover.gd`, `nether.gd`, `ender.gd`, `prison.gd`).
+func run_length() -> float:
+	return maxf(60.0, RUN_LENGTH - Challenges.secunde_minus())
+
 # --- FAZA 1, PARTEA LINIARĂ: primele `RAMP_START` secunde (cât crește pe MINUT) ---
 # Începutul rundei a rămas exact cum era — reclamația lui Răzvan era că DUPĂ 1:30
 # inamicii rămân în urmă, nu că e greu la început.
@@ -156,29 +164,29 @@ func mult_time() -> float:
 	return _mult_time()
 
 func _mult_is_fs() -> bool:
-	return _mult_time() >= RUN_LENGTH
+	return _mult_time() >= run_length()
 
 func _mult_overtime() -> float:
-	return maxf(0.0, _mult_time() - RUN_LENGTH)
+	return maxf(0.0, _mult_time() - run_length())
 
 # --- Unde suntem în rundă ---
 
 # true din secunda în care cele 10 minute s-au terminat
 func is_final_swarm() -> bool:
-	return time >= RUN_LENGTH
+	return time >= run_length()
 
 # Câte secunde au trecut DE CÂND a început Final Swarm (0 dacă n-a început).
 func overtime() -> float:
-	return maxf(0.0, time - RUN_LENGTH)
+	return maxf(0.0, time - run_length())
 
 # Câte secunde mai sunt din cele 10 minute (0 după ce s-au terminat).
 func time_left() -> float:
-	return maxf(0.0, RUN_LENGTH - time)
+	return maxf(0.0, run_length() - time)
 
 # Minutele din faza 1, oprite la 10 (ca liniarul să nu curgă și în Final Swarm —
 # acolo preia exponențiala).
 func _phase1_minutes() -> float:
-	return minf(_mult_time(), RUN_LENGTH) / 60.0
+	return minf(_mult_time(), run_length()) / 60.0
 
 # Minutele din partea LINIARĂ (primele 1:30) — folosite de HP și XP ca punct de plecare.
 func _lin_minutes() -> float:
@@ -186,7 +194,7 @@ func _lin_minutes() -> float:
 
 # Minutele din faza 1 de DUPĂ rampă — aici creșterea e compusă (pow, nu înmulțire liniară).
 func _ramp_minutes() -> float:
-	return maxf(0.0, minf(_mult_time(), RUN_LENGTH) - RAMP_START) / 60.0
+	return maxf(0.0, minf(_mult_time(), run_length()) - RAMP_START) / 60.0
 
 # Factorul exponențial: 1.0 înainte de Final Swarm, apoi se dublează la fiecare
 # `double_every` secunde.
@@ -236,7 +244,7 @@ func spawn_mult() -> float:
 # ale funcției (exact ce face Nether-ul) îl simplifică oricum, iar cine cere una singură trebuie
 # să primească aceeași cifră ca înainte.
 func spawn_mult_la(t: float) -> float:
-	var faza1 := minf(t, RUN_LENGTH) / 60.0
+	var faza1 := minf(t, run_length()) / 60.0
 	var m := 1.0 + SPAWN_PER_MIN * faza1
 	# Cerut de Răzvan pe 2026-07-22: după minutul 2 curg de DOUĂ ori mai mulți inamici.
 	# E un salt brusc, nu o rampă — exact asta a cerut („după minutul 2, 2× mai mulți decât
@@ -244,8 +252,8 @@ func spawn_mult_la(t: float) -> float:
 	# Trece prin `_mult_time()`, ca să respecte înghețarea din Limbo ca toate celelalte.
 	if t >= SPAWN_DOUBLE_AFTER:
 		m *= SPAWN_DOUBLE_MULT
-	if t >= RUN_LENGTH:
-		m *= FS_SPAWN_JUMP * pow(2.0, (t - RUN_LENGTH) / FS_SPAWN_DOUBLE_EVERY)
+	if t >= run_length():
+		m *= FS_SPAWN_JUMP * pow(2.0, (t - run_length()) / FS_SPAWN_DOUBLE_EVERY)
 	return m * trade_penalty
 
 func xp_mult() -> float:

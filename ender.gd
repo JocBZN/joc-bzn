@@ -26,6 +26,11 @@ const BOSS := preload("res://celesto.tscn")
 
 # --- reglaje (schimbă-le liniștit) ---
 const ENDER_TIME := 360.0       # 6:00 — cât ține faza „normală" înainte de Ender Swarm
+# Cât ține faza normală în runda ASTA: `ENDER_TIME` minus ce taie Speedrunner (2 minute, vezi
+# `challenges.gd`). Tot fișierul citește de aici, nu constanta — cronometru, swarm, dificultate.
+func _durata() -> float:
+	return maxf(30.0, ENDER_TIME - Challenges.secunde_minus())
+
 const XP_BONUS := 3.0           # de câte ori mai mult XP lasă inamicii de aici (Nether-ul dă 2)
 const BURST := 20               # câți inamici apar DEODATĂ la intrare
 const BURST_RADIUS := 640.0     # la ce distanță de tine apar (cerc în jurul tău)
@@ -198,7 +203,7 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	Audio.stop_forest_ambient()
 	Audio.play("teleport", TELEPORT_DB, 0.0)
 	Audio.stop_music_tinand_minte()
-	_clock.text = _mmss(ENDER_TIME)
+	_clock.text = _mmss(_durata())
 	_clock.add_theme_color_override("font_color", CLOCK_COLOR)
 	_clock.visible = true
 	_flash_screen(FLASH_CUT)   # scurt: peste el începe imediat cinematica (vezi FLASH_CUT)
@@ -266,7 +271,7 @@ func _process(delta: float) -> void:
 	Difficulty.mult_time_override = _diff_time()
 	_update_clock()
 	_update_compass()
-	if not _swarm_announced and _elapsed >= ENDER_TIME:
+	if not _swarm_announced and _elapsed >= _durata():
 		_swarm_announced = true
 		_announce("ENDER SWARM", "The well still works. For now.")
 		Audio.play("levelup", -2.0)
@@ -431,8 +436,8 @@ func _shake_stop(cam: Camera2D) -> void:
 # Identic cu Nether-ul: două drepte, luăm maximul (deci nu scade niciodată brusc).
 func _diff_time() -> float:
 	var t := _entry_diff_time + _elapsed
-	if _elapsed >= ENDER_TIME:
-		t = maxf(t, Difficulty.RUN_LENGTH + (_elapsed - ENDER_TIME))
+	if _elapsed >= _durata():
+		t = maxf(t, Difficulty.run_length() + (_elapsed - _durata()))
 	return t
 
 # Unde e fântâna prin care ai intrat (și pe unde ieși). O cere `ender_statues.gd`, ca să-și
@@ -444,15 +449,15 @@ func portal_pos() -> Vector2:
 
 # Câte secunde mai ai până la Ender Swarm (0 după ce a început).
 func time_left() -> float:
-	return maxf(0.0, ENDER_TIME - _elapsed)
+	return maxf(0.0, _durata() - _elapsed)
 
 # ---------- ecran ----------
 func _update_clock() -> void:
-	if _elapsed >= ENDER_TIME:
-		_clock.text = "+" + _mmss(_elapsed - ENDER_TIME)
+	if _elapsed >= _durata():
+		_clock.text = "+" + _mmss(_elapsed - _durata())
 		_clock.add_theme_color_override("font_color", CLOCK_SWARM)
 		return
-	var ramas := ENDER_TIME - _elapsed
+	var ramas := _durata() - _elapsed
 	_clock.text = _mmss(ramas)
 	_clock.add_theme_color_override("font_color", CLOCK_WARN if ramas <= 60.0 else CLOCK_COLOR)
 

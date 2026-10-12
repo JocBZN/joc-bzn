@@ -367,6 +367,17 @@ const TRAD := {
 "YOU LOSE": ["你输了", "VERLOREN", "PERDISTE", "ТЫ ПРОИГРАЛ", "PERDU", "負け", "PRZEGRANA", "KAYBETTİN"],
 # --- ecranul de VICTORIE (`victory.gd`, 2026-10-02) ---
 "Sir John has fallen": ["约翰爵士倒下了", "Sir John ist gefallen", "Sir John ha caído", "Сэр Джон пал", "Sir John est tombé", "サー・ジョンは倒れた", "Sir John poległ", "Sir John düştü"],
+# CHOOSE MODE + challenge-urile (2026-10-12) — `menu.gd::_build_mod`, `challenges.gd`, `victory.gd`
+"CHOOSE MODE": ["选择模式", "MODUS WÄHLEN", "ELIGE MODO", "ВЫБОР РЕЖИМА", "CHOISIR LE MODE", "モード選択", "WYBIERZ TRYB", "MOD SEÇ"],
+"NORMAL": ["普通", "NORMAL", "NORMAL", "ОБЫЧНЫЙ", "NORMAL", "ノーマル", "NORMALNY", "NORMAL"],
+"CHALLENGES": ["挑战", "HERAUSFORDERUNGEN", "DESAFÍOS", "ИСПЫТАНИЯ", "DÉFIS", "チャレンジ", "WYZWANIA", "MEYDAN OKUMALAR"],
+"Speedrunner": ["速通者", "Speedrunner", "Speedrunner", "Спидраннер", "Speedrunner", "スピードランナー", "Speedrunner", "Speedrunner"],
+"Dual Wield": ["双持", "Beidhändig", "Doble arma", "Две руки", "Double arme", "二刀流", "Dwie bronie", "Çift Silah"],
+"Randomizer": ["随机者", "Zufallsmodus", "Aleatorio", "Рандомайзер", "Aléatoire", "ランダマイザー", "Losowość", "Rastgele"],
+"Start with 10 Luck, -2 minutes in each world.": ["开局10点幸运，每个世界时间-2分钟。", "Start mit 10 Glück, -2 Minuten in jeder Welt.", "Empiezas con 10 de Suerte, -2 minutos en cada mundo.", "Старт с 10 удачи, -2 минуты в каждом мире.", "Commence avec 10 de Chance, -2 minutes dans chaque monde.", "幸運10で開始、各ワールド-2分。", "Start z 10 Szczęścia, -2 minuty w każdym świecie.", "10 Şans ile başla, her dünyada -2 dakika."],
+"Start with 2 random weapons, -10 Damage, -50% Attack Speed.": ["开局两把随机武器，-10伤害，-50%攻速。", "Start mit 2 zufälligen Waffen, -10 Schaden, -50% Angriffstempo.", "Empiezas con 2 armas al azar, -10 de Daño, -50% Velocidad de ataque.", "Старт с 2 случайными оружиями, -10 урона, -50% скорости атаки.", "Commence avec 2 armes au hasard, -10 Dégâts, -50% Vitesse d'attaque.", "ランダムな武器2つで開始、ダメージ-10、攻撃速度-50%。", "Start z 2 losowymi broniami, -10 Obrażeń, -50% Szybkości ataku.", "2 rastgele silahla başla, -10 Hasar, -%50 Saldırı Hızı."],
+"You no longer choose upgrades, rarity no longer matters.": ["不再自选升级，稀有度不再重要。", "Du wählst keine Upgrades mehr, Seltenheit zählt nicht mehr.", "Ya no eliges mejoras, la rareza ya no importa.", "Ты больше не выбираешь улучшения, редкость не важна.", "Tu ne choisis plus tes améliorations, la rareté ne compte plus.", "強化は選べず、レアリティも関係なくなる。", "Nie wybierasz już ulepszeń, rzadkość nie ma znaczenia.", "Artık yükseltme seçmezsin, nadirlik önemsiz."],
+"Challenge complete: %s": ["挑战完成：%s", "Herausforderung geschafft: %s", "Desafío completado: %s", "Испытание пройдено: %s", "Défi réussi : %s", "チャレンジ達成：%s", "Wyzwanie ukończone: %s", "Meydan okuma tamamlandı: %s"],
 "THIS RUN": ["本局", "DIESER LAUF", "ESTA PARTIDA", "ЭТОТ ЗАБЕГ", "CETTE PARTIE", "このラン", "TO PODEJŚCIE", "BU TUR"],
 "YOUR STATS": ["你的属性", "DEINE WERTE", "TUS ESTADÍSTICAS", "ТВОИ ХАРАКТЕРИСТИКИ", "TES STATS", "ステータス", "TWOJE STATYSTYKI", "İSTATİSTİKLERİN"],
 "Time": ["时间", "Zeit", "Tiempo", "Время", "Temps", "時間", "Czas", "Süre"],
