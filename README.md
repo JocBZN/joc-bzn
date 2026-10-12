@@ -154,6 +154,14 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 **Collision:** everything is on the default layer/mask (layer 1). Bullets (Area2D) detect enemies (CharacterBody2D) via `body_entered` and filter with `is_in_group("enemy")`, so no manual collision-layer setup is needed yet.
 
+## Current state (2026-10-12e, the leaderboard is on Steam too)
+
+- **The game now talks to Steam** through **GodotSteam 4.23** (GDExtension, in `addons/godotsteam/` — only the `win64` and `linux64` libraries are kept). Nothing else to install: exporting copies `libgodotsteam…dll` and `steam_api64.dll` next to the `.exe` by itself. ⚠️ When you build for Steam, both DLLs must go into `steam-build\content\` together with the exe and pck.
+- **`steam_lb.gd`** (new autoload `SteamLB`) finds the Steamworks leaderboard **`Highscore`** (Descending, Numeric) and, every time a run goes into the local leaderboard (`GameSettings.add_score`), uploads the **seconds survived** as the score, with **[level, kills]** as details. Steam keeps only your best score. Challenge runs still go nowhere.
+- **LEADERBOARD in the menu has two tabs: LOCAL** (as before) **and STEAM** (the global top 10, with player names; your own row is gold).
+- **Without Steam running, nothing changes**: the STEAM tab says *"Steam is not running"*, and the game works exactly as before.
+- 💡 In Steamworks you can switch the leaderboard's Display Type to **Time (seconds)**, so that the Steam page also shows 12:11 instead of 731. The game doesn't need any change for that.
+
 ## Current state (2026-10-12, challenges · you can no longer walk into the black edge of a dimension)
 
 - **START opens a new page, CHOOSE MODE** (`menu.gd::_build_mod`): **NORMAL** on top, then a **CHALLENGES** section with three rows. Clicking one starts the run with it. One challenge per run; they don't combine.

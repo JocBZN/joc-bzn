@@ -340,6 +340,8 @@ func add_score(time_sec: float, level: int, kills: int = 0) -> void:
 	if scores.size() > 10:
 		scores.resize(10)
 	_save()
+	# și pe Steam (leaderboard-ul „Highscore”); fără Steam pornit nu face nimic — vezi steam_lb.gd
+	SteamLB.trimite_scor(time_sec, level, kills)
 
 # --- salvare / încărcare ---
 func _save() -> void:

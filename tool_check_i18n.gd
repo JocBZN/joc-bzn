@@ -51,6 +51,7 @@ const IGNORATE := [
 	"%d", "%s", "", " ", "MAX",
 	"%d + %d = %d",   # suma de pe masa de zaruri a dubiosului — cifre, n-are ce traduce
 	"keybinds", "graphics", "gamepad", "main", "settings", "language", "weapon", "character",
+	"STEAM",      # tabul din LEADERBOARD (2026-10-12) — nume propriu
 	"interact",   # `Gamepad.nume_buton("interact")` — nume de ACȚIUNE, nu text de pe ecran
 	"leaderboard", "opstart", "save", "same", "up", "down",
 	"mod",   # cheia paginii CHOOSE MODE din `_show` (2026-10-12)

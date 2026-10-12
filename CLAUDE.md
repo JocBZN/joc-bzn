@@ -26,6 +26,19 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12e (leaderboard-ul pe Steam)
+
+**Cerut de Răzvan:** „am facut leaderboard in steamworks - leaga steamworks cu leaderboardu in joc". Întrebat: nume **`Highscore`**, Sort **Descending**, Display **Numeric**.
+
+- **GodotSteam 4.23 GDExtension** (de pe Codeberg, `v4.23-gde`, `godotsteam-4.23-gdextension-plugin-4.4.zip` — GitHub-ul are acum doar build-urile de editor). Copiat în `addons/godotsteam/` DOAR `win64` + `linux64` + fișierele pluginului (18 MB în loc de 110). `.gdextension` mai pomenește android/mac/32-bit — fără efect cât timp nu exportăm acolo. Pluginul de editor („Updater”) NU e activat, nu trebuie.
+- **`steam_lb.gd`** (autoload `SteamLB`, ultimul din listă): `steamInitEx(5107310, true)` (embed callbacks), `findLeaderboard("Highscore")`; `trimite_scor()` → `uploadLeaderboardScore(int(secunde), keep_best=true, [nivel, kills])`; `cere_top()` → `downloadLeaderboardEntries(1, 10, GLOBAL)` → semnalul `intrari_gata`. Numele străinilor: `requestUserInformation(id, true)` + `persona_state_change` → lista se re-emite.
+  - ⚠️ Totul prin `Engine.get_singleton("Steam")`, nu prin clasa `Steam`: fără plugin, un `Steam.x` scris direct ar fi eroare de compilare și ar pica autoload-ul.
+  - Scorurile trimise înainte să se găsească leaderboard-ul (cererea e asincronă) stau în `_de_trimis`.
+- **`game_settings.gd::add_score`** cheamă `SteamLB.trimite_scor` după `_save()` — deci rundele cu challenge rămân pe dinafară și aici.
+- **`menu.gd`**: taburi LOCAL / STEAM în pagina LEADERBOARD (`_lb_arata`, stilul de muchie din `settings_ui.gd::_stil_tab`), `_lb_local()` (codul vechi), `_lb_steam_sosit()`; rândul tău e `modulate` auriu, numele lipsă = „...”. Textele noi traduse în `i18n.gd` (LOCAL, Steam is not running, Loading...); „STEAM” în `IGNORATE` din `tool_check_i18n.gd`.
+- **Verificat:** fără Steam pornit (nu era pe mașină) → avertisment în log, `activ=false`, jocul merge; capturi cu ambele taburi + rânduri Steam simulate; `tool_check_i18n` → „✔ TOTUL E TRADUS”; export „Nicotine & Knives” în scratchpad → `libgodotsteam.windows.template_release.x86_64.dll` + `steam_api64.dll` lângă exe, build-ul pornește și iese curat. `scores.save` neatins (cmp).
+- ⚠️ **NEVERIFICAT cu Steam pornit** (clientul nu rula). Primul test real: pornești Steam, joci o rundă scurtă, mori, tabul STEAM. În consolă trebuie să apară „SteamLB: scor N trimis”.
+
 ## Session log — 2026-10-12d (CHOOSE MODE + 3 challenge-uri · nu mai intri în negrul dimensiunilor)
 
 **Cerut de Răzvan:** „Cand dai start la un run vreau sa te bage in alt meniu in care sa selectezi cum vrei sa joci sa fie Normal si apoi sub el o sectiune challenges: Speedrunner - start with 10 Luck, -2 minutes in each world. Dual Wield - start with 2 random weapons, -10 Damage, -50% Attack Speed. Randomizer - you no longer choose upgrades, rarity no longer matters. (aici vreau sa nu mai conteze sansele de la iteme doar primeste la fiecare level un upgrade random) Si primesti un checkmark cand termini un challenge. Vreau sa nu te lase deloc sa atingi partea neagra de la dimensiuni."

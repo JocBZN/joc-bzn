@@ -182,6 +182,8 @@ var _character_detail := {}
 var _character_preview := ""
 var _caractere := {}           # `CARACTERE` din player.gd (bonusul real), citit o dată
 var _lb_list: VBoxContainer
+var _lb_taburi := {}           # "LOCAL"/"STEAM" -> butonul tabului
+var _lb_tab := "LOCAL"         # tabul deschis (rămâne ales între două vizite)
 
 var _bg_rect: TextureRect       # fundalul (întâi cadrul clar, apoi cadrele animate)
 var _bg_next: TextureRect       # cadrul următor, peste primul, pentru trecerea lină
@@ -1457,16 +1459,83 @@ func _contur_opac(img: Image) -> Rect2i:
 # ---------- LEADERBOARD ----------
 func _build_leaderboard() -> void:
 	var box := _make_panel("leaderboard", "LEADERBOARD")
+	# Două taburi (2026-10-12): LOCAL = top-ul din salvare, STEAM = leaderboard-ul „Highscore” de
+	# pe Steam (steam_lb.gd). Aceeași listă, doar umplută din altă parte.
+	var bara := HBoxContainer.new()
+	bara.alignment = BoxContainer.ALIGNMENT_CENTER
+	bara.add_theme_constant_override("separation", 12)
+	for t in ["LOCAL", "STEAM"]:
+		var b := Button.new()
+		b.text = t
+		b.custom_minimum_size = Vector2(150, 40)
+		b.add_theme_font_size_override("font_size", 20)
+		b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+		b.pressed.connect(_lb_arata.bind(t))
+		_lb_taburi[t] = b
+		bara.add_child(b)
+	box.add_child(bara)
 	_lb_list = VBoxContainer.new()
 	_lb_list.add_theme_constant_override("separation", 6)
 	_lb_list.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_lb_list)
 	box.add_child(_spacer(24))
 	box.add_child(_menu_button("BACK", _show.bind("main")))
+	SteamLB.intrari_gata.connect(_lb_steam_sosit)
 
 func _on_leaderboard() -> void:
+	_lb_arata(_lb_tab)
+	_show("leaderboard")
+
+# Tabul deschis stă aprins pe MUCHIE, ca în Settings (`settings_ui.gd::_stil_tab`).
+func _lb_arata(tab: String) -> void:
+	_lb_tab = tab
+	for t in _lb_taburi:
+		var activ: bool = t == tab
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color8(52, 36, 34) if activ else BTN_MAIN
+		sb.border_color = ACCENT_CLAR if activ else ACCENT_STINS
+		sb.set_border_width_all(3)
+		sb.set_corner_radius_all(2)
+		var peste := sb.duplicate() as StyleBoxFlat
+		peste.bg_color = Color8(64, 44, 40)
+		peste.border_color = ACCENT
+		_lb_taburi[t].add_theme_stylebox_override("normal", sb)
+		_lb_taburi[t].add_theme_stylebox_override("hover", peste)
+		_lb_taburi[t].add_theme_stylebox_override("pressed", peste)
+		_lb_taburi[t].add_theme_color_override("font_color", OS_ALB if activ else Color(0.62, 0.58, 0.56))
+	if tab == "STEAM":
+		_lb_goleste()
+		if SteamLB.motiv != "" and not SteamLB.activ:
+			_lb_list.add_child(_center_label("Steam is not running", 20))
+		else:
+			_lb_list.add_child(_center_label("Loading...", 20))
+			SteamLB.cere_top()
+	else:
+		_lb_local()
+
+func _lb_goleste() -> void:
 	for c in _lb_list.get_children():
 		c.queue_free()
+
+# Răspunsul de la Steam vine mai târziu (o cerere pe rețea), și încă o dată pentru fiecare
+# nume de jucător care n-a fost în cache — de aia lista se reface de fiecare dată când sosește.
+func _lb_steam_sosit(intrari: Array) -> void:
+	if _lb_tab != "STEAM":
+		return
+	_lb_goleste()
+	if intrari.is_empty():
+		_lb_list.add_child(_center_label("No scores yet. Play a round!", 20))
+		return
+	for e in intrari:
+		var t: int = int(e["timp"])
+		var r := _lb_rand(int(e["rank"]), "%d:%02d" % [t / 60, t % 60],
+			tr("Level %d") % int(e["nivel"]), tr("%d kills") % int(e["kills"]), String(e["nume"]) if e["nume"] != "" else "...")
+		if e["eu"]:
+			r.modulate = Color(1.0, 0.92, 0.55)   # rândul tău, auriu — să te găsești dintr-o privire
+		_lb_list.add_child(r)
+
+func _lb_local() -> void:
+	_lb_goleste()
 	if GameSettings.scores.is_empty():
 		_lb_list.add_child(_center_label("No scores yet. Play a round!", 20))
 	else:
@@ -1482,7 +1551,6 @@ func _on_leaderboard() -> void:
 			_lb_list.add_child(_lb_rand(rank, "%d:%02d" % [m, sec],
 				tr("Level %d") % int(s["level"]), tr("%d kills") % k, marcaj))
 			rank += 1
-	_show("leaderboard")
 
 # Un rând de clasament, pe COLOANE.
 #
