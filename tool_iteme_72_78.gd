@@ -327,6 +327,40 @@ func _sectiunea_3() -> void:
 	_cer(tac, "după `opreste()` busola nu mai arată nimic")
 	hud._update_third_eye(_p, 1.0)
 	_cer(not hud._te_arrow.visible, "HUD: fără portaluri, săgeata e stinsă")
+
+	# 3f. POARTA CASTELULUI (2026-10-12): după Celesto singura ușă de pe hartă e poarta, din
+	#     generatorul ei (`prison_gates.gd`). Busola trebuie s-o arate și pe ea.
+	var porti := Node2D.new()
+	porti.name = "PrisonGates"
+	porti.set_script(load("res://prison_gates.gd"))
+	_world.add_child(porti)
+	porti.set_process(false)
+	_cer(porti.cel_mai_apropiat(Vector2.ZERO) == Vector2.INF, "porți: înainte de Celesto busola nu arată nicio poartă")
+	porti.porneste()
+	var gasite_p := 0
+	for loc in LOCURI:
+		var a: Vector2 = porti.cel_mai_apropiat(loc)
+		var b := Vector2.INF
+		var pc: Vector2i = porti._chunk_of(loc)
+		for cx in range(pc.x - porti.SCAN_CHUNKS, pc.x + porti.SCAN_CHUNKS + 1):
+			for cy in range(pc.y - porti.SCAN_CHUNKS, pc.y + porti.SCAN_CHUNKS + 1):
+				var q: Vector2 = porti.chunk_gate_pos(Vector2i(cx, cy))
+				if q != Vector2.INF and (b == Vector2.INF or loc.distance_squared_to(q) < loc.distance_squared_to(b)):
+					b = q
+		_cer(a == b, "poartă lângă %s: %s (pe brânci: %s)" % [str(loc), str(a), str(b)])
+		if a != Vector2.INF:
+			gasite_p += 1
+	_cer(gasite_p >= 3, "%d din %d locuri au o poartă în rază" % [gasite_p, LOCURI.size()])
+	_p.global_position = Vector2.ZERO
+	hud._te_t = 0.0
+	hud._update_third_eye(_p, 1.0)
+	var tinta_p: Vector2 = porti.cel_mai_apropiat(_p.global_position)
+	_cer(tinta_p != Vector2.INF and hud._te_tinta == tinta_p, "HUD: după Celesto săgeata arată poarta castelului (%s)" % str(hud._te_tinta))
+	porti.opreste()
+	hud._te_t = 0.0
+	hud._update_third_eye(_p, 1.0)
+	_cer(not hud._te_arrow.visible, "HUD: după Sir John nu mai e nicio ușă, săgeata e stinsă")
+	porti.queue_free()
 	hud.queue_free()
 	await get_tree().process_frame
 

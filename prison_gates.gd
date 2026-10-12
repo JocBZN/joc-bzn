@@ -220,6 +220,45 @@ func _goleste() -> void:
 		if is_instance_valid(_loaded[key]):
 			_loaded[key].queue_free()
 	_loaded.clear()
+	_cache_busola.clear()
+
+# ---------------------------------------------------------------------------
+# BUSOLA (itemul Third Eye) — și ușa castelului, de pe 2026-10-12
+# ---------------------------------------------------------------------------
+# Răzvan: „Third eye nu arata ultimul portal. Vreau sa ti-l arate si pe ala (usa)". Până azi
+# săgeata întreba doar `portals.gd`, care se oprește când ieși din Ender — adică exact când apar
+# porțile astea. Deci după Celesto busola se stingea și nu-ți arăta niciodată castelul.
+#
+# Același tipar ca `portals.gd::cel_mai_apropiat` (vezi explicația lungă de acolo): întrebăm
+# chunk-urile, nu nodurile încărcate, cu aceeași rază (`SCAN_CHUNKS`), iar răspunsurile se țin
+# în cache fiindcă sunt deterministe. Vector2.INF cât generatorul e stins (înainte de Celesto)
+# sau consumat (după Sir John) — atunci nu există nicio poartă de arătat.
+const SCAN_CHUNKS := 8
+
+var _cache_busola := {}
+
+func cel_mai_apropiat(de_la: Vector2) -> Vector2:
+	if not activ or oprit:
+		return Vector2.INF
+	var pc := _chunk_of(de_la)
+	var best := Vector2.INF
+	var best_d := INF
+	for cx in range(pc.x - SCAN_CHUNKS, pc.x + SCAN_CHUNKS + 1):
+		for cy in range(pc.y - SCAN_CHUNKS, pc.y + SCAN_CHUNKS + 1):
+			var key := Vector2i(cx, cy)
+			var p: Vector2 = Vector2.INF
+			if _cache_busola.has(key):
+				p = _cache_busola[key]
+			else:
+				p = chunk_gate_pos(key)
+				_cache_busola[key] = p
+			if p == Vector2.INF:
+				continue
+			var d := de_la.distance_squared_to(p)
+			if d < best_d:
+				best_d = d
+				best = p
+	return best
 
 func _build_chunk(key: Vector2i) -> Node2D:
 	var container := Node2D.new()

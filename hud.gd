@@ -573,9 +573,9 @@ func _ascunde_third_eye() -> void:
 
 # Nodul generator de portaluri (`World/Portals`), luat prin părintele player-ului — același drum
 # pe care merg `nether.gd::_generator` și `prison_gates.gd`.
-func _portals_node(p) -> Node:
+func _portals_node(p, nume: String = "Portals") -> Node:
 	var world = p.get_parent()
-	return world.get_node_or_null("Portals") if world != null else null
+	return world.get_node_or_null(nume) if world != null else null
 
 func _update_third_eye(p, delta: float) -> void:
 	if _te_arrow == null or not ("third_eye" in p) or not bool(p.third_eye) or _in_dimensiune():
@@ -586,10 +586,19 @@ func _update_third_eye(p, delta: float) -> void:
 	_te_t -= delta
 	if _te_t <= 0.0:
 		_te_t = TE_REFRESH
-		var portals := _portals_node(p)
+		# Toate ușile din joc: portal Nether / fântână Ender (`Portals`) ȘI poarta castelului
+		# (`PrisonGates`, de pe 2026-10-12). Câștigă cea mai apropiată. De obicei e pe hartă doar
+		# un fel o dată (porțile apar când ceilalți s-au oprit), dar dacă mori în Ender după
+		# Celesto rămân amândouă — atunci săgeata arată pur și simplu ușa cea mai apropiată.
 		_te_tinta = Vector2.INF
-		if portals != null and portals.has_method("cel_mai_apropiat"):
-			_te_tinta = portals.cel_mai_apropiat(p.global_position)
+		for nume in ["Portals", "PrisonGates"]:
+			var gen := _portals_node(p, nume)
+			if gen == null or not gen.has_method("cel_mai_apropiat"):
+				continue
+			var t: Vector2 = gen.cel_mai_apropiat(p.global_position)
+			if t != Vector2.INF and (_te_tinta == Vector2.INF \
+					or p.global_position.distance_squared_to(t) < p.global_position.distance_squared_to(_te_tinta)):
+				_te_tinta = t
 	if _te_tinta == Vector2.INF:
 		# nu e niciun portal în raza de căutare (sau generatorul s-a oprit după Celesto)
 		_ascunde_third_eye()

@@ -26,6 +26,19 @@ Quick rules:
 
 ---
 
+## Session log — 2026-10-12b (sunetul Cursed Sword mai încet + Third Eye arată și poarta castelului)
+
+**Cerut de Răzvan:** „Fa sunetu de la cursed sword cu 50% mai incet. Third eye nu arata ultimul portal. Vreau sa ti-l arate si pe ala (usa)"
+
+- **Cursed Sword:** `player.gd::_sword_swing` → `Audio.play("sword", -10.0)` (era −4). −6 dB = jumătate din amplitudine, exact cât face slider-ul „Efecte" pus pe 50%. **Coasa** (`_scythe_swing`, −4) și **cuțitul** (−9) folosesc același fișier și au rămas neatinse. Nu l-am putut asculta — dacă tot e prea tare/încet, se schimbă doar cifra aia.
+- **Third Eye + poarta castelului:** busola întreba doar `World/Portals` (portal Nether / fântână Ender), care se oprește când ieși din Ender — fix când apar porțile castelului, care au generatorul lor (`World/PrisonGates`). Deci după Celesto săgeata dispărea.
+  - `prison_gates.gd` are acum `cel_mai_apropiat(de_la)` + `SCAN_CHUNKS` + `_cache_busola`, copie a tiparului din `portals.gd`. Întoarce `INF` cât generatorul e stins (înainte de Celesto) sau consumat (după Sir John). Cache-ul se golește în `_goleste`.
+  - `hud.gd::_update_third_eye` întreabă ambele generatoare și ia ușa cea mai apropiată. `_portals_node(p, nume)` primește acum numele nodului.
+  - Testat în `tool_iteme_72_78.tscn`, secțiunea 3f (**cu fereastră** — rulat headless se oprește la poza busolei și nu mai ajunge acolo): poarta găsită = căutarea pe brânci, în 4 locuri; HUD-ul arată poarta după Celesto; săgeata se stinge după Sir John. 113 OK, 0 FAIL.
+- Codex (`codex.html` din repo): cardul Third Eye actualizat. Pagina publicată arată doar textul din joc, neschimbat → n-a trebuit republicată.
+
+---
+
 ## Session log — 2026-10-12 (Diamond Watch scos + XP-ul lui Spellman nu se mai blochează)
 
 **Raportat de Răzvan:** „Jucam Spellman si am luat diamond watch si mi s-a bugat xp-ul la 5 - vreau sa scoti diamond watch din joc si sa vezi daca se intampla acelasi lucru si cu tome of knowledge."

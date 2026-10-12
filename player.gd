@@ -1561,7 +1561,10 @@ func _sword_swing() -> void:
 	var is_crit: bool = cr["tiers"] > 0
 	if is_crit:
 		dmg = int(round(dmg * cr["mult"]))
-	Audio.play("sword", -4.0)  # tăietura săbiei
+	# tăietura săbiei. −10 dB de pe 2026-10-12 (era −4; Răzvan: „cu 50% mai încet"): −6 dB = jumătate
+	# din amplitudine, exact cât face slider-ul „Efecte" pus pe 50% (`Audio._lin_to_db`).
+	# Coasa (`_scythe_swing`) folosește același sunet și a rămas pe −4.
+	Audio.play("sword", -10.0)
 	var nod := _spawn_sword_slash(_sword_dir())
 	# Tenta de culoare: la sabie, „proiectilele" extra sunt tăieturi în plus (vezi `_start_burst`),
 	# deci fiecare tăietură ia culoarea următoare din tipar, ca gloanțele dintr-o salvă.

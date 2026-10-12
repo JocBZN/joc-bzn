@@ -267,7 +267,7 @@ Counted **from level 1**, so level 12 means +12%. Nothing is written into a stat
 
 ## Current state (2026-09-23, seven new items and a compass in the overworld)
 
-**Sunglasses** *(Rare, reflect 25% of damage taken)*, **Third Eye** *(Epic, reveal the closest portal)*, **Studio Mic** *(Rare, −10% difficulty)*, ~~**Diamond Watch**~~ *(scos pe 2026-10-12 — bloca XP-ul lui Spellman)*, **Sunscreen** *(Common, +10 Max HP, +1 HP/sec)*, **Museum Piece** *(Rare, −10% move speed, +25% crit chance)* and **Skateboard** *(Rare, +30 movement speed)*. The pool is now **71 items**.
+**Sunglasses** *(Rare, reflect 25% of damage taken)*, **Third Eye** *(Epic, reveal the closest portal — inclusiv poarta castelului după Celesto)*, **Studio Mic** *(Rare, −10% difficulty)*, ~~**Diamond Watch**~~ *(scos pe 2026-10-12 — bloca XP-ul lui Spellman)*, **Sunscreen** *(Common, +10 Max HP, +1 HP/sec)*, **Museum Piece** *(Rare, −10% move speed, +25% crit chance)* and **Skateboard** *(Rare, +30 movement speed)*. The pool is now **71 items**.
 
 Six of the seven ride on channels that already existed — `reflect_pct` (Old Reliable / Vodka), `Difficulty.trade_penalty`, `xp_to_next` (Tome of Knowledge / Grinder), `hp_regen` + `upgrade_max_hp`, `crit_chance` and `speed` — so they are one `_apply` case each and nothing else. Two things did change:
 
