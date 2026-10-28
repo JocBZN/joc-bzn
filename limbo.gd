@@ -71,7 +71,7 @@ const CLOCK_COLOR := Color(1.0, 0.10, 0.10)     # roșu aprins
 # (aparatele de cazinou, 2026-07-30) întâi în `nether.gd`, apoi și aici — și cu „Portals",
 # lipsă de aici până pe 2026-08-06, adică în Limbo îți răsăreau portaluri Nether și fântâni
 # Ender („nu vreau sa apara portalul de ender in limbo").
-const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Chests", "EGTs", "Monuments", "Portals", "PrisonGates", "AlbaNeagras", "Dubiosi"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Chests", "EGTs", "Monuments", "Portals", "PrisonGates", "ArenaPortals", "AlbaNeagras", "Dubiosi"]
 # `Paths` (potecile) NU e în `World`, ci frate cu el, direct în `main.tscn` — de aia are
 # nevoie de listă separată. Exact ca în `nether.gd`.
 const ROOT_NODES := ["Paths"]
@@ -440,7 +440,7 @@ func time_left() -> float:
 # În ce dimensiune ai murit? `null` = lumea normală. Nu poți fi în două deodată (`ender.gd` și
 # `nether.gd` se refuză reciproc la intrare), deci primul găsit e cel bun.
 func _dimensiunea_activa() -> Node:
-	for g in ["nether", "ender", "prison"]:
+	for g in ["nether", "ender", "prison", "arena"]:
 		var d := get_tree().get_first_node_in_group(g)
 		if d != null and d.get("active") == true and d.has_method("suspenda"):
 			return d

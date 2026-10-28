@@ -784,7 +784,7 @@ func _porneste_runda(challenge: String) -> void:
 # un challenge." Ce face fiecare challenge stă în `challenges.gd`; aici e doar pagina.
 #
 # NORMAL e butonul mare (ca START), iar challenge-urile sunt rânduri late, cu numele, descrierea și
-# o căsuță în dreapta, bifată verde când l-ai terminat (Sir John bătut cu el activ). Clic = pornește.
+# o căsuță în dreapta, bifată verde când l-ai terminat (arena câștigată cu el activ). Clic = pornește.
 const CHALLENGE_W := 600.0
 const CHALLENGE_H := 70.0
 const BIFA_VERDE := Color(0.44, 0.86, 0.44)   # același verde ca „Challenge complete" din `victory.gd`

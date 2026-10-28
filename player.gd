@@ -2592,6 +2592,10 @@ func die() -> void:
 	var prison := get_tree().get_first_node_in_group("prison")
 	if prison != null and prison.active:
 		prison.exit_prison(false)
+	# ...și pentru Arenă (a cincea, 2026-10-28) — aceeași poveste.
+	var arena := get_tree().get_first_node_in_group("arena")
+	if arena != null and arena.active:
+		arena.exit_arena(false)
 	dead = true
 	var screen := get_tree().get_first_node_in_group("gameover_screen")
 	if screen != null:

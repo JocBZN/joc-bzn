@@ -48,6 +48,10 @@ const DIM_TINT := {
 	# tare toate canalele — pavajul e deja închis, iar inamicii trebuie să rămână vizibili pe el.
 	# N-are shader propriu (nu i s-a cerut unul): doar culoarea + vinieta obișnuită.
 	"prison": Color(0.74, 0.82, 0.74),
+	# ARENA (2026-10-28, `arena.gd`): lumină caldă, spre roșu, ca podeaua ei de sânge închegat.
+	# Verdele și albastrul coborâte doar puțin — cei trei boși (mov, albastru, cenușiu) trebuie să
+	# rămână fiecare în culoarea lui pe ea, nu toți trei într-o baie roșie.
+	"arena": Color(1.02, 0.84, 0.82),
 }
 const DIM_FADE := 0.8         # în câte secunde intră/iese atmosfera (fulgerul de teleportare ține 0.45)
 

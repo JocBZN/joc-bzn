@@ -34,6 +34,8 @@
 [ext_resource type="Script" uid="uid://2w2r708whwe4" path="res://bushes.gd" id="32_bushes"]
 [ext_resource type="Script" uid="uid://1a43s6e7ah0u" path="res://prison_gates.gd" id="33_prison_gates"]
 [ext_resource type="Script" path="res://intro.gd" id="34_intro"]
+[ext_resource type="Script" path="res://arena.gd" id="35_arena"]
+[ext_resource type="Script" path="res://arena_portals.gd" id="36_arena_portals"]
 
 [node name="Main" type="Node2D" unique_id=1097822204]
 position = Vector2(1, 0)
@@ -88,6 +90,10 @@ script = ExtResource("18_portals")
 [node name="PrisonGates" type="Node2D" parent="World" unique_id=1835334884]
 y_sort_enabled = true
 script = ExtResource("33_prison_gates")
+
+[node name="ArenaPortals" type="Node2D" parent="World" unique_id=1835334885]
+y_sort_enabled = true
+script = ExtResource("36_arena_portals")
 
 [node name="Chests" type="Node2D" parent="World" unique_id=86867324]
 y_sort_enabled = true
@@ -150,6 +156,9 @@ script = ExtResource("24_ender")
 
 [node name="Prison" type="CanvasLayer" parent="." unique_id=484967943]
 script = ExtResource("30_prison")
+
+[node name="Arena" type="CanvasLayer" parent="." unique_id=484967944]
+script = ExtResource("35_arena")
 
 [node name="BossBar" type="CanvasLayer" parent="." unique_id=2013417959]
 script = ExtResource("20_bossbar")

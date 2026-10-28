@@ -111,6 +111,18 @@ var _flash_tween: Tween
 
 var _xp1: PackedScene
 
+# ARENA (2026-10-28): lupta finală cu toți trei boșii — vezi aceleași două variabile în
+# `final_boss.gd`. Puse de `arena.gd` ÎNAINTE de `add_child`.
+# ⚠️ În arenă NU-și mai joacă filmulețul de la jumătatea vieții: el pune jocul pe pauză și ia
+# camera, iar cu alți doi boși în cadru (și cu Celesto care se teleportează) ar fi tăiat lupta în
+# bucăți. Trece direct în furie (`_infurie`), cu aceleași cifre.
+var arena: Node = null
+var bara_arena: Node = null
+# ADORMIT = născut pentru cinematica arenei: nu se mișcă, nu atacă, nu-și cere bara. Celesto și
+# Sir John au de mult același steag; Saratalin n-avea nevoie de el până acum, fiindcă el cădea din
+# tavan abia când îl chemai tu.
+var _adormit := false
+
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
 func _ready() -> void:
@@ -119,13 +131,16 @@ func _ready() -> void:
 	# după Nether Swarm e mult mai tare decât unul chemat în primul minut.
 	# viața rămâne fixă (vezi `max_hp`); doar viteza urmează dificultatea rundei
 	speed = speed * Difficulty.enemy_speed_mult()
+	if arena != null:
+		max_hp = int(arena.BOSS_HP)
 	hp = max_hp
 	add_to_group("enemy")   # ca gloanțele să-l lovească și să facă damage la contact
 	add_to_group("boss")    # IMUN la instakill (Hacksaw) — vezi `bullet.gd` / `player.gd`
 	add_to_group("saratalin")
-	var bara := _bara()
-	if bara != null:
-		bara.arata(nume, max_hp)
+	if not _adormit:
+		var bara := _bara()
+		if bara != null:
+			bara.arata(nume, max_hp)
 	_ring_cooldown = ring_interval * 0.5   # nu deschide cu cercul fix în clipa aterizării
 	_build_frames()
 	anim.play(ANIM_COBORARE)
@@ -332,6 +347,8 @@ func in_cinematic() -> bool:
 	return _cinematic
 
 func _bara() -> Node:
+	if arena != null:
+		return bara_arena if is_instance_valid(bara_arena) else null
 	return get_tree().get_first_node_in_group("boss_bar")
 
 # Bara dispare odată cu el: și când moare, și când e șters (ex. ieși din Nether).
@@ -340,9 +357,33 @@ func _exit_tree() -> void:
 	if bara != null and bara.has_method("ascunde"):
 		bara.ascunde()
 
+# ---------- cinematica arenei ----------
+# Chemate de `arena.gd`. `adoarme()` ÎNAINTE de `add_child`.
+func adoarme() -> void:
+	_adormit = true
+
+func trezeste() -> void:
+	_adormit = false
+	if anim != null and anim.sprite_frames != null:
+		anim.play(DIRECTII[2])
+
+# Freeze frame pe o direcție, ca la Celesto / Sir John: cât e jocul înghețat stă pe un cadru.
+func ingheata_spre(dir_nume: String, cadru: int = 0) -> void:
+	if anim == null or anim.sprite_frames == null or not anim.sprite_frames.has_animation(dir_nume):
+		return
+	anim.animation = dir_nume
+	anim.frame = wrapi(cadru, 0, anim.sprite_frames.get_frame_count(dir_nume))
+	anim.pause()
+
+func directie_spre(punct: Vector2) -> String:
+	var d := punct - global_position
+	if d.length() < 0.001:
+		return DIRECTII[2]
+	return DIRECTII[wrapi(int(round(d.angle() / (PI / 4.0))), 0, 8)]
+
 # ---------- luptă ----------
 func _physics_process(delta: float) -> void:
-	if _dying or _coboara or _cinematic:
+	if _dying or _coboara or _cinematic or _adormit:
 		return   # cât coboară / cât ține cinematica nu se mișcă singur și nu atacă
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null:
@@ -427,7 +468,10 @@ func take_damage(amount: int) -> void:
 	# a scăzut sub jumătate → o singură dată, cinematica de fază 2
 	if not _faza2 and hp <= max_hp / 2:
 		_faza2 = true
-		_cinematica_faza2()
+		if arena != null:
+			_infurie()   # în arenă fără filmuleț — vezi `arena` mai sus
+		else:
+			_cinematica_faza2()
 
 func _flash() -> void:
 	if _flash_tween != null and _flash_tween.is_valid():
@@ -441,10 +485,13 @@ func _die() -> void:
 	GameSettings.add_kill()
 	remove_from_group("enemy")
 	remove_from_group("saratalin")
-	# ieșirea din Nether e închisă până cade el — anunțăm dimensiunea că a căzut
-	var nether := get_tree().get_first_node_in_group("nether")
-	if nether != null:
-		nether.boss_invins()
+	if arena != null:
+		arena.boss_mort(self)
+	else:
+		# ieșirea din Nether e închisă până cade el — anunțăm dimensiunea că a căzut
+		var nether := get_tree().get_first_node_in_group("nether")
+		if nether != null:
+			nether.boss_invins()
 	_drop_xp.call_deferred()   # vezi enemy.gd: un Area2D nou nu se poate adăuga în timpul fizicii
 	_premiu_niveluri()
 	_zguduie_camera()
@@ -472,10 +519,15 @@ func _premiu_niveluri() -> void:
 	var p := get_tree().get_first_node_in_group("player")
 	if p == null:
 		return
+	var cate: int = int(arena.NIVELURI_PREMIU) if arena != null else NIVELURI_PREMIU
 	get_tree().create_timer(premiu_intarziere).timeout.connect(
-		p.da_niveluri.bind(NIVELURI_PREMIU, false))
+		p.da_niveluri.bind(cate, false))
 
 func _drop_xp() -> void:
+	# În ARENĂ nu lasă XP: premiul acolo e FIX un nivel („primești doar un nivel când omori unul"). Bila
+	# lui (240 × xp_mult la Sir John) dădea încă nouă niveluri peste el — prins de `tool_arena.tscn`.
+	if arena != null:
+		return
 	var parent := get_parent()
 	if parent == null or _xp1 == null:
 		return

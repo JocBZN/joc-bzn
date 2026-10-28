@@ -51,7 +51,6 @@ const FPS_MERS := 9.0
 const INEL := preload("res://prison_inel.gd")
 const LOVITURA := preload("res://prison_bolovan.gd")
 const TAIETURA := preload("res://castle_taietura.gd")
-const VICTORIE := preload("res://victory.gd")
 
 # ⚠️ 140, nu 62 (urcat pe 2026-08-17, păstrat). Player-ul merge cu 215+, iar cavalerul, spre
 # deosebire de Saratalin (care cade peste tine) și Celesto (care se teleportează în spatele tău),
@@ -117,10 +116,19 @@ var _taietura_cd := 0.0
 var _flash_tween: Tween
 var _xp1: PackedScene
 
+# ARENA (2026-10-28): lupta finală cu toți trei boșii (`arena.gd`). Le pune arena ÎNAINTE de
+# `add_child`. Cu `arena` setat: viața e `arena.BOSS_HP` (2 000 000), bara e `bara_arena` (a lui,
+# nu cea comună), premiul e `arena.NIVELURI_PREMIU` (1), iar la moarte anunță ARENA — nu castelul,
+# și nu deschide ecranul de victorie (ăla vine când cad toți trei).
+var arena: Node = null
+var bara_arena: Node = null
+
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
 func _ready() -> void:
 	speed = speed * Difficulty.enemy_speed_mult()
+	if arena != null:
+		max_hp = int(arena.BOSS_HP)
 	hp = max_hp
 	add_to_group("enemy")
 	add_to_group("boss")       # imun la instakill (Hacksaw) — vezi `bullet.gd`
@@ -366,19 +374,23 @@ func _flash() -> void:
 func _die() -> void:
 	_dying = true
 	GameSettings.add_kill()
-	Achievements.da("Dead Chiverly")   # Sir John bătut
 	remove_from_group("enemy")
 	remove_from_group("final_boss")
 	set_deferred("collision_layer", 0)
 	set_deferred("collision_mask", 0)
 	if _flash_tween != null and _flash_tween.is_valid():
 		_flash_tween.kill()
-	var prison := get_tree().get_first_node_in_group("prison")
-	if prison != null and prison.has_method("boss_invins"):
-		prison.boss_invins()
+	if arena != null:
+		arena.boss_mort(self)
+	else:
+		Achievements.da("Dead Chiverly")   # Sir John bătut
+		var prison := get_tree().get_first_node_in_group("prison")
+		if prison != null and prison.has_method("boss_invins"):
+			prison.boss_invins()
 	_drop_xp.call_deferred()   # Area2D nou nu se poate adăuga în timpul fizicii (vezi enemy.gd)
 	_premiu_niveluri()
-	_victorie()
+	# ⚠️ YOU WIN! NU mai apare aici (mutat pe 2026-10-28, cerut de Răzvan): după Sir John răsar
+	# portalurile arenei, iar victoria vine când cad toți trei boșii acolo (`arena.gd::boss_mort`).
 	_zguduie_camera(0.8)
 	Audio.play("earthquake", Audio.QUAKE_DB, 0.0)
 	var t := create_tween()
@@ -393,21 +405,15 @@ func _premiu_niveluri() -> void:
 	var p := get_tree().get_first_node_in_group("player")
 	if p == null:
 		return
+	var cate: int = int(arena.NIVELURI_PREMIU) if arena != null else NIVELURI_PREMIU
 	get_tree().create_timer(premiu_intarziere).timeout.connect(
-		p.da_niveluri.bind(NIVELURI_PREMIU, false))
-
-# Ecranul YOU WIN! (`victory.gd`). Se agață de SCENA de joc, nu de boss: boss-ul se șterge la
-# capătul animației de moarte, iar ecranul trebuie să-i supraviețuiască. Așteaptă singur să treacă
-# animația și ecranele de Level Up de la premiu — vezi comentariul din capul lui `victory.gd`.
-func _victorie() -> void:
-	if get_tree().get_first_node_in_group("victory_screen") != null:
-		return
-	var v := CanvasLayer.new()
-	v.set_script(VICTORIE)
-	get_tree().current_scene.add_child(v)
-	v.porneste()
+		p.da_niveluri.bind(cate, false))
 
 func _drop_xp() -> void:
+	# În ARENĂ nu lasă XP: premiul acolo e FIX un nivel („primești doar un nivel când omori unul"). Bila
+	# lui (240 × xp_mult la Sir John) dădea încă nouă niveluri peste el — prins de `tool_arena.tscn`.
+	if arena != null:
+		return
 	var parent := get_parent()
 	if parent == null or _xp1 == null:
 		return
@@ -417,6 +423,8 @@ func _drop_xp() -> void:
 	gem.global_position = global_position
 
 func _bara() -> Node:
+	if arena != null:
+		return bara_arena if is_instance_valid(bara_arena) else null
 	return get_tree().get_first_node_in_group("boss_bar")
 
 func _exit_tree() -> void:

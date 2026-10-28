@@ -43,10 +43,29 @@ var _hp_max := 1.0
 var _hp_ultim := -1.0      # ca să clipească doar când chiar a încasat (vezi `set_hp`)
 var _intrare: Tween
 
+# --- ARENA: mai multe bare deodată (2026-10-28) ---
+# În arenă (`arena.gd`) sunt TREI boși vii în același timp, iar o singură bară pe care o scriu
+# toți trei ar fi sărit între ei la fiecare lovitură. Așa că arena își face câte o bară pentru
+# fiecare, cu `slot` pus ÎNAINTE de `add_child`: atunci bara se strânge la o treime din ecran, se
+# așază în coloana ei (0 = stânga, 1 = mijloc, 2 = dreapta) și NU intră în grupul „boss_bar" —
+# grupul rămâne al barei unice din `main.tscn`, pe care o caută restul jocului.
+const SLOT_LATIME := 0.30      # cât din lățime ocupă o bară când sunt trei
+const SLOT_FONT := 18          # numele, mai mic: „SARATALIN THE FALLEN" trebuie să încapă sub o treime
+var slot := -1                 # -1 = bara obișnuită, una singură, centrată
+var sloturi := 3
+
 func _ready() -> void:
-	add_to_group("boss_bar")
+	if slot < 0:
+		add_to_group("boss_bar")
 	layer = 6                                  # peste HUD (nether e 4), sub Level Up / Game Over
 	process_mode = Node.PROCESS_MODE_ALWAYS    # vezi nota de sus: cinematica rulează pe pauză
+
+	# centrul și lățimea barei, ca fracții din ecran
+	var centru := 0.5
+	var latime := LATIME
+	if slot >= 0:
+		latime = SLOT_LATIME
+		centru = (float(slot) + 0.5) / float(maxi(sloturi, 1))
 
 	var radacina := Control.new()
 	radacina.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -56,8 +75,8 @@ func _ready() -> void:
 
 	_bara = BARA.new()
 	_bara.construieste(Vector2i(0, 3), 1, 12, 8, C_VIATA, C_URMA)
-	_bara.anchor_left = 0.5 - LATIME * 0.5
-	_bara.anchor_right = 0.5 + LATIME * 0.5
+	_bara.anchor_left = centru - latime * 0.5
+	_bara.anchor_right = centru + latime * 0.5
 	_bara.anchor_top = 0.0
 	_bara.anchor_bottom = 0.0
 	_bara.offset_top = DE_SUS
@@ -67,15 +86,15 @@ func _ready() -> void:
 
 	# numele, SUB plăcuță
 	_nume = Label.new()
-	_nume.anchor_left = 0.5
-	_nume.anchor_right = 0.5
+	_nume.anchor_left = centru
+	_nume.anchor_right = centru
 	_nume.anchor_top = 0.0
 	_nume.anchor_bottom = 0.0
 	_nume.offset_top = DE_SUS + INALTIME + 4.0
 	_nume.offset_bottom = DE_SUS + INALTIME + 40.0
 	_nume.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_nume.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_nume.add_theme_font_size_override("font_size", 26)
+	_nume.add_theme_font_size_override("font_size", SLOT_FONT if slot >= 0 else 26)
 	_nume.add_theme_color_override("font_color", C_NUME)
 	_nume.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	_nume.add_theme_constant_override("outline_size", 7)

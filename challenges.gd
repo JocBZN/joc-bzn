@@ -21,7 +21,7 @@ extends Node
 #   randomizer  — `levelup.gd::open`: nu mai apare ecranul de alegere, primești pe loc un item la
 #                 întâmplare, cu ȘANSE EGALE pentru toate (raritatea și norocul nu mai contează).
 #
-# BIFA: o primești când îl bați pe Sir John cu challenge-ul activ (`victory.gd`). Se ține în
+# BIFA: o primești când câștigi ARENA (toți trei boșii; până pe 2026-10-28: Sir John) cu challenge-ul activ (`victory.gd`). Se ține în
 # salvare (`GameSettings.challenges_done`). Runda cu challenge NU intră în leaderboard
 # (`GameSettings.add_score` iese din prima) — ales de Răzvan.
 
@@ -64,7 +64,7 @@ func nume(id: String) -> String:
 func terminat(id: String) -> bool:
 	return bool(GameSettings.challenges_done.get(id, false))
 
-# Cheamă-l când runda e CÂȘTIGATĂ (Sir John a căzut). Întoarce true dacă abia acum s-a bifat.
+# Cheamă-l când runda e CÂȘTIGATĂ (au căzut cei trei din arenă). Întoarce true dacă abia acum s-a bifat.
 func marcheaza_terminat() -> bool:
 	if activ == "" or terminat(activ):
 		return false

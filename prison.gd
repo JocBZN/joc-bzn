@@ -75,7 +75,7 @@ const SHAKE_TIME := 0.9
 # ⚠️ Aceeași listă ca în `nether.gd` / `ender.gd` / `limbo.gd`. Un generator nou pus în `World`
 # (main.tscn) trebuie trecut în TOATE. Dacă lipsește dintr-una, rămâne aprins acolo și-i vezi
 # obiectele într-o dimensiune în care n-au ce căuta (s-a întâmplat de trei ori).
-const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "ArenaPortals", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
 const ROOT_NODES := ["Paths"]
 
 var active := false
@@ -221,7 +221,7 @@ func _ready() -> void:
 func enter(player: Node2D, poarta: Node2D) -> void:
 	if active or player == null or player.dead or poarta == null:
 		return
-	for g in ["limbo", "nether", "ender"]:
+	for g in ["limbo", "nether", "ender", "arena"]:
 		var alta := get_tree().get_first_node_in_group(g)
 		if alta != null and alta.active:
 			return
@@ -308,7 +308,7 @@ func exit_prison(anunt: bool = true) -> void:
 	if anunt:
 		Audio.play("teleport", TELEPORT_DB, 0.0)
 		_flash_screen()
-		_anunta("BACK", "Nothing is left to open")
+		_anunta("BACK", "Red portals have opened in the world")
 		_inchide_poarta()
 
 # ⚠️ `_cut_activ`: cât ține cinematica de intrare, ceasul castelului NU curge. Altfel ai pierde
@@ -336,6 +336,13 @@ func boss_invins() -> void:
 	sir_john_invins = true
 	_anunta("SIR JOHN FALLS", "Press E at the gate to go back")
 	Audio.play("levelup", -2.0)
+	# 2026-10-28: castelul NU mai e capătul. De acum lumea scoate PORTALURI DE ARENĂ (`arena_portals.gd`)
+	# — lupta cu toți trei boșii, după care vine YOU WIN! (mutat din `final_boss.gd` în `arena.gd`).
+	# Se aprind ACUM, la moartea lui, nu la ieșire: același motiv ca porțile după Celesto (vezi
+	# `prison_gates.gd`). Cât ești în castel generatorul e oricum stins, deci apar odată cu decorul.
+	var arene := _generator("ArenaPortals")
+	if arene != null and arene.has_method("porneste"):
+		arene.porneste()
 
 # ---------- PAUZĂ CÂT EȘTI ÎN LIMBO ----------
 # Identic cu `ender.gd::suspenda()` — citește comentariul lung de acolo.

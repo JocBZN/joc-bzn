@@ -370,6 +370,22 @@ const TRAD := {
 "YOU LOSE": ["你输了", "VERLOREN", "PERDISTE", "ТЫ ПРОИГРАЛ", "PERDU", "負け", "PRZEGRANA", "KAYBETTİN"],
 # --- ecranul de VICTORIE (`victory.gd`, 2026-10-02) ---
 "Sir John has fallen": ["约翰爵士倒下了", "Sir John ist gefallen", "Sir John ha caído", "Сэр Джон пал", "Sir John est tombé", "サー・ジョンは倒れた", "Sir John poległ", "Sir John düştü"],
+# --- ARENA, lupta cu toți trei boșii (`arena.gd`, `portal_arena.gd`, 2026-10-28) ---
+"The three have fallen": ["三者皆已倒下", "Die Drei sind gefallen", "Los tres han caído", "Все трое пали", "Les trois sont tombés", "三者は倒れた", "Cała trójka poległa", "Üçü de düştü"],
+"Enter the Arena": ["进入竞技场", "Arena betreten", "Entrar en la arena", "Войти на арену", "Entrer dans l’arène", "アリーナに入る", "Wejdź na arenę", "Arenaya gir"],
+"Leave the Arena": ["离开竞技场", "Arena verlassen", "Salir de la arena", "Покинуть арену", "Quitter l’arène", "アリーナを出る", "Opuść arenę", "Arenadan çık"],
+"THE RECKONING": ["清算之时", "DIE ABRECHNUNG", "EL AJUSTE DE CUENTAS", "РАСПЛАТА", "LE JUGEMENT", "審判の時", "ROZRACHUNEK", "HESAPLAŞMA"],
+"Three crowns. One survivor.": ["三顶王冠，一个幸存者。", "Drei Kronen. Ein Überlebender.", "Tres coronas. Un superviviente.", "Три короны. Один выживший.", "Trois couronnes. Un survivant.", "三つの王冠。生き残るのは一人。", "Trzy korony. Jeden ocalały.", "Üç taç. Tek bir hayatta kalan."],
+"From the Below": ["来自下界", "Aus der Unterwelt", "Desde el Inframundo", "Из Нижнего мира", "Venu de l’En-dessous", "下界より", "Z Podziemia", "Alt Dünya’dan"],
+"From the Ender": ["来自末地", "Aus dem Ender", "Desde el Ender", "Из Эндера", "Venu de l’Ender", "エンダーより", "Z Endera", "Ender’dan"],
+"From the Castle": ["来自城堡", "Aus der Burg", "Desde el castillo", "Из замка", "Venu du château", "城より", "Z zamku", "Kale’den"],
+"Two remain": ["还剩两个", "Noch zwei", "Quedan dos", "Осталось двое", "Il en reste deux", "残り二人", "Zostało dwóch", "İki kişi kaldı"],
+"One remains": ["还剩一个", "Noch einer", "Queda uno", "Остался один", "Il en reste un", "残り一人", "Został jeden", "Bir kişi kaldı"],
+"THE RECKONING IS OVER": ["清算已结束", "DIE ABRECHNUNG IST VORBEI", "EL AJUSTE DE CUENTAS HA TERMINADO", "РАСПЛАТА ОКОНЧЕНА", "LE JUGEMENT EST RENDU", "審判は終わった", "ROZRACHUNEK DOBIEGŁ KOŃCA", "HESAPLAŞMA BİTTİ"],
+"THE PORTAL IS SEALED": ["传送门已封印", "DAS PORTAL IST VERSIEGELT", "EL PORTAL ESTÁ SELLADO", "ПОРТАЛ ЗАПЕЧАТАН", "LE PORTAIL EST SCELLÉ", "ポータルは封印されている", "PORTAL JEST ZAPIECZĘTOWANY", "PORTAL MÜHÜRLÜ"],
+"They still stand": ["他们仍然屹立", "Sie stehen noch", "Siguen en pie", "Они ещё стоят", "Ils sont encore debout", "彼らはまだ立っている", "Wciąż stoją", "Hâlâ ayaktalar"],
+"The run is yours": ["这一局属于你", "Der Lauf gehört dir", "La partida es tuya", "Забег за тобой", "La partie est à toi", "この周回はあなたのものだ", "Ta runda należy do ciebie", "Bu tur senin"],
+"Red portals have opened in the world": ["世界中开启了红色传送门", "In der Welt haben sich rote Portale geöffnet", "Se han abierto portales rojos en el mundo", "В мире открылись красные порталы", "Des portails rouges se sont ouverts dans le monde", "世界に赤いポータルが開いた", "Na świecie otworzyły się czerwone portale", "Dünyada kırmızı portallar açıldı"],
 # CHOOSE MODE + challenge-urile (2026-10-12) — `menu.gd::_build_mod`, `challenges.gd`, `victory.gd`
 "CHOOSE MODE": ["选择模式", "MODUS WÄHLEN", "ELIGE MODO", "ВЫБОР РЕЖИМА", "CHOISIR LE MODE", "モード選択", "WYBIERZ TRYB", "MOD SEÇ"],
 "NORMAL": ["普通", "NORMAL", "NORMAL", "ОБЫЧНЫЙ", "NORMAL", "ノーマル", "NORMALNY", "NORMAL"],

@@ -86,7 +86,7 @@ const SHAKE_TIME := 0.9
 # ⚠️ „Dubiosi" NU e în listă, și e singura excepție: de pe 2026-08-14 omul în palton apare NUMAI
 # aici, deci el trebuie să rămână aprins exact când toate celelalte se sting. Regula lui e scrisă
 # invers, la el în generator (`dubiosi.gd` se uită la `nether.active`), nu aici.
-const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "Chests", "EGTs", "Monuments", "AlbaNeagras"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "ArenaPortals", "Chests", "EGTs", "Monuments", "AlbaNeagras"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 
 var active := false
@@ -182,7 +182,7 @@ func enter(player: Node2D, portal_pos: Vector2 = Vector2.INF) -> void:
 	# Nu intrăm peste Limbo sau peste Pușcărie: și ele opresc decorul și rescriu dificultatea,
 	# s-ar bate cap în cap. (Ender-ul nu poate fi activ aici — portalurile Nether nu mai există
 	# după ce s-a trecut la fântâni.)
-	for g in ["limbo", "prison"]:
+	for g in ["limbo", "prison", "arena"]:
 		var alta := get_tree().get_first_node_in_group(g)
 		if alta != null and alta.active:
 			return

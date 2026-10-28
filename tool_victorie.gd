@@ -98,24 +98,18 @@ func _ready() -> void:
 	_cer(not get_tree().paused, "jocul merge mai departe")
 	_cer(not is_instance_valid(v), "ecranul a disparut")
 
-	# [5] drumul ADEVĂRAT: Sir John moare → `final_boss.gd::_die` → ecranul. Fără asta, proba de
-	# mai sus ar fi trecut și cu cârligul din boss șters de tot.
-	print("--- [5] Sir John moare de-adevaratelea ---")
+	# [5] De pe 2026-10-28 Sir John NU mai deschide ecranul: victoria s-a mutat în ARENĂ, după toți
+	# trei boșii (`arena.gd::boss_mort`). Drumul ADEVĂRAT spre ea îl probează `tool_arena.tscn`; aici
+	# verificăm doar că moartea lui (în afara arenei) nu-l mai creează din greșeală.
+	# ⚠️ Moartea lui dă și achievement-ul „Dead Chiverly", care SALVEAZĂ — verifică `scores.save` după.
+	print("--- [5] Sir John moare, dar YOU WIN nu mai e al lui ---")
 	var boss: Node = load("res://final_boss.tscn").instantiate()
 	add_child(boss)
 	boss.global_position = p.global_position + Vector2(600, 0)
 	await get_tree().process_frame
 	boss.take_damage(boss.max_hp + 1)
-	await get_tree().process_frame
-	var v2 := get_tree().get_first_node_in_group("victory_screen")
-	_cer(v2 != null, "moartea lui a creat ecranul de victorie")
-	boss.take_damage(5)   # o lovitură în plus pe cadavru (încă în animație) nu face un al doilea ecran
-	await get_tree().process_frame
-	_cer(get_tree().get_nodes_in_group("victory_screen").size() == 1, "un singur ecran")
 	await get_tree().create_timer(3.0, true).timeout
-	_cer(v2 != null and is_instance_valid(v2) and v2.visible, "si ecranul a aparut dupa animatie")
-	if v2 != null and is_instance_valid(v2):
-		v2._btn_continua.pressed.emit()
+	_cer(get_tree().get_first_node_in_group("victory_screen") == null, "fara ecran de victorie dupa Sir John")
 
 	GameSettings.reset_run()
 	print("\nGATA: %s" % ("TOTUL OK" if _esecuri == 0 else "%d ESECURI" % _esecuri))

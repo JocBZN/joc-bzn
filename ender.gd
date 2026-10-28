@@ -58,7 +58,7 @@ const SHAKE_TIME := 0.9
 # Identic cu lista din `nether.gd`. ⚠️ Când adaugi un generator nou în `World` (main.tscn),
 # treci-l ȘI aici, ȘI în `nether.gd` — altfel rămâne aprins și-i vezi obiectele plutind
 # într-o dimensiune în care n-au ce căuta.
-const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
+const WORLD_NODES := ["Props", "Rocks", "Bushes", "DesertStructures", "Statues", "Portals", "PrisonGates", "ArenaPortals", "Chests", "EGTs", "Monuments", "AlbaNeagras", "Dubiosi"]
 const ROOT_NODES := ["Paths"]   # frați ai lui `World` din main.tscn (potecile)
 # Generatoare care merg PE DOS: stinse în lumea normală, aprinse doar cât ești aici. Deocamdată
 # unul singur — statuile de schimb (`ender_statues.gd`). NU au ce căuta în lista de sus: acolo
@@ -161,7 +161,7 @@ func enter(player: Node2D, fantana: Node2D) -> void:
 	if active or player == null or player.dead or fantana == null:
 		return
 	# Nu intrăm peste Limbo, Nether sau Pușcărie: și ele opresc decorul și rescriu dificultatea.
-	for g in ["limbo", "nether", "prison"]:
+	for g in ["limbo", "nether", "prison", "arena"]:
 		var alta := get_tree().get_first_node_in_group(g)
 		if alta != null and alta.active:
 			return

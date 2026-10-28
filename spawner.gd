@@ -326,7 +326,7 @@ func rata_curenta() -> float:
 
 # Suntem în lumea obișnuită (sau în Limbo, care e tot ea, cu un minut în urmă)?
 func _in_lumea_normala() -> bool:
-	for grup in ["nether", "ender", "prison"]:
+	for grup in ["nether", "ender", "prison", "arena"]:
 		var d := get_tree().get_first_node_in_group(grup)
 		if d != null and d.get("active") == true:
 			return false
@@ -338,6 +338,12 @@ func scena_inamic() -> PackedScene:
 
 # La fiecare tick calculăm din nou cât de deasă e ploaia de inamici.
 func _spawn_tick() -> void:
+	# ARENA (2026-10-28): acolo sunt DOAR cei trei boși, cerut așa de Răzvan — niciun inamic de-al
+	# nostru. Timer-ul merge mai departe în gol, ca să reia singur la ieșire.
+	var arena := get_tree().get_first_node_in_group("arena")
+	if arena != null and arena.get("active") == true:
+		timer.wait_time = 0.5
+		return
 	var rate := rata_curenta()
 	var interval := 1.0 / rate
 	var batch := 1

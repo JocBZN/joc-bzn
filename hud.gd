@@ -376,10 +376,12 @@ func _in_dimensiune() -> bool:
 	var nether := get_tree().get_first_node_in_group("nether")
 	var ender := get_tree().get_first_node_in_group("ender")
 	var prison := get_tree().get_first_node_in_group("prison")
+	var arena := get_tree().get_first_node_in_group("arena")
 	return (limbo != null and limbo.active) \
 		or (nether != null and nether.active) \
 		or (ender != null and ender.active) \
-		or (prison != null and prison.active)
+		or (prison != null and prison.active) \
+		or (arena != null and arena.active)
 
 # Cronometrul: numără invers cele 10 minute, apoi urcă de la 0 cu roșu (Final Swarm).
 func _update_timer() -> void:
@@ -591,7 +593,7 @@ func _update_third_eye(p, delta: float) -> void:
 		# un fel o dată (porțile apar când ceilalți s-au oprit), dar dacă mori în Ender după
 		# Celesto rămân amândouă — atunci săgeata arată pur și simplu ușa cea mai apropiată.
 		_te_tinta = Vector2.INF
-		for nume in ["Portals", "PrisonGates"]:
+		for nume in ["Portals", "PrisonGates", "ArenaPortals"]:
 			var gen := _portals_node(p, nume)
 			if gen == null or not gen.has_method("cel_mai_apropiat"):
 				continue

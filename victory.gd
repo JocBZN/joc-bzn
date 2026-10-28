@@ -1,6 +1,8 @@
 extends CanvasLayer
 
-# Ecranul de VICTORIE: apare după ce l-ai bătut pe SIR JOHN (cerut de Răzvan pe 2026-10-02).
+# Ecranul de VICTORIE: apare după ce i-ai bătut pe TOȚI TREI boșii din ARENĂ (`arena.gd`). Până pe
+# 2026-10-28 apărea după Sir John, în castel (cerut atunci pe 2026-10-02); Răzvan l-a mutat când a
+# adăugat arena — acum castelul deschide portalurile spre ea, iar victoria vine abia la capătul ei.
 #
 #   YOU WIN!
 #   ┌ THIS RUN ──────────┐  ┌ YOUR STATS ─────────┐
@@ -12,9 +14,9 @@ extends CanvasLayer
 # Construit tot din cod, ca `gameover.gd` și `pause.gd`, cu aceeași ramă de aramă și aceleași
 # butoane — e al treilea ecran „de sfârșit", trebuie să arate ca frații lui.
 #
-# 🔑 NU apare în cadrul în care moare Sir John. Moartea lui are o animație de 1,6 s, iar premiul
-# (5 niveluri, `final_boss.gd::_premiu_niveluri`) deschide ecranele de Level Up. Dacă victoria ar
-# fi sărit peste ele, ai fi ales cele 5 upgrade-uri DUPĂ ce ți-am arătat statusurile — adică ți-am
+# 🔑 NU apare în cadrul în care moare ultimul boss. Moartea lui are o animație (Sir John: 1,6 s), iar premiul
+# (1 nivel în arenă — `arena.gd::NIVELURI_PREMIU`) deschide ecranul de Level Up. Dacă victoria ar
+# fi sărit peste ele, ai fi ales upgrade-ul DUPĂ ce ți-am arătat statusurile — adică ți-am
 # fi arătat niște cifre deja vechi. Așa că ecranul ăsta e creat la moartea boss-ului, stă ascuns
 # și așteaptă (`_process`) până trece animația ȘI nu mai e niciun Level Up deschis.
 #
@@ -33,7 +35,7 @@ const VERDE := Color(0.44, 0.86, 0.44)        # aceleași verde/roșu ca la rule
 const ROSU := Color(0.92, 0.38, 0.36)
 
 # --- coregrafia (secunde) ---
-const ASTEPTARE := 2.0      # minimul după moartea lui Sir John: animația lui de moarte e 1,6 s
+const ASTEPTARE := 2.0      # minimul după moartea ultimului boss: a lui Sir John ține 1,6 s, cea mai lungă
 const T_FUNDAL := 0.45      # fundalul se întunecă
 const T_PANOU := 0.40       # panoul „pocnește" în ecran
 const T_NUMARA := 0.9       # cifrele rundei se numără de la 0 în sus
@@ -76,7 +78,7 @@ func _ready() -> void:
 	layer = 16      # peste pauză (15) și Level Up (10), sub Game Over (20)
 	visible = false
 
-# Chemată de `final_boss.gd::_die`. Doar pornește așteptarea — vezi comentariul de sus.
+# Chemată de `arena.gd::_victorie` (când cade ultimul boss). Doar pornește așteptarea — vezi comentariul de sus.
 func porneste() -> void:
 	_asteapta = true
 	_t = 0.0
@@ -134,10 +136,10 @@ func _construieste(p: Node) -> void:
 	_titlu.add_theme_constant_override("outline_size", 8)
 	box.add_child(_titlu)
 
-	var sub := _eticheta("Sir John has fallen", 18, CENUSA)
+	var sub := _eticheta("The three have fallen", 18, CENUSA)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(sub)
-	# CHALLENGE-UL rundei (2026-10-12): Sir John bătut = challenge terminat → bifa din CHOOSE MODE.
+	# CHALLENGE-UL rundei (2026-10-12): arena câștigată (până pe 10-28: Sir John bătut) = challenge terminat → bifa din CHOOSE MODE.
 	# Se bifează AICI, la apariția ecranului, nu la MAIN MENU: CONTINUE e tot o rundă câștigată.
 	if not Challenges.normal():
 		Challenges.marcheaza_terminat()

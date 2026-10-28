@@ -54,6 +54,7 @@ var _desert: Texture2D
 var _brick: Texture2D
 var _nebula: Texture2D
 var _prison: Texture2D
+var _arena: Texture2D   # podeaua castelului recolorată în roșu (`tool_arena_podea.gd`)
 
 func _ready() -> void:
 	add_to_group("ground")   # ca `nether.gd` să poată schimba podeaua
@@ -71,6 +72,8 @@ func _ready() -> void:
 		_nebula = load("res://harta/Portal Ender/misc_nebula.png") as Texture2D
 	if ResourceLoader.exists("res://harta/castle/castle_bg.png"):
 		_prison = load("res://harta/castle/castle_bg.png") as Texture2D
+	if ResourceLoader.exists("res://harta/arena/arena_bg.png"):
+		_arena = load("res://harta/arena/arena_bg.png") as Texture2D
 	_mat = ShaderMaterial.new()
 	_mat.shader = shader
 	_mat.set_shader_parameter("grass_tex", grass)
@@ -141,6 +144,21 @@ func set_prison(on: bool) -> void:
 		return
 	_mat.set_shader_parameter("grass_tex", _prison if on else _grass)
 	_mat.set_shader_parameter("desert_tex", _prison if on else _desert)
+	_mat.set_shader_parameter("tile_size", prison_tile_size if on else tile_size)
+	_set_warp(false, 0.0, 0.0, 0.0)
+
+# Al patrulea: podeaua ARENEI (`arena.gd`, 2026-10-28). Răzvan: „podeaua vreau să fie ca la Sir John
+# doar că colorată altfel" — deci e chiar `castle_bg.png`, trecut prin `tool_arena_podea.gd` în
+# `harta/arena/arena_bg.png` (roșu-sânge, cu aceeași lumină). Aceeași mărime de dală ca la castel,
+# ca să se vadă că e același pământ.
+func set_arena(on: bool) -> void:
+	if _mat == null:
+		return
+	if on and _arena == null:
+		push_warning("Arena: lipsește harta/arena/arena_bg.png (rulează tool_arena_podea.tscn, apoi --headless --import)")
+		return
+	_mat.set_shader_parameter("grass_tex", _arena if on else _grass)
+	_mat.set_shader_parameter("desert_tex", _arena if on else _desert)
 	_mat.set_shader_parameter("tile_size", prison_tile_size if on else tile_size)
 	_set_warp(false, 0.0, 0.0, 0.0)
 

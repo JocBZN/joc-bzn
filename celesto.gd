@@ -108,11 +108,18 @@ var _coasa_mare_cooldown := 0.0
 var _flash_tween: Tween
 var _xp1: PackedScene
 
+# ARENA (2026-10-28): lupta finală cu toți trei boșii — vezi aceleași două variabile în
+# `final_boss.gd`. Puse de `arena.gd` ÎNAINTE de `add_child`.
+var arena: Node = null
+var bara_arena: Node = null
+
 @onready var anim: AnimatedSprite2D = $AnimatedSprite2D
 
 func _ready() -> void:
 	# ca la ceilalți: viteza urmează dificultatea rundei, viața nu
 	speed = speed * Difficulty.enemy_speed_mult()
+	if arena != null:
+		max_hp = int(arena.BOSS_HP)
 	hp = max_hp
 	add_to_group("enemy")         # ca gloanțele să-l lovească
 	add_to_group("boss")          # IMUN la instakill (Hacksaw) — vezi `bullet.gd`
@@ -296,6 +303,14 @@ func ingheata_spre(dir_nume: String, cadru: int = CUT_CADRU) -> void:
 	anim.frame = mini(cadru, anim.sprite_frames.get_frame_count(dir_nume) - 1)
 	anim.pause()
 
+# Direcția (ca nume de animație) dinspre el spre un punct — o cere cinematica ARENEI (`arena.gd`),
+# la fel ca de la Sir John și Saratalin, ca să-i întoarcă pe toți trei spre tine.
+func directie_spre(punct: Vector2) -> String:
+	var d := punct - global_position
+	if d.length() < 0.001:
+		return DIRECTII[2]
+	return DIRECTII[wrapi(int(round(d.angle() / (PI / 4.0))), 0, 8)]
+
 func _uita_spre(dir: Vector2) -> void:
 	if dir.length() < 0.001:
 		return
@@ -467,14 +482,17 @@ func _die() -> void:
 	set_deferred("collision_mask", 0)
 	if _flash_tween != null and _flash_tween.is_valid():
 		_flash_tween.kill()
-	# ieșirea din Ender e închisă până cade el
-	var ender := get_tree().get_first_node_in_group("ender")
-	if ender != null:
-		ender.boss_invins()
+	if arena != null:
+		arena.boss_mort(self)
+	else:
+		# ieșirea din Ender e închisă până cade el
+		var ender := get_tree().get_first_node_in_group("ender")
+		if ender != null:
+			ender.boss_invins()
+		Unlocks.celesto_invins()   # coasa lui se poate alege din meniu de-acum (vezi `unlocks.gd`)
+		Achievements.da("Cosmic Terror")
 	_drop_xp.call_deferred()   # un Area2D nou nu se poate adăuga în timpul fizicii (vezi enemy.gd)
 	_premiu_niveluri()
-	Unlocks.celesto_invins()   # coasa lui se poate alege din meniu de-acum (vezi `unlocks.gd`)
-	Achievements.da("Cosmic Terror")
 	_zguduie_camera(0.5)
 	var t := create_tween()
 	t.set_parallel(true)
@@ -493,10 +511,15 @@ func _premiu_niveluri() -> void:
 	var p := get_tree().get_first_node_in_group("player")
 	if p == null:
 		return
+	var cate: int = int(arena.NIVELURI_PREMIU) if arena != null else NIVELURI_PREMIU
 	get_tree().create_timer(premiu_intarziere).timeout.connect(
-		p.da_niveluri.bind(NIVELURI_PREMIU, false))
+		p.da_niveluri.bind(cate, false))
 
 func _drop_xp() -> void:
+	# În ARENĂ nu lasă XP: premiul acolo e FIX un nivel („primești doar un nivel când omori unul"). Bila
+	# lui (240 × xp_mult la Sir John) dădea încă nouă niveluri peste el — prins de `tool_arena.tscn`.
+	if arena != null:
+		return
 	var parent := get_parent()
 	if parent == null or _xp1 == null:
 		return
@@ -506,6 +529,8 @@ func _drop_xp() -> void:
 	gem.global_position = global_position
 
 func _bara() -> Node:
+	if arena != null:
+		return bara_arena if is_instance_valid(bara_arena) else null
 	return get_tree().get_first_node_in_group("boss_bar")
 
 # Bara dispare odată cu el: și când moare, și când e șters (ex. ieși din Ender).
